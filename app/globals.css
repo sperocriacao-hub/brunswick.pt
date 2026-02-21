@@ -412,3 +412,101 @@ h3 {
 .btn-icon.danger:hover {
   background: rgba(239, 68, 68, 0.1);
 }
+
+/* ==========================================================
+   Responsive Design & Mobile Transitions
+   ========================================================== */
+
+@media (max-width: 1024px) {
+  .dashboard-layout {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    padding: 1rem 1.5rem;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .sidebar-top {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    width: 100%;
+  }
+
+  .sidebar-nav {
+    flex-direction: row;
+    margin-top: 0;
+    gap: 0.5rem;
+    overflow-x: auto;
+    flex: 1;
+    padding-bottom: 0.5rem;
+  }
+
+  .sidebar-link {
+    padding: 0.5rem 1rem;
+    border-left: none !important;
+    border-bottom: 2px solid transparent !important;
+    white-space: nowrap;
+  }
+
+  .sidebar-link.active {
+    border-bottom: 2px solid var(--primary) !important;
+  }
+
+  .brand-title {
+    margin-bottom: 0;
+    font-size: 1.25rem;
+  }
+
+  .user-info-bottom {
+    border-top: none !important;
+    padding-top: 0 !important;
+    margin-top: 0 !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    padding: 1rem;
+  }
+
+  .sidebar-top {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .sidebar-nav {
+    width: 100%;
+  }
+
+  .user-info-bottom {
+    display: none;
+    /* Hide User badge on extra-small screens to preserve layout */
+  }
+
+  .grid-cols-2,
+  .grid-cols-3,
+  .grid-cols-4 {
+    grid-template-columns: 1fr;
+  }
+
+  .main-content {
+    padding: 1rem;
+  }
+
+  .sidebar-text {
+    display: none;
+    /* Mobile - Show solely Iconography to save horizontal space */
+  }
+
+  .sidebar-link {
+    padding: 0.5rem;
+  }
+}
