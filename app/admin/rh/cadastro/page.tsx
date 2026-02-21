@@ -3,7 +3,7 @@
 import React, { useEffect, useState, Suspense } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Loader2, Save, ArrowLeft, Building2, UserCircle, Briefcase, GraduationCap, KeyRound } from 'lucide-react';
+import { Loader2, Save, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 
 // Componente Core contido em Fallback do Suspense Client
@@ -144,9 +144,8 @@ function FuncionarioFormCore() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
                 {/* BLOCO 1: IDENTIFICAÇÃO */}
-                <section className="glass-panel p-6 shadow-xl relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none"><UserCircle size={100} /></div>
-                    <h2 className="text-lg font-bold mb-6 text-[var(--primary)] flex items-center gap-2"><UserCircle size={18} /> I. Identificação Pessoal</h2>
+                <section className="glass-panel p-6 shadow-sm border border-[rgba(255,255,255,0.05)]">
+                    <h2 className="text-base font-semibold mb-6 text-white/90 border-b border-[rgba(255,255,255,0.05)] pb-3">I. Identificação Pessoal</h2>
 
                     <div className="grid grid-cols-2 gap-4 mb-4">
                         <div>
@@ -170,9 +169,8 @@ function FuncionarioFormCore() {
                 </section>
 
                 {/* BLOCO 2: ESTRUTURA E ALOCAÇÃO */}
-                <section className="glass-panel p-6 shadow-xl relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none"><Building2 size={100} /></div>
-                    <h2 className="text-lg font-bold mb-6 text-[var(--success)] flex items-center gap-2"><Building2 size={18} /> II. Alocação Estrutural</h2>
+                <section className="glass-panel p-6 shadow-sm border border-[rgba(255,255,255,0.05)]">
+                    <h2 className="text-base font-semibold mb-6 text-white/90 border-b border-[rgba(255,255,255,0.05)] pb-3">II. Alocação Estrutural</h2>
 
                     <div className="grid grid-cols-2 gap-4 mb-4">
                         <div>
@@ -216,9 +214,8 @@ function FuncionarioFormCore() {
                 </section>
 
                 {/* BLOCO 3: DADOS CONTRATUAIS */}
-                <section className="glass-panel p-6 shadow-xl relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none"><Briefcase size={100} /></div>
-                    <h2 className="text-lg font-bold mb-6 text-amber-500 flex items-center gap-2"><Briefcase size={18} /> III. Vínculo Contratual</h2>
+                <section className="glass-panel p-6 shadow-sm border border-[rgba(255,255,255,0.05)]">
+                    <h2 className="text-base font-semibold mb-6 text-white/90 border-b border-[rgba(255,255,255,0.05)] pb-3">III. Vínculo Contratual</h2>
 
                     <div className="grid grid-cols-2 gap-4 mb-5">
                         <div>
@@ -253,9 +250,8 @@ function FuncionarioFormCore() {
                 </section>
 
                 {/* BLOCO 4: TALENTO E DESENVOLVIMENTO (ILUO) */}
-                <section className="glass-panel p-6 shadow-xl relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none"><GraduationCap size={100} /></div>
-                    <h2 className="text-lg font-bold mb-6 text-indigo-400 flex items-center gap-2"><GraduationCap size={18} /> IV. Avaliação e Talento</h2>
+                <section className="glass-panel p-6 shadow-sm border border-[rgba(255,255,255,0.05)]">
+                    <h2 className="text-base font-semibold mb-6 text-white/90 border-b border-[rgba(255,255,255,0.05)] pb-3">IV. Avaliação e Talento</h2>
 
                     <div className="grid grid-cols-2 gap-4 mb-4">
                         <div>
@@ -283,11 +279,10 @@ function FuncionarioFormCore() {
                 </section>
 
                 {/* BLOCO 5: ACESSOS PLATAFORMA (BACKOFFICE) */}
-                <section className="glass-panel p-6 shadow-xl relative overflow-hidden lg:col-span-2 border-t-4" style={{ borderColor: formData.possui_acesso_sistema ? 'var(--primary)' : 'rgba(255,255,255,0.05)' }}>
-                    <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none"><KeyRound size={100} /></div>
-                    <div className="flex justify-between items-center mb-6">
-                        <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                            <KeyRound size={18} /> V. Acesso ao Sistema (S.C.A.D.A)
+                <section className="glass-panel p-6 lg:col-span-2 shadow-sm border-t-4 border-x border-b border-x-[rgba(255,255,255,0.05)] border-b-[rgba(255,255,255,0.05)]" style={{ borderTopColor: formData.possui_acesso_sistema ? 'var(--primary)' : 'rgba(255,255,255,0.1)' }}>
+                    <div className="flex justify-between items-center mb-6 border-b border-[rgba(255,255,255,0.05)] pb-3">
+                        <h2 className="text-base font-semibold text-white/90">
+                            V. Acesso ao Sistema (S.C.A.D.A)
                         </h2>
                         <label className="flex items-center cursor-pointer gap-2 bg-[rgba(0,0,0,0.3)] p-2 pr-4 rounded-full border border-[rgba(255,255,255,0.1)] hover:border-[rgba(255,255,255,0.3)] transition-all">
                             <input
