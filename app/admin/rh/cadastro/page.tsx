@@ -121,7 +121,7 @@ function FuncionarioFormCore() {
         return <div className="p-20 flex justify-center opacity-50"><Loader2 className="animate-spin" size={40} /></div>;
     }
 
-    const inputClass = "w-full bg-[rgba(0,0,0,0.2)] border border-[rgba(255,255,255,0.1)] rounded px-3 py-2 text-white focus:outline-none focus:border-[var(--primary)]";
+    const inputClass = "form-control";
 
     return (
         <form onSubmit={handleSalvar} className="max-w-5xl mx-auto p-4 sm:p-8 animate-fade-in pb-20">
@@ -220,7 +220,7 @@ function FuncionarioFormCore() {
                     <div className="grid grid-cols-2 gap-4 mb-5">
                         <div>
                             <label className="block text-xs uppercase tracking-wider opacity-60 mb-1">Status RH (Bloqueia Ponto)</label>
-                            <select required value={formData.status} onChange={e => setFormData({ ...formData, status: e.target.value })} className={`${inputClass} appearance-none ${formData.status !== 'Ativo' ? 'text-red-400 border-red-500/50' : 'text-green-400'}`}>
+                            <select required value={formData.status} onChange={e => setFormData({ ...formData, status: e.target.value })} className={`${inputClass} appearance-none`}>
                                 <option value="Ativo">🟢 Operador Ativo</option>
                                 <option value="Inativo">🔴 Inativo / Desligado</option>
                                 <option value="Suspenso">🟡 Suspenso</option>

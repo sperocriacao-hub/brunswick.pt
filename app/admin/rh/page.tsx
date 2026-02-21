@@ -83,7 +83,8 @@ export default function GestaoRHPage() {
                         placeholder="Pesquisar por Nome, Nº, Função ou Tag RFID..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full bg-[rgba(0,0,0,0.2)] border border-[rgba(255,255,255,0.1)] rounded-lg py-3 pl-12 pr-4 text-white focus:outline-none focus:border-[var(--primary)] transition-colors"
+                        className="form-control"
+                        style={{ paddingLeft: '3rem' }}
                     />
                 </div>
                 <div className="text-sm text-white/50 px-4 border-l border-[rgba(255,255,255,0.1)]">
@@ -135,8 +136,8 @@ export default function GestaoRHPage() {
                                     </td>
                                     <td className="p-4">
                                         <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border ${op.status === 'Ativo'
-                                                ? 'bg-green-500/10 text-green-400 border-green-500/20'
-                                                : 'bg-red-500/10 text-red-400 border-red-500/20'
+                                            ? 'bg-green-500/10 text-green-400 border-green-500/20'
+                                            : 'bg-red-500/10 text-red-400 border-red-500/20'
                                             }`}>
                                             {op.status === 'Ativo' ? <UserCheck size={12} /> : <UserX size={12} />}
                                             {op.status}
@@ -153,8 +154,8 @@ export default function GestaoRHPage() {
                                         <button
                                             onClick={() => toggleStatus(op.id, op.status)}
                                             className={`p-2 rounded transition-colors ${op.status === 'Ativo'
-                                                    ? 'bg-[rgba(255,255,255,0.05)] hover:bg-red-500/80 text-white'
-                                                    : 'bg-[rgba(255,255,255,0.05)] hover:bg-green-500/80 text-white'
+                                                ? 'bg-[rgba(255,255,255,0.05)] hover:bg-red-500/80 text-white'
+                                                : 'bg-[rgba(255,255,255,0.05)] hover:bg-green-500/80 text-white'
                                                 }`}
                                             title={op.status === 'Ativo' ? "Suspender/Inativar (Bloqueia IoT)" : "Reativar Colaborador"}
                                         >
