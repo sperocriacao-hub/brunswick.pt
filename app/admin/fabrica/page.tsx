@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Network, Activity, Wrench, Settings, Plus, TableProperties, X, Loader2 } from 'lucide-react';
+import { Network, Activity, Wrench, Settings, Plus, TableProperties, X, Loader2, Edit, Trash2 } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 
 // ==========================================
@@ -54,6 +54,11 @@ export default function FabricaLayoutPage() {
     const [formArea, setFormArea] = useState({ nome: '', ordem: 1, cor: '#3b82f6' });
     const [formEstacao, setFormEstacao] = useState({ nome: '', area_id: '', linha_id: '', ciclo: 60, capacidade: 1, rfid: '' });
 
+    // IDs de Edição
+    const [editingLinhaId, setEditingLinhaId] = useState<string | null>(null);
+    const [editingAreaId, setEditingAreaId] = useState<string | null>(null);
+    const [editingEstacaoId, setEditingEstacaoId] = useState<string | null>(null);
+
     // Fetch Inicial
     const fetchData = async () => {
         setIsLoading(true);
@@ -79,36 +84,52 @@ export default function FabricaLayoutPage() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // AÇÕES DE CRIAÇÃO
-    const handleCriarLinha = async (e: React.FormEvent) => {
+    // AÇÕES DE CRIAÇÃO E EDIÇÃO
+    const handleSalvarLinha = async (e: React.FormEvent) => {
         e.preventDefault();
-        const { error } = await supabase.from('linhas_producao').insert([{
+        const payload = {
             letra_linha: formLinha.letra.toUpperCase(),
             descricao_linha: formLinha.descricao,
             capacidade_diaria: formLinha.capacidade
-        }]);
+        };
+
+        let req;
+        if (editingLinhaId) {
+            req = supabase.from('linhas_producao').update(payload).eq('id', editingLinhaId);
+        } else {
+            req = supabase.from('linhas_producao').insert([payload]);
+        }
+
+        const { error } = await req;
         if (!error) {
-            setIsLinhaModalOpen(false);
-            setFormLinha({ letra: '', descricao: '', capacidade: 1 });
+            fechaLinhaModal();
             fetchData();
-        } else alert("Erro ao criar Linha: " + error.message);
+        } else alert("Erro ao salvar Linha: " + error.message);
     };
 
-    const handleCriarArea = async (e: React.FormEvent) => {
+    const handleSalvarArea = async (e: React.FormEvent) => {
         e.preventDefault();
-        const { error } = await supabase.from('areas_fabrica').insert([{
+        const payload = {
             nome_area: formArea.nome,
             ordem_sequencial: formArea.ordem,
             cor_destaque: formArea.cor
-        }]);
+        };
+
+        let req;
+        if (editingAreaId) {
+            req = supabase.from('areas_fabrica').update(payload).eq('id', editingAreaId);
+        } else {
+            req = supabase.from('areas_fabrica').insert([payload]);
+        }
+
+        const { error } = await req;
         if (!error) {
-            setIsAreaModalOpen(false);
-            setFormArea({ nome: '', ordem: areas.length + 1, cor: '#3b82f6' });
+            fechaAreaModal();
             fetchData();
-        } else alert("Erro ao criar Área: " + error.message);
+        } else alert("Erro ao salvar Área: " + error.message);
     };
 
-    const handleCriarEstacao = async (e: React.FormEvent) => {
+    const handleSalvarEstacao = async (e: React.FormEvent) => {
         e.preventDefault();
         const payload = {
             nome_estacao: formEstacao.nome,
@@ -120,13 +141,44 @@ export default function FabricaLayoutPage() {
             status: 'Disponível'
         };
 
-        const { error } = await supabase.from('estacoes').insert([payload]);
+        let req;
+        if (editingEstacaoId) {
+            req = supabase.from('estacoes').update(payload).eq('id', editingEstacaoId);
+        } else {
+            req = supabase.from('estacoes').insert([payload]);
+        }
+
+        const { error } = await req;
         if (!error) {
-            setIsEstacaoModalOpen(false);
-            setFormEstacao({ nome: '', area_id: '', linha_id: '', ciclo: 60, capacidade: 1, rfid: '' });
+            fechaEstacaoModal();
             fetchData();
-        } else alert("Erro ao criar Estação: " + error.message);
+        } else alert("Erro ao salvar Estação: " + error.message);
     };
+
+    // AÇÕES DE EXCLUSÃO
+    const handleExcluirArea = async (id: string, nome: string) => {
+        if (!window.confirm(`Tem a certeza que deseja excluir a área ${nome}? Todas as estações dentro dela poderão perder a sua área delegada.`)) return;
+        const { error } = await supabase.from('areas_fabrica').delete().eq('id', id);
+        if (!error) fetchData(); else alert("Erro: " + error.message);
+    };
+
+    const handleExcluirLinha = async (id: string, letra: string) => {
+        if (!window.confirm(`Tem a certeza que deseja excluir a Linha ${letra}?`)) return;
+        const { error } = await supabase.from('linhas_producao').delete().eq('id', id);
+        if (!error) fetchData(); else alert("Erro: " + error.message);
+    };
+
+    const handleExcluirEstacao = async (id: string, nome: string) => {
+        if (!window.confirm(`Tem a certeza que deseja remover a Estação ${nome} da instalação fabril?`)) return;
+        const { error } = await supabase.from('estacoes').delete().eq('id', id);
+        if (!error) fetchData(); else alert("Erro: " + error.message);
+    };
+
+    // HELPERS PARA FECHAR MODAIS E LIMPAR ESTADOS
+    const fechaAreaModal = () => { setIsAreaModalOpen(false); setEditingAreaId(null); setFormArea({ nome: '', ordem: areas.length + 1, cor: '#3b82f6' }); };
+    const fechaLinhaModal = () => { setIsLinhaModalOpen(false); setEditingLinhaId(null); setFormLinha({ letra: '', descricao: '', capacidade: 1 }); };
+    const fechaEstacaoModal = () => { setIsEstacaoModalOpen(false); setEditingEstacaoId(null); setFormEstacao({ nome: '', area_id: '', linha_id: '', ciclo: 60, capacidade: 1, rfid: '' }); };
+
 
 
     const sortedAreas = [...areas].sort((a, b) => a.ordem_sequencial - b.ordem_sequencial);
@@ -178,10 +230,16 @@ export default function FabricaLayoutPage() {
                                             <h3 style={{ fontSize: '1rem', color: 'rgba(255,255,255,0.5)' }}>Interseção Operacional</h3>
                                         </div>
                                         {sortedAreas.map(area => (
-                                            <div key={area.id} style={{ width: '320px', flexShrink: 0, padding: '1rem', borderRight: '1px dashed rgba(255,255,255,0.05)' }}>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                    <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: area.cor_destaque }}></div>
-                                                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600 }}>{area.nome_area}</h3>
+                                            <div key={area.id} className="group flex flex-col justify-between" style={{ width: '320px', flexShrink: 0, padding: '1rem', borderRight: '1px dashed rgba(255,255,255,0.05)' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                        <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: area.cor_destaque }}></div>
+                                                        <h3 style={{ fontSize: '1.1rem', fontWeight: 600 }}>{area.nome_area}</h3>
+                                                    </div>
+                                                    <div style={{ display: 'flex', gap: '2px', opacity: 0.3, transition: 'opacity 0.2s' }} className="group-hover:opacity-100">
+                                                        <button title="Editar Área" onClick={() => { setEditingAreaId(area.id); setFormArea({ nome: area.nome_area, ordem: area.ordem_sequencial, cor: area.cor_destaque }); setIsAreaModalOpen(true); }} className="p-1 hover:text-white transition-colors"><Edit size={14} /></button>
+                                                        <button title="Excluir Área" onClick={() => handleExcluirArea(area.id, area.nome_area)} className="p-1 hover:text-red-400 transition-colors"><Trash2 size={14} /></button>
+                                                    </div>
                                                 </div>
                                                 <p style={{ fontSize: '0.7rem', opacity: 0.5, marginTop: '4px' }}>Pos. {area.ordem_sequencial}</p>
                                             </div>
@@ -194,9 +252,15 @@ export default function FabricaLayoutPage() {
                                         <div key={linha.id} className="group" style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                                             {/* Cabeçalho da Linha Fixo à Esquerda */}
                                             <div style={{ width: '250px', flexShrink: 0, padding: '1.5rem 1rem', borderRight: '1px solid rgba(255,255,255,0.1)', background: 'var(--background-panel)', position: 'sticky', left: 0, zIndex: 5, backdropFilter: 'blur(10px)' }}>
-                                                <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--primary)', marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                    <Activity size={24} /> Linha {linha.letra_linha}
-                                                </h2>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                                    <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--primary)', marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                        <Activity size={24} /> Linha {linha.letra_linha}
+                                                    </h2>
+                                                    <div style={{ display: 'flex', gap: '2px', opacity: 0.5, transition: 'opacity 0.2s' }} className="group-hover:opacity-100">
+                                                        <button title="Editar Linha" onClick={() => { setEditingLinhaId(linha.id); setFormLinha({ letra: linha.letra_linha, descricao: linha.descricao_linha, capacidade: linha.capacidade_diaria }); setIsLinhaModalOpen(true); }} className="p-1 hover:text-white transition-colors"><Edit size={14} /></button>
+                                                        <button title="Excluir Linha" onClick={() => handleExcluirLinha(linha.id, linha.letra_linha)} className="p-1 hover:text-red-400 transition-colors"><Trash2 size={14} /></button>
+                                                    </div>
+                                                </div>
                                                 <p style={{ fontSize: '0.85rem', opacity: 0.8, marginBottom: '1rem' }}>{linha.descricao_linha}</p>
                                                 <div style={{ fontSize: '0.75rem', opacity: 0.6 }}>Capacidade: <strong>{linha.capacidade_diaria}</strong> / dia</div>
                                             </div>
@@ -220,14 +284,20 @@ export default function FabricaLayoutPage() {
                                                                     }}>
                                                                         <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '4px', backgroundColor: area.cor_destaque }}></div>
                                                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem', paddingLeft: '0.5rem' }}>
-                                                                            <span style={{
-                                                                                fontSize: '0.65rem', fontWeight: 600, padding: '2px 6px', borderRadius: '12px',
-                                                                                background: est.status === 'Disponível' ? 'rgba(34, 197, 94, 0.2)' : est.status === 'Em Manutenção' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(255,255,255,0.1)',
-                                                                                color: est.status === 'Disponível' ? '#4ade80' : est.status === 'Em Manutenção' ? '#f87171' : '#94a3b8'
-                                                                            }}>
-                                                                                {est.status.toUpperCase()}
-                                                                            </span>
-                                                                            {est.status === 'Em Manutenção' && <Wrench size={14} color="#f87171" className="animate-pulse" />}
+                                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                                                <span style={{
+                                                                                    fontSize: '0.65rem', fontWeight: 600, padding: '2px 6px', borderRadius: '12px',
+                                                                                    background: est.status === 'Disponível' ? 'rgba(34, 197, 94, 0.2)' : est.status === 'Em Manutenção' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(255,255,255,0.1)',
+                                                                                    color: est.status === 'Disponível' ? '#4ade80' : est.status === 'Em Manutenção' ? '#f87171' : '#94a3b8'
+                                                                                }}>
+                                                                                    {est.status.toUpperCase()}
+                                                                                </span>
+                                                                                {est.status === 'Em Manutenção' && <Wrench size={14} color="#f87171" className="animate-pulse" />}
+                                                                            </div>
+                                                                            <div style={{ display: 'flex', gap: '2px', opacity: 0.3, transition: 'opacity 0.2s' }} className="group-hover:opacity-100">
+                                                                                <button title="Editar Estação" onClick={() => { setEditingEstacaoId(est.id); setFormEstacao({ nome: est.nome_estacao, area_id: est.area_id || '', linha_id: est.linha_id || '', ciclo: est.tempo_ciclo_padrao, capacidade: est.capacidade_producao, rfid: est.tag_rfid_estacao }); setIsEstacaoModalOpen(true); }} className="p-1 hover:text-white transition-colors"><Edit size={14} /></button>
+                                                                                <button title="Excluir Estação" onClick={() => handleExcluirEstacao(est.id, est.nome_estacao)} className="p-1 hover:text-red-400 transition-colors"><Trash2 size={14} /></button>
+                                                                            </div>
                                                                         </div>
                                                                         <h4 style={{ fontSize: '1rem', fontWeight: 600, lineHeight: 1.2, marginBottom: '0.5rem', paddingLeft: '0.5rem' }}>{est.nome_estacao}</h4>
                                                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px solid rgba(255,255,255,0.1)', paddingLeft: '0.5rem' }}>
@@ -275,10 +345,10 @@ export default function FabricaLayoutPage() {
                     <div className="modal-overlay">
                         <div className="modal-content">
                             <div className="flex justify-between items-center mb-6">
-                                <h3 className="text-xl font-bold bg-gradient-to-r from-white to-white/50 bg-clip-text text-transparent">Criar Linha Produtiva</h3>
-                                <button onClick={() => setIsLinhaModalOpen(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors"><X size={20} className="opacity-70" /></button>
+                                <h3 className="text-xl font-bold bg-gradient-to-r from-white to-white/50 bg-clip-text text-transparent">{editingLinhaId ? 'Editar Linha' : 'Criar Linha Produtiva'}</h3>
+                                <button type="button" onClick={fechaLinhaModal} className="p-2 hover:bg-white/10 rounded-full transition-colors"><X size={20} className="opacity-70" /></button>
                             </div>
-                            <form onSubmit={handleCriarLinha} className="flex flex-col gap-4">
+                            <form onSubmit={handleSalvarLinha} className="flex flex-col gap-4">
                                 <div className="form-group">
                                     <label>Letra da Linha (ex: A, B, C)</label>
                                     <input type="text" className="form-control" required maxLength={4} value={formLinha.letra} onChange={(e) => setFormLinha({ ...formLinha, letra: e.target.value })} />
@@ -304,10 +374,10 @@ export default function FabricaLayoutPage() {
                     <div className="modal-overlay">
                         <div className="modal-content">
                             <div className="flex justify-between items-center mb-6">
-                                <h3 className="text-xl font-bold bg-gradient-to-r from-white to-white/50 bg-clip-text text-transparent">Criar Zona de Fabrico</h3>
-                                <button onClick={() => setIsAreaModalOpen(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors"><X size={20} className="opacity-70" /></button>
+                                <h3 className="text-xl font-bold bg-gradient-to-r from-white to-white/50 bg-clip-text text-transparent">{editingAreaId ? 'Editar Zona de Fabrico' : 'Criar Zona de Fabrico'}</h3>
+                                <button type="button" onClick={fechaAreaModal} className="p-2 hover:bg-white/10 rounded-full transition-colors"><X size={20} className="opacity-70" /></button>
                             </div>
-                            <form onSubmit={handleCriarArea} className="flex flex-col gap-4">
+                            <form onSubmit={handleSalvarArea} className="flex flex-col gap-4">
                                 <div className="form-group">
                                     <label>Nome da Zona (ex: Laminação)</label>
                                     <input type="text" className="form-control" required value={formArea.nome} onChange={(e) => setFormArea({ ...formArea, nome: e.target.value })} />
@@ -335,10 +405,10 @@ export default function FabricaLayoutPage() {
                     <div className="modal-overlay">
                         <div className="modal-content" style={{ borderColor: 'var(--accent)' }}>
                             <div className="flex justify-between items-center mb-6">
-                                <h3 className="text-xl font-bold bg-gradient-to-r from-white to-[var(--accent)] bg-clip-text text-transparent">Registrar Máquina/Estação</h3>
-                                <button onClick={() => setIsEstacaoModalOpen(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors"><X size={20} className="opacity-70" /></button>
+                                <h3 className="text-xl font-bold bg-gradient-to-r from-white to-[var(--accent)] bg-clip-text text-transparent">{editingEstacaoId ? 'Editar Máquina/Estação' : 'Registrar Máquina/Estação'}</h3>
+                                <button type="button" onClick={fechaEstacaoModal} className="p-2 hover:bg-white/10 rounded-full transition-colors"><X size={20} className="opacity-70" /></button>
                             </div>
-                            <form onSubmit={handleCriarEstacao} className="flex flex-col gap-4">
+                            <form onSubmit={handleSalvarEstacao} className="flex flex-col gap-4">
                                 <div className="form-group">
                                     <label>Nome Operacional</label>
                                     <input type="text" className="form-control" required value={formEstacao.nome} onChange={(e) => setFormEstacao({ ...formEstacao, nome: e.target.value })} />
