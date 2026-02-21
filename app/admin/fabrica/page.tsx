@@ -133,37 +133,36 @@ export default function FabricaLayoutPage() {
 
     return (
         <>
-            <div className="container mt-8 animate-fade-in dashboard-layout" style={{ maxWidth: '100%', overflowX: 'hidden' }}>
-                <header className="flex flex-col items-center justify-center mb-10 text-center relative z-10">
-                    <div className="mb-6">
-                        <h1 className="brand-title" style={{ fontSize: '2.5rem', marginBottom: '0.5rem', textShadow: '0 4px 20px rgba(0,0,0,0.5)' }}>Estrutura de Fábrica [2D]</h1>
-                        <p style={{ color: "rgba(255,255,255,0.7)", fontSize: '1.1rem', maxWidth: '600px', margin: '0 auto' }}>
-                            Monitorize, crie e configure o Shopfloor numa Matriz Visualmente Dinâmica (Linhas vs Áreas).
+            <div className="container animate-fade-in dashboard-layout" style={{ maxWidth: '100%', overflowX: 'hidden', paddingTop: '1rem' }}>
+                <header style={{
+                    position: 'sticky', top: 0, zIndex: 50, display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '1rem',
+                    background: 'rgba(15, 23, 42, 0.9)', padding: '1rem 2rem', borderBottom: '1px solid rgba(255,255,255,0.1)',
+                    backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
+                    margin: '-1rem -1rem 2rem -1rem' // Compensar padding do container para encostar às bordas
+                }}>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <h1 className="brand-title" style={{ fontSize: '1.8rem', margin: 0, textShadow: '0 2px 10px rgba(0,0,0,0.5)' }}>Estrutura de Fábrica [2D]</h1>
+                        <p style={{ color: "rgba(255,255,255,0.6)", fontSize: '0.85rem', margin: 0 }}>
+                            Monitorize e configure o Shopfloor numa Matriz Dinâmica.
                         </p>
                     </div>
 
-                    {/* DOCK PREMIUM DE CONTROLOS (FIXA NO TOPO, USANDO INLINE CSS PARA GARANTIR CENTRO) */}
-                    <div style={{
-                        position: 'sticky', top: '1rem', zIndex: 50, display: 'flex', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center', gap: '0.75rem',
-                        background: 'rgba(15, 23, 42, 0.85)', padding: '0.75rem 1.5rem', borderRadius: '9999px', border: '1px solid rgba(255,255,255,0.15)',
-                        backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', boxShadow: '0 10px 40px rgba(0,0,0,0.6)',
-                        width: 'fit-content', margin: '0 auto 2rem auto'
-                    }}>
-                        <button className="btn btn-outline" style={{ borderRadius: '999px', padding: '0.5rem 1.25rem' }} onClick={() => setViewMode(viewMode === 'matriz' ? 'grafos' : 'matriz')}>
-                            {viewMode === 'matriz' ? <Network size={18} style={{ marginRight: '8px' }} /> : <TableProperties size={18} style={{ marginRight: '8px' }} />}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <button className="btn btn-outline" style={{ borderRadius: '999px', padding: '0.4rem 1rem', fontSize: '0.9rem' }} onClick={() => setViewMode(viewMode === 'matriz' ? 'grafos' : 'matriz')}>
+                            {viewMode === 'matriz' ? <Network size={16} style={{ marginRight: '6px' }} /> : <TableProperties size={16} style={{ marginRight: '6px' }} />}
                             {viewMode === 'matriz' ? 'Modo Grafo Lógico' : 'Matriz Kanban 2D'}
                         </button>
-                        <div style={{ width: '1px', height: '40px', background: 'rgba(255,255,255,0.1)', margin: '0 8px' }}></div>
-                        <button className="btn btn-primary" style={{ borderRadius: '999px', padding: '0.5rem 1.25rem' }} onClick={() => setIsAreaModalOpen(true)}>
-                            <Settings size={18} style={{ marginRight: '8px' }} />
+                        <div style={{ width: '1px', height: '30px', background: 'rgba(255,255,255,0.1)', margin: '0 4px' }}></div>
+                        <button className="btn btn-primary" style={{ borderRadius: '999px', padding: '0.4rem 1rem', fontSize: '0.9rem' }} onClick={() => setIsAreaModalOpen(true)}>
+                            <Settings size={16} style={{ marginRight: '6px' }} />
                             Configurar Áreas
                         </button>
-                        <button className="btn btn-primary" style={{ borderRadius: '999px', padding: '0.5rem 1.25rem' }} onClick={() => setIsLinhaModalOpen(true)}>
-                            <Activity size={18} style={{ marginRight: '8px' }} />
+                        <button className="btn btn-primary" style={{ borderRadius: '999px', padding: '0.4rem 1rem', fontSize: '0.9rem' }} onClick={() => setIsLinhaModalOpen(true)}>
+                            <Activity size={16} style={{ marginRight: '6px' }} />
                             Nova Linha
                         </button>
-                        <button className="btn btn-primary" style={{ background: 'var(--accent)', borderRadius: '999px', padding: '0.5rem 1.25rem', boxShadow: '0 0 15px var(--accent)' }} onClick={() => setIsEstacaoModalOpen(true)}>
-                            <Plus size={18} style={{ marginRight: '8px' }} />
+                        <button className="btn btn-primary" style={{ background: 'var(--accent)', borderRadius: '999px', padding: '0.4rem 1rem', fontSize: '0.9rem', boxShadow: '0 0 15px var(--accent)' }} onClick={() => setIsEstacaoModalOpen(true)}>
+                            <Plus size={16} style={{ marginRight: '6px' }} />
                             Nova Estação
                         </button>
                     </div>
