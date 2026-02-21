@@ -38,9 +38,21 @@ export function Sidebar({ userEmail }: { userEmail: string | undefined }) {
                     })}
 
                     <div className="mb-8 mt-4"> {/* Added margin-top for spacing */}
+                        <p className="sidebar-group-title">M.E.S Logística</p>
+                        <nav className="flex flex-col gap-2 mb-4">
+                            <Link href="/admin/producao/live" className={`p-4 flex items-center gap-4 sidebar-link ${pathname.includes('/admin/producao/live') ? 'active glass-panel' : ''}`}
+                                style={{
+                                    opacity: pathname.includes('/admin/producao/live') ? 1 : 0.7,
+                                    transition: "all 0.2s",
+                                    borderLeft: pathname.includes('/admin/producao/live') ? "4px solid var(--primary)" : "4px solid transparent"
+                                }}>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M9 3v18" /><path d="M15 3v18" /></svg>
+                                <span style={{ fontWeight: 500 }} className="sidebar-text">Monitorização Live</span>
+                            </Link>
+                        </nav>
                         <p className="sidebar-group-title">Engenharia</p>
                         <nav className="flex flex-col gap-2">
-                            <Link href="/admin/modelos" className={`p-4 flex items-center gap-4 sidebar-link ${pathname.includes('/admin/modelos') ? 'active glass-panel' : ''}`}
+                            <Link href="/admin/modelos" className={`p-4 flex items-center gap-4 sidebar-link ${pathname === '/admin/modelos' ? 'active glass-panel' : ''}`}
                                 style={{
                                     opacity: pathname.includes('/admin/modelos') ? 1 : 0.7,
                                     transition: "all 0.2s",
