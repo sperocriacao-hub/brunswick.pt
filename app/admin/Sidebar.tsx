@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Box, GitBranch, Layers } from 'lucide-react';
+import { Box, GitBranch, Layers, Settings } from 'lucide-react';
 
 export function Sidebar({ userEmail }: { userEmail: string | undefined }) {
     const pathname = usePathname();
@@ -69,6 +69,21 @@ export function Sidebar({ userEmail }: { userEmail: string | undefined }) {
                                 }}>
                                 <Layers size={20} />
                                 <span style={{ fontWeight: 500 }} className="sidebar-text">Roteiros Produtivos</span>
+                            </Link>
+                        </nav>
+                    </div>
+
+                    <div className="mb-4">
+                        <p className="sidebar-group-title">Plataforma</p>
+                        <nav className="flex flex-col gap-2">
+                            <Link href="/admin/configuracoes" className={`p-4 flex items-center gap-4 sidebar-link ${pathname.includes('/admin/configuracoes') ? 'active glass-panel' : ''}`}
+                                style={{
+                                    opacity: pathname.includes('/admin/configuracoes') ? 1 : 0.7,
+                                    transition: "all 0.2s",
+                                    borderLeft: pathname.includes('/admin/configuracoes') ? "4px solid var(--primary)" : "4px solid transparent"
+                                }}>
+                                <Settings size={20} />
+                                <span style={{ fontWeight: 500 }} className="sidebar-text">Configurações Globais</span>
                             </Link>
                         </nav>
                     </div>
