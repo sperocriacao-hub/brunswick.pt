@@ -58,7 +58,12 @@ const calcularStatusTimer = (inicio: string, slaMinutos: number) => {
     const atrasado = diffMins > slaMinutos;
     const isOverSLA = slaMinutos > 0 ? (diffMins / slaMinutos) : 0;
 
-    // Gradiente visual: até 80% SLA é Verde, > 80% Amarelo, estourou é Vermelho
+    // Calculo Eficiencia (OEE simplificada)
+    // OEE = (Tempo Previsto / Tempo Real) * 100
+    // Mínimo de 1 minuto para evitar Divisão por Zero em check-ins imediatos
+    const tempoReal = diffMins > 0 ? diffMins : 1;
+    const oee = Math.round((slaMinutos / tempoReal) * 100);
+
     let statusColor = "var(--success)"; // Verde
     let bgPulse = "bg-green-500/10";
     if (atrasado) {
@@ -69,7 +74,7 @@ const calcularStatusTimer = (inicio: string, slaMinutos: number) => {
         bgPulse = "bg-amber-500/10";
     }
 
-    return { diffHoras, diffMinsResto, atrasado, statusColor, bgPulse };
+    return { diffHoras, diffMinsResto, atrasado, statusColor, bgPulse, oee };
 };
 
 // ==========================================
@@ -78,11 +83,13 @@ const calcularStatusTimer = (inicio: string, slaMinutos: number) => {
 const BoatCard = ({
     ordem,
     registo,
+    equipa,
     slaPrevisto,
     onClick
 }: {
     ordem: OrdemProducao;
     registo: RegistoRFID;
+    equipa: string[];
     slaPrevisto: number;
     onClick: () => void;
 }) => {
@@ -117,12 +124,21 @@ const BoatCard = ({
                 {ordem.modelos?.nome_modelo || 'Modelo N/A'}
             </h4>
 
-            <div className="mt-2 text-[10px] opacity-70 flex justify-between">
-                <span>HIN: {ordem.hin_hull_id || 'PENDENTE'}</span>
-                <span>Ope: {registo.operador_rfid.slice(-4)}</span>
+            <div className="mt-3 text-[10px] opacity-80 flex justify-between items-end">
+                <div className="flex flex-col gap-1">
+                    <span>HIN: {ordem.hin_hull_id || 'PENDENTE'}</span>
+                    <span style={{ color: metrics.statusColor, fontWeight: 'bold' }}>OEE: {metrics.oee}%</span>
+                </div>
+                <div className="flex -space-x-2">
+                    {equipa.map((opId, idx) => (
+                        <div key={idx} title={`Operador: ${opId}`} className="w-6 h-6 rounded-full bg-slate-700 border border-slate-500 flex items-center justify-center text-[8px] text-white shadow-sm z-10 hover:z-20 hover:scale-110 transition-transform">
+                            {opId.slice(-3).toUpperCase()}
+                        </div>
+                    ))}
+                </div>
             </div>
 
-            <div className="mt-2 w-full bg-[rgba(0,0,0,0.3)] h-1 rounded-full overflow-hidden">
+            <div className="mt-3 w-full bg-[rgba(0,0,0,0.3)] h-1 rounded-full overflow-hidden">
                 <div
                     className="h-full"
                     style={{
@@ -155,7 +171,7 @@ export default function LogisticaLivePage() {
     const [colunasRoteiro, setColunasRoteiro] = useState<{ id: string, nome: string }[]>([]);
 
     // Drawer de Detalhes
-    const [selectedOP, setSelectedOP] = useState<{ ordem: OrdemProducao, registo: RegistoRFID, sla: number } | null>(null);
+    const [selectedOP, setSelectedOP] = useState<{ ordem: OrdemProducao, registo: RegistoRFID, sla: number, equipa: string[] } | null>(null);
 
     // Initial Data Fetch
     useEffect(() => {
@@ -310,21 +326,32 @@ export default function LogisticaLivePage() {
                                                     <span className="text-[10px] uppercase font-bold tracking-widest text-center" style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}>Estação Vazia</span>
                                                 </div>
                                             ) : (
-                                                wips.map(regis => {
-                                                    const ordem = ordens[regis.op_id];
-                                                    if (!ordem) return null; // Fallback integridade referencial truncada
+                                                Object.values(
+                                                    // Agrupar pings do mesmo barco nesta mesma estação (Para Equipas Multi-Operador)
+                                                    wips.reduce((acc, curr) => {
+                                                        if (!acc[curr.op_id]) acc[curr.op_id] = [];
+                                                        acc[curr.op_id].push(curr);
+                                                        return acc;
+                                                    }, {} as Record<string, RegistoRFID[]>)
+                                                ).map(regisG => {
+                                                    const principalRegis = regisG[0];
+                                                    const equipaNomes = regisG.map(r => r.operador_rfid);
 
-                                                    // Localizar a Regra de Engenharia "SLA Específico" para o Modelo X e Estacao Y
+                                                    const ordem = ordens[principalRegis.op_id];
+                                                    if (!ordem) return null; // Fallback integridade
+
+                                                    // Localizar SLA para Modelo X Estacao Y
                                                     const rota = roteirosView[`${ordem.modelo_id}_${col.id}`];
-                                                    const prevSla = rota ? rota.tempo_ciclo_especifico : 60; // default 1H
+                                                    const prevSla = rota ? rota.tempo_ciclo_especifico : 60; // default 1H 
 
                                                     return (
                                                         <BoatCard
-                                                            key={regis.id}
+                                                            key={principalRegis.id}
                                                             ordem={ordem}
-                                                            registo={regis}
+                                                            registo={principalRegis}
+                                                            equipa={equipaNomes}
                                                             slaPrevisto={prevSla}
-                                                            onClick={() => setSelectedOP({ ordem, registo: regis, sla: prevSla })}
+                                                            onClick={() => setSelectedOP({ ordem, registo: principalRegis, sla: prevSla, equipa: equipaNomes })}
                                                         />
                                                     );
                                                 })
@@ -370,8 +397,18 @@ export default function LogisticaLivePage() {
                                 <div className="bg-[rgba(0,0,0,0.2)] p-3 rounded-lg border border-[rgba(255,255,255,0.02)]">
                                     <label className="text-[10px] opacity-50 uppercase">Telemetria Atual (SLA)</label>
                                     <p className="font-bold text-sm" style={{ color: calcularStatusTimer(selectedOP.registo.timestamp_inicio, selectedOP.sla).statusColor }}>
-                                        {selectedOP.sla} Mínutos
+                                        {selectedOP.sla} Mínutos (OEE: {calcularStatusTimer(selectedOP.registo.timestamp_inicio, selectedOP.sla).oee}%)
                                     </p>
+                                </div>
+                                <div className="bg-[rgba(0,0,0,0.2)] p-3 rounded-lg border border-[rgba(255,255,255,0.02)]">
+                                    <label className="text-[10px] opacity-50 uppercase">Equipa Picada (RFID)</label>
+                                    <div className="flex gap-1 mt-1 flex-wrap">
+                                        {selectedOP.equipa.map((op, idx) => (
+                                            <span key={idx} className="bg-[rgba(255,255,255,0.1)] px-2 py-0.5 rounded text-xs">
+                                                {op.slice(-6)}
+                                            </span>
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
 
