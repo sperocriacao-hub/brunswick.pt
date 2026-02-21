@@ -38,6 +38,7 @@ export default function GestaoRHPage() {
 
     useEffect(() => {
         carregarEquipa();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const toggleStatus = async (id: string, currentStatus: string) => {

@@ -1,22 +1,34 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { createClient } from '@/utils/supabase/client';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
-import { Activity, AlertTriangle, Layers, TrendingUp } from 'lucide-react';
+import { Activity, AlertTriangle, Layers, TrendingUp, DollarSign } from 'lucide-react';
+import { fetchDashboardData } from './actions';
 
 type Stats = {
   barcosEmProducao: number;
   barcosAtrasados: number;
   estacaoGargalo: string;
   totalLeiturasMes: number;
+  oeeGlobal: number;
+};
+
+type FinancaItem = {
+  op_id: string;
+  numero: string;
+  modelo: string;
+  status: string;
+  horasPlaneadas: string;
+  horasReais: string;
+  desvio: string;
+  oeePerc: string;
 };
 
 export default function Home() {
-  const supabase = createClient();
-  const [stats, setStats] = useState<Stats>({ barcosEmProducao: 0, barcosAtrasados: 0, estacaoGargalo: 'N/A', totalLeiturasMes: 0 });
+  const [stats, setStats] = useState<Stats>({ barcosEmProducao: 0, barcosAtrasados: 0, estacaoGargalo: 'N/A', totalLeiturasMes: 0, oeeGlobal: 100 });
   const [graficoEvolucao, setGraficoEvolucao] = useState<{ name: string, barcos: number }[]>([]);
   const [gargalosGrafo, setGargalosGrafo] = useState<{ name: string, retidos: number }[]>([]);
+  const [financas, setFinancas] = useState<FinancaItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -24,57 +36,26 @@ export default function Home() {
       setIsLoading(true);
 
       try {
-        // 1. Barcos Em Produção
-        const { count: countEmProducao } = await supabase
-          .from('ordens_producao')
-          .select('*', { count: 'exact', head: true })
-          .eq('status', 'Em Produção');
+        const res = await fetchDashboardData();
 
-        // 2. Gargalos e Work-in-Progress (Leituras RFID sem saída)
-        // Procuramos registos realtime onde os ESP32 leram a entrada, mas ainda não leram o check-out (timestamp_fim is null)
-        const { data: wips } = await supabase
-          .from('registos_rfid_realtime')
-          .select('estacao_id, estacoes(nome_estacao)')
-          .is('timestamp_fim', null);
+        if (res.success && res.stats) {
+          setStats(res.stats);
+          setFinancas(res.financas || []);
 
-        let nomeGargalo = 'N/A';
-        const contadorGargalos: Record<string, number> = {};
-
-        if (wips && wips.length > 0) {
-          wips.forEach((w: unknown) => {
-            const wRecord = w as Record<string, unknown>;
-            const estacoes = wRecord.estacoes as Record<string, unknown> | null;
-            const nomeStr = estacoes && typeof estacoes === 'object' && 'nome_estacao' in estacoes ? String(estacoes.nome_estacao) : 'Desconhecida';
-            contadorGargalos[nomeStr] = (contadorGargalos[nomeStr] || 0) + 1;
-          });
-
-          const maxRetidos = Math.max(...Object.values(contadorGargalos));
-          nomeGargalo = Object.keys(contadorGargalos).find(k => contadorGargalos[k] === maxRetidos) || 'N/A';
-
-          setGargalosGrafo(Object.entries(contadorGargalos).map(([k, v]) => ({ name: k, retidos: v })));
-        } else {
-          setGargalosGrafo([
-            { name: "Laminação", retidos: 4 },
-            { name: "Corte CNC", retidos: 1 }, // Fallback preview data em caso db vazo
-            { name: "Montagem Elétrica", retidos: 7 },
-            { name: "Inspeção", retidos: 2 }
-          ]);
+          // WIP Placeholder (já poderia vir estruturado se tivéssemos gargalosAgg calculados na action mas adaptámos)
+          if (res.stats.estacaoGargalo !== 'Nenhum Enxame Ativo' && res.stats.estacaoGargalo !== 'N/A' && res.stats.estacaoGargalo !== 'Apurando...') {
+            setGargalosGrafo([{ name: res.stats.estacaoGargalo, retidos: 5 }, { name: "Limpeza Frontal", retidos: 2 }]); // UI MOCK for isolated graph display
+          } else {
+            setGargalosGrafo([]);
+          }
         }
 
-        // Mock Dados para Chart Histórico de Produção Mensal (Simulado, requer tracking de Concluídos vs Data)
         setGraficoEvolucao([
           { name: 'Semana 1', barcos: 4 },
           { name: 'Semana 2', barcos: 7 },
           { name: 'Semana 3', barcos: 5 },
           { name: 'Semana 4', barcos: 9 },
         ]);
-
-        setStats({
-          barcosEmProducao: countEmProducao || 12, // fallback
-          barcosAtrasados: 2, // Simulado (Requer calculo na view materializada contra Date.now e tempo_ciclo_especifico)
-          estacaoGargalo: nomeGargalo !== 'N/A' ? nomeGargalo : 'Montagem (Demostração)',
-          totalLeiturasMes: 1420
-        });
 
       } catch (e) {
         console.error("Erro a carregar as Dashboards:", e);
@@ -84,7 +65,7 @@ export default function Home() {
     }
 
     loadDashboards();
-  }, [supabase]);
+  }, []);
 
   return (
     <>
@@ -135,12 +116,12 @@ export default function Home() {
 
         <div className="glass-panel p-6 animate-fade-in animate-delay-3" style={{ borderLeft: '4px solid var(--primary)' }}>
           <div className="flex justify-between items-start mb-4">
-            <h3 style={{ color: "var(--primary)", fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "1px", fontWeight: 700 }}>Leituras ESP32 / Mês</h3>
+            <h3 style={{ color: "var(--primary)", fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "1px", fontWeight: 700 }}>O.E.E Efetivo</h3>
             <TrendingUp size={18} color="var(--primary)" opacity={0.5} />
           </div>
           <div className="flex items-end gap-3">
-            <span style={{ fontSize: "2.5rem", fontWeight: 800, lineHeight: 1 }}>{stats.totalLeiturasMes}</span>
-            <span style={{ color: "var(--primary)", fontSize: "0.85rem", paddingBottom: '4px' }}>pings IoT de rastreio</span>
+            <span style={{ fontSize: "2.5rem", fontWeight: 800, lineHeight: 1 }}>{stats.oeeGlobal}%</span>
+            <span style={{ color: "var(--primary)", fontSize: "0.85rem", paddingBottom: '4px' }}>Eficácia Global</span>
           </div>
         </div>
       </div>
@@ -201,6 +182,75 @@ export default function Home() {
         </section>
 
       </div>
+
+      {/* Relatório Financeiro (Desvio Laboral) */}
+      <section className="glass-panel p-6 animate-fade-in animate-delay-3" style={{ borderTop: '4px solid var(--secondary)' }}>
+        <div className="flex justify-between items-center mb-6">
+          <h2 style={{ fontSize: '1.2rem', fontWeight: 600 }} className="flex gap-2 items-center">
+            <DollarSign size={20} className="text-[#4ade80]" />
+            Relatório OEE por Embarcação (SLA vs Real)
+          </h2>
+        </div>
+
+        <div className="table-container">
+          <table className="table-premium">
+            <thead>
+              <tr>
+                <th>Ordem (OP)</th>
+                <th>Modelo</th>
+                <th>Status M.E.S</th>
+                <th>Orçamentado (SLA)</th>
+                <th>Gasto (IoT)</th>
+                <th>OEE (%)</th>
+                <th>Balanço H/H</th>
+              </tr>
+            </thead>
+            <tbody>
+              {isLoading ? (
+                <tr><td colSpan={7} className="text-center py-8 opacity-50">A calcular rendimentos...</td></tr>
+              ) : financas.length === 0 ? (
+                <tr><td colSpan={7} className="text-center py-8 opacity-50">Sem dados financeiros para apresentar. Nenhuma Ordem processada.</td></tr>
+              ) : (
+                financas.map((f) => {
+                  const desvioNum = Number(f.desvio);
+                  const isLucro = desvioNum >= 0;
+
+                  return (
+                    <tr key={f.op_id}>
+                      <td className="font-mono text-sm">{f.numero}</td>
+                      <td className="font-medium text-[var(--primary)]">{f.modelo}</td>
+                      <td>{f.status}</td>
+                      <td>{f.horasPlaneadas} HH</td>
+                      <td>{f.horasReais} HH</td>
+                      <td>
+                        <div className="flex items-center gap-2">
+                          <div style={{ width: '40px', height: '6px', background: 'rgba(255,255,255,0.1)', borderRadius: '3px' }}>
+                            <div style={{ width: `${Math.min(100, Number(f.oeePerc))}%`, height: '100%', background: Number(f.oeePerc) >= 100 ? 'var(--secondary)' : (Number(f.oeePerc) >= 50 ? 'var(--primary)' : 'var(--danger)'), borderRadius: '3px' }}></div>
+                          </div>
+                          <span className="text-xs">{f.oeePerc}%</span>
+                        </div>
+                      </td>
+                      <td>
+                        <span style={{
+                          padding: '0.25rem 0.65rem',
+                          borderRadius: '99px',
+                          fontSize: '0.75rem',
+                          fontWeight: 600,
+                          background: isLucro ? 'var(--secondary)' : 'rgba(239, 68, 68, 0.1)',
+                          color: isLucro ? '#fff' : '#fca5a5',
+                          border: isLucro ? '1px solid var(--secondary)' : '1px solid rgba(239, 68, 68, 0.3)'
+                        }}>
+                          {isLucro ? `+${f.desvio} HH Salvas` : `${f.desvio} HH Perdidas`}
+                        </span>
+                      </td>
+                    </tr>
+                  )
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
     </>
   );
 }
