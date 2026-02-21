@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { Box, GitBranch, Layers } from 'lucide-react';
 
 export function Sidebar({ userEmail }: { userEmail: string | undefined }) {
     const pathname = usePathname();
@@ -38,6 +39,39 @@ export function Sidebar({ userEmail }: { userEmail: string | undefined }) {
                             </Link>
                         );
                     })}
+
+                    <div className="mb-8 mt-4"> {/* Added margin-top for spacing */}
+                        <p className="sidebar-group-title">Engenharia</p>
+                        <nav className="flex flex-col gap-2">
+                            <Link href="/admin/modelos" className={`p-4 flex items-center gap-4 sidebar-link ${pathname.includes('/admin/modelos') ? 'active glass-panel' : ''}`}
+                                style={{
+                                    opacity: pathname.includes('/admin/modelos') ? 1 : 0.7,
+                                    transition: "all 0.2s",
+                                    borderLeft: pathname.includes('/admin/modelos') ? "4px solid var(--primary)" : "4px solid transparent"
+                                }}>
+                                <Box size={20} />
+                                <span style={{ fontWeight: 500 }} className="sidebar-text">Modelos & Produto</span>
+                            </Link>
+                            <Link href="/admin/engenharia/regras" className={`p-4 flex items-center gap-4 sidebar-link ${pathname.includes('/admin/engenharia/regras') ? 'active glass-panel' : ''}`}
+                                style={{
+                                    opacity: pathname.includes('/admin/engenharia/regras') ? 1 : 0.7,
+                                    transition: "all 0.2s",
+                                    borderLeft: pathname.includes('/admin/engenharia/regras') ? "4px solid var(--primary)" : "4px solid transparent"
+                                }}>
+                                <GitBranch size={20} />
+                                <span style={{ fontWeight: 500 }} className="sidebar-text">Regras de Sequenciamento</span>
+                            </Link>
+                            <Link href="/admin/engenharia/roteiros" className={`p-4 flex items-center gap-4 sidebar-link ${pathname.includes('/admin/engenharia/roteiros') ? 'active glass-panel' : ''}`}
+                                style={{
+                                    opacity: pathname.includes('/admin/engenharia/roteiros') ? 1 : 0.7,
+                                    transition: "all 0.2s",
+                                    borderLeft: pathname.includes('/admin/engenharia/roteiros') ? "4px solid var(--primary)" : "4px solid transparent"
+                                }}>
+                                <Layers size={20} />
+                                <span style={{ fontWeight: 500 }} className="sidebar-text">Roteiros Produtivos</span>
+                            </Link>
+                        </nav>
+                    </div>
                 </nav>
             </div>
 
