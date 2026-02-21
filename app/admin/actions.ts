@@ -113,6 +113,17 @@ export async function fetchDashboardData() {
             nomeGargalo = "Nenhum Enxame Ativo";
         }
 
+        // 4. TOP 3 Pódio de Talentos RH (Matriz)
+        const { data: topTalentosData } = await supabase
+            .from('operadores')
+            .select('id, nome_operador, matriz_talento_media')
+            .eq('status', 'Ativo')
+            .not('matriz_talento_media', 'is', null)
+            .order('matriz_talento_media', { ascending: false })
+            .limit(3);
+
+        const topTalentos = topTalentosData || [];
+
         // Gráfico OEE Global Mensal (Mock dinâmico por enquanto, na vida real seria agg por Mês de created_at)
         const globalOEE = horasReaisGerais > 0 ? Math.min(100, Math.round((horasPlaneadasGerais / horasReaisGerais) * 100)) : 100;
 
@@ -125,7 +136,8 @@ export async function fetchDashboardData() {
                 totalLeiturasMes,
                 oeeGlobal: globalOEE
             },
-            financas: tableCustos
+            financas: tableCustos,
+            topTalentos
         };
     } catch (err: unknown) {
         console.error("Dashboard Fetch Error:", err);

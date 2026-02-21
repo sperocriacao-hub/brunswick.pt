@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
-import { Activity, AlertTriangle, Layers, TrendingUp, DollarSign } from 'lucide-react';
+import { Activity, AlertTriangle, Layers, TrendingUp, DollarSign, UserCircle2, Award } from 'lucide-react';
 import { fetchDashboardData } from './actions';
 
 type Stats = {
@@ -24,11 +24,18 @@ type FinancaItem = {
   oeePerc: string;
 };
 
+type TalentoItem = {
+  id: string;
+  nome_operador: string;
+  matriz_talento_media: number;
+};
+
 export default function Home() {
   const [stats, setStats] = useState<Stats>({ barcosEmProducao: 0, barcosAtrasados: 0, estacaoGargalo: 'N/A', totalLeiturasMes: 0, oeeGlobal: 100 });
   const [graficoEvolucao, setGraficoEvolucao] = useState<{ name: string, barcos: number }[]>([]);
   const [gargalosGrafo, setGargalosGrafo] = useState<{ name: string, retidos: number }[]>([]);
   const [financas, setFinancas] = useState<FinancaItem[]>([]);
+  const [topTalentos, setTopTalentos] = useState<TalentoItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -41,6 +48,7 @@ export default function Home() {
         if (res.success && res.stats) {
           setStats(res.stats);
           setFinancas(res.financas || []);
+          setTopTalentos(res.topTalentos || []);
 
           // WIP Placeholder (já poderia vir estruturado se tivéssemos gargalosAgg calculados na action mas adaptámos)
           if (res.stats.estacaoGargalo !== 'Nenhum Enxame Ativo' && res.stats.estacaoGargalo !== 'N/A' && res.stats.estacaoGargalo !== 'Apurando...') {
@@ -123,6 +131,39 @@ export default function Home() {
             <span style={{ fontSize: "2.5rem", fontWeight: 800, lineHeight: 1 }}>{stats.oeeGlobal}%</span>
             <span style={{ color: "var(--primary)", fontSize: "0.85rem", paddingBottom: '4px' }}>Eficácia Global</span>
           </div>
+        </div>
+      </div>
+
+      {/* Hero Section: Wall of Fame RH */}
+      <div className="glass-panel p-6 mb-8 animate-fade-in animate-delay-3" style={{ border: '1px solid rgba(255,255,255,0.1)', background: 'linear-gradient(90deg, rgba(15, 23, 42, 0.8) 0%, rgba(30, 41, 59, 1) 100%)' }}>
+        <div className="flex items-center gap-3 mb-6">
+          <Award size={24} className="text-[#f59e0b]" />
+          <h2 style={{ fontSize: '1.2rem', fontWeight: 600, color: 'white', margin: 0 }}>Wall of Fame (Top Desempenhos Globais)</h2>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {isLoading ? (
+            <div className="col-span-3 opacity-50 py-4 text-center">Apurar Matrizes de Talento...</div>
+          ) : topTalentos.length === 0 ? (
+            <div className="col-span-3 opacity-50 py-4 text-center">Nenhum Operador Ponderado ainda.</div>
+          ) : topTalentos.map((t, index) => (
+            <div key={t.id} className="bg-slate-800/50 rounded-xl p-4 flex flex-col relative border border-[rgba(255,255,255,0.05)] overflow-hidden">
+              {index === 0 && <div className="absolute top-0 right-0 bg-[#f59e0b] text-[10px] font-bold py-1 px-3 rounded-bl-lg text-slate-900 uppercase">Supervisor Choice</div>}
+              <div className="flex justify-between items-center mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-slate-700 border border-[rgba(255,255,255,0.1)] flex items-center justify-center relative">
+                    <UserCircle2 size={24} className="opacity-50" />
+                    <div className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold border-2 border-slate-800 ${index === 0 ? 'bg-[#f59e0b] text-slate-900' : (index === 1 ? 'bg-slate-300 text-slate-800' : 'bg-[#d97706] text-white')}`}>#{index + 1}</div>
+                  </div>
+                  <h3 className="font-bold text-sm m-0 leading-tight">{t.nome_operador}</h3>
+                </div>
+              </div>
+              <div className="flex justify-between items-end">
+                <span className="text-xs opacity-60">Média Vitalícia (0-4)</span>
+                <span className={`text-xl font-black ${index === 0 ? 'text-[#f59e0b]' : 'text-white'}`}>{Number(t.matriz_talento_media).toFixed(1)}</span>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
