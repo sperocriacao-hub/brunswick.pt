@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Network, Activity, Wrench, Settings, Plus, TableProperties, X, Loader2, Edit, Trash2 } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
+import GrafoEstacoes from './GrafoEstacoes';
 
 // ==========================================
 // TIPOS EXATOS DE SUPABASE (0002 e 0003)
@@ -325,10 +326,8 @@ export default function FabricaLayoutPage() {
                         )}
 
                         {viewMode === 'grafos' && (
-                            <div className="glass-panel p-8 flex flex-col items-center justify-center text-center opacity-70 border-dashed border-2 border-[var(--primary)]" style={{ minHeight: '400px' }}>
-                                <Network size={48} color="var(--primary)" className="mb-4" />
-                                <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>Visão de Dependências (Estações)</h2>
-                                <p className="max-w-2xl text-center">Futura visualização do motor N:M (Predecessores e Sucessores) ativando lógica de Grafos complexos.</p>
+                            <div className="glass-panel" style={{ height: '75vh', minHeight: '650px', width: '100%', border: '1px dashed rgba(255,255,255,0.1)', overflow: 'hidden', padding: 0 }}>
+                                <GrafoEstacoes estacoes={estacoes} areas={areas} linhas={linhas} />
                             </div>
                         )}
                     </>

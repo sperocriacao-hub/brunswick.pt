@@ -12,6 +12,7 @@
     "@eslint/eslintrc": "^3.3.3",
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.97.0",
+    "@xyflow/react": "^12.10.1",
     "jspdf": "^4.2.0",
     "jspdf-autotable": "^5.0.7",
     "lucide-react": "^0.575.0",
