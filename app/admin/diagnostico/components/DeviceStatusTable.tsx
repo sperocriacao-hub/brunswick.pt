@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Wifi, Activity, AlertCircle, RefreshCw } from 'lucide-react';
-import { fetchIoTEquipments } from '../actions';
+import { fetchIoTEquipments, triggerOfflineAlert } from '../actions';
 
 type IoTDevice = {
     id: string;
@@ -22,6 +22,9 @@ export function DeviceStatusTable() {
     const [devices, setDevices] = useState<IoTDevice[]>([]);
     const [loading, setLoading] = useState(true);
     const [pendenteMigration, setPendenteMigration] = useState(false);
+
+    // Flag set to avoid spamming the backend for already offline devices
+    const [, setAlertedDevices] = useState<Set<string>>(new Set());
 
     const loadDevices = async () => {
         setLoading(true);
@@ -47,9 +50,29 @@ export function DeviceStatusTable() {
         if (!lastHeartbeat) return true;
         const last = new Date(lastHeartbeat).getTime();
         const now = new Date().getTime();
-        // Se a diferença for maior que 5 minutos (300.000 ms), consider -se offline
-        return (now - last) > 300000;
+        return (now - last) > 300000; // 5 minutos offline
     };
+
+    // Efeito para vigiar devices e engatilhar SMS/Emails de Queda
+    useEffect(() => {
+        if (!devices || devices.length === 0) return;
+
+        setAlertedDevices(prev => {
+            const nextSet = new Set(prev);
+            devices.forEach(dev => {
+                const off = isOffline(dev.ultimo_heartbeat);
+                if (off && !nextSet.has(dev.mac_address)) {
+                    // Novo Drop detetado: Dispara action "HEARTBEAT_LOSS"
+                    triggerOfflineAlert(dev.mac_address, dev.nome_dispositivo);
+                    nextSet.add(dev.mac_address);
+                } else if (!off && nextSet.has(dev.mac_address)) {
+                    // Device recuperou Life: retirar da flag para caso caia outra vez
+                    nextSet.delete(dev.mac_address);
+                }
+            });
+            return nextSet;
+        });
+    }, [devices]);
 
     if (pendenteMigration) {
         return (

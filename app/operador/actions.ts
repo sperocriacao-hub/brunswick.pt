@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient } from '@supabase/supabase-js';
+import { dispatchNotification } from '../admin/configuracoes/notificacoes/actions';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
@@ -87,14 +88,32 @@ export async function terminarSessaoTrabalho(registoId: string) {
     try {
         if (!registoId) throw new Error("ID de Registo em falta.");
 
-        const { error } = await supabase
+        const { data, error } = await supabase
             .from('registos_rfid_realtime')
             .update({ timestamp_fim: new Date().toISOString() })
-            .eq('id', registoId);
+            .eq('id', registoId)
+            .select(`
+                estacao_id,
+                ordens_producao(op_numero)
+            `)
+            .single();
 
         if (error) {
             console.error("Update RFID Error:", error);
             throw error;
+        }
+
+        // 2. Disparar Automacao/Server Action de Alerta (Ex: Fim de Linha)
+        if (data && data.ordens_producao) {
+            // TypeScript safely checks
+            const opRelation = data.ordens_producao as unknown as { op_numero: string };
+            const opNumber = opRelation?.op_numero || 'OP-DESC';
+
+            // Enviamos payload utilitario para que os utilizadores possam usar tags {{op_numero}} no modal.
+            await dispatchNotification('OP_COMPLETED', {
+                op_numero: opNumber,
+                estacao_id: data.estacao_id || 'N/A'
+            });
         }
 
         return { success: true };

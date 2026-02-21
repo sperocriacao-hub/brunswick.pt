@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/utils/supabase/client';
-import { Loader2, Save, RefreshCw, Mail, MessageSquare, Settings as SettingsIcon, ShieldAlert } from 'lucide-react';
+import { Loader2, Save, RefreshCw, Mail, MessageSquare, Settings as SettingsIcon, ShieldAlert, Bell } from 'lucide-react';
+import Link from 'next/link';
 
 type ConfigItem = {
     id: string;
@@ -116,6 +117,10 @@ export default function ConfiguracoesPage() {
                     <p style={{ color: "rgba(255,255,255,0.6)", fontSize: '0.85rem', margin: 0 }}>
                         Emails, SMTP e SMS Defaults
                     </p>
+                    <div style={{ width: '1px', height: '20px', background: 'rgba(255,255,255,0.2)', margin: '0 12px' }}></div>
+                    <Link href="/admin/configuracoes/notificacoes" className="text-amber-400 hover:text-amber-300 font-bold text-sm flex items-center gap-2 bg-amber-900/30 px-3 py-1 rounded-full border border-amber-500/30 transition-all">
+                        <Bell size={14} /> Automações de Alertas
+                    </Link>
                 </div>
 
                 <div style={{ display: 'flex', gap: '0.75rem' }}>

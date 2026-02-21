@@ -2,6 +2,15 @@
 
 import { cookies } from 'next/headers';
 import { createClient } from '@/utils/supabase/server';
+import { dispatchNotification } from '../configuracoes/notificacoes/actions';
+
+export async function triggerOfflineAlert(mac: string, nome: string) {
+    // Dispara a automação definida (Ex: Webhook ou Email) através do Engine de Avisos.
+    await dispatchNotification('HEARTBEAT_LOSS', {
+        mac_address: mac,
+        nome_dispositivo: nome
+    });
+}
 
 export async function fetchIoTEquipments() {
     try {
