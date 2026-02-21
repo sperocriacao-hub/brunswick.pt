@@ -22,7 +22,7 @@ export default async function DiagnosticoPage() {
     try {
         const t0 = performance.now();
         // Teste 1: Query simples à tabela de configurações globais
-        const { data, error } = await supabase.from('sys_config_geral').select('id').limit(1);
+        const { error } = await supabase.from('sys_config_geral').select('id').limit(1);
         const t1 = performance.now();
 
         if (error) {
@@ -32,9 +32,9 @@ export default async function DiagnosticoPage() {
             dbStatus = 'ok';
             dbLatencyMs = Math.round(t1 - t0);
         }
-    } catch (err: any) {
+    } catch (err: unknown) {
         dbStatus = 'erro_terminal';
-        errorLog = err.message || 'Falha de rede severa Vercel->Supabase';
+        errorLog = (err as Error).message || 'Falha de rede severa Vercel->Supabase';
     }
 
     return (

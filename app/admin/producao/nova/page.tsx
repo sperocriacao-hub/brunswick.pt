@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Calendar, Tag, Info, Save, Clock, Anchor } from 'lucide-react';
+import { Calendar, Tag, Info, Save, Anchor } from 'lucide-react';
 
 // Tipos de dados (Mocks baseados na tua BD Supabase)
 type Modelo = { id: string; nome: string; model_year: string };

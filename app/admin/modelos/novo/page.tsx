@@ -196,6 +196,7 @@ export default function NovoModeloPage() {
                 }
             });
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const finalY = (doc as any).lastAutoTable.finalY + 15;
 
             doc.setFontSize(9);

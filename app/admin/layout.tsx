@@ -29,7 +29,7 @@ export default async function AdminLayout({
                 <span style={{ display: 'flex', gap: '15px' }}>
                     <a href="/admin/modelos/novo" style={{ color: 'var(--primary)' }}>[ Cadastro Modelo ]</a>
                     <a href="/admin/producao/nova" style={{ color: 'var(--primary)' }}>[ Planeamento OP ]</a>
-                    <a href="/diagnostico" style={{ color: 'var(--accent)' }}>[ Diagnóstico ]</a>
+                    <a href="/admin/diagnostico" style={{ color: 'var(--accent)' }}>[ Diagnóstico ]</a>
                 </span>
             </div>
 
