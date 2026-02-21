@@ -27,8 +27,9 @@ export async function updateSession(request: NextRequest) {
         }
     );
 
-    // IMPORTANTE: Evitar bloquear o middleware. Fazer GetUser atualiza a sessão do Auth.
-    await supabase.auth.getUser();
+    // Não chamar supabase.auth.getUser() dentro do Next.js Proxy/Middleware Edge 
+    // por questões de performance e suporte de módulos Node.
+    // Faremos isto futuramente em Auth Server Actions.
 
     return supabaseResponse;
 }
