@@ -1,10 +1,11 @@
 "use client";
 
+import { Suspense } from 'react';
 import { Lock } from 'lucide-react';
 import { login, signup } from './actions';
 import { useSearchParams } from 'next/navigation';
 
-export default function LoginPage() {
+function LoginForm() {
     const searchParams = useSearchParams();
     const errorMessage = searchParams.get('error');
     const successMessage = searchParams.get('message');
@@ -69,5 +70,13 @@ export default function LoginPage() {
 
             </div>
         </div>
+    );
+}
+
+export default function LoginPage() {
+    return (
+        <Suspense fallback={<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: 'var(--background-base)' }}>Loading...</div>}>
+            <LoginForm />
+        </Suspense>
     );
 }
