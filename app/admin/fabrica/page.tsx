@@ -142,13 +142,18 @@ export default function FabricaLayoutPage() {
                         </p>
                     </div>
 
-                    {/* DOCK PREMIUM DE CONTROLOS */}
-                    <div className="dock-premium mb-6">
+                    {/* DOCK PREMIUM DE CONTROLOS (FIXA NO TOPO, USANDO INLINE CSS PARA GARANTIR CENTRO) */}
+                    <div style={{
+                        position: 'sticky', top: '1rem', zIndex: 50, display: 'flex', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center', gap: '0.75rem',
+                        background: 'rgba(15, 23, 42, 0.85)', padding: '0.75rem 1.5rem', borderRadius: '9999px', border: '1px solid rgba(255,255,255,0.15)',
+                        backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', boxShadow: '0 10px 40px rgba(0,0,0,0.6)',
+                        width: 'fit-content', margin: '0 auto 2rem auto'
+                    }}>
                         <button className="btn btn-outline" style={{ borderRadius: '999px', padding: '0.5rem 1.25rem' }} onClick={() => setViewMode(viewMode === 'matriz' ? 'grafos' : 'matriz')}>
                             {viewMode === 'matriz' ? <Network size={18} style={{ marginRight: '8px' }} /> : <TableProperties size={18} style={{ marginRight: '8px' }} />}
                             {viewMode === 'matriz' ? 'Modo Grafo Lógico' : 'Matriz Kanban 2D'}
                         </button>
-                        <div className="w-px h-10 bg-white/10 mx-2 self-center"></div>
+                        <div style={{ width: '1px', height: '40px', background: 'rgba(255,255,255,0.1)', margin: '0 8px' }}></div>
                         <button className="btn btn-primary" style={{ borderRadius: '999px', padding: '0.5rem 1.25rem' }} onClick={() => setIsAreaModalOpen(true)}>
                             <Settings size={18} style={{ marginRight: '8px' }} />
                             Configurar Áreas
@@ -170,87 +175,90 @@ export default function FabricaLayoutPage() {
                     </div>
                 ) : (
                     <>
-                        {/* SECTÃO 1: O CHÃO DE FÁBRICA (MATRIZ KANBAN 2D - SWIMLANES) */}
+                        {/* SECTÃO 1: O CHÃO DE FÁBRICA (MATRIZ KANBAN 2D - SWIMLANES PROTEGIDAS) */}
                         {viewMode === 'matriz' && (
-                            <div className="flex flex-wrap gap-8 items-start justify-center pb-8" style={{ paddingBottom: '2rem' }}>
-                                {sortedAreas.length === 0 && (
-                                    <div className="p-8 opacity-50 text-center w-full">Nenhuma Área Configurável Criadada. Configure Áreas para visualizar o Shopfloor.</div>
-                                )}
+                            <div style={{ maxWidth: '100%', overflowX: 'auto', paddingBottom: '2rem' }}>
+                                <div style={{ display: 'inline-flex', flexDirection: 'column', minWidth: '100%' }}>
 
-                                {sortedAreas.map(area => {
-                                    const estacoesArea = estacoes.filter(e => e.area_id === area.id);
-
-                                    return (
-                                        <div key={area.id} className="glass-panel" style={{ width: '350px', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
-                                            {/* Cabeçalho da Área */}
-                                            <div className="p-4 flex items-center justify-between" style={{ borderBottom: `2px solid ${area.cor_destaque || 'var(--primary)'}`, background: 'rgba(0,0,0,0.2)' }}>
-                                                <div className="flex items-center gap-2">
-                                                    <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: area.cor_destaque }}></div>
-                                                    <h3 style={{ fontSize: '1.2rem', fontWeight: 600 }}>{area.nome_area}</h3>
-                                                </div>
-                                                <span style={{ fontSize: '0.8rem', opacity: 0.6 }}>Pos. {area.ordem_sequencial}</span>
-                                            </div>
-
-                                            {/* Corpo da Área (Estações) */}
-                                            <div className="p-4 flex flex-col gap-4" style={{ backgroundColor: 'rgba(0,0,0,0.1)', minHeight: '200px' }}>
-                                                {estacoesArea.length === 0 ? (
-                                                    <div className="flex-1 flex items-center justify-center opacity-30 border border-dashed border-white/20 rounded-lg p-4 text-center">
-                                                        <p style={{ fontSize: '0.8rem' }}>Sem estações cadastradas nesta zona.</p>
-                                                    </div>
-                                                ) : (
-                                                    estacoesArea.map(est => {
-                                                        const linhaDaEstacao = linhas.find(l => l.id === est.linha_id);
-
-                                                        return (
-                                                            <div key={est.id} className="glass-panel p-4 outline outline-1 outline-[rgba(255,255,255,0.05)] hover:outline-[var(--primary)] transition-all" style={{
-                                                                position: 'relative',
-                                                                overflow: 'hidden',
-                                                                background: est.status === 'Em Manutenção' ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(30, 41, 59, 1) 100%)' :
-                                                                    est.status === 'Inativa' ? 'linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(15, 23, 42, 1) 100%)' : undefined
-                                                            }}>
-                                                                <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '4px', backgroundColor: area.cor_destaque }}></div>
-
-                                                                {/* Topo do Cartão: Status e Linha */}
-                                                                <div className="flex justify-between items-start mb-3 pl-2">
-                                                                    <span style={{
-                                                                        fontSize: '0.65rem', fontWeight: 600, padding: '2px 6px', borderRadius: '12px',
-                                                                        background: est.status === 'Disponível' ? 'rgba(34, 197, 94, 0.2)' : est.status === 'Em Manutenção' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(255,255,255,0.1)',
-                                                                        color: est.status === 'Disponível' ? '#4ade80' : est.status === 'Em Manutenção' ? '#f87171' : '#94a3b8'
-                                                                    }}>
-                                                                        {est.status.toUpperCase()}
-                                                                    </span>
-                                                                    <div className="flex items-center gap-2">
-                                                                        {linhaDaEstacao && (
-                                                                            <span style={{ fontSize: '0.65rem', background: 'rgba(59, 130, 246, 0.2)', color: '#60a5fa', padding: '2px 6px', borderRadius: '4px', border: '1px solid rgba(59, 130, 246, 0.3)' }}>
-                                                                                Linha {linhaDaEstacao.letra_linha}
-                                                                            </span>
-                                                                        )}
-                                                                        {est.status === 'Em Manutenção' && <Wrench size={14} color="#f87171" className="animate-pulse" />}
-                                                                    </div>
-                                                                </div>
-
-                                                                {/* Nome da Célula/Estação */}
-                                                                <h4 style={{ fontSize: '1.1rem', fontWeight: 600, lineHeight: 1.2, marginBottom: '0.5rem', paddingLeft: '0.5rem' }}>{est.nome_estacao}</h4>
-
-                                                                {/* Footer do Cartão: Dados */}
-                                                                <div className="grid grid-cols-2 gap-2 mt-4 pt-3 pl-2" style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-                                                                    <div>
-                                                                        <p style={{ fontSize: '0.65rem', opacity: 0.5, marginBottom: '2px' }}>SLA (Ciclo)</p>
-                                                                        <p style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--primary)' }}>{est.tempo_ciclo_padrao} min</p>
-                                                                    </div>
-                                                                    <div style={{ textAlign: 'right' }}>
-                                                                        <p style={{ fontSize: '0.65rem', opacity: 0.5, marginBottom: '2px' }}>ESP32 Tag</p>
-                                                                        <p style={{ fontSize: '0.65rem', fontFamily: 'monospace', background: 'rgba(0,0,0,0.3)', padding: '2px 4px', borderRadius: '4px', display: 'inline-block' }}>{est.tag_rfid_estacao || 'N/A'}</p>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        );
-                                                    })
-                                                )}
-                                            </div>
+                                    {/* HEADER DAS COLUNAS (Áreas) */}
+                                    <div style={{ display: 'flex', borderBottom: '2px solid rgba(255,255,255,0.1)' }}>
+                                        <div style={{ width: '250px', flexShrink: 0, padding: '1rem', borderRight: '1px solid rgba(255,255,255,0.1)', position: 'sticky', left: 0, zIndex: 10, background: 'var(--background-base)' }}>
+                                            <h3 style={{ fontSize: '1rem', color: 'rgba(255,255,255,0.5)' }}>Interseção Operacional</h3>
                                         </div>
-                                    );
-                                })}
+                                        {sortedAreas.map(area => (
+                                            <div key={area.id} style={{ width: '320px', flexShrink: 0, padding: '1rem', borderRight: '1px dashed rgba(255,255,255,0.05)' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: area.cor_destaque }}></div>
+                                                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600 }}>{area.nome_area}</h3>
+                                                </div>
+                                                <p style={{ fontSize: '0.7rem', opacity: 0.5, marginTop: '4px' }}>Pos. {area.ordem_sequencial}</p>
+                                            </div>
+                                        ))}
+                                        {sortedAreas.length === 0 && <div className="p-4 opacity-50" style={{ flex: 1 }}>Nenhuma Área Configurável Criadada. Crie uma para abrir Colunas no Kanban.</div>}
+                                    </div>
+
+                                    {/* BODY DAS SWIMLANES (Linhas) */}
+                                    {linhas.map(linha => (
+                                        <div key={linha.id} className="group" style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                                            {/* Cabeçalho da Linha Fixo à Esquerda */}
+                                            <div style={{ width: '250px', flexShrink: 0, padding: '1.5rem 1rem', borderRight: '1px solid rgba(255,255,255,0.1)', background: 'var(--background-panel)', position: 'sticky', left: 0, zIndex: 5, backdropFilter: 'blur(10px)' }}>
+                                                <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--primary)', marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    <Activity size={24} /> Linha {linha.letra_linha}
+                                                </h2>
+                                                <p style={{ fontSize: '0.85rem', opacity: 0.8, marginBottom: '1rem' }}>{linha.descricao_linha}</p>
+                                                <div style={{ fontSize: '0.75rem', opacity: 0.6 }}>Capacidade: <strong>{linha.capacidade_diaria}</strong> / dia</div>
+                                            </div>
+
+                                            {sortedAreas.map(area => {
+                                                const estacoesNestaCelula = estacoes.filter(e => e.area_id === area.id && (e.linha_id === linha.id || !e.linha_id));
+
+                                                return (
+                                                    <div key={`${linha.id}-${area.id}`} style={{ width: '320px', flexShrink: 0, padding: '1rem', borderRight: '1px dashed rgba(255,255,255,0.05)', backgroundColor: 'rgba(0,0,0,0.1)' }}>
+                                                        {estacoesNestaCelula.length === 0 ? (
+                                                            <div style={{ height: '100%', width: '100%', border: '1px dashed rgba(255,255,255,0.1)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.2 }}>
+                                                                <p style={{ fontSize: '0.7rem' }}>S/ Estação Alocada</p>
+                                                            </div>
+                                                        ) : (
+                                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                                                {estacoesNestaCelula.map(est => (
+                                                                    <div key={est.id} className="glass-panel" style={{
+                                                                        padding: '1rem', position: 'relative', overflow: 'hidden',
+                                                                        background: est.status === 'Em Manutenção' ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(30, 41, 59, 1) 100%)' :
+                                                                            est.status === 'Inativa' ? 'linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(15, 23, 42, 1) 100%)' : undefined
+                                                                    }}>
+                                                                        <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '4px', backgroundColor: area.cor_destaque }}></div>
+                                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem', paddingLeft: '0.5rem' }}>
+                                                                            <span style={{
+                                                                                fontSize: '0.65rem', fontWeight: 600, padding: '2px 6px', borderRadius: '12px',
+                                                                                background: est.status === 'Disponível' ? 'rgba(34, 197, 94, 0.2)' : est.status === 'Em Manutenção' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(255,255,255,0.1)',
+                                                                                color: est.status === 'Disponível' ? '#4ade80' : est.status === 'Em Manutenção' ? '#f87171' : '#94a3b8'
+                                                                            }}>
+                                                                                {est.status.toUpperCase()}
+                                                                            </span>
+                                                                            {est.status === 'Em Manutenção' && <Wrench size={14} color="#f87171" className="animate-pulse" />}
+                                                                        </div>
+                                                                        <h4 style={{ fontSize: '1rem', fontWeight: 600, lineHeight: 1.2, marginBottom: '0.5rem', paddingLeft: '0.5rem' }}>{est.nome_estacao}</h4>
+                                                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px solid rgba(255,255,255,0.1)', paddingLeft: '0.5rem' }}>
+                                                                            <div>
+                                                                                <p style={{ fontSize: '0.65rem', opacity: 0.5, marginBottom: '2px' }}>SLA</p>
+                                                                                <p style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--primary)' }}>{est.tempo_ciclo_padrao} min</p>
+                                                                            </div>
+                                                                            <div style={{ textAlign: 'right' }}>
+                                                                                <p style={{ fontSize: '0.65rem', opacity: 0.5, marginBottom: '2px' }}>ESP32</p>
+                                                                                <p style={{ fontSize: '0.65rem', fontFamily: 'monospace', background: 'rgba(0,0,0,0.3)', padding: '2px 4px', borderRadius: '4px', display: 'inline-block' }}>{est.tag_rfid_estacao || 'N/A'}</p>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    ))}
+                                    {linhas.length === 0 && <div className="p-8 opacity-50 text-center">Nenhuma Linha Física Criada. O Chão de fábrica está vazio.</div>}
+                                </div>
                             </div>
                         )}
 
