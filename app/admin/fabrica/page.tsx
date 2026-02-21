@@ -143,7 +143,7 @@ export default function FabricaLayoutPage() {
                     </div>
 
                     {/* DOCK PREMIUM DE CONTROLOS */}
-                    <div className="flex flex-wrap justify-center gap-3 bg-white/5 p-2 px-4 rounded-full border border-white/10 backdrop-blur-md shadow-2xl">
+                    <div className="dock-premium mb-6">
                         <button className="btn btn-outline" style={{ borderRadius: '999px', padding: '0.5rem 1.25rem' }} onClick={() => setViewMode(viewMode === 'matriz' ? 'grafos' : 'matriz')}>
                             {viewMode === 'matriz' ? <Network size={18} style={{ marginRight: '8px' }} /> : <TableProperties size={18} style={{ marginRight: '8px' }} />}
                             {viewMode === 'matriz' ? 'Modo Grafo Lógico' : 'Matriz Kanban 2D'}
@@ -278,8 +278,8 @@ export default function FabricaLayoutPage() {
             {/* MODAL: NOVA LINHA */}
             {
                 isLinhaModalOpen && (
-                    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[9999]" style={{ backdropFilter: 'blur(10px)' }}>
-                        <div className="glass-panel p-6 w-full max-w-md animate-fade-in shadow-[0_0_40px_rgba(0,0,0,0.5)] border border-white/10">
+                    <div className="modal-overlay">
+                        <div className="modal-content">
                             <div className="flex justify-between items-center mb-6">
                                 <h3 className="text-xl font-bold bg-gradient-to-r from-white to-white/50 bg-clip-text text-transparent">Criar Linha Produtiva</h3>
                                 <button onClick={() => setIsLinhaModalOpen(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors"><X size={20} className="opacity-70" /></button>
@@ -307,8 +307,8 @@ export default function FabricaLayoutPage() {
             {/* MODAL: NOVA ÁREA KANBAN */}
             {
                 isAreaModalOpen && (
-                    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[9999]" style={{ backdropFilter: 'blur(10px)' }}>
-                        <div className="glass-panel p-6 w-full max-w-md animate-fade-in shadow-[0_0_40px_rgba(0,0,0,0.5)] border border-white/10">
+                    <div className="modal-overlay">
+                        <div className="modal-content">
                             <div className="flex justify-between items-center mb-6">
                                 <h3 className="text-xl font-bold bg-gradient-to-r from-white to-white/50 bg-clip-text text-transparent">Criar Zona de Fabrico</h3>
                                 <button onClick={() => setIsAreaModalOpen(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors"><X size={20} className="opacity-70" /></button>
@@ -338,8 +338,8 @@ export default function FabricaLayoutPage() {
             {/* MODAL: NOVA ESTAÇÃO FÍSICA */}
             {
                 isEstacaoModalOpen && (
-                    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[9999]" style={{ backdropFilter: 'blur(10px)' }}>
-                        <div className="glass-panel p-6 w-full max-w-md animate-fade-in shadow-[0_0_40px_rgba(0,0,0,0.5)] border border-[var(--accent)]/30">
+                    <div className="modal-overlay">
+                        <div className="modal-content" style={{ borderColor: 'var(--accent)' }}>
                             <div className="flex justify-between items-center mb-6">
                                 <h3 className="text-xl font-bold bg-gradient-to-r from-white to-[var(--accent)] bg-clip-text text-transparent">Registrar Máquina/Estação</h3>
                                 <button onClick={() => setIsEstacaoModalOpen(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors"><X size={20} className="opacity-70" /></button>
