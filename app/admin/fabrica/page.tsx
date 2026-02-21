@@ -1,8 +1,16 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Network, Activity, Wrench, Settings, Plus, TableProperties, X, Loader2 } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
+
+// Portal seguro (apenas cliente) para montar por cima de qualquer overflow-y ou z-index
+const ClientPortal = ({ children }: { children: React.ReactNode }) => {
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => setMounted(true), []);
+    return mounted ? createPortal(children, document.body) : null;
+};
 
 // ==========================================
 // TIPOS EXATOS DE SUPABASE (0002 e 0003)
@@ -133,27 +141,30 @@ export default function FabricaLayoutPage() {
 
     return (
         <div className="container mt-8 animate-fade-in dashboard-layout" style={{ maxWidth: '100%', overflowX: 'hidden' }}>
-            <header className="flex justify-between items-center mb-8">
-                <div>
-                    <h1 className="brand-title" style={{ marginBottom: 0 }}>Estrutura de Fábrica [2D]</h1>
-                    <p style={{ color: "rgba(255,255,255,0.7)", marginTop: "0.25rem" }}>
-                        Monitorize o Shopfloor numa Matriz (Linhas vs Áreas).
+            <header className="flex flex-col items-center justify-center mb-10 text-center relative z-10">
+                <div className="mb-6">
+                    <h1 className="brand-title" style={{ fontSize: '2.5rem', marginBottom: '0.5rem', textShadow: '0 4px 20px rgba(0,0,0,0.5)' }}>Estrutura de Fábrica [2D]</h1>
+                    <p style={{ color: "rgba(255,255,255,0.7)", fontSize: '1.1rem', maxWidth: '600px', margin: '0 auto' }}>
+                        Monitorize, crie e configure o Shopfloor numa Matriz Visualmente Dinâmica (Linhas vs Áreas).
                     </p>
                 </div>
-                <div className="flex gap-4">
-                    <button className="btn btn-outline" onClick={() => setViewMode(viewMode === 'matriz' ? 'grafos' : 'matriz')}>
+
+                {/* DOCK PREMIUM DE CONTROLOS */}
+                <div className="flex flex-wrap justify-center gap-3 bg-white/5 p-2 px-4 rounded-full border border-white/10 backdrop-blur-md shadow-2xl">
+                    <button className="btn btn-outline" style={{ borderRadius: '999px', padding: '0.5rem 1.25rem' }} onClick={() => setViewMode(viewMode === 'matriz' ? 'grafos' : 'matriz')}>
                         {viewMode === 'matriz' ? <Network size={18} style={{ marginRight: '8px' }} /> : <TableProperties size={18} style={{ marginRight: '8px' }} />}
                         {viewMode === 'matriz' ? 'Modo Grafo Lógico' : 'Matriz Kanban 2D'}
                     </button>
-                    <button className="btn btn-primary" onClick={() => setIsAreaModalOpen(true)}>
+                    <div className="w-px h-10 bg-white/10 mx-2 self-center"></div>
+                    <button className="btn btn-primary" style={{ borderRadius: '999px', padding: '0.5rem 1.25rem' }} onClick={() => setIsAreaModalOpen(true)}>
                         <Settings size={18} style={{ marginRight: '8px' }} />
                         Configurar Áreas
                     </button>
-                    <button className="btn btn-primary" onClick={() => setIsLinhaModalOpen(true)}>
+                    <button className="btn btn-primary" style={{ borderRadius: '999px', padding: '0.5rem 1.25rem' }} onClick={() => setIsLinhaModalOpen(true)}>
                         <Activity size={18} style={{ marginRight: '8px' }} />
                         Nova Linha
                     </button>
-                    <button className="btn btn-primary" style={{ background: 'var(--accent)' }} onClick={() => setIsEstacaoModalOpen(true)}>
+                    <button className="btn btn-primary" style={{ background: 'var(--accent)', borderRadius: '999px', padding: '0.5rem 1.25rem', boxShadow: '0 0 15px var(--accent)' }} onClick={() => setIsEstacaoModalOpen(true)}>
                         <Plus size={18} style={{ marginRight: '8px' }} />
                         Nova Estação
                     </button>
@@ -268,101 +279,107 @@ export default function FabricaLayoutPage() {
 
             {/* MODAL: NOVA LINHA */}
             {isLinhaModalOpen && (
-                <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
-                    <div className="glass-panel p-6 w-full max-w-md">
-                        <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-xl font-bold">Criar Linha Produtiva</h3>
-                            <button onClick={() => setIsLinhaModalOpen(false)}><X size={20} className="opacity-50 hover:opacity-100" /></button>
+                <ClientPortal>
+                    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[9999]" style={{ backdropFilter: 'blur(10px)' }}>
+                        <div className="glass-panel p-6 w-full max-w-md animate-fade-in shadow-[0_0_40px_rgba(0,0,0,0.5)] border border-white/10">
+                            <div className="flex justify-between items-center mb-6">
+                                <h3 className="text-xl font-bold bg-gradient-to-r from-white to-white/50 bg-clip-text text-transparent">Criar Linha Produtiva</h3>
+                                <button onClick={() => setIsLinhaModalOpen(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors"><X size={20} className="opacity-70" /></button>
+                            </div>
+                            <form onSubmit={handleCriarLinha} className="flex flex-col gap-4">
+                                <div className="form-group">
+                                    <label>Letra da Linha (ex: A, B, C)</label>
+                                    <input type="text" className="form-control" required maxLength={4} value={formLinha.letra} onChange={(e) => setFormLinha({ ...formLinha, letra: e.target.value })} />
+                                </div>
+                                <div className="form-group">
+                                    <label>Descrição/Vocação da Linha</label>
+                                    <input type="text" className="form-control" required value={formLinha.descricao} onChange={(e) => setFormLinha({ ...formLinha, descricao: e.target.value })} />
+                                </div>
+                                <div className="form-group">
+                                    <label>Capacidade (Barcos/Dia)</label>
+                                    <input type="number" className="form-control" required min={1} value={formLinha.capacidade} onChange={(e) => setFormLinha({ ...formLinha, capacidade: parseInt(e.target.value) })} />
+                                </div>
+                                <button type="submit" className="btn btn-primary mt-4 py-3 shadow-lg shadow-blue-500/20">Gravar Definição</button>
+                            </form>
                         </div>
-                        <form onSubmit={handleCriarLinha} className="flex flex-col gap-4">
-                            <div className="form-group">
-                                <label>Letra da Linha (ex: A, B, C)</label>
-                                <input type="text" className="form-control" required maxLength={4} value={formLinha.letra} onChange={(e) => setFormLinha({ ...formLinha, letra: e.target.value })} />
-                            </div>
-                            <div className="form-group">
-                                <label>Descrição/Vocação da Linha</label>
-                                <input type="text" className="form-control" required value={formLinha.descricao} onChange={(e) => setFormLinha({ ...formLinha, descricao: e.target.value })} />
-                            </div>
-                            <div className="form-group">
-                                <label>Capacidade (Barcos/Dia)</label>
-                                <input type="number" className="form-control" required min={1} value={formLinha.capacidade} onChange={(e) => setFormLinha({ ...formLinha, capacidade: parseInt(e.target.value) })} />
-                            </div>
-                            <button type="submit" className="btn btn-primary mt-4 py-3">Gravar Definição</button>
-                        </form>
                     </div>
-                </div>
+                </ClientPortal>
             )}
 
             {/* MODAL: NOVA ÁREA KANBAN */}
             {isAreaModalOpen && (
-                <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
-                    <div className="glass-panel p-6 w-full max-w-md">
-                        <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-xl font-bold">Criar Zona de Fabrico</h3>
-                            <button onClick={() => setIsAreaModalOpen(false)}><X size={20} className="opacity-50 hover:opacity-100" /></button>
+                <ClientPortal>
+                    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[9999]" style={{ backdropFilter: 'blur(10px)' }}>
+                        <div className="glass-panel p-6 w-full max-w-md animate-fade-in shadow-[0_0_40px_rgba(0,0,0,0.5)] border border-white/10">
+                            <div className="flex justify-between items-center mb-6">
+                                <h3 className="text-xl font-bold bg-gradient-to-r from-white to-white/50 bg-clip-text text-transparent">Criar Zona de Fabrico</h3>
+                                <button onClick={() => setIsAreaModalOpen(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors"><X size={20} className="opacity-70" /></button>
+                            </div>
+                            <form onSubmit={handleCriarArea} className="flex flex-col gap-4">
+                                <div className="form-group">
+                                    <label>Nome da Zona (ex: Laminação)</label>
+                                    <input type="text" className="form-control" required value={formArea.nome} onChange={(e) => setFormArea({ ...formArea, nome: e.target.value })} />
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="form-group">
+                                        <label>Ordem Sequencial</label>
+                                        <input type="number" className="form-control" required min={1} value={formArea.ordem} onChange={(e) => setFormArea({ ...formArea, ordem: parseInt(e.target.value) })} />
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Cor Indentificativa</label>
+                                        <input type="color" className="form-control h-[42px] p-1 cursor-pointer" value={formArea.cor} onChange={(e) => setFormArea({ ...formArea, cor: e.target.value })} />
+                                    </div>
+                                </div>
+                                <button type="submit" className="btn btn-primary mt-4 py-3 shadow-lg shadow-blue-500/20">Adicionar ao Kanban</button>
+                            </form>
                         </div>
-                        <form onSubmit={handleCriarArea} className="flex flex-col gap-4">
-                            <div className="form-group">
-                                <label>Nome da Zona (ex: Laminação)</label>
-                                <input type="text" className="form-control" required value={formArea.nome} onChange={(e) => setFormArea({ ...formArea, nome: e.target.value })} />
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="form-group">
-                                    <label>Ordem Sequencial (1 a N)</label>
-                                    <input type="number" className="form-control" required min={1} value={formArea.ordem} onChange={(e) => setFormArea({ ...formArea, ordem: parseInt(e.target.value) })} />
-                                </div>
-                                <div className="form-group">
-                                    <label>Cor Identificativa</label>
-                                    <input type="color" className="form-control" style={{ padding: '4px' }} value={formArea.cor} onChange={(e) => setFormArea({ ...formArea, cor: e.target.value })} />
-                                </div>
-                            </div>
-                            <button type="submit" className="btn btn-primary mt-4 py-3">Adicionar ao Kanban</button>
-                        </form>
                     </div>
-                </div>
+                </ClientPortal>
             )}
 
             {/* MODAL: NOVA ESTAÇÃO FÍSICA */}
             {isEstacaoModalOpen && (
-                <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
-                    <div className="glass-panel p-6 w-full max-w-md">
-                        <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-xl font-bold">Registrar Máquina/Estação</h3>
-                            <button onClick={() => setIsEstacaoModalOpen(false)}><X size={20} className="opacity-50 hover:opacity-100" /></button>
+                <ClientPortal>
+                    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[9999]" style={{ backdropFilter: 'blur(10px)' }}>
+                        <div className="glass-panel p-6 w-full max-w-md animate-fade-in shadow-[0_0_40px_rgba(0,0,0,0.5)] border border-[var(--accent)]/30">
+                            <div className="flex justify-between items-center mb-6">
+                                <h3 className="text-xl font-bold bg-gradient-to-r from-white to-[var(--accent)] bg-clip-text text-transparent">Registrar Máquina/Estação</h3>
+                                <button onClick={() => setIsEstacaoModalOpen(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors"><X size={20} className="opacity-70" /></button>
+                            </div>
+                            <form onSubmit={handleCriarEstacao} className="flex flex-col gap-4">
+                                <div className="form-group">
+                                    <label>Nome Operacional</label>
+                                    <input type="text" className="form-control" required value={formEstacao.nome} onChange={(e) => setFormEstacao({ ...formEstacao, nome: e.target.value })} />
+                                </div>
+                                <div className="form-group">
+                                    <label>Área Mãe (Coluna do Kanban)</label>
+                                    <select className="form-control" required value={formEstacao.area_id} onChange={(e) => setFormEstacao({ ...formEstacao, area_id: e.target.value })}>
+                                        <option value="" disabled>Selecione uma Área</option>
+                                        {sortedAreas.map(a => <option key={a.id} value={a.id}>{a.nome_area}</option>)}
+                                    </select>
+                                </div>
+                                <div className="form-group">
+                                    <label>Linha Atribuída (Opcional - Swimlane)</label>
+                                    <select className="form-control" value={formEstacao.linha_id} onChange={(e) => setFormEstacao({ ...formEstacao, linha_id: e.target.value })}>
+                                        <option value="">Todas (Hub Satélite que Atravessa Todas As Linhas)</option>
+                                        {linhas.map(l => <option key={l.id} value={l.id}>Linha {l.letra_linha}</option>)}
+                                    </select>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="form-group">
+                                        <label>Ciclo Standard (min)</label>
+                                        <input type="number" className="form-control" required value={formEstacao.ciclo} onChange={(e) => setFormEstacao({ ...formEstacao, ciclo: parseInt(e.target.value) })} />
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Tag ESP32 RFID</label>
+                                        <input type="text" className="form-control font-mono text-sm" required placeholder="Ex: EST-103" value={formEstacao.rfid} onChange={(e) => setFormEstacao({ ...formEstacao, rfid: e.target.value })} />
+                                    </div>
+                                </div>
+                                <button type="submit" className="btn btn-primary mt-4 py-3 shadow-lg shadow-[var(--accent)]/20" style={{ background: 'var(--accent)' }}>Montar Estação</button>
+                            </form>
                         </div>
-                        <form onSubmit={handleCriarEstacao} className="flex flex-col gap-4">
-                            <div className="form-group">
-                                <label>Nome Operacional</label>
-                                <input type="text" className="form-control" required value={formEstacao.nome} onChange={(e) => setFormEstacao({ ...formEstacao, nome: e.target.value })} />
-                            </div>
-                            <div className="form-group">
-                                <label>Área Mãe (Coluna do Kanban)</label>
-                                <select className="form-control" required value={formEstacao.area_id} onChange={(e) => setFormEstacao({ ...formEstacao, area_id: e.target.value })}>
-                                    <option value="" disabled>Selecione uma Área</option>
-                                    {sortedAreas.map(a => <option key={a.id} value={a.id}>{a.nome_area}</option>)}
-                                </select>
-                            </div>
-                            <div className="form-group">
-                                <label>Linha Atribuída (Opcional - Swimlane)</label>
-                                <select className="form-control" value={formEstacao.linha_id} onChange={(e) => setFormEstacao({ ...formEstacao, linha_id: e.target.value })}>
-                                    <option value="">Todas (Hub Satélite que Atravessa Todas As Linhas)</option>
-                                    {linhas.map(l => <option key={l.id} value={l.id}>Linha {l.letra_linha}</option>)}
-                                </select>
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="form-group">
-                                    <label>Ciclo Standard (min)</label>
-                                    <input type="number" className="form-control" required value={formEstacao.ciclo} onChange={(e) => setFormEstacao({ ...formEstacao, ciclo: parseInt(e.target.value) })} />
-                                </div>
-                                <div className="form-group">
-                                    <label>Tag ESP32 RFID</label>
-                                    <input type="text" className="form-control" required placeholder="Ex: EST-103" value={formEstacao.rfid} onChange={(e) => setFormEstacao({ ...formEstacao, rfid: e.target.value })} />
-                                </div>
-                            </div>
-                            <button type="submit" className="btn btn-primary mt-4 py-3" style={{ background: 'var(--accent)' }}>Montar Estação</button>
-                        </form>
                     </div>
-                </div>
+                </ClientPortal>
             )}
         </div>
     );
