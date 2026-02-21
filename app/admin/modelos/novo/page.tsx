@@ -353,7 +353,14 @@ export default function NovoModeloPage() {
                                         </select>
                                     </td>
                                     <td style={{ textAlign: 'center' }}>
-                                        <button className="btn-icon" title="Upload Imagem (Em breve)"><Upload size={18} /></button>
+                                        <label className="btn-icon" style={{ cursor: 'pointer', display: 'inline-flex', flexDirection: 'column', alignItems: 'center' }} title="Anexar Imagem ou PDF">
+                                            <input type="file" style={{ display: 'none' }} accept="image/*,.pdf" onChange={(e) => {
+                                                const file = e.target.files?.[0];
+                                                if (file) updateTarefaGeral(tarefa.id, 'imagem_url', file.name);
+                                            }} />
+                                            <Upload size={18} color={tarefa.imagem_url ? 'var(--secondary)' : 'currentColor'} />
+                                            {tarefa.imagem_url && <span style={{ fontSize: '0.65rem', color: 'var(--secondary)', marginTop: '4px', maxWidth: '80px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tarefa.imagem_url}</span>}
+                                        </label>
                                     </td>
                                     <td style={{ textAlign: 'right' }}>
                                         <button className="btn-icon danger" onClick={() => removeTarefaGeral(tarefa.id)}><Trash2 size={18} /></button>
@@ -433,12 +440,13 @@ export default function NovoModeloPage() {
                                     <tr>
                                         <th style={{ width: '60px' }}>Ord</th>
                                         <th>Instrução Exata</th>
-                                        <th style={{ width: '180px' }}>Estação</th>
+                                        <th style={{ width: '150px' }}>Estação</th>
+                                        <th style={{ width: '80px', textAlign: 'center' }}>Anexo</th>
                                         <th style={{ width: '40px' }}></th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {currentOpcional.tarefas.length === 0 && <tr><td colSpan={4} style={{ textAlign: 'center', opacity: 0.5 }}>Adiciona a primeira tarefa técnica deste opcional.</td></tr>}
+                                    {currentOpcional.tarefas.length === 0 && <tr><td colSpan={5} style={{ textAlign: 'center', opacity: 0.5 }}>Adiciona a primeira tarefa técnica deste opcional.</td></tr>}
                                     {currentOpcional.tarefas.map(tarefa => (
                                         <tr key={tarefa.id}>
                                             <td><input type="number" className="form-control" value={tarefa.ordem} onChange={e => updateTarefaOpcional(tarefa.id, 'ordem', e.target.value)} style={{ padding: '0.5rem' }} /></td>
@@ -448,6 +456,16 @@ export default function NovoModeloPage() {
                                                     <option value="">A Carga De...</option>
                                                     {ESTACOES.map(est => <option key={est.id} value={est.id}>{est.nome}</option>)}
                                                 </select>
+                                            </td>
+                                            <td style={{ textAlign: 'center' }}>
+                                                <label className="btn-icon" style={{ cursor: 'pointer', display: 'inline-flex', flexDirection: 'column', alignItems: 'center' }} title="Anexar Imagem ou PDF">
+                                                    <input type="file" style={{ display: 'none' }} accept="image/*,.pdf" onChange={(e) => {
+                                                        const file = e.target.files?.[0];
+                                                        if (file) updateTarefaOpcional(tarefa.id, 'imagem_url', file.name);
+                                                    }} />
+                                                    <Upload size={16} color={tarefa.imagem_url ? 'var(--secondary)' : 'currentColor'} />
+                                                    {tarefa.imagem_url && <span style={{ fontSize: '0.65rem', color: 'var(--secondary)', marginTop: '2px', maxWidth: '60px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tarefa.imagem_url}</span>}
+                                                </label>
                                             </td>
                                             <td style={{ textAlign: 'right' }}>
                                                 <button className="btn-icon danger" onClick={() => removeTarefaOpcional(tarefa.id)}><Trash2 size={16} /></button>
