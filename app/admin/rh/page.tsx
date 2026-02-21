@@ -83,7 +83,7 @@ export default function GestaoRHPage() {
                         placeholder="Pesquisar por Nome, Nº, Função ou Tag RFID..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full bg-white border border-slate-300 rounded-lg py-3.5 pl-12 pr-4 text-slate-800 text-base shadow-sm focus:outline-none focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)] transition-all"
+                        className="form-control pl-12"
                     />
                 </div>
                 <div className="text-sm text-slate-500 px-4 border-l border-slate-200">

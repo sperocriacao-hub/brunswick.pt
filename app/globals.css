@@ -1,8 +1,8 @@
 :root {
-  --background-base: #f8fafc;
-  /* Slate 50 */
-  --background-surface: rgba(255, 255, 255, 0.85);
-  /* White with opacity for glassmorphism */
+  --background-base: #f0f9ff;
+  /* Sky 50 - Very Light Blue */
+  --background-surface: rgba(255, 255, 255, 0.9);
+  /* White with opacity */
   --background-panel: #ffffff;
   --foreground: #0f172a;
   /* Slate 900 */
@@ -82,6 +82,7 @@ h6 {
   line-height: 1.2;
   margin-bottom: 0.5em;
   letter-spacing: -0.025em;
+  color: #0f172a;
 }
 
 h1 {
@@ -262,12 +263,28 @@ h3 {
 .sidebar {
   width: 280px;
   border-right: 1px solid var(--border);
-  background: var(--background-panel);
+  background: #0f172a;
+  color: #f8fafc;
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   padding: 1.5rem;
   display: flex;
   flex-direction: column;
+}
+
+.sidebar-group-title {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #94a3b8;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}
+
+.sidebar .glass-panel {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+  box-shadow: none !important;
 }
 
 .main-content {
@@ -297,30 +314,31 @@ h3 {
 .form-label {
   font-size: 0.875rem;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.8);
+  color: #475569;
 }
 
 .form-control {
-  background: rgba(15, 23, 42, 0.5);
-  border: 1px solid var(--border);
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
   border-radius: var(--radius-md);
   padding: 0.75rem 1rem;
-  color: var(--foreground);
+  color: #0f172a;
   font-family: inherit;
   font-size: 1rem;
   transition: all 0.2s ease;
   width: 100%;
+  box-shadow: var(--shadow-sm);
 }
 
 .form-control:focus {
   outline: none;
   border-color: var(--primary);
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
-  background: rgba(15, 23, 42, 0.8);
+  box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.25);
+  background: #ffffff;
 }
 
 .form-control::placeholder {
-  color: rgba(255, 255, 255, 0.3);
+  color: #94a3b8;
 }
 
 /* Tables Premium */
