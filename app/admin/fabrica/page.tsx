@@ -133,33 +133,32 @@ export default function FabricaLayoutPage() {
 
     return (
         <>
-            <div className="container animate-fade-in dashboard-layout" style={{ maxWidth: '100%', overflowX: 'hidden', paddingTop: '1rem' }}>
+            <div className="animate-fade-in" style={{ maxWidth: '100%', padding: '1rem', overflowX: 'hidden' }}>
                 <header style={{
-                    position: 'sticky', top: 0, zIndex: 50, display: 'flex', flexDirection: 'row', flexWrap: 'nowrap', alignItems: 'center', gap: '1.5rem',
+                    position: 'sticky', top: 0, zIndex: 50, display: 'flex', flexDirection: 'row', flexWrap: 'nowrap', justifyContent: 'flex-start', alignItems: 'center', gap: '1rem',
                     background: 'rgba(15, 23, 42, 0.95)', padding: '0.75rem 1.5rem', borderBottom: '1px solid rgba(255,255,255,0.1)',
-                    backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
+                    backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', boxShadow: '0 4px 20px rgba(0,0,0,0.6)',
                     margin: '-1rem -1rem 2rem -1rem', width: 'calc(100% + 2rem)', overflowX: 'auto', whiteSpace: 'nowrap'
                 }}>
-                    <h1 className="brand-title" style={{ fontSize: '1.4rem', margin: 0, textShadow: '0 2px 10px rgba(0,0,0,0.5)', flexShrink: 0 }}>
+                    <h1 style={{ fontSize: '1.3rem', fontWeight: 700, margin: 0, color: '#fff', textShadow: '0 2px 10px rgba(0,0,0,0.5)', flexShrink: 0 }}>
                         Estrutura de Fábrica [2D]
                     </h1>
 
-                    <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'nowrap', alignItems: 'center', gap: '0.75rem', flexShrink: 0 }}>
-                        <button className="btn btn-primary" style={{ borderRadius: '999px', padding: '0.4rem 1rem', fontSize: '0.85rem', flexShrink: 0 }} onClick={() => setIsAreaModalOpen(true)}>
-                            <Settings size={15} style={{ marginRight: '6px' }} /> Configurar Áreas
-                        </button>
-                        <button className="btn btn-primary" style={{ borderRadius: '999px', padding: '0.4rem 1rem', fontSize: '0.85rem', flexShrink: 0 }} onClick={() => setIsLinhaModalOpen(true)}>
-                            <Activity size={15} style={{ marginRight: '6px' }} /> Nova Linha
-                        </button>
-                        <button className="btn btn-primary" style={{ background: 'var(--accent)', borderRadius: '999px', padding: '0.4rem 1rem', fontSize: '0.85rem', boxShadow: '0 0 15px var(--accent)', flexShrink: 0 }} onClick={() => setIsEstacaoModalOpen(true)}>
-                            <Plus size={15} style={{ marginRight: '6px' }} /> Nova Estação
-                        </button>
-                        <div style={{ width: '1px', height: '24px', background: 'rgba(255,255,255,0.2)', margin: '0 4px', flexShrink: 0 }}></div>
-                        <button className="btn btn-outline" style={{ borderRadius: '999px', padding: '0.4rem 1rem', fontSize: '0.85rem', flexShrink: 0 }} onClick={() => setViewMode(viewMode === 'matriz' ? 'grafos' : 'matriz')}>
-                            {viewMode === 'matriz' ? <Network size={15} style={{ marginRight: '6px' }} /> : <TableProperties size={15} style={{ marginRight: '6px' }} />}
-                            {viewMode === 'matriz' ? 'Modo Grafo Lógico' : 'Matriz Kanban 2D'}
-                        </button>
-                    </div>
+                    <div style={{ width: '1px', height: '20px', background: 'rgba(255,255,255,0.2)', margin: '0 4px', flexShrink: 0 }}></div>
+
+                    <button className="btn btn-primary" style={{ borderRadius: '4px', padding: '0.4rem 1rem', fontSize: '0.85rem', flexShrink: 0, display: 'inline-flex', alignItems: 'center' }} onClick={() => setIsAreaModalOpen(true)}>
+                        <Settings size={14} style={{ marginRight: '6px' }} /> Configurar Áreas
+                    </button>
+                    <button className="btn btn-primary" style={{ borderRadius: '4px', padding: '0.4rem 1rem', fontSize: '0.85rem', flexShrink: 0, display: 'inline-flex', alignItems: 'center' }} onClick={() => setIsLinhaModalOpen(true)}>
+                        <Activity size={14} style={{ marginRight: '6px' }} /> Nova Linha
+                    </button>
+                    <button className="btn btn-primary" style={{ background: 'var(--accent)', borderRadius: '4px', padding: '0.4rem 1rem', fontSize: '0.85rem', boxShadow: '0 0 10px var(--accent)', flexShrink: 0, display: 'inline-flex', alignItems: 'center' }} onClick={() => setIsEstacaoModalOpen(true)}>
+                        <Plus size={14} style={{ marginRight: '6px' }} /> Nova Estação
+                    </button>
+                    <button className="btn btn-outline" style={{ borderRadius: '4px', padding: '0.4rem 1rem', fontSize: '0.85rem', flexShrink: 0, display: 'inline-flex', alignItems: 'center' }} onClick={() => setViewMode(viewMode === 'matriz' ? 'grafos' : 'matriz')}>
+                        {viewMode === 'matriz' ? <Network size={14} style={{ marginRight: '6px' }} /> : <TableProperties size={14} style={{ marginRight: '6px' }} />}
+                        {viewMode === 'matriz' ? 'Modo Grafo Lógico' : 'Matriz Kanban 2D'}
+                    </button>
                 </header>
 
                 {isLoading ? (
