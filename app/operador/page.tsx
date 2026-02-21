@@ -1,47 +1,86 @@
 "use client";
 
-import React, { useState } from 'react';
-import { Wifi, ScanLine, Play, Square, AlertTriangle, MonitorSmartphone, Box } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ScanLine, Play, Square, AlertTriangle, MonitorSmartphone, Box } from 'lucide-react';
+import { buscarEstacoes, iniciarSessaoTrabalho, terminarSessaoTrabalho } from './actions';
 
 export default function OperadorTerminalPage() {
     // Estados do Simulador
-    const [estacaoIP] = useState<string>('ESP32-ST-101');
+    const [estacoes, setEstacoes] = useState<{ id: string, nome_estacao: string }[]>([]);
+    const [estacaoId, setEstacaoId] = useState<string>('');
     const [operadorRfid, setOperadorRfid] = useState<string>('');
     const [barcoRfid, setBarcoRfid] = useState<string>('');
+    const [currentRegistoId, setCurrentRegistoId] = useState<string | null>(null);
 
     // Status UI
     const [statusMOCK, setStatusMOCK] = useState<'Aguardando' | 'Processando' | 'SessaoAtiva' | 'Erro'>('Aguardando');
     const [log, setLog] = useState<string[]>([
-        'Terminal Inicializado. A aguardar leituras RFID...'
+        'Terminal Inicializado. A conectar ao Supabase...'
     ]);
+    const [errMsg, setErrMsg] = useState('');
+
+    useEffect(() => {
+        async function carregar() {
+            const res = await buscarEstacoes();
+            if (res.success && res.estacoes) {
+                setEstacoes(res.estacoes);
+                if (res.estacoes.length > 0) setEstacaoId(res.estacoes[0].id);
+                addLog('✓ Estações Carregadas com Sucesso. A aguardar leituras RFID...');
+            } else {
+                addLog(`ERRO (Estações): ${res.error}`);
+            }
+        }
+        carregar();
+    }, []);
 
     const addLog = (msg: string) => {
         setLog(prev => [msg, ...prev].slice(0, 5));
     }
 
     const handleSimulateScan = async (action: 'START' | 'STOP') => {
-        if (!operadorRfid || !barcoRfid) {
-            setStatusMOCK('Erro');
-            addLog('ERRO: Faltam dados RFID do Operador ou do Barco.');
-            return;
-        }
+        setErrMsg('');
 
-        setStatusMOCK('Processando');
-        addLog(`>> A comunicar com Servidor (${action})...`);
+        if (action === 'START') {
+            if (!operadorRfid || !barcoRfid || !estacaoId) {
+                setStatusMOCK('Erro');
+                setErrMsg('Faltam dados RFID do Operador, Barco ou Estação.');
+                return;
+            }
 
-        // Simula request de rede
-        setTimeout(() => {
-            if (action === 'START') {
+            setStatusMOCK('Processando');
+            addLog(`>> A validar credenciais de Ponto (RFID: ${operadorRfid}) e Barco (${barcoRfid})...`);
+
+            const res = await iniciarSessaoTrabalho(operadorRfid, barcoRfid, estacaoId);
+
+            if (res.success && res.registoId) {
+                setCurrentRegistoId(res.registoId);
                 setStatusMOCK('SessaoAtiva');
-                addLog(`✅ SESSÃO INICIADA: Operador (${operadorRfid}) Barco (${barcoRfid}). O tempo começou a contar.`);
+                addLog(`✅ ACESSO CONCEDIDO: Operador autenticado. OP #${res.opNumero} iniciada no M.E.S.`);
             } else {
+                setStatusMOCK('Erro');
+                setErrMsg(res.error || 'Falha Desconhecida');
+                addLog(`❌ ACESSO BLOQUEADO: ${res.error}`);
+            }
+        } else {
+            // STOP
+            if (!currentRegistoId) return;
+            setStatusMOCK('Processando');
+            addLog(`>> A enviar timestamp final para Supabase...`);
+
+            const res = await terminarSessaoTrabalho(currentRegistoId);
+
+            if (res.success) {
                 setStatusMOCK('Aguardando');
-                addLog(`🛑 SESSÃO FECHADA: Operador (${operadorRfid}) fechou a tarefa do Barco (${barcoRfid}). Tempo registado no MES.`);
-                // Reset após stop para a próxima leitura
+                addLog(`🛑 SESSÃO FECHADA: Tempo registado com sucesso.`);
                 setOperadorRfid('');
                 setBarcoRfid('');
+                setCurrentRegistoId(null);
+            } else {
+                setStatusMOCK('Erro');
+                setErrMsg(res.error || 'Falha ao encerrar picagem');
+                addLog(`❌ ERRO AO PARAR: ${res.error}`);
             }
-        }, 800);
+        }
     };
 
     return (
@@ -60,10 +99,16 @@ export default function OperadorTerminalPage() {
                     </div>
 
                     <div className="flex items-center gap-2">
-                        <span style={{ fontSize: '0.8rem', opacity: 0.7 }}>Rede Local:</span>
-                        <div className="flex items-center gap-1 px-3 py-1 bg-green-500/10 text-green-400 rounded-full font-mono text-xs">
-                            <Wifi size={12} /> {estacaoIP}
-                        </div>
+                        <span style={{ fontSize: '0.8rem', opacity: 0.7 }}>Virtualização do Contexto local:</span>
+                        <select
+                            className="bg-slate-800 text-white border border-slate-700 rounded-md px-2 py-1 text-xs"
+                            value={estacaoId}
+                            onChange={e => setEstacaoId(e.target.value)}
+                            disabled={statusMOCK === 'SessaoAtiva'}
+                        >
+                            <option value="">(Selecione a Estação do Tablet)</option>
+                            {estacoes.map(e => <option key={e.id} value={e.id}>{e.nome_estacao}</option>)}
+                        </select>
                     </div>
                 </div>
 
@@ -127,9 +172,9 @@ export default function OperadorTerminalPage() {
 
                 {/* ALERTAS */}
                 {statusMOCK === 'Erro' && (
-                    <div className="mt-6 p-4 rounded-lg flex items-center gap-3" style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#fca5a5' }}>
-                        <AlertTriangle size={20} />
-                        <span style={{ fontWeight: 500 }}>Erro de Leitura! Aproxime ambas as Tags para iniciar.</span>
+                    <div className="mt-6 p-4 rounded-lg flex items-center gap-3 animate-fade-in" style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#fca5a5' }}>
+                        <AlertTriangle size={20} className="shrink-0" />
+                        <span style={{ fontWeight: 500 }}>{errMsg || 'Erro de Leitura! Verifique as conectividades e tags.'}</span>
                     </div>
                 )}
             </div>
