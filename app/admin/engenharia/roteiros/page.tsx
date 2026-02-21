@@ -17,6 +17,7 @@ type Parte = {
     nome_parte: string;
     descricao: string | null;
     categoria: string;
+    parent_id: string | null;
 };
 
 type Estacao = {
@@ -79,7 +80,7 @@ export default function RoteirosPage() {
             setIsLoading(true);
             try {
                 const [bomRes, rotRes] = await Promise.all([
-                    supabase.from('modelo_partes').select('id, nome_parte, descricao, categoria').eq('modelo_id', modeloAtivoId).order('created_at'),
+                    supabase.from('modelo_partes').select('id, nome_parte, descricao, categoria, parent_id').eq('modelo_id', modeloAtivoId).order('created_at'),
                     supabase.from('roteiros_sequencia').select('*').eq('modelo_id', modeloAtivoId).order('sequencia_num', { ascending: true })
                 ]);
 
@@ -128,6 +129,28 @@ export default function RoteirosPage() {
 
     const handleSaveRoteiro = async () => {
         if (!modeloAtivoId) return;
+
+        // VALIDAÇÃO B.O.M: Uma peça (parte_id) nunca pode entrar (sequencia_num) ANTES de uma peça que seja a sua parent_id.
+        for (const passo of roteiro) {
+            const parteAssociada = partes.find(p => p.id === passo.parte_id);
+            if (parteAssociada && parteAssociada.parent_id) {
+                // Existe uma parent_id. Temos de garantir que esta parent já foi montada num passo ANTERIOR ou no MESMO passo.
+                // Se a Parent não existe de todo no Roteiro atual, ou se ela for executada apenas no futuro, dá erro.
+                const passoDoPai = roteiro.find(r => r.parte_id === parteAssociada.parent_id);
+
+                if (!passoDoPai) {
+                    alert(`Validação B.O.M Falhou:\n\nA peça "${parteAssociada.nome_parte}" depende da peça Pai, mas a peça Pai não foi inserida no Roteiro Produtivo.`);
+                    return;
+                }
+
+                if (passoDoPai.sequencia_num > passo.sequencia_num) {
+                    const paiLocal = partes.find(p => p.id === parteAssociada.parent_id);
+                    alert(`Validação B.O.M Falhou:\n\nA peça "${parteAssociada.nome_parte}" (Agendada: Passo ${passo.sequencia_num}) tenta ser montada ANTES da sua peça predecessora obrigatória "${paiLocal?.nome_parte || 'Pai'}" (Agendada: Passo ${passoDoPai.sequencia_num}).`);
+                    return;
+                }
+            }
+        }
+
         setIsSaving(true);
         try {
             // Elimpar roteiro velho
