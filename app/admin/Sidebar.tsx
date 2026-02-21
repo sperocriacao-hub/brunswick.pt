@@ -40,14 +40,23 @@ export function Sidebar({ userEmail }: { userEmail: string | undefined }) {
                     <div className="mb-8 mt-4"> {/* Added margin-top for spacing */}
                         <p className="sidebar-group-title">Equipas e Talento</p>
                         <nav className="flex flex-col gap-2 mb-4">
-                            <Link href="/admin/rh" className={`p-4 flex items-center gap-4 sidebar-link ${pathname.includes('/admin/rh') ? 'active glass-panel' : ''}`}
+                            <Link href="/admin/rh" className={`p-4 flex items-center gap-4 sidebar-link ${pathname === '/admin/rh' || pathname.startsWith('/admin/rh/cadastro') ? 'active glass-panel' : ''}`}
                                 style={{
-                                    opacity: pathname.includes('/admin/rh') ? 1 : 0.7,
+                                    opacity: pathname === '/admin/rh' || pathname.startsWith('/admin/rh/cadastro') ? 1 : 0.7,
                                     transition: "all 0.2s",
-                                    borderLeft: pathname.includes('/admin/rh') ? "4px solid var(--primary)" : "4px solid transparent"
+                                    borderLeft: pathname === '/admin/rh' || pathname.startsWith('/admin/rh/cadastro') ? "4px solid var(--primary)" : "4px solid transparent"
                                 }}>
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
                                 <span style={{ fontWeight: 500 }} className="sidebar-text">Gerir Operadores</span>
+                            </Link>
+                            <Link href="/admin/rh/avaliacoes" className={`p-4 flex items-center gap-4 sidebar-link ${pathname.includes('/admin/rh/avaliacoes') ? 'active glass-panel' : ''}`}
+                                style={{
+                                    opacity: pathname.includes('/admin/rh/avaliacoes') ? 1 : 0.7,
+                                    transition: "all 0.2s",
+                                    borderLeft: pathname.includes('/admin/rh/avaliacoes') ? "4px solid var(--primary)" : "4px solid transparent"
+                                }}>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                                <span style={{ fontWeight: 500 }} className="sidebar-text">Avaliações Diárias</span>
                             </Link>
                         </nav>
                         <p className="sidebar-group-title">M.E.S Logística</p>
