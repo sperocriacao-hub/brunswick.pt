@@ -1,16 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
 import { Network, Activity, Wrench, Settings, Plus, TableProperties, X, Loader2 } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
-
-// Portal seguro (apenas cliente) para montar por cima de qualquer overflow-y ou z-index
-const ClientPortal = ({ children }: { children: React.ReactNode }) => {
-    const [mounted, setMounted] = useState(false);
-    useEffect(() => setMounted(true), []);
-    return mounted ? createPortal(children, document.body) : null;
-};
 
 // ==========================================
 // TIPOS EXATOS DE SUPABASE (0002 e 0003)
@@ -140,146 +132,152 @@ export default function FabricaLayoutPage() {
     const sortedAreas = [...areas].sort((a, b) => a.ordem_sequencial - b.ordem_sequencial);
 
     return (
-        <div className="container mt-8 animate-fade-in dashboard-layout" style={{ maxWidth: '100%', overflowX: 'hidden' }}>
-            <header className="flex flex-col items-center justify-center mb-10 text-center relative z-10">
-                <div className="mb-6">
-                    <h1 className="brand-title" style={{ fontSize: '2.5rem', marginBottom: '0.5rem', textShadow: '0 4px 20px rgba(0,0,0,0.5)' }}>Estrutura de Fábrica [2D]</h1>
-                    <p style={{ color: "rgba(255,255,255,0.7)", fontSize: '1.1rem', maxWidth: '600px', margin: '0 auto' }}>
-                        Monitorize, crie e configure o Shopfloor numa Matriz Visualmente Dinâmica (Linhas vs Áreas).
-                    </p>
-                </div>
+        <>
+            <div className="container mt-8 animate-fade-in dashboard-layout" style={{ maxWidth: '100%', overflowX: 'hidden' }}>
+                <header className="flex flex-col items-center justify-center mb-10 text-center relative z-10">
+                    <div className="mb-6">
+                        <h1 className="brand-title" style={{ fontSize: '2.5rem', marginBottom: '0.5rem', textShadow: '0 4px 20px rgba(0,0,0,0.5)' }}>Estrutura de Fábrica [2D]</h1>
+                        <p style={{ color: "rgba(255,255,255,0.7)", fontSize: '1.1rem', maxWidth: '600px', margin: '0 auto' }}>
+                            Monitorize, crie e configure o Shopfloor numa Matriz Visualmente Dinâmica (Linhas vs Áreas).
+                        </p>
+                    </div>
 
-                {/* DOCK PREMIUM DE CONTROLOS */}
-                <div className="flex flex-wrap justify-center gap-3 bg-white/5 p-2 px-4 rounded-full border border-white/10 backdrop-blur-md shadow-2xl">
-                    <button className="btn btn-outline" style={{ borderRadius: '999px', padding: '0.5rem 1.25rem' }} onClick={() => setViewMode(viewMode === 'matriz' ? 'grafos' : 'matriz')}>
-                        {viewMode === 'matriz' ? <Network size={18} style={{ marginRight: '8px' }} /> : <TableProperties size={18} style={{ marginRight: '8px' }} />}
-                        {viewMode === 'matriz' ? 'Modo Grafo Lógico' : 'Matriz Kanban 2D'}
-                    </button>
-                    <div className="w-px h-10 bg-white/10 mx-2 self-center"></div>
-                    <button className="btn btn-primary" style={{ borderRadius: '999px', padding: '0.5rem 1.25rem' }} onClick={() => setIsAreaModalOpen(true)}>
-                        <Settings size={18} style={{ marginRight: '8px' }} />
-                        Configurar Áreas
-                    </button>
-                    <button className="btn btn-primary" style={{ borderRadius: '999px', padding: '0.5rem 1.25rem' }} onClick={() => setIsLinhaModalOpen(true)}>
-                        <Activity size={18} style={{ marginRight: '8px' }} />
-                        Nova Linha
-                    </button>
-                    <button className="btn btn-primary" style={{ background: 'var(--accent)', borderRadius: '999px', padding: '0.5rem 1.25rem', boxShadow: '0 0 15px var(--accent)' }} onClick={() => setIsEstacaoModalOpen(true)}>
-                        <Plus size={18} style={{ marginRight: '8px' }} />
-                        Nova Estação
-                    </button>
-                </div>
-            </header>
+                    {/* DOCK PREMIUM DE CONTROLOS */}
+                    <div className="flex flex-wrap justify-center gap-3 bg-white/5 p-2 px-4 rounded-full border border-white/10 backdrop-blur-md shadow-2xl">
+                        <button className="btn btn-outline" style={{ borderRadius: '999px', padding: '0.5rem 1.25rem' }} onClick={() => setViewMode(viewMode === 'matriz' ? 'grafos' : 'matriz')}>
+                            {viewMode === 'matriz' ? <Network size={18} style={{ marginRight: '8px' }} /> : <TableProperties size={18} style={{ marginRight: '8px' }} />}
+                            {viewMode === 'matriz' ? 'Modo Grafo Lógico' : 'Matriz Kanban 2D'}
+                        </button>
+                        <div className="w-px h-10 bg-white/10 mx-2 self-center"></div>
+                        <button className="btn btn-primary" style={{ borderRadius: '999px', padding: '0.5rem 1.25rem' }} onClick={() => setIsAreaModalOpen(true)}>
+                            <Settings size={18} style={{ marginRight: '8px' }} />
+                            Configurar Áreas
+                        </button>
+                        <button className="btn btn-primary" style={{ borderRadius: '999px', padding: '0.5rem 1.25rem' }} onClick={() => setIsLinhaModalOpen(true)}>
+                            <Activity size={18} style={{ marginRight: '8px' }} />
+                            Nova Linha
+                        </button>
+                        <button className="btn btn-primary" style={{ background: 'var(--accent)', borderRadius: '999px', padding: '0.5rem 1.25rem', boxShadow: '0 0 15px var(--accent)' }} onClick={() => setIsEstacaoModalOpen(true)}>
+                            <Plus size={18} style={{ marginRight: '8px' }} />
+                            Nova Estação
+                        </button>
+                    </div>
+                </header>
 
-            {isLoading ? (
-                <div className="flex justify-center items-center py-20 opacity-50">
-                    <Loader2 size={48} className="animate-spin" />
-                </div>
-            ) : (
-                <>
-                    {/* SECTÃO 1: O CHÃO DE FÁBRICA (MATRIZ KANBAN 2D - SWIMLANES) */}
-                    {viewMode === 'matriz' && (
-                        <div className="kanban-matrix overflow-x-auto pb-8" style={{ paddingBottom: '2rem' }}>
-                            <div style={{ display: 'inline-flex', flexDirection: 'column', minWidth: '100%' }}>
+                {isLoading ? (
+                    <div className="flex justify-center items-center py-20 opacity-50">
+                        <Loader2 size={48} className="animate-spin" />
+                    </div>
+                ) : (
+                    <>
+                        {/* SECTÃO 1: O CHÃO DE FÁBRICA (MATRIZ KANBAN 2D - SWIMLANES) */}
+                        {viewMode === 'matriz' && (
+                            <div className="kanban-matrix overflow-x-auto pb-8" style={{ paddingBottom: '2rem' }}>
+                                <div style={{ display: 'inline-flex', flexDirection: 'column', minWidth: '100%' }}>
 
-                                {/* HEADER DAS COLUNAS (Áreas) */}
-                                <div className="flex" style={{ borderBottom: '2px solid rgba(255,255,255,0.1)' }}>
-                                    <div style={{ width: '250px', flexShrink: 0, padding: '1rem', borderRight: '1px solid rgba(255,255,255,0.1)' }}>
-                                        <h3 style={{ fontSize: '1rem', color: 'rgba(255,255,255,0.5)' }}>Interseção Operacional</h3>
-                                    </div>
-                                    {sortedAreas.map(area => (
-                                        <div key={area.id} style={{ width: '320px', flexShrink: 0, padding: '1rem', borderRight: '1px dashed rgba(255,255,255,0.05)' }}>
-                                            <div className="flex items-center gap-2">
-                                                <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: area.cor_destaque }}></div>
-                                                <h3 style={{ fontSize: '1.1rem', fontWeight: 600 }}>{area.nome_area}</h3>
+                                    {/* HEADER DAS COLUNAS (Áreas) */}
+                                    <div className="flex" style={{ borderBottom: '2px solid rgba(255,255,255,0.1)' }}>
+                                        <div style={{ width: '250px', flexShrink: 0, padding: '1rem', borderRight: '1px solid rgba(255,255,255,0.1)' }}>
+                                            <h3 style={{ fontSize: '1rem', color: 'rgba(255,255,255,0.5)' }}>Interseção Operacional</h3>
+                                        </div>
+                                        {sortedAreas.map(area => (
+                                            <div key={area.id} style={{ width: '320px', flexShrink: 0, padding: '1rem', borderRight: '1px dashed rgba(255,255,255,0.05)' }}>
+                                                <div className="flex items-center gap-2">
+                                                    <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: area.cor_destaque }}></div>
+                                                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600 }}>{area.nome_area}</h3>
+                                                </div>
+                                                <p style={{ fontSize: '0.7rem', opacity: 0.5, marginTop: '4px' }}>Pos. {area.ordem_sequencial}</p>
                                             </div>
-                                            <p style={{ fontSize: '0.7rem', opacity: 0.5, marginTop: '4px' }}>Pos. {area.ordem_sequencial}</p>
+                                        ))}
+                                        {sortedAreas.length === 0 && <div className="p-4 opacity-50 flex-1">Nenhuma Área Configurável Criadada. Crie uma para abrir Colunas no Kanban.</div>}
+                                    </div>
+
+                                    {/* BODY DAS SWIMLANES (Linhas) */}
+                                    {linhas.map(linha => (
+                                        <div key={linha.id} className="flex group" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                                            <div style={{ width: '250px', flexShrink: 0, padding: '1.5rem 1rem', borderRight: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.02)' }}>
+                                                <h2 style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--primary)', marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    <Activity size={24} /> Linha {linha.letra_linha}
+                                                </h2>
+                                                <p style={{ fontSize: '0.85rem', opacity: 0.8, marginBottom: '1rem' }}>{linha.descricao_linha}</p>
+                                                <div style={{ fontSize: '0.75rem', opacity: 0.6 }}>Capacidade: <strong>{linha.capacidade_diaria}/dia</strong></div>
+                                            </div>
+
+                                            {sortedAreas.map(area => {
+                                                // OBSERVAÇÃO TÉCNICA: Como a estacoes base que fizemos ('0000') não englobava 'linha_id',
+                                                // a maioria das estações vai cruzar apenas visualmente pelo filtro da Area. 
+                                                // Aqui assumimos que Estações Satélites ou que não têm Linha Definida caiem genericamente em "Todas".
+                                                const estacoesNestaCelula = estacoes.filter(e => e.area_id === area.id);
+
+                                                return (
+                                                    <div key={`${linha.id}-${area.id}`} style={{ width: '320px', flexShrink: 0, padding: '1rem', borderRight: '1px dashed rgba(255,255,255,0.05)', backgroundColor: 'rgba(0,0,0,0.1)' }}>
+                                                        {estacoesNestaCelula.length === 0 ? (
+                                                            <div style={{ height: '100%', width: '100%', border: '1px dashed rgba(255,255,255,0.1)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.2 }}>
+                                                                <p style={{ fontSize: '0.7rem' }}>S/ Estação Alocada</p>
+                                                            </div>
+                                                        ) : (
+                                                            <div className="flex flex-col gap-4">
+                                                                {estacoesNestaCelula.map(est => (
+                                                                    <div key={est.id} className="glass-panel p-4 outline outline-1 outline-[rgba(255,255,255,0.05)] hover:outline-[var(--primary)] transition-all" style={{
+                                                                        position: 'relative',
+                                                                        overflow: 'hidden',
+                                                                        background: est.status === 'Em Manutenção' ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(30, 41, 59, 1) 100%)' :
+                                                                            est.status === 'Inativa' ? 'linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(15, 23, 42, 1) 100%)' : undefined
+                                                                    }}>
+                                                                        <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '4px', backgroundColor: area.cor_destaque }}></div>
+                                                                        <div className="flex justify-between items-start mb-3 pl-2">
+                                                                            <span style={{
+                                                                                fontSize: '0.65rem', fontWeight: 600, padding: '2px 6px', borderRadius: '12px',
+                                                                                background: est.status === 'Disponível' ? 'rgba(34, 197, 94, 0.2)' : est.status === 'Em Manutenção' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(255,255,255,0.1)',
+                                                                                color: est.status === 'Disponível' ? '#4ade80' : est.status === 'Em Manutenção' ? '#f87171' : '#94a3b8'
+                                                                            }}>
+                                                                                {est.status.toUpperCase()}
+                                                                            </span>
+                                                                            {est.status === 'Em Manutenção' && <Wrench size={14} color="#f87171" className="animate-pulse" />}
+                                                                        </div>
+                                                                        <h4 style={{ fontSize: '1rem', fontWeight: 600, lineHeight: 1.2, marginBottom: '0.5rem', paddingLeft: '0.5rem' }}>{est.nome_estacao}</h4>
+                                                                        <div className="grid grid-cols-2 gap-2 mt-4 pt-3 pl-2" style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+                                                                            <div>
+                                                                                <p style={{ fontSize: '0.65rem', opacity: 0.5, marginBottom: '2px' }}>SLA</p>
+                                                                                <p style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--primary)' }}>{est.tempo_ciclo_padrao} min</p>
+                                                                            </div>
+                                                                            <div style={{ textAlign: 'right' }}>
+                                                                                <p style={{ fontSize: '0.65rem', opacity: 0.5, marginBottom: '2px' }}>ESP32 Tag</p>
+                                                                                <p style={{ fontSize: '0.65rem', fontFamily: 'monospace', background: 'rgba(0,0,0,0.3)', padding: '2px 4px', borderRadius: '4px', display: 'inline-block' }}>{est.tag_rfid_estacao || 'N/A'}</p>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
                                         </div>
                                     ))}
-                                    {sortedAreas.length === 0 && <div className="p-4 opacity-50 flex-1">Nenhuma Área Configurável Criadada. Crie uma para abrir Colunas no Kanban.</div>}
+                                    {linhas.length === 0 && <div className="p-8 opacity-50 text-center">Nenhuma Linha Físca Criada. O Chão de fábrica está vazio.</div>}
                                 </div>
-
-                                {/* BODY DAS SWIMLANES (Linhas) */}
-                                {linhas.map(linha => (
-                                    <div key={linha.id} className="flex group" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                                        <div style={{ width: '250px', flexShrink: 0, padding: '1.5rem 1rem', borderRight: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.02)' }}>
-                                            <h2 style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--primary)', marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                <Activity size={24} /> Linha {linha.letra_linha}
-                                            </h2>
-                                            <p style={{ fontSize: '0.85rem', opacity: 0.8, marginBottom: '1rem' }}>{linha.descricao_linha}</p>
-                                            <div style={{ fontSize: '0.75rem', opacity: 0.6 }}>Capacidade: <strong>{linha.capacidade_diaria}/dia</strong></div>
-                                        </div>
-
-                                        {sortedAreas.map(area => {
-                                            // OBSERVAÇÃO TÉCNICA: Como a estacoes base que fizemos ('0000') não englobava 'linha_id',
-                                            // a maioria das estações vai cruzar apenas visualmente pelo filtro da Area. 
-                                            // Aqui assumimos que Estações Satélites ou que não têm Linha Definida caiem genericamente em "Todas".
-                                            const estacoesNestaCelula = estacoes.filter(e => e.area_id === area.id);
-
-                                            return (
-                                                <div key={`${linha.id}-${area.id}`} style={{ width: '320px', flexShrink: 0, padding: '1rem', borderRight: '1px dashed rgba(255,255,255,0.05)', backgroundColor: 'rgba(0,0,0,0.1)' }}>
-                                                    {estacoesNestaCelula.length === 0 ? (
-                                                        <div style={{ height: '100%', width: '100%', border: '1px dashed rgba(255,255,255,0.1)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.2 }}>
-                                                            <p style={{ fontSize: '0.7rem' }}>S/ Estação Alocada</p>
-                                                        </div>
-                                                    ) : (
-                                                        <div className="flex flex-col gap-4">
-                                                            {estacoesNestaCelula.map(est => (
-                                                                <div key={est.id} className="glass-panel p-4 outline outline-1 outline-[rgba(255,255,255,0.05)] hover:outline-[var(--primary)] transition-all" style={{
-                                                                    position: 'relative',
-                                                                    overflow: 'hidden',
-                                                                    background: est.status === 'Em Manutenção' ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(30, 41, 59, 1) 100%)' :
-                                                                        est.status === 'Inativa' ? 'linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(15, 23, 42, 1) 100%)' : undefined
-                                                                }}>
-                                                                    <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '4px', backgroundColor: area.cor_destaque }}></div>
-                                                                    <div className="flex justify-between items-start mb-3 pl-2">
-                                                                        <span style={{
-                                                                            fontSize: '0.65rem', fontWeight: 600, padding: '2px 6px', borderRadius: '12px',
-                                                                            background: est.status === 'Disponível' ? 'rgba(34, 197, 94, 0.2)' : est.status === 'Em Manutenção' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(255,255,255,0.1)',
-                                                                            color: est.status === 'Disponível' ? '#4ade80' : est.status === 'Em Manutenção' ? '#f87171' : '#94a3b8'
-                                                                        }}>
-                                                                            {est.status.toUpperCase()}
-                                                                        </span>
-                                                                        {est.status === 'Em Manutenção' && <Wrench size={14} color="#f87171" className="animate-pulse" />}
-                                                                    </div>
-                                                                    <h4 style={{ fontSize: '1rem', fontWeight: 600, lineHeight: 1.2, marginBottom: '0.5rem', paddingLeft: '0.5rem' }}>{est.nome_estacao}</h4>
-                                                                    <div className="grid grid-cols-2 gap-2 mt-4 pt-3 pl-2" style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-                                                                        <div>
-                                                                            <p style={{ fontSize: '0.65rem', opacity: 0.5, marginBottom: '2px' }}>SLA</p>
-                                                                            <p style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--primary)' }}>{est.tempo_ciclo_padrao} min</p>
-                                                                        </div>
-                                                                        <div style={{ textAlign: 'right' }}>
-                                                                            <p style={{ fontSize: '0.65rem', opacity: 0.5, marginBottom: '2px' }}>ESP32 Tag</p>
-                                                                            <p style={{ fontSize: '0.65rem', fontFamily: 'monospace', background: 'rgba(0,0,0,0.3)', padding: '2px 4px', borderRadius: '4px', display: 'inline-block' }}>{est.tag_rfid_estacao || 'N/A'}</p>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                ))}
-                                {linhas.length === 0 && <div className="p-8 opacity-50 text-center">Nenhuma Linha Físca Criada. O Chão de fábrica está vazio.</div>}
                             </div>
-                        </div>
-                    )}
+                        )}
 
-                    {viewMode === 'grafos' && (
-                        <div className="glass-panel p-8 flex flex-col items-center justify-center text-center opacity-70 border-dashed border-2 border-[var(--primary)]" style={{ minHeight: '400px' }}>
-                            <Network size={48} color="var(--primary)" className="mb-4" />
-                            <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>Visão de Dependências (Estações)</h2>
-                            <p className="max-w-2xl text-center">Futura visualização do motor N:M (Predecessores e Sucessores) ativando lógica de Grafos complexos.</p>
-                        </div>
-                    )}
-                </>
-            )}
+                        {viewMode === 'grafos' && (
+                            <div className="glass-panel p-8 flex flex-col items-center justify-center text-center opacity-70 border-dashed border-2 border-[var(--primary)]" style={{ minHeight: '400px' }}>
+                                <Network size={48} color="var(--primary)" className="mb-4" />
+                                <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>Visão de Dependências (Estações)</h2>
+                                <p className="max-w-2xl text-center">Futura visualização do motor N:M (Predecessores e Sucessores) ativando lógica de Grafos complexos.</p>
+                            </div>
+                        )}
+                    </>
+                )}
+            </div>
+
+            {/* ======================================================= */}
+            {/* MODAIS FORA DA ESTRUTURA KANBAN (EVITAR SCROLL TRAPPING) */}
+            {/* ======================================================= */}
 
             {/* MODAL: NOVA LINHA */}
-            {isLinhaModalOpen && (
-                <ClientPortal>
+            {
+                isLinhaModalOpen && (
                     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[9999]" style={{ backdropFilter: 'blur(10px)' }}>
                         <div className="glass-panel p-6 w-full max-w-md animate-fade-in shadow-[0_0_40px_rgba(0,0,0,0.5)] border border-white/10">
                             <div className="flex justify-between items-center mb-6">
@@ -303,12 +301,12 @@ export default function FabricaLayoutPage() {
                             </form>
                         </div>
                     </div>
-                </ClientPortal>
-            )}
+                )
+            }
 
             {/* MODAL: NOVA ÁREA KANBAN */}
-            {isAreaModalOpen && (
-                <ClientPortal>
+            {
+                isAreaModalOpen && (
                     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[9999]" style={{ backdropFilter: 'blur(10px)' }}>
                         <div className="glass-panel p-6 w-full max-w-md animate-fade-in shadow-[0_0_40px_rgba(0,0,0,0.5)] border border-white/10">
                             <div className="flex justify-between items-center mb-6">
@@ -334,12 +332,12 @@ export default function FabricaLayoutPage() {
                             </form>
                         </div>
                     </div>
-                </ClientPortal>
-            )}
+                )
+            }
 
             {/* MODAL: NOVA ESTAÇÃO FÍSICA */}
-            {isEstacaoModalOpen && (
-                <ClientPortal>
+            {
+                isEstacaoModalOpen && (
                     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[9999]" style={{ backdropFilter: 'blur(10px)' }}>
                         <div className="glass-panel p-6 w-full max-w-md animate-fade-in shadow-[0_0_40px_rgba(0,0,0,0.5)] border border-[var(--accent)]/30">
                             <div className="flex justify-between items-center mb-6">
@@ -379,8 +377,8 @@ export default function FabricaLayoutPage() {
                             </form>
                         </div>
                     </div>
-                </ClientPortal>
-            )}
-        </div>
+                )
+            }
+        </>
     );
 }
