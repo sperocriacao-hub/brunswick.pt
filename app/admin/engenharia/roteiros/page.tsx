@@ -1,11 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClient } from '@/utils/supabase/client';
 import { Loader2 } from 'lucide-react';
 
 export default function RoteirosPage() {
-    const supabase = createClient();
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
