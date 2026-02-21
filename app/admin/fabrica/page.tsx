@@ -135,35 +135,29 @@ export default function FabricaLayoutPage() {
         <>
             <div className="container animate-fade-in dashboard-layout" style={{ maxWidth: '100%', overflowX: 'hidden', paddingTop: '1rem' }}>
                 <header style={{
-                    position: 'sticky', top: 0, zIndex: 50, display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '1rem',
-                    background: 'rgba(15, 23, 42, 0.9)', padding: '1rem 2rem', borderBottom: '1px solid rgba(255,255,255,0.1)',
+                    position: 'sticky', top: 0, zIndex: 50, display: 'flex', flexDirection: 'row', flexWrap: 'nowrap', alignItems: 'center', gap: '1.5rem',
+                    background: 'rgba(15, 23, 42, 0.95)', padding: '0.75rem 1.5rem', borderBottom: '1px solid rgba(255,255,255,0.1)',
                     backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
-                    margin: '-1rem -1rem 2rem -1rem' // Compensar padding do container para encostar às bordas
+                    margin: '-1rem -1rem 2rem -1rem', width: 'calc(100% + 2rem)', overflowX: 'auto', whiteSpace: 'nowrap'
                 }}>
-                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                        <h1 className="brand-title" style={{ fontSize: '1.8rem', margin: 0, textShadow: '0 2px 10px rgba(0,0,0,0.5)' }}>Estrutura de Fábrica [2D]</h1>
-                        <p style={{ color: "rgba(255,255,255,0.6)", fontSize: '0.85rem', margin: 0 }}>
-                            Monitorize e configure o Shopfloor numa Matriz Dinâmica.
-                        </p>
-                    </div>
+                    <h1 className="brand-title" style={{ fontSize: '1.4rem', margin: 0, textShadow: '0 2px 10px rgba(0,0,0,0.5)', flexShrink: 0 }}>
+                        Estrutura de Fábrica [2D]
+                    </h1>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        <button className="btn btn-outline" style={{ borderRadius: '999px', padding: '0.4rem 1rem', fontSize: '0.9rem' }} onClick={() => setViewMode(viewMode === 'matriz' ? 'grafos' : 'matriz')}>
-                            {viewMode === 'matriz' ? <Network size={16} style={{ marginRight: '6px' }} /> : <TableProperties size={16} style={{ marginRight: '6px' }} />}
+                    <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'nowrap', alignItems: 'center', gap: '0.75rem', flexShrink: 0 }}>
+                        <button className="btn btn-primary" style={{ borderRadius: '999px', padding: '0.4rem 1rem', fontSize: '0.85rem', flexShrink: 0 }} onClick={() => setIsAreaModalOpen(true)}>
+                            <Settings size={15} style={{ marginRight: '6px' }} /> Configurar Áreas
+                        </button>
+                        <button className="btn btn-primary" style={{ borderRadius: '999px', padding: '0.4rem 1rem', fontSize: '0.85rem', flexShrink: 0 }} onClick={() => setIsLinhaModalOpen(true)}>
+                            <Activity size={15} style={{ marginRight: '6px' }} /> Nova Linha
+                        </button>
+                        <button className="btn btn-primary" style={{ background: 'var(--accent)', borderRadius: '999px', padding: '0.4rem 1rem', fontSize: '0.85rem', boxShadow: '0 0 15px var(--accent)', flexShrink: 0 }} onClick={() => setIsEstacaoModalOpen(true)}>
+                            <Plus size={15} style={{ marginRight: '6px' }} /> Nova Estação
+                        </button>
+                        <div style={{ width: '1px', height: '24px', background: 'rgba(255,255,255,0.2)', margin: '0 4px', flexShrink: 0 }}></div>
+                        <button className="btn btn-outline" style={{ borderRadius: '999px', padding: '0.4rem 1rem', fontSize: '0.85rem', flexShrink: 0 }} onClick={() => setViewMode(viewMode === 'matriz' ? 'grafos' : 'matriz')}>
+                            {viewMode === 'matriz' ? <Network size={15} style={{ marginRight: '6px' }} /> : <TableProperties size={15} style={{ marginRight: '6px' }} />}
                             {viewMode === 'matriz' ? 'Modo Grafo Lógico' : 'Matriz Kanban 2D'}
-                        </button>
-                        <div style={{ width: '1px', height: '30px', background: 'rgba(255,255,255,0.1)', margin: '0 4px' }}></div>
-                        <button className="btn btn-primary" style={{ borderRadius: '999px', padding: '0.4rem 1rem', fontSize: '0.9rem' }} onClick={() => setIsAreaModalOpen(true)}>
-                            <Settings size={16} style={{ marginRight: '6px' }} />
-                            Configurar Áreas
-                        </button>
-                        <button className="btn btn-primary" style={{ borderRadius: '999px', padding: '0.4rem 1rem', fontSize: '0.9rem' }} onClick={() => setIsLinhaModalOpen(true)}>
-                            <Activity size={16} style={{ marginRight: '6px' }} />
-                            Nova Linha
-                        </button>
-                        <button className="btn btn-primary" style={{ background: 'var(--accent)', borderRadius: '999px', padding: '0.4rem 1rem', fontSize: '0.9rem', boxShadow: '0 0 15px var(--accent)' }} onClick={() => setIsEstacaoModalOpen(true)}>
-                            <Plus size={16} style={{ marginRight: '6px' }} />
-                            Nova Estação
                         </button>
                     </div>
                 </header>
