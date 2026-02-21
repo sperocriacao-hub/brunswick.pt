@@ -116,6 +116,59 @@ export default function NovoModeloPage() {
     };
 
     // ==============================================
+    // HANDLER DE UPLOAD REAL PARA SUPABASE STORAGE
+    // ==============================================
+    const [isUploading, setIsUploading] = useState(false);
+
+    const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>, tarefaId: string, contextoId: 'geral' | 'opcional') => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        setIsUploading(true);
+        // Colocar visual provisório para animar o user
+        if (contextoId === 'geral') {
+            updateTarefaGeral(tarefaId, 'imagem_url', 'A carregar... ⏳');
+        } else {
+            updateTarefaOpcional(tarefaId, 'imagem_url', 'A carregar... ⏳');
+        }
+
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('modelContext', nomeModelo ? nomeModelo.replace(/[^a-zA-Z0-9]/g, '_') : 'novo_modelo');
+
+            const res = await fetch('/api/upload', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                throw new Error(data.error || 'Falha no upload de anexo');
+            }
+
+            // Upload com sucesso: Guarda a URL Pública definitiva + O Nome Original concatenado?  
+            // Vamos preservar apenas a URL para o visual da lista:
+            if (contextoId === 'geral') {
+                updateTarefaGeral(tarefaId, 'imagem_url', data.url);
+            } else {
+                updateTarefaOpcional(tarefaId, 'imagem_url', data.url);
+            }
+            alert("Imagem carregada e ancorada à Tarefa com Sucesso na Nuvem!");
+
+        } catch (error) {
+            console.error('Upload Error:', error);
+            alert((error as Error).message || "Falha a comunicar com servidor. Verifique se o Bucket existe no Supabase.");
+            // Reverter estado visual do err
+            if (contextoId === 'geral') updateTarefaGeral(tarefaId, 'imagem_url', 'Erro ❌');
+            else updateTarefaOpcional(tarefaId, 'imagem_url', 'Erro ❌');
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
+    // ==============================================
     // GERAR PDF (Checklist por Estação)
     // ==============================================
     const generateChecklistPDF = () => {
@@ -353,13 +406,10 @@ export default function NovoModeloPage() {
                                         </select>
                                     </td>
                                     <td style={{ textAlign: 'center' }}>
-                                        <label className="btn-icon" style={{ cursor: 'pointer', display: 'inline-flex', flexDirection: 'column', alignItems: 'center' }} title="Anexar Imagem ou PDF">
-                                            <input type="file" style={{ display: 'none' }} accept="image/*,.pdf" onChange={(e) => {
-                                                const file = e.target.files?.[0];
-                                                if (file) updateTarefaGeral(tarefa.id, 'imagem_url', file.name);
-                                            }} />
+                                        <label className="btn-icon" style={{ cursor: isUploading ? 'wait' : 'pointer', display: 'inline-flex', flexDirection: 'column', alignItems: 'center' }} title="Anexar Imagem ou PDF">
+                                            <input type="file" style={{ display: 'none' }} accept="image/*,.pdf" disabled={isUploading} onChange={(e) => handleFileUpload(e, tarefa.id, 'geral')} />
                                             <Upload size={18} color={tarefa.imagem_url ? 'var(--secondary)' : 'currentColor'} />
-                                            {tarefa.imagem_url && <span style={{ fontSize: '0.65rem', color: 'var(--secondary)', marginTop: '4px', maxWidth: '80px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tarefa.imagem_url}</span>}
+                                            {tarefa.imagem_url && <span style={{ fontSize: '0.65rem', color: tarefa.imagem_url.includes('Erro') ? 'var(--danger)' : 'var(--secondary)', marginTop: '4px', maxWidth: '80px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={tarefa.imagem_url}>{tarefa.imagem_url.startsWith('http') ? 'Anexado ✅' : tarefa.imagem_url}</span>}
                                         </label>
                                     </td>
                                     <td style={{ textAlign: 'right' }}>
@@ -458,13 +508,10 @@ export default function NovoModeloPage() {
                                                 </select>
                                             </td>
                                             <td style={{ textAlign: 'center' }}>
-                                                <label className="btn-icon" style={{ cursor: 'pointer', display: 'inline-flex', flexDirection: 'column', alignItems: 'center' }} title="Anexar Imagem ou PDF">
-                                                    <input type="file" style={{ display: 'none' }} accept="image/*,.pdf" onChange={(e) => {
-                                                        const file = e.target.files?.[0];
-                                                        if (file) updateTarefaOpcional(tarefa.id, 'imagem_url', file.name);
-                                                    }} />
+                                                <label className="btn-icon" style={{ cursor: isUploading ? 'wait' : 'pointer', display: 'inline-flex', flexDirection: 'column', alignItems: 'center' }} title="Anexar Imagem ou PDF">
+                                                    <input type="file" style={{ display: 'none' }} accept="image/*,.pdf" disabled={isUploading} onChange={(e) => handleFileUpload(e, tarefa.id, 'opcional')} />
                                                     <Upload size={16} color={tarefa.imagem_url ? 'var(--secondary)' : 'currentColor'} />
-                                                    {tarefa.imagem_url && <span style={{ fontSize: '0.65rem', color: 'var(--secondary)', marginTop: '2px', maxWidth: '60px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tarefa.imagem_url}</span>}
+                                                    {tarefa.imagem_url && <span style={{ fontSize: '0.65rem', color: tarefa.imagem_url.includes('Erro') ? 'var(--danger)' : 'var(--secondary)', marginTop: '2px', maxWidth: '60px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={tarefa.imagem_url}>{tarefa.imagem_url.startsWith('http') ? 'Anexado ✅' : tarefa.imagem_url}</span>}
                                                 </label>
                                             </td>
                                             <td style={{ textAlign: 'right' }}>
