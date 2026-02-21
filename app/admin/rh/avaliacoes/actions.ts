@@ -1,10 +1,7 @@
 'use server';
 
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+import { cookies } from 'next/headers';
+import { createClient } from '@/utils/supabase/server';
 
 export type AvaliacaoDTO = {
     funcionario_id: string;
@@ -21,6 +18,9 @@ export type AvaliacaoDTO = {
 
 export async function carregarEquipaAvaliavel() {
     try {
+        const cookieStore = cookies();
+        const supabase = createClient(cookieStore);
+
         const { data, error } = await supabase
             .from('operadores')
             .select('id, numero_operador, nome_operador, funcao, status, area_base_id')
@@ -37,6 +37,9 @@ export async function carregarEquipaAvaliavel() {
 export async function submeterAvaliacaoDiaria(avaliacao: AvaliacaoDTO, autoSupervisorNome: string = "Admin/Supervisor") {
     try {
         if (!avaliacao.funcionario_id) throw new Error("ID de Funcionário em falta.");
+
+        const cookieStore = cookies();
+        const supabase = createClient(cookieStore);
 
         // 1. Inserir Avaliação (Isto chamará o Trigger PostgreSQL de atualização da matriz master)
         const { data: avalData, error: avalError } = await supabase
