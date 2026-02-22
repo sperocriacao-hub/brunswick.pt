@@ -142,7 +142,8 @@ export default function LoteAvaliacoesDiariasLayout() {
         let needsJustification = false;
 
         PILLARS.forEach(p => {
-            if (form[p.key as keyof FormEdicao] < 2.0) {
+            const grade = Number(form[p.key as keyof FormEdicao]);
+            if (grade < 2.0) {
                 justificacoes[p.key] = form.notasFinais || "Anotação rápida registada em Lote (Líder)";
                 if (!form.notasFinais) needsJustification = true;
             }
