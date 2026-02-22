@@ -2,6 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { Calendar, Tag, Info, Save, Anchor } from 'lucide-react';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
 
 // Tipos de dados (Mocks baseados na tua BD Supabase)
 type Modelo = { id: string; nome: string; model_year: string };
@@ -50,7 +54,6 @@ export default function NovaOrdermProducaoPage() {
     const [dataInicio, setDataInicio] = useState('');
     const [cronograma, setCronograma] = useState<{ estacao: string; inicio: string; fim: string }[]>([]);
 
-    // Efeito que recalcula as datas sempre que o "Data de Início" altera
     useEffect(() => {
         if (!dataInicio || !modeloSelecionado) {
             setCronograma([]);
@@ -59,7 +62,6 @@ export default function NovaOrdermProducaoPage() {
 
         const start = new Date(dataInicio);
 
-        // Algoritmo: Pega no start param e adiciona os dias (ignora fins de semana para simplificar neste exemplo base, mas no futuro poderás adicionar lógica de calendário laboral).
         const novoCronograma = ROTEIRO_MOCK.map(passo => {
             const d_inicio = new Date(start);
             d_inicio.setDate(d_inicio.getDate() + passo.offset_dias);
@@ -78,158 +80,181 @@ export default function NovaOrdermProducaoPage() {
     }, [dataInicio, modeloSelecionado]);
 
     return (
-        <div className="container mt-8 animate-fade-in dashboard-layout" style={{ display: 'block' }}>
+        <div className="container mx-auto mt-4 animate-fade-in max-w-7xl">
             <header className="flex justify-between items-center mb-8">
                 <div>
-                    <h1 className="brand-title" style={{ marginBottom: 0 }}>Planeamento de Produção (MES)</h1>
-                    <p style={{ color: "rgba(255,255,255,0.7)", marginTop: "0.25rem" }}>Emissão e escalonamento de novas Ordens de Produção.</p>
+                    <h1 className="text-3xl font-bold tracking-tight text-blue-900">Planeamento de Produção (MES)</h1>
+                    <p className="text-muted-foreground mt-1">Emissão e escalonamento de novas Ordens de Produção.</p>
                 </div>
-                <button className="btn btn-primary">
-                    <Save size={18} style={{ marginRight: '8px' }} />
+                <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+                    <Save size={18} className="mr-2" />
                     Emitir Ordem (OP)
-                </button>
+                </Button>
             </header>
 
-            <div className="grid grid-cols-3 gap-8">
-
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
                 {/* COLUNA ESQUERDA: Dados Primários */}
-                <div className="col-span-2" style={{ gridColumn: 'span 2' }}>
+                <div className="xl:col-span-2 flex flex-col gap-6">
 
                     {/* SECÇÃO 1: ESTRUTURA E SELEÇÃO */}
-                    <section className="glass-panel p-6 mb-8">
-                        <h2 className="flex items-center gap-2 mb-6" style={{ fontSize: '1.2rem', color: 'var(--primary)' }}>
-                            <Anchor size={20} /> Classificação da Ordem
-                        </h2>
-                        <div className="grid grid-cols-2 gap-6">
-                            <div className="form-group">
-                                <label className="form-label">Modelo a Fabricar</label>
-                                <select className="form-control" value={modeloSelecionado} onChange={(e) => setModeloSelecionado(e.target.value)}>
-                                    <option value="">-- Selecione o Modelo Base --</option>
-                                    {MODELOS.map(m => <option key={m.id} value={m.id}>{m.nome} ({m.model_year})</option>)}
-                                </select>
+                    <Card className="border-blue-100 shadow-sm">
+                        <CardHeader className="bg-slate-50 border-b border-blue-50/50 pb-4">
+                            <CardTitle className="flex items-center gap-2 text-blue-900 text-lg">
+                                <Anchor size={20} className="text-blue-600" /> Classificação da Ordem
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="pt-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="flex flex-col gap-2">
+                                    <Label className="text-blue-900 font-semibold">Modelo a Fabricar</Label>
+                                    <select
+                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                        value={modeloSelecionado}
+                                        onChange={(e) => setModeloSelecionado(e.target.value)}
+                                    >
+                                        <option value="">-- Selecione o Modelo Base --</option>
+                                        {MODELOS.map(m => <option key={m.id} value={m.id}>{m.nome} ({m.model_year})</option>)}
+                                    </select>
+                                </div>
+                                <div className="flex flex-col gap-2">
+                                    <Label className="text-blue-900 font-semibold">Linha de Produção Atribuída</Label>
+                                    <select
+                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                        value={linhaSelecionada}
+                                        onChange={(e) => setLinhaSelecionada(e.target.value)}
+                                    >
+                                        <option value="">-- Linha Fabril --</option>
+                                        {LINHAS.map(l => <option key={l.id} value={l.id}>Linha {l.letra} - {l.nome}</option>)}
+                                    </select>
+                                </div>
                             </div>
-                            <div className="form-group">
-                                <label className="form-label">Linha de Produção Atribuída</label>
-                                <select className="form-control" value={linhaSelecionada} onChange={(e) => setLinhaSelecionada(e.target.value)}>
-                                    <option value="">-- Linha Fabril --</option>
-                                    {LINHAS.map(l => <option key={l.id} value={l.id}>Linha {l.letra} - {l.nome}</option>)}
-                                </select>
-                            </div>
-                        </div>
-                    </section>
+                        </CardContent>
+                    </Card>
 
                     {/* SECÇÃO 2: CAMPOS ADMINISTRATIVOS */}
-                    <section className="glass-panel p-6 animate-delay-1">
-                        <h2 className="flex items-center gap-2 mb-6" style={{ fontSize: '1.2rem', color: 'var(--accent)' }}>
-                            <Info size={20} /> Dados Administrativos & Tracking
-                        </h2>
+                    <Card className="border-blue-100 shadow-sm">
+                        <CardHeader className="bg-slate-50 border-b border-blue-50/50 pb-4">
+                            <CardTitle className="flex items-center gap-2 text-blue-900 text-lg">
+                                <Info size={20} className="text-blue-600" /> Dados Administrativos & Tracking
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="pt-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                                <div className="flex flex-col gap-2">
+                                    <Label className="text-slate-700">PO (Compra)</Label>
+                                    <Input value={po} onChange={e => setPo(e.target.value)} placeholder="PO-XX" className="bg-slate-50/50" />
+                                </div>
+                                <div className="flex flex-col gap-2">
+                                    <Label className="text-slate-700">PP Plan</Label>
+                                    <Input value={pp} onChange={e => setPp(e.target.value)} placeholder="PP-XX" className="bg-slate-50/50" />
+                                </div>
+                                <div className="flex flex-col gap-2">
+                                    <Label className="text-slate-700">HIN (Hull ID)</Label>
+                                    <Input value={hin} onChange={e => setHin(e.target.value)} placeholder="US-BR..." className="bg-slate-50/50" />
+                                </div>
+                                <div className="flex flex-col gap-2">
+                                    <Label className="text-slate-700">Nº de Série</Label>
+                                    <Input value={ns} onChange={e => setNs(e.target.value)} placeholder="000" className="bg-slate-50/50" />
+                                </div>
+                            </div>
 
-                        <div className="grid grid-cols-4 gap-4 mb-4">
-                            <div className="form-group">
-                                <label className="form-label">PO (Compra)</label>
-                                <input type="text" className="form-control" value={po} onChange={e => setPo(e.target.value)} placeholder="PO-XX" />
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="flex flex-col gap-2">
+                                    <Label className="text-slate-700">Cliente Final / Dealer</Label>
+                                    <Input value={cliente} onChange={e => setCliente(e.target.value)} className="bg-slate-50/50" />
+                                </div>
+                                <div className="flex flex-col gap-2">
+                                    <Label className="text-slate-700">País de Destino</Label>
+                                    <Input value={pais} onChange={e => setPais(e.target.value)} className="bg-slate-50/50" />
+                                </div>
+                                <div className="flex flex-col gap-2">
+                                    <Label className="text-slate-700">Brand / Region</Label>
+                                    <Input value={region} onChange={e => setRegion(e.target.value)} className="bg-slate-50/50" />
+                                </div>
                             </div>
-                            <div className="form-group">
-                                <label className="form-label">PP Plan</label>
-                                <input type="text" className="form-control" value={pp} onChange={e => setPp(e.target.value)} placeholder="PP-XX" />
-                            </div>
-                            <div className="form-group">
-                                <label className="form-label">HIN (Hull ID)</label>
-                                <input type="text" className="form-control" value={hin} onChange={e => setHin(e.target.value)} placeholder="US-BR..." />
-                            </div>
-                            <div className="form-group">
-                                <label className="form-label">Nº de Série</label>
-                                <input type="text" className="form-control" value={ns} onChange={e => setNs(e.target.value)} />
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-3 gap-4">
-                            <div className="form-group">
-                                <label className="form-label">Cliente Final / Dealer</label>
-                                <input type="text" className="form-control" value={cliente} onChange={e => setCliente(e.target.value)} />
-                            </div>
-                            <div className="form-group">
-                                <label className="form-label">País de Destino</label>
-                                <input type="text" className="form-control" value={pais} onChange={e => setPais(e.target.value)} />
-                            </div>
-                            <div className="form-group">
-                                <label className="form-label">Brand / Region</label>
-                                <input type="text" className="form-control" value={region} onChange={e => setRegion(e.target.value)} />
-                            </div>
-                        </div>
-                    </section>
+                        </CardContent>
+                    </Card>
                 </div>
 
-
                 {/* COLUNA DIREITA: CRONOGRAMA & MOLDES */}
-                <div className="flex flex-col gap-8">
+                <div className="flex flex-col gap-6">
 
                     {/* SECÇÃO 3: CRONOGRAMA INTELIGENTE */}
-                    <section className="glass-panel p-6 animate-delay-2" style={{ flex: 1 }}>
-                        <h2 className="flex items-center gap-2 mb-6" style={{ fontSize: '1.1rem', color: 'var(--secondary)' }}>
-                            <Calendar size={18} /> Dinâmica de Datas (Offset)
-                        </h2>
-
-                        <div className="form-group mb-6">
-                            <label className="form-label">Arrancar Produção a:</label>
-                            <input type="date" className="form-control" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} />
-                        </div>
-
-                        {cronograma.length === 0 ? (
-                            <div style={{ padding: '2rem', textAlign: 'center', opacity: 0.5, border: '1px dashed var(--border)', borderRadius: '8px' }}>
-                                Selecione um Modelo e insira a Data de Início para calcular o Roteiro automaticamente.
+                    <Card className="border-blue-100 shadow-sm flex-1">
+                        <CardHeader className="bg-emerald-50/50 border-b border-emerald-100/50 pb-4">
+                            <CardTitle className="flex items-center gap-2 text-emerald-800 text-lg">
+                                <Calendar size={18} className="text-emerald-600" /> Dinâmica de Datas (Offset)
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="pt-6">
+                            <div className="flex flex-col gap-2 mb-6">
+                                <Label className="text-blue-900 font-semibold">Arrancar Produção a:</Label>
+                                <Input type="date" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} className="w-full bg-slate-50/50 border-slate-300" />
                             </div>
-                        ) : (
-                            <div className="flex flex-col gap-3">
-                                {cronograma.map((c, i) => (
-                                    <div key={i} className="flex flex-col p-3" style={{ background: 'rgba(0,0,0,0.2)', borderRadius: '6px', borderLeft: '3px solid var(--secondary)' }}>
-                                        <span style={{ fontSize: '0.875rem', fontWeight: 600 }}>{c.estacao}</span>
-                                        <div className="flex justify-between mt-1" style={{ fontSize: '0.75rem', opacity: 0.7 }}>
-                                            <span>Início: {c.inicio}</span>
-                                            <span>Fim Prev: {c.fim}</span>
+
+                            {cronograma.length === 0 ? (
+                                <div className="p-6 text-center text-sm text-slate-500 border border-dashed border-slate-300 rounded-lg bg-slate-50/50">
+                                    Selecione um Modelo e a Data de Início para calcular o Roteiro automaticamente.
+                                </div>
+                            ) : (
+                                <div className="flex flex-col gap-3">
+                                    {cronograma.map((c, i) => (
+                                        <div key={i} className="flex flex-col p-3 bg-white border border-slate-200 shadow-sm rounded-lg border-l-4 border-l-emerald-500">
+                                            <span className="text-sm font-semibold text-slate-800">{c.estacao}</span>
+                                            <div className="flex justify-between mt-2 text-xs text-slate-500">
+                                                <span>Início: {c.inicio}</span>
+                                                <span className="font-medium">Fim Previsível: {c.fim}</span>
+                                            </div>
                                         </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </section>
+                                    ))}
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
 
                     {/* SECÇÃO 4: SUPERVISÃO DE MOLDES (RFID) */}
-                    <section className="glass-panel p-6 animate-delay-3">
-                        <h2 className="flex items-center gap-2 mb-4" style={{ fontSize: '1.1rem', color: '#f59e0b' }}>
-                            <Tag size={18} /> Segurança de Moldes (RFID)
-                        </h2>
-                        <p style={{ fontSize: '0.8rem', opacity: 0.7, marginBottom: '1.5rem', lineHeight: 1.4 }}>
-                            O sistema associou os seguintes moldes físicos a esta OP. Verifique os ciclos de manutenção antes de liberar.
-                        </p>
+                    <Card className="border-amber-100 shadow-sm">
+                        <CardHeader className="bg-amber-50/50 border-b border-amber-100/50 pb-4">
+                            <CardTitle className="flex items-center gap-2 text-amber-800 text-lg">
+                                <Tag size={18} className="text-amber-600" /> Segurança de Moldes (RFID)
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="pt-6">
+                            <p className="text-xs text-slate-500 mb-6 leading-relaxed">
+                                O sistema associou as seguintes partes físicas a esta OP. Verifique os ciclos antes de liberar a produção.
+                            </p>
 
-                        <div className="flex flex-col gap-4">
-                            {modeloSelecionado ? MOLDES_MOCK.map((m) => {
-                                const percentagemUso = (m.ciclos_estimados / m.manutenir_em) * 100;
-                                const needsMaintenance = percentagemUso > 90;
+                            <div className="flex flex-col gap-4">
+                                {modeloSelecionado ? MOLDES_MOCK.map((m) => {
+                                    const percentagemUso = (m.ciclos_estimados / m.manutenir_em) * 100;
+                                    const needsMaintenance = percentagemUso > 90;
 
-                                return (
-                                    <div key={m.id} className="p-3" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: '6px' }}>
-                                        <div className="flex justify-between items-center mb-1">
-                                            <span style={{ fontWeight: 500, fontSize: '0.9rem' }}>{m.nome_parte}</span>
-                                            <span style={{ fontSize: '0.7rem', fontFamily: 'monospace', background: 'var(--background-base)', padding: '2px 6px', borderRadius: '4px' }}>{m.rfid}</span>
-                                        </div>
-                                        <div className="flex items-center gap-2 mt-2">
-                                            <div style={{ flex: 1, height: '4px', background: 'var(--background-base)', borderRadius: '2px', overflow: 'hidden' }}>
-                                                <div style={{ height: '100%', width: `${percentagemUso}%`, background: needsMaintenance ? 'var(--danger)' : '#f59e0b' }}></div>
+                                    return (
+                                        <div key={m.id} className="p-4 bg-white border border-slate-200 shadow-sm rounded-lg">
+                                            <div className="flex justify-between items-center mb-2">
+                                                <span className="font-medium text-sm text-slate-800">{m.nome_parte}</span>
+                                                <span className="text-xs font-mono bg-slate-100 text-slate-600 px-2 py-1 rounded border border-slate-200">{m.rfid}</span>
                                             </div>
-                                            <span style={{ fontSize: '0.75rem', color: needsMaintenance ? 'var(--danger)' : 'inherit' }}>
-                                                {m.ciclos_estimados}/{m.manutenir_em}
-                                            </span>
+                                            <div className="flex items-center gap-3 mt-3">
+                                                <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden border border-slate-200">
+                                                    <div
+                                                        className={`h-full ${needsMaintenance ? 'bg-red-500' : 'bg-amber-500'}`}
+                                                        style={{ width: `${percentagemUso}%` }}
+                                                    ></div>
+                                                </div>
+                                                <span className={`text-xs font-medium ${needsMaintenance ? 'text-red-600' : 'text-slate-600'}`}>
+                                                    {m.ciclos_estimados}/{m.manutenir_em}
+                                                </span>
+                                            </div>
+                                            {needsMaintenance && <span className="text-xs text-red-600 font-medium block mt-2 text-right">Atenção: Manutenção Imminente</span>}
                                         </div>
-                                        {needsMaintenance && <span style={{ fontSize: '0.7rem', color: 'var(--danger)', display: 'block', marginTop: '4px' }}>Manutenção Obrigatória!</span>}
-                                    </div>
-                                )
-                            }) : (
-                                <div style={{ fontSize: '0.85rem', opacity: 0.5, textAlign: 'center' }}>Nenhum modelo selecionado.</div>
-                            )}
-                        </div>
-                    </section>
+                                    )
+                                }) : (
+                                    <div className="text-sm text-slate-400 text-center py-4">Nenhum modelo selecionado.</div>
+                                )}
+                            </div>
+                        </CardContent>
+                    </Card>
 
                 </div>
             </div>

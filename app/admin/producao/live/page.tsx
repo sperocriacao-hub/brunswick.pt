@@ -156,7 +156,8 @@ const BoatCard = ({
 // Página Principal do S.C.A.D.A
 // ==========================================
 export default function LogisticaLivePage() {
-    const supabase = createClient();
+    // OTIMIZAÇÃO FASE 18: Evitar re-instanciação cíclica do Supabase Client a cada render do React
+    const supabase = React.useMemo(() => createClient(), []);
     const [isLoading, setIsLoading] = useState(true);
 
     // Core Data

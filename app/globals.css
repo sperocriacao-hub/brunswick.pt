@@ -74,6 +74,59 @@
   }
 }
 
+@layer components {
+
+  /* Legacy Glassmorphism Shims -> Shadcn Light Theme */
+  .glass-panel {
+    @apply bg-white border border-slate-200 shadow-sm rounded-lg text-slate-800 !important;
+  }
+
+  .form-control {
+    @apply flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:cursor-not-allowed disabled:opacity-50 transition-colors focus:bg-slate-50 !important;
+  }
+
+  .form-group {
+    @apply flex flex-col gap-1.5 mb-4 !important;
+  }
+
+  .form-label {
+    @apply text-sm font-semibold leading-none text-slate-700 block !important;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-400 disabled:pointer-events-none disabled:opacity-50 h-9 px-4 py-2 border-0 cursor-pointer gap-2 !important;
+  }
+
+  .btn-primary {
+    @apply bg-blue-600 text-white shadow hover:bg-blue-700 !important;
+  }
+
+  .btn-outline {
+    @apply border border-slate-300 bg-transparent text-slate-700 shadow-sm hover:bg-slate-100 !important;
+  }
+
+  /* Polyfill global para as tabelas antigas (.table-premium) */
+  .table-container {
+    @apply rounded-lg border border-slate-200 bg-white overflow-hidden shadow-sm !important;
+  }
+
+  .table-premium {
+    @apply w-full text-sm text-left border-collapse !important;
+  }
+
+  .table-premium th {
+    @apply px-4 py-3 font-semibold text-slate-600 uppercase bg-slate-50 border-b border-slate-200 text-xs tracking-wider !important;
+  }
+
+  .table-premium td {
+    @apply px-4 py-3 border-b border-slate-100 text-slate-700 bg-white !important;
+  }
+
+  .table-premium tr:hover td {
+    @apply bg-slate-50/80 !important;
+  }
+}
+
 @layer utilities {
   .animate-fade-in {
     animation: fade-in 0.3s ease-in-out forwards;

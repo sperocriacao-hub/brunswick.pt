@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Box, GitBranch, Layers, Settings, CalendarDays } from 'lucide-react';
+import { Box, GitBranch, Layers, Settings, CalendarDays, Activity } from 'lucide-react';
 
 export function Sidebar({ userEmail }: { userEmail: string | undefined }) {
     const pathname = usePathname();
@@ -14,10 +14,10 @@ export function Sidebar({ userEmail }: { userEmail: string | undefined }) {
     ];
 
     return (
-        <aside className="w-64 border-r bg-card flex flex-col justify-between h-full overflow-y-auto">
+        <aside className="w-64 bg-blue-900 text-white flex flex-col justify-between h-full overflow-y-auto shadow-xl relative z-20">
             <div className="p-6 flex flex-col flex-1 whitespace-nowrap">
-                <div className="text-2xl font-bold tracking-tight text-primary mb-8 px-2 flex items-center gap-2">
-                    <Layers className="text-primary" /> Brunswick.pt
+                <div className="text-2xl font-bold tracking-tight text-white mb-8 px-2 flex items-center gap-2">
+                    <Layers className="text-white" /> Brunswick.pt
                 </div>
                 <div className="flex flex-col gap-1">
                     {navLinks.map((link) => {
@@ -27,11 +27,11 @@ export function Sidebar({ userEmail }: { userEmail: string | undefined }) {
                                 key={link.href}
                                 href={link.href}
                                 className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${isActive
-                                    ? 'bg-primary text-primary-foreground font-medium shadow-sm'
-                                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                                    ? 'bg-blue-800 text-white font-medium shadow-sm'
+                                    : 'text-blue-100 hover:bg-blue-800/50 hover:text-white'
                                     }`}
                             >
-                                <span className="text-muted-foreground w-5 h-5 flex items-center justify-center">
+                                <span className={`${isActive ? 'text-white' : 'text-blue-300'} w-5 h-5 flex items-center justify-center`}>
                                     {link.icon}
                                 </span>
                                 <span className="text-sm">{link.name}</span>
@@ -40,65 +40,69 @@ export function Sidebar({ userEmail }: { userEmail: string | undefined }) {
                     })}
 
                     <div className="mt-8">
-                        <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Equipas e Talento</p>
+                        <p className="px-3 text-xs font-semibold text-blue-400 uppercase tracking-wider mb-2">Equipas e Talento</p>
                         <nav className="flex flex-col gap-1 mb-6">
-                            <Link href="/admin/rh" className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${pathname === '/admin/rh' || pathname.startsWith('/admin/rh/cadastro') ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted'}`}>
-                                <Settings size={20} />
-                                <span className="text-sm">Gerir Operadores</span>
+                            <Link href="/admin/rh" className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all ${pathname === '/admin/rh' || pathname.startsWith('/admin/rh/cadastro') ? 'bg-blue-800 text-white shadow-sm' : 'text-blue-100 hover:bg-blue-800/50 hover:text-white'}`}>
+                                <Settings size={20} className={pathname === '/admin/rh' || pathname.startsWith('/admin/rh/cadastro') ? 'text-white' : 'text-blue-300'} />
+                                <span className="text-sm border-transparent">Gerir Operadores</span>
                             </Link>
-                            <Link href="/admin/rh/avaliacoes" className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${pathname.includes('/admin/rh/avaliacoes') ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted'}`}>
-                                <CalendarDays size={20} />
-                                <span className="text-sm">Avaliações Diárias</span>
+                            <Link href="/admin/rh/avaliacoes" className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all ${pathname.includes('/admin/rh/avaliacoes') ? 'bg-blue-800 text-white shadow-sm' : 'text-blue-100 hover:bg-blue-800/50 hover:text-white'}`}>
+                                <CalendarDays size={20} className={pathname.includes('/admin/rh/avaliacoes') ? 'text-white' : 'text-blue-300'} />
+                                <span className="text-sm border-transparent">Avaliações Diárias</span>
+                            </Link>
+                            <Link href="/admin/rh/produtividade" className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all ${pathname.includes('/admin/rh/produtividade') ? 'bg-blue-800 text-white shadow-sm' : 'text-blue-100 hover:bg-blue-800/50 hover:text-white'}`}>
+                                <Activity size={20} className={pathname.includes('/admin/rh/produtividade') ? 'text-white' : 'text-blue-300'} />
+                                <span className="text-sm border-transparent">Produtividade OEE</span>
                             </Link>
                         </nav>
-                        <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">M.E.S Logística</p>
+                        <p className="px-3 text-xs font-semibold text-blue-400 uppercase tracking-wider mb-2">M.E.S Logística</p>
                         <nav className="flex flex-col gap-1 mb-6">
-                            <Link href="/admin/producao/planeamento" className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${pathname.includes('/admin/producao/planeamento') ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted'}`}>
-                                <CalendarDays size={20} />
-                                <span className="text-sm">Planeamento Semanal</span>
+                            <Link href="/admin/producao/planeamento" className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all ${pathname.includes('/admin/producao/planeamento') ? 'bg-blue-800 text-white shadow-sm' : 'text-blue-100 hover:bg-blue-800/50 hover:text-white'}`}>
+                                <CalendarDays size={20} className={pathname.includes('/admin/producao/planeamento') ? 'text-white' : 'text-blue-300'} />
+                                <span className="text-sm border-transparent">Planeamento Semanal</span>
                             </Link>
-                            <Link href="/admin/producao/live" className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${pathname.includes('/admin/producao/live') ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted'}`}>
-                                <Box size={20} />
-                                <span className="text-sm">Monitorização Live</span>
+                            <Link href="/admin/producao/live" className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all ${pathname.includes('/admin/producao/live') ? 'bg-blue-800 text-white shadow-sm' : 'text-blue-100 hover:bg-blue-800/50 hover:text-white'}`}>
+                                <Box size={20} className={pathname.includes('/admin/producao/live') ? 'text-white' : 'text-blue-300'} />
+                                <span className="text-sm border-transparent">Monitorização Live</span>
                             </Link>
                         </nav>
-                        <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Engenharia</p>
+                        <p className="px-3 text-xs font-semibold text-blue-400 uppercase tracking-wider mb-2">Engenharia</p>
                         <nav className="flex flex-col gap-1 mb-6">
-                            <Link href="/admin/modelos" className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${pathname.includes('/admin/modelos') ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted'}`}>
-                                <Box size={20} />
-                                <span className="text-sm">Modelos & Produto</span>
+                            <Link href="/admin/modelos" className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all ${pathname.includes('/admin/modelos') ? 'bg-blue-800 text-white shadow-sm' : 'text-blue-100 hover:bg-blue-800/50 hover:text-white'}`}>
+                                <Box size={20} className={pathname.includes('/admin/modelos') ? 'text-white' : 'text-blue-300'} />
+                                <span className="text-sm border-transparent">Modelos & Produto</span>
                             </Link>
-                            <Link href="/admin/engenharia/regras" className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${pathname.includes('/admin/engenharia/regras') ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted'}`}>
-                                <GitBranch size={20} />
-                                <span className="text-sm">Regras Sequenciais</span>
+                            <Link href="/admin/engenharia/regras" className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all ${pathname.includes('/admin/engenharia/regras') ? 'bg-blue-800 text-white shadow-sm' : 'text-blue-100 hover:bg-blue-800/50 hover:text-white'}`}>
+                                <GitBranch size={20} className={pathname.includes('/admin/engenharia/regras') ? 'text-white' : 'text-blue-300'} />
+                                <span className="text-sm border-transparent">Regras Sequenciais</span>
                             </Link>
-                            <Link href="/admin/engenharia/roteiros" className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${pathname.includes('/admin/engenharia/roteiros') ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted'}`}>
-                                <Layers size={20} />
-                                <span className="text-sm">Tempos Roteiro OEE</span>
-                            </Link>
-                        </nav>
-
-                        <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Configuração Fabril</p>
-                        <nav className="flex flex-col gap-1 mb-6">
-                            <Link href="/admin/fabrica" className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${pathname.includes('/admin/fabrica') ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted'}`}>
-                                <Settings size={20} />
-                                <span className="text-sm">Fábrica & Estações</span>
-                            </Link>
-                            <Link href="/admin/qualidade/templates" className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${pathname.includes('/admin/qualidade') ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted'}`}>
-                                <Settings size={20} />
-                                <span className="text-sm">Checklists Qualidade</span>
+                            <Link href="/admin/engenharia/roteiros" className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all ${pathname.includes('/admin/engenharia/roteiros') ? 'bg-blue-800 text-white shadow-sm' : 'text-blue-100 hover:bg-blue-800/50 hover:text-white'}`}>
+                                <Layers size={20} className={pathname.includes('/admin/engenharia/roteiros') ? 'text-white' : 'text-blue-300'} />
+                                <span className="text-sm border-transparent">Tempos Roteiro OEE</span>
                             </Link>
                         </nav>
 
-                        <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Sistema</p>
+                        <p className="px-3 text-xs font-semibold text-blue-400 uppercase tracking-wider mb-2">Configuração Fabril</p>
+                        <nav className="flex flex-col gap-1 mb-6">
+                            <Link href="/admin/fabrica" className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all ${pathname.includes('/admin/fabrica') ? 'bg-blue-800 text-white shadow-sm' : 'text-blue-100 hover:bg-blue-800/50 hover:text-white'}`}>
+                                <Settings size={20} className={pathname.includes('/admin/fabrica') ? 'text-white' : 'text-blue-300'} />
+                                <span className="text-sm border-transparent">Fábrica & Estações</span>
+                            </Link>
+                            <Link href="/admin/qualidade/templates" className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all ${pathname.includes('/admin/qualidade') ? 'bg-blue-800 text-white shadow-sm' : 'text-blue-100 hover:bg-blue-800/50 hover:text-white'}`}>
+                                <Settings size={20} className={pathname.includes('/admin/qualidade') ? 'text-white' : 'text-blue-300'} />
+                                <span className="text-sm border-transparent">Checklists Qualidade</span>
+                            </Link>
+                        </nav>
+
+                        <p className="px-3 text-xs font-semibold text-blue-400 uppercase tracking-wider mb-2">Sistema</p>
                         <nav className="flex flex-col gap-1">
-                            <Link href="/admin/diagnostico" className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${pathname === '/admin/diagnostico' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted'}`}>
-                                <Settings size={20} />
-                                <span className="text-sm">Central Dispositivos</span>
+                            <Link href="/admin/diagnostico" className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all ${pathname === '/admin/diagnostico' ? 'bg-blue-800 text-white shadow-sm' : 'text-blue-100 hover:bg-blue-800/50 hover:text-white'}`}>
+                                <Settings size={20} className={pathname === '/admin/diagnostico' ? 'text-white' : 'text-blue-300'} />
+                                <span className="text-sm border-transparent">Central Dispositivos</span>
                             </Link>
-                            <Link href="/admin/configuracoes" className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${pathname === '/admin/configuracoes' || pathname.startsWith('/admin/configuracoes') ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted'}`}>
-                                <Settings size={20} />
-                                <span className="text-sm">Notificações</span>
+                            <Link href="/admin/configuracoes" className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all ${pathname === '/admin/configuracoes' || pathname.startsWith('/admin/configuracoes') ? 'bg-blue-800 text-white shadow-sm' : 'text-blue-100 hover:bg-blue-800/50 hover:text-white'}`}>
+                                <Settings size={20} className={pathname === '/admin/configuracoes' || pathname.startsWith('/admin/configuracoes') ? 'text-white' : 'text-blue-300'} />
+                                <span className="text-sm border-transparent">Notificações</span>
                             </Link>
                         </nav>
                     </div>
@@ -106,14 +110,14 @@ export function Sidebar({ userEmail }: { userEmail: string | undefined }) {
             </div>
 
             {/* Bottom Section - User Profile / Auth */}
-            <div className="p-4 border-t mt-auto">
-                <div className="flex items-center gap-3 px-3 py-2">
-                    <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">
+            <div className="p-4 border-t border-blue-800 mt-auto">
+                <div className="flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-blue-800/50 rounded-lg transition-colors">
+                    <div className="w-8 h-8 rounded-full bg-blue-600 border-2 border-blue-400 flex items-center justify-center text-white font-bold shadow-sm">
                         {userEmail?.charAt(0).toUpperCase() || 'A'}
                     </div>
                     <div className="flex flex-col overflow-hidden">
-                        <span className="text-sm font-medium text-foreground truncate">{userEmail}</span>
-                        <span className="text-xs text-muted-foreground">Administrador</span>
+                        <span className="text-sm font-medium text-white truncate">{userEmail}</span>
+                        <span className="text-xs text-blue-300">Administrador</span>
                     </div>
                 </div>
             </div>

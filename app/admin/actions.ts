@@ -15,7 +15,11 @@ export async function fetchDashboardData() {
             .select('*', { count: 'exact', head: true })
             .in('status', ['IN_PROGRESS', 'Em Produção']);
 
-        // 2. Extrair todas OPs (Em Produção & Completas) para Cálculo de OEE e Desvio
+        // 2. Extrair OPs recentes (Em Produção & Completas nos últimos 45 dias) para Cálculo de OEE e Desvio
+        // OTIMIZAÇÃO: Limitar historico para não estrangular o Array JS em memória (Bottleneck resolvido Fase 18)
+        const dateLimit = new Date();
+        dateLimit.setDate(dateLimit.getDate() - 45); // Janela de 45 dias
+
         const { data: ordens, error: errorOrdens } = await supabase
             .from('ordens_producao')
             .select(`
@@ -23,6 +27,7 @@ export async function fetchDashboardData() {
                 op_numero, 
                 status, 
                 cliente,
+                created_at,
                 modelos (
                     id, 
                     nome_modelo, 
@@ -36,6 +41,7 @@ export async function fetchDashboardData() {
                 )
             `)
             .in('status', ['IN_PROGRESS', 'Em Produção', 'COMPLETED', 'Concluída'])
+            .gte('created_at', dateLimit.toISOString()) // LIMITAÇÃO TEMPORAL
             .order('created_at', { ascending: false });
 
         if (errorOrdens) throw errorOrdens;
