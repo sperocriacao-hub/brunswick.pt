@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Cpu, ChevronUp, ChevronDown, CheckCircle2, Send, RefreshCw } from 'lucide-react';
+import { Cpu, ChevronUp, ChevronDown, CheckCircle2, Send, RefreshCw, Wifi } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 
 type LcdState = 'BOOT' | 'IDLE' | 'MENU_MODE' | 'PULL_MODE' | 'FECHAR_MODE' | 'RESPONSE';
@@ -172,94 +172,116 @@ export function Esp32Simulator() {
     };
 
     return (
-        <section className="glass-panel p-6 flex flex-col h-full bg-slate-900 border border-slate-700">
-            <h2 className="flex items-center gap-2 mb-6" style={{ fontSize: '1.2rem', color: '#c0caf5' }}>
-                <Cpu size={20} /> Gêmeo Digital Hardware (ESP32)
+        <section className="glass-panel p-6 flex flex-col h-full bg-slate-50 border border-slate-200">
+            <h2 className="flex items-center gap-2 mb-8 text-xl font-bold text-slate-800">
+                <Cpu size={22} className="text-blue-600" /> Gêmeo Digital Hardware (ESP32)
             </h2>
 
-            <div className="flex-1 flex flex-col items-center justify-center">
-                {/* Carcaça do ESP32/Box Industrial */}
-                <div className="bg-slate-800 p-6 rounded-xl border-4 border-slate-700 shadow-2xl relative w-full max-w-sm">
-                    {/* Parafusos de hardware (Puro Flair Visual) */}
-                    <div className="absolute top-2 left-2 w-2 h-2 rounded-full bg-slate-600 shadow-inner"></div>
-                    <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-slate-600 shadow-inner"></div>
-                    <div className="absolute bottom-2 left-2 w-2 h-2 rounded-full bg-slate-600 shadow-inner"></div>
-                    <div className="absolute bottom-2 right-2 w-2 h-2 rounded-full bg-slate-600 shadow-inner"></div>
+            <div className="flex-1 flex flex-col items-center justify-start lg:justify-center pt-8">
+                {/* 
+                  14x7cm Proporção Realista 
+                  Usando flex-row: Painel MFRC522 à Esquerda | Painel ESP32+LCD à Direita
+                */}
+                <div className="bg-slate-800 p-2 sm:p-4 rounded-xl border-4 border-slate-700 shadow-2xl relative w-full max-w-2xl flex flex-col sm:flex-row gap-4 items-center">
 
-                    {/* Ecrã LCD */}
-                    <div className="bg-[#1e1e1ede] p-4 rounded border-4 border-slate-900 mb-8 min-h-[140px] flex flex-col shadow-inner relative overflow-hidden">
-                        {/* Scanlines / Retro Effect */}
-                        <div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_4px,3px_100%] z-10 pointer-events-none opacity-50"></div>
-                        <div className="font-mono text-xs leading-5 z-20 text-[#0f0] drop-shadow-[0_0_8px_rgba(0,255,0,0.8)] whitespace-pre-wrap flex flex-col uppercase">
-                            <div className="h-5">{lcd[0]}</div>
-                            <div className="h-5">{lcd[1]}</div>
-                            <div className="h-5">{lcd[2]}</div>
-                            <div className="h-5">{lcd[3]}</div>
+                    {/* Parafusos de hardware */}
+                    <div className="hidden sm:block absolute top-2 left-2 w-2 h-2 rounded-full bg-slate-600 shadow-inner"></div>
+                    <div className="hidden sm:block absolute top-2 right-2 w-2 h-2 rounded-full bg-slate-600 shadow-inner"></div>
+                    <div className="hidden sm:block absolute bottom-2 left-2 w-2 h-2 rounded-full bg-slate-600 shadow-inner"></div>
+                    <div className="hidden sm:block absolute bottom-2 right-2 w-2 h-2 rounded-full bg-slate-600 shadow-inner"></div>
+
+                    {/* --- ESQUERDA: SENSOR RFID RC522 --- */}
+                    <div className="w-full sm:w-2/5 min-h-[220px] bg-blue-900/40 border-2 border-blue-500/30 rounded-lg p-4 flex flex-col relative justify-center items-center shadow-inner group overflow-hidden">
+                        <div className="absolute top-2 left-2 text-[8px] font-bold text-blue-300/50">MFRC522 MODULE</div>
+
+                        {/* Chip Graphic */}
+                        <div className="w-16 h-16 border-2 border-blue-400/50 rounded flex items-center justify-center mb-6 relative z-10 bg-slate-900">
+                            <Wifi className="text-blue-400" size={32} />
                         </div>
+                        <div className="w-full h-1 bg-blue-500/20 absolute top-1/2 -mt-4"></div>
+
+                        {/* Input RFID Manual (Para o Utilizador Simular a Tag) */}
+                        <div className="w-full mt-4 z-10">
+                            <p className="text-[10px] text-center text-blue-200 mb-2 font-semibold">APROXIME O CRACHÁ</p>
+                            <input
+                                type="text"
+                                className="w-full bg-slate-950/80 border border-blue-500/30 rounded p-2 text-xs font-mono text-center text-emerald-400 focus:outline-none focus:border-blue-400 placeholder-slate-600 transition-colors"
+                                placeholder="HEX TAG (Ex: EA7B)"
+                                value={rfidInput}
+                                onChange={(e) => setRfidInput(e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && handleSimulateRfid()}
+                                disabled={isLoading}
+                            />
+                            <button
+                                className="w-full mt-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold py-2 rounded flex items-center justify-center gap-2 shadow-lg disabled:opacity-50 transition-colors"
+                                onClick={handleSimulateRfid}
+                                disabled={!rfidInput.trim() || isLoading}
+                            >
+                                <Send size={14} /> SIMULAR BEEP
+                            </button>
+                        </div>
+
                     </div>
 
-                    {/* Botões Físicos */}
-                    <div className="flex justify-between px-4">
-                        <div className="flex flex-col gap-2">
-                            <span className="text-[10px] text-center text-slate-400 font-bold uppercase tracking-widest bg-slate-900 border border-slate-700 rounded-lg py-1">Navegação</span>
-                            <div className="flex gap-4">
-                                <button
-                                    onClick={handleUp}
-                                    disabled={state === 'BOOT' || isLoading}
-                                    className="w-14 h-14 rounded-full bg-slate-700 border-b-4 border-slate-900 hover:bg-slate-600 active:border-b-0 active:translate-y-1 transition-all flex items-center justify-center shadow-lg disabled:opacity-50"
-                                >
-                                    <ChevronUp size={24} className="text-white" />
-                                </button>
-                                <button
-                                    onClick={handleDown}
-                                    disabled={state === 'BOOT' || isLoading}
-                                    className="w-14 h-14 rounded-full bg-slate-700 border-b-4 border-slate-900 hover:bg-slate-600 active:border-b-0 active:translate-y-1 transition-all flex items-center justify-center shadow-lg disabled:opacity-50"
-                                >
-                                    <ChevronDown size={24} className="text-white" />
-                                </button>
+                    {/* --- DIREITA: NÚCLEO ESP32 (LCD + BOTÕES) --- */}
+                    <div className="w-full sm:w-3/5 bg-slate-900 border-2 border-slate-600 rounded-lg p-4 flex flex-col shadow-inner">
+
+                        {/* Ecrã LCD 20x4 Simulado */}
+                        <div className="bg-[#1e1e1ede] p-4 rounded border-4 border-slate-950 mb-6 min-h-[140px] flex flex-col shadow-inner relative overflow-hidden">
+                            {/* Scanlines / Retro Effect removidos para look mais limpo legível, deixamos o verde terminal */}
+                            <div className="font-mono text-sm leading-6 z-20 text-[#0f0] drop-shadow-[0_0_2px_rgba(0,255,0,0.8)] whitespace-pre-wrap flex flex-col">
+                                <div className="h-6 whitespace-nowrap overflow-hidden">{(lcd[0] || '').padEnd(20, ' ')}</div>
+                                <div className="h-6 whitespace-nowrap overflow-hidden">{lcd[1]}</div>
+                                <div className="h-6 whitespace-nowrap overflow-hidden">{lcd[2]}</div>
+                                <div className="h-6 whitespace-nowrap overflow-hidden">{lcd[3]}</div>
                             </div>
                         </div>
 
-                        <div className="flex flex-col gap-2 items-center">
-                            <span className="text-[10px] text-center text-slate-400 font-bold uppercase tracking-widest w-full bg-slate-900 border border-slate-700 rounded-lg py-1">Confirma</span>
-                            <button
-                                onClick={handleSelect}
-                                disabled={state === 'BOOT' || isLoading}
-                                className="w-14 h-14 rounded-full bg-red-600 border-b-4 border-red-900 hover:bg-red-500 active:border-b-0 active:translate-y-1 transition-all flex items-center justify-center shadow-[0_0_15px_rgba(220,38,38,0.5)] disabled:opacity-50"
-                            >
-                                {isLoading ? <RefreshCw size={24} className="text-white animate-spin" /> : <CheckCircle2 size={24} className="text-white" />}
-                            </button>
+                        {/* Botões Direcionais Físicos */}
+                        <div className="flex justify-between items-end px-2 sm:px-4">
+
+                            {/* Bloco UP/DOWN */}
+                            <div className="flex flex-col items-center gap-1.5">
+                                <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest bg-slate-950 px-2 py-0.5 rounded border border-slate-800">Menu</span>
+                                <div className="flex gap-3">
+                                    <button
+                                        onClick={handleUp}
+                                        disabled={state === 'BOOT' || isLoading}
+                                        className="w-12 h-12 rounded-full bg-slate-700 border-b-4 border-slate-950 hover:bg-slate-600 active:border-b-0 active:translate-y-1 transition-all flex items-center justify-center shadow-lg disabled:opacity-50"
+                                    >
+                                        <ChevronUp size={22} className="text-white" />
+                                    </button>
+                                    <button
+                                        onClick={handleDown}
+                                        disabled={state === 'BOOT' || isLoading}
+                                        className="w-12 h-12 rounded-full bg-slate-700 border-b-4 border-slate-950 hover:bg-slate-600 active:border-b-0 active:translate-y-1 transition-all flex items-center justify-center shadow-lg disabled:opacity-50"
+                                    >
+                                        <ChevronDown size={22} className="text-white" />
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Bloco SELECT (Action / Confirm) */}
+                            <div className="flex flex-col items-center gap-1.5">
+                                <span className="text-[9px] font-bold text-rose-500/80 uppercase tracking-widest bg-slate-950 px-2 py-0.5 rounded border border-rose-900/30">Action</span>
+                                <button
+                                    onClick={handleSelect}
+                                    disabled={state === 'BOOT' || isLoading}
+                                    className="w-14 h-14 rounded-full bg-rose-600 border-b-4 border-rose-900 hover:bg-rose-500 active:border-b-0 active:translate-y-1 transition-all flex items-center justify-center shadow-[0_0_15px_rgba(225,29,72,0.4)] disabled:opacity-50"
+                                >
+                                    {isLoading ? <RefreshCw size={22} className="text-white animate-spin" /> : <CheckCircle2 size={24} className="text-white" />}
+                                </button>
+                            </div>
+
                         </div>
                     </div>
+
                 </div>
 
-                {/* Input de Teste RFID (Manual Push) */}
-                <div className="mt-8 w-full max-w-sm bg-black/30 p-4 border border-white/10 rounded-xl relative">
-                    <div className="absolute -top-3 left-4 bg-[#1a1c29] px-2 text-xs font-bold text-emerald-400 tracking-widest flex items-center gap-1">
-                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> SENSOR RFID MFRC522
-                    </div>
-                    <div className="flex gap-2 mt-2">
-                        <input
-                            type="text"
-                            className="form-control flex-1 text-sm font-mono tracking-widest placeholder-white/30"
-                            placeholder="Tag Colaborador (Ex: TAG-RH-101)"
-                            value={rfidInput}
-                            onChange={(e) => setRfidInput(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && handleSimulateRfid()}
-                            disabled={isLoading}
-                        />
-                        <button
-                            className="btn btn-primary px-3 rounded-lg flex items-center gap-2"
-                            onClick={handleSimulateRfid}
-                            disabled={!rfidInput.trim() || isLoading}
-                        >
-                            <Send size={16} /> BEEP
-                        </button>
-                    </div>
-                    <p className="text-[10px] text-slate-400 opacity-80 mt-3 border-t border-white/5 pt-2">
-                        No mundo real este input é invisível. A passagem física do cartão emite exatamente este texto Hexadecimal.
-                    </p>
-                </div>
+                {/* Dica Didática Abaixo */}
+                <p className="mt-8 text-sm text-slate-500 max-w-2xl text-center bg-white p-4 rounded-lg shadow-sm border border-slate-100 italic">
+                    Isto simula a carcaça real 14x7cm. O lado Esquerdo corresponde à placa leitora RFID RC-522 colada no interior da caixa. O lado Direito mapeia a placa microcontroladora ESP32, as ligações LCD I2C e os botões Pull-Up físicos.
+                </p>
             </div>
         </section>
     );
