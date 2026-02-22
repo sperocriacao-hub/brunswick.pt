@@ -54,6 +54,10 @@ export function Sidebar({ userEmail }: { userEmail: string | undefined }) {
                                 <Activity size={20} className={pathname.includes('/admin/rh/produtividade') ? 'text-white' : 'text-blue-300'} />
                                 <span className="text-sm border-transparent">Produtividade OEE</span>
                             </Link>
+                            <Link href="/admin/rh/assiduidade" className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all ${pathname.includes('/admin/rh/assiduidade') ? 'bg-blue-800 text-white shadow-sm' : 'text-blue-100 hover:bg-blue-800/50 hover:text-white'}`}>
+                                <CalendarDays size={20} className={pathname.includes('/admin/rh/assiduidade') ? 'text-white' : 'text-blue-300'} />
+                                <span className="text-sm border-transparent">Assiduidade Ativa</span>
+                            </Link>
                         </nav>
                         <p className="px-3 text-xs font-semibold text-blue-400 uppercase tracking-wider mb-2">M.E.S Logística</p>
                         <nav className="flex flex-col gap-1 mb-6">

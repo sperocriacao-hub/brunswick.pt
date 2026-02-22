@@ -128,7 +128,11 @@ export default async function ProdutividadeRH({ searchParams }: { searchParams: 
     // Totais Globais Assiduidade (Contados sob os trabalhadores do Scope "selectedArea" (se filtrado))
     const expectedWorkers = statsOperador.length;
     const presentWorkers = statsOperador.filter(w => w.picouHoje).length;
-    const absenteismRate = expectedWorkers > 0 ? ((expectedWorkers - presentWorkers) / expectedWorkers) * 100 : 0;
+    // Heurística de Falso-Positivo (Fase 24): Se os Operadores Cadastrados > 0 mas o PresentWorkers = 0 E NINGUÉM FEZ NVA/VA na FABRICA... turno não arrancou!
+    const turnoverFabricaHoje = kpiVABruto + kpiNVABruto;
+    const absenteismRate = (expectedWorkers > 0 && (presentWorkers > 0 || turnoverFabricaHoje > 0))
+        ? ((expectedWorkers - presentWorkers) / expectedWorkers) * 100
+        : 0;
 
     // Gerador Array Meses Formulario (Ultimos 6 Meses)
     const ultimosMeses = [];
