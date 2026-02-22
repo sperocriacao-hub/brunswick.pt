@@ -105,47 +105,49 @@ const BoatCard = ({
     return (
         <div
             onClick={onClick}
-            className={`glass-panel p-3 mb-3 cursor-pointer hover:scale-[1.02] transition-transform ${metrics.bgPulse}`}
+            className={`bg-white rounded-lg p-3 mb-3 cursor-pointer hover:-translate-y-1 transition-all border border-slate-200 ${metrics.bgPulse}`}
             style={{
-                borderLeft: `4px solid ${metrics.statusColor}`,
-                boxShadow: `0 4px 12px ${metrics.atrasado ? 'rgba(239,68,68,0.2)' : 'rgba(0,0,0,0.3)'}`
+                borderLeft: `5px solid ${metrics.statusColor}`,
+                boxShadow: metrics.atrasado ? '0 10px 15px -3px rgba(225, 29, 72, 0.1), 0 4px 6px -2px rgba(225, 29, 72, 0.05)' : '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)'
             }}
         >
             <div className="flex justify-between items-start mb-2">
-                <span className="text-xs font-bold px-2 py-1 rounded bg-[rgba(255,255,255,0.1)] text-[var(--primary)]">
+                <span className="text-xs font-extrabold px-2 py-1 rounded-md bg-slate-100 text-slate-700 font-mono shadow-sm">
                     {ordem.op_numero}
                 </span>
-                <span className="text-[10px] opacity-60 flex items-center gap-1">
-                    <Clock size={10} /> {metrics.diffHoras}h{metrics.diffMinsResto}m
+                <span className="text-[10px] text-slate-500 font-bold flex items-center gap-1 bg-white border border-slate-100 px-1.5 py-0.5 rounded shadow-sm">
+                    <Clock size={10} className="text-blue-500" /> {metrics.diffHoras}h{metrics.diffMinsResto}m
                 </span>
             </div>
 
-            <h4 className="font-semibold text-sm truncate w-full" title={ordem.modelos?.nome_modelo || 'Modelo Desconhecido'}>
+            <h4 className="font-extrabold text-sm text-slate-800 truncate w-full" title={ordem.modelos?.nome_modelo || 'Modelo Desconhecido'}>
                 {ordem.modelos?.nome_modelo || 'Modelo N/A'}
             </h4>
 
-            <div className="mt-3 text-[10px] opacity-80 flex justify-between items-end">
-                <div className="flex flex-col gap-1">
-                    <span>HIN: {ordem.hin_hull_id || 'PENDENTE'}</span>
-                    <span style={{ color: metrics.statusColor, fontWeight: 'bold' }}>OEE: {metrics.oee}%</span>
+            <div className="mt-4 flex justify-between items-end">
+                <div className="flex flex-col gap-1.5">
+                    <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">HIN: <span className="text-slate-600">{ordem.hin_hull_id || 'PENDENTE'}</span></span>
+                    <span className="text-xs bg-slate-50 px-2 py-0.5 rounded border shadow-sm" style={{ color: metrics.statusColor, borderColor: metrics.statusColor, fontWeight: '900' }}>OEE: {metrics.oee}%</span>
                 </div>
                 <div className="flex -space-x-2">
                     {equipa.map((opId, idx) => (
-                        <div key={idx} title={`Operador: ${opId}`} className="w-6 h-6 rounded-full bg-slate-700 border border-slate-500 flex items-center justify-center text-[8px] text-white shadow-sm z-10 hover:z-20 hover:scale-110 transition-transform">
+                        <div key={idx} title={`Operador: ${opId}`} className="w-7 h-7 rounded-full bg-blue-50 border-2 border-white flex items-center justify-center text-[9px] font-bold text-blue-700 shadow-sm z-10 hover:z-20 hover:scale-110 transition-transform">
                             {opId.slice(-3).toUpperCase()}
                         </div>
                     ))}
                 </div>
             </div>
 
-            <div className="mt-3 w-full bg-[rgba(0,0,0,0.3)] h-1 rounded-full overflow-hidden">
+
+            <div className="mt-4 w-full bg-slate-100 h-1.5 rounded-full overflow-hidden shadow-inner">
                 <div
-                    className="h-full"
+                    className="h-full transition-all duration-1000 ease-in-out"
                     style={{
-                        width: `${Math.min((Date.now() - new Date(registo.timestamp_inicio).getTime()) / 60000 / (slaPrevisto || 1) * 100, 100)}%`,
-                        backgroundColor: metrics.statusColor
+                        width: `${Math.min(metrics.oee, 100)}%`,
+                        backgroundColor: metrics.statusColor,
+                        opacity: metrics.atrasado ? 0.8 : 1
                     }}
-                />
+                ></div>
             </div>
         </div>
     );
@@ -270,37 +272,41 @@ export default function LogisticaLivePage() {
     }, [supabase]);
 
     if (isLoading) {
-        return <div className="p-12 text-center opacity-50 flex flex-col items-center"><Loader2 className="animate-spin mb-4" /> Configurando Layout Kanban...</div>
+        return <div className="p-12 text-center text-slate-400 flex flex-col items-center"><Loader2 className="animate-spin mb-4" /> Configurando Layout Kanban...</div>
     }
 
     return (
         <div style={{ height: 'calc(100vh - 8rem)', display: 'flex', flexDirection: 'column' }}>
-            <header className="flex justify-between items-center mb-6 animate-fade-in shrink-0">
+            <header className="flex justify-between items-center mb-6 animate-fade-in shrink-0 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
                 <div>
-                    <h1 className="text-2xl font-bold text-[var(--primary)] flex items-center gap-3">
-                        <PlayCircle size={28} /> Tracker de Produção em Tempo-Real
+                    <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-3">
+                        <PlayCircle size={28} className="text-blue-600" /> Tracker de Produção em Tempo-Real
                     </h1>
-                    <p className="text-white/60 text-sm mt-1">Conectado via PostgreSQL WebSockets (Ping Limit 10ms).</p>
+                    <p className="text-slate-500 font-medium text-sm mt-1">Conectado via PostgreSQL WebSockets (Ping Limit 10ms).</p>
                 </div>
 
-                <div className="flex gap-4 p-2 px-4 rounded-full bg-[rgba(0,0,0,0.2)] border border-[rgba(255,255,255,0.05)] text-xs">
-                    <span className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-[var(--success)]"></span> ON-TIME</span>
-                    <span className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-amber-500"></span> {"> 80% SLA"}</span>
-                    <span className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-[var(--danger)] animate-pulse"></span> ATRASO</span>
+                <div className="flex gap-4 p-2 px-4 rounded-lg bg-slate-50 border border-slate-200 text-xs font-bold text-slate-600 shadow-inner">
+                    <span className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm"></span> ON-TIME</span>
+                    <span className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-sm"></span> {"> 80% SLA"}</span>
+                    <span className="flex items-center gap-2 relative">
+                        <span className="w-2.5 h-2.5 rounded-full bg-rose-500 absolute animate-ping opacity-75"></span>
+                        <span className="w-2.5 h-2.5 rounded-full bg-rose-500 relative shadow-sm"></span>
+                        ATRASO
+                    </span>
                 </div>
             </header>
 
             {/* KANBAN BOARD WRAPPER - Full Width/HW Scrollable */}
-            <div className="flex-1 overflow-auto rounded-lg border border-[rgba(255,255,255,0.1)] relative custom-scrollbar bg-[rgba(15,23,42,0.4)]">
+            <div className="flex-1 overflow-auto rounded-xl border border-slate-200 relative custom-scrollbar bg-slate-100/50 shadow-inner">
 
                 {/* Linhas (Swimlanes Horizontais) */}
                 {linhas.map(linha => (
-                    <div key={linha.id} className="flex min-w-max border-b border-[rgba(255,255,255,0.05)]">
+                    <div key={linha.id} className="flex min-w-max border-b border-slate-200">
 
                         {/* Header Fixo de Linha (Lado Esquerdo Y) */}
-                        <div className="w-48 shrink-0 bg-[rgba(15,23,42,0.95)] border-r border-[rgba(255,255,255,0.1)] p-4 flex flex-col justify-center sticky left-0 z-20 shadow-xl">
-                            <h3 className="font-bold text-lg text-white">Linha {linha.letra_linha}</h3>
-                            <p className="text-xs text-white/40">{linha.descricao_linha}</p>
+                        <div className="w-48 shrink-0 bg-white border-r border-slate-200 p-4 flex flex-col justify-center sticky left-0 z-20 shadow-[4px_0_15px_-3px_rgba(0,0,0,0.05)]">
+                            <h3 className="font-extrabold text-lg text-slate-800">Linha {linha.letra_linha}</h3>
+                            <p className="text-xs text-slate-500 font-medium">{linha.descricao_linha}</p>
                         </div>
 
                         {/* Roteiro (Colunas Estações X) */}
@@ -313,18 +319,18 @@ export default function LogisticaLivePage() {
                                 });
 
                                 return (
-                                    <div key={`${linha.id}-${col.id}`} className="min-w-[280px] w-[280px] shrink-0 border-r border-[rgba(255,255,255,0.02)] relative bg-[rgba(0,0,0,0.1)]">
+                                    <div key={`${linha.id}-${col.id}`} className="min-w-[280px] w-[280px] shrink-0 border-r border-slate-200/60 relative hover:bg-slate-50/50 transition-colors">
 
                                         {/* Label da Coluna no Topo da primeira Swimlane apens */}
-                                        <div className="bg-[rgba(255,255,255,0.02)] p-2 border-b border-[rgba(255,255,255,0.05)] text-center text-xs font-semibold text-white/50 truncate uppercase tracking-wider sticky top-0 z-10 backdrop-blur-md">
+                                        <div className="bg-slate-100/80 p-2.5 border-b border-slate-200 text-center text-[10px] font-extrabold text-slate-500 truncate uppercase tracking-widest sticky top-0 z-10 backdrop-blur-md">
                                             {col.nome}
                                         </div>
 
                                         {/* Slot de Cartões */}
                                         <div className="p-3 min-h-[160px]">
                                             {wips.length === 0 ? (
-                                                <div className="h-full w-full flex items-center justify-center opacity-10">
-                                                    <span className="text-[10px] uppercase font-bold tracking-widest text-center" style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}>Estação Vazia</span>
+                                                <div className="h-full w-full flex items-center justify-center opacity-30 cursor-not-allowed">
+                                                    <span className="text-[10px] uppercase font-extrabold tracking-widest text-center text-slate-400 border border-dashed border-slate-300 rounded px-2 py-12 w-full flex items-center justify-center" style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}>VACANTE</span>
                                                 </div>
                                             ) : (
                                                 Object.values(
@@ -368,44 +374,44 @@ export default function LogisticaLivePage() {
 
             {/* SLIDE-OUT DRAWER (DETALHES DO BARCO) */}
             {selectedOP && (
-                <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex justify-end animate-fade-in" onClick={() => setSelectedOP(null)}>
-                    <div className="w-full max-w-md bg-[var(--background-panel)] h-full shadow-2xl border-l border-[rgba(255,255,255,0.1)] flex flex-col pt-safe animate-slide-in-right" onClick={e => e.stopPropagation()}>
+                <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex justify-end animate-fade-in" onClick={() => setSelectedOP(null)}>
+                    <div className="w-full max-w-md bg-white h-full shadow-2xl border-l border-slate-200 flex flex-col pt-safe animate-slide-in-right" onClick={e => e.stopPropagation()}>
 
-                        <div className="p-6 border-b border-[rgba(255,255,255,0.05)] flex justify-between items-center bg-[rgba(0,0,0,0.2)]">
+                        <div className="p-6 border-b border-slate-200 flex justify-between items-center bg-slate-50">
                             <div>
-                                <p className="text-xs text-[var(--primary)] uppercase font-bold tracking-wider mb-1">INSPEÇÃO REAL-TIME</p>
-                                <h2 className="text-xl font-bold">{selectedOP.ordem.op_numero}</h2>
+                                <p className="text-[10px] text-blue-600 font-extrabold uppercase tracking-widest mb-1">INSPEÇÃO REAL-TIME</p>
+                                <h2 className="text-xl font-extrabold text-slate-800">{selectedOP.ordem.op_numero}</h2>
                             </div>
-                            <button onClick={() => setSelectedOP(null)} className="p-2 bg-[rgba(255,255,255,0.05)] rounded hover:bg-[rgba(255,255,255,0.1)]"><X size={20} /></button>
+                            <button onClick={() => setSelectedOP(null)} className="p-2 bg-white border border-slate-200 text-slate-400 rounded-md shadow-sm hover:bg-slate-100 transition-colors"><X size={18} /></button>
                         </div>
 
                         <div className="p-6 overflow-auto flex-1 custom-scrollbar">
-                            <h3 className="text-sm font-semibold opacity-50 uppercase tracking-widest mb-4 flex items-center gap-2"><Database size={14} /> Rastreabilidade</h3>
+                            <h3 className="text-sm font-extrabold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2"><Database size={16} /> Rastreabilidade</h3>
 
                             <div className="grid grid-cols-2 gap-4 mb-8">
-                                <div className="bg-[rgba(0,0,0,0.2)] p-3 rounded-lg border border-[rgba(255,255,255,0.02)]">
-                                    <label className="text-[10px] opacity-50 uppercase">Modelo Target</label>
-                                    <p className="font-semibold text-sm truncate">{selectedOP.ordem.modelos?.nome_modelo}</p>
+                                <div className="bg-white p-3 rounded-lg border border-slate-200 shadow-sm">
+                                    <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Modelo Target</label>
+                                    <p className="font-bold text-sm text-slate-800 truncate mt-1">{selectedOP.ordem.modelos?.nome_modelo}</p>
                                 </div>
-                                <div className="bg-[rgba(0,0,0,0.2)] p-3 rounded-lg border border-[rgba(255,255,255,0.02)]">
-                                    <label className="text-[10px] opacity-50 uppercase">Hull ID (HIN)</label>
-                                    <p className="font-semibold text-sm text-[var(--primary)]">{selectedOP.ordem.hin_hull_id || 'Não cunhado'}</p>
+                                <div className="bg-white p-3 rounded-lg border border-slate-200 shadow-sm">
+                                    <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Hull ID (HIN)</label>
+                                    <p className="font-extrabold text-sm text-blue-600 mt-1">{selectedOP.ordem.hin_hull_id || 'Não cunhado'}</p>
                                 </div>
-                                <div className="bg-[rgba(0,0,0,0.2)] p-3 rounded-lg border border-[rgba(255,255,255,0.02)]">
-                                    <label className="text-[10px] opacity-50 uppercase">Destino (País)</label>
-                                    <p className="font-semibold text-sm">{selectedOP.ordem.pais || 'Desconhecido'}</p>
+                                <div className="bg-white p-3 rounded-lg border border-slate-200 shadow-sm">
+                                    <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Destino (País)</label>
+                                    <p className="font-bold text-sm text-slate-800 mt-1">{selectedOP.ordem.pais || 'Desconhecido'}</p>
                                 </div>
-                                <div className="bg-[rgba(0,0,0,0.2)] p-3 rounded-lg border border-[rgba(255,255,255,0.02)]">
-                                    <label className="text-[10px] opacity-50 uppercase">Telemetria Atual (SLA)</label>
-                                    <p className="font-bold text-sm" style={{ color: calcularStatusTimer(selectedOP.registo.timestamp_inicio, selectedOP.sla).statusColor }}>
+                                <div className="bg-white p-3 rounded-lg border border-slate-200 shadow-sm">
+                                    <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Telemetria (SLA)</label>
+                                    <p className="font-extrabold text-sm mt-1" style={{ color: calcularStatusTimer(selectedOP.registo.timestamp_inicio, selectedOP.sla).statusColor }}>
                                         {selectedOP.sla} Mínutos (OEE: {calcularStatusTimer(selectedOP.registo.timestamp_inicio, selectedOP.sla).oee}%)
                                     </p>
                                 </div>
-                                <div className="bg-[rgba(0,0,0,0.2)] p-3 rounded-lg border border-[rgba(255,255,255,0.02)]">
-                                    <label className="text-[10px] opacity-50 uppercase">Equipa Picada (RFID)</label>
-                                    <div className="flex gap-1 mt-1 flex-wrap">
+                                <div className="bg-white p-3 rounded-lg border border-slate-200 shadow-sm col-span-2">
+                                    <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Equipa Picada (RFID)</label>
+                                    <div className="flex gap-2 mt-2 flex-wrap">
                                         {selectedOP.equipa.map((op, idx) => (
-                                            <span key={idx} className="bg-[rgba(255,255,255,0.1)] px-2 py-0.5 rounded text-xs">
+                                            <span key={idx} className="bg-slate-100 border border-slate-200 text-slate-600 font-mono font-bold px-2 py-1 rounded text-[11px] shadow-sm">
                                                 {op.slice(-6)}
                                             </span>
                                         ))}
@@ -413,21 +419,21 @@ export default function LogisticaLivePage() {
                                 </div>
                             </div>
 
-                            <div className="p-4 rounded-lg bg-indigo-500/10 border border-indigo-500/20 mb-8 flex items-start gap-3">
-                                <AlertOctagon size={24} className="text-indigo-400 mt-1" />
+                            <div className="p-5 rounded-lg bg-blue-50 border border-blue-100 shadow-inner mb-8 flex items-start gap-4">
+                                <AlertOctagon size={24} className="text-blue-500 mt-0.5 shrink-0" />
                                 <div>
-                                    <h4 className="text-sm font-bold text-indigo-300">Opcionais (B.O.M) a Instalar</h4>
-                                    <p className="text-xs text-indigo-200/50 mt-1">A view de B.O.M cruza o plano de configuração do barco para esta estação específica.</p>
+                                    <h4 className="text-sm font-extrabold text-blue-900">Opcionais (B.O.M) a Instalar</h4>
+                                    <p className="text-xs font-medium text-blue-700/70 mt-1">A view de B.O.M cruza o plano de configuração do barco para esta estação específica.</p>
                                     {/* Placeholder para Lista Dinâmica de Componentes Adicionais */}
-                                    <ul className="mt-3 text-sm flex flex-col gap-1 space-y-1">
-                                        <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-indigo-400"></div> Frigorífico Dometic CRX 65</li>
-                                        <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-indigo-400"></div> GPS Raymarine Axiom 9</li>
+                                    <ul className="mt-4 text-sm flex flex-col gap-2 font-medium text-blue-800">
+                                        <li className="flex items-center gap-3 bg-white/60 p-2 rounded border border-blue-200/50"><div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div> Frigorífico Dometic CRX 65</li>
+                                        <li className="flex items-center gap-3 bg-white/60 p-2 rounded border border-blue-200/50"><div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div> GPS Raymarine Axiom 9</li>
                                     </ul>
                                 </div>
                             </div>
 
-                            <button className="w-full btn btn-outline border-white/20 hover:border-white/50 hover:bg-white flex items-center justify-center gap-2 py-3 mt-auto !text-white hover:!text-black transition-all">
-                                Forçar Liberação de Estação (Override) <ChevronRight size={16} />
+                            <button className="w-full bg-slate-900 text-white font-bold py-4 rounded-xl shadow-[0_4px_14px_0_rgb(0,0,0,10%)] hover:shadow-[0_6px_20px_rgba(0,0,0,0.15)] hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2 mt-auto">
+                                Forçar Liberação de Estação (Override) <ChevronRight size={18} />
                             </button>
                         </div>
                     </div>

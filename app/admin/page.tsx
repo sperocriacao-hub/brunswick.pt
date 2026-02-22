@@ -137,33 +137,33 @@ export default function Home() {
       </div>
 
       {/* Hero Section: Wall of Fame RH */}
-      <Card className="mb-8 overflow-hidden border-0 shadow-md bg-gradient-to-r from-slate-900 to-slate-800 animate-fade-in">
+      <Card className="mb-8 overflow-hidden shadow-sm border border-slate-200 bg-white animate-fade-in">
         <CardContent className="p-6">
           <div className="flex items-center gap-3 mb-6">
-            <Award size={24} className="text-amber-400" />
-            <h2 className="text-xl font-bold text-white uppercase tracking-wider m-0">Wall of Fame (Top Desempenhos Globais)</h2>
+            <Award size={24} className="text-amber-500" />
+            <h2 className="text-xl font-extrabold text-slate-800 uppercase tracking-wider m-0">Wall of Fame (Top Desempenhos Globais)</h2>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {isLoading ? (
-              <div className="col-span-3 opacity-50 text-slate-300 py-4 text-center text-sm font-medium">Apurar Matrizes de Talento...</div>
+              <div className="col-span-3 opacity-50 text-slate-400 py-4 text-center text-sm font-medium">Apurar Matrizes de Talento...</div>
             ) : topTalentos.length === 0 ? (
-              <div className="col-span-3 opacity-50 text-slate-300 py-4 text-center text-sm font-medium">Nenhum Operador Ponderado ainda.</div>
+              <div className="col-span-3 opacity-50 text-slate-400 py-4 text-center text-sm font-medium">Nenhum Operador Ponderado ainda.</div>
             ) : topTalentos.map((t, index) => (
-              <div key={t.id} className="bg-slate-800/80 rounded-xl p-5 flex flex-col relative border border-slate-700/50 hover:bg-slate-700/80 transition-colors">
-                {index === 0 && <div className="absolute top-0 right-0 bg-amber-500 text-[10px] font-bold py-1 px-3 rounded-bl-lg text-slate-900 uppercase">Supervisor Choice</div>}
+              <div key={t.id} className="bg-slate-50/50 rounded-xl p-5 flex flex-col relative border border-slate-200 hover:bg-slate-100/80 hover:-translate-y-1 transition-all shadow-sm">
+                {index === 0 && <div className="absolute top-0 right-0 bg-gradient-to-r from-amber-400 to-amber-500 text-[10px] font-extrabold py-1 px-3 rounded-bl-lg text-amber-950 uppercase shadow-sm">Supervisor Choice</div>}
                 <div className="flex justify-between items-center mb-4 pt-2">
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full bg-slate-700 flex items-center justify-center relative shadow-inner">
-                      <UserCircle2 size={28} className="text-slate-400" />
-                      <div className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold border-2 border-slate-800 ${index === 0 ? 'bg-amber-500 text-slate-900' : (index === 1 ? 'bg-slate-300 text-slate-800' : 'bg-amber-600 text-white')}`}>#{index + 1}</div>
+                    <div className="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center relative shadow-inner border border-slate-300/50">
+                      <UserCircle2 size={28} className="text-slate-500" />
+                      <div className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-black shadow-sm ${index === 0 ? 'bg-amber-400 text-amber-950 border-white' : (index === 1 ? 'bg-slate-300 text-slate-800 border-white' : 'bg-amber-600 text-white border-white')}`}>#{index + 1}</div>
                     </div>
-                    <h3 className="font-bold text-base text-slate-100 m-0 leading-tight">{t.nome_operador}</h3>
+                    <h3 className="font-extrabold text-base text-slate-800 m-0 leading-tight">{t.nome_operador}</h3>
                   </div>
                 </div>
                 <div className="flex justify-between items-end mt-2">
-                  <span className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Média (0-4)</span>
-                  <span className={`text-2xl font-black ${index === 0 ? 'text-amber-400' : 'text-slate-200'}`}>{Number(t.matriz_talento_media).toFixed(1)}</span>
+                  <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mt-1">Média (0-4)</span>
+                  <span className={`text-2xl font-black ${index === 0 ? 'text-amber-500' : 'text-slate-700'}`}>{Number(t.matriz_talento_media).toFixed(1)}</span>
                 </div>
               </div>
             ))}
@@ -237,8 +237,8 @@ export default function Home() {
 
       {/* Relatório Financeiro (Desvio Laboral) */}
       <Card className="shadow-sm animate-fade-in mb-8">
-        <CardHeader className="bg-slate-50 border-b border-slate-100 flex flex-row items-center justify-between py-4">
-          <CardTitle className="flex items-center gap-2 text-slate-800 text-lg">
+        <CardHeader className="bg-white border-b border-slate-200 flex flex-row items-center justify-between py-4 rounded-t-xl">
+          <CardTitle className="flex items-center gap-2 text-slate-800 text-lg font-extrabold">
             <DollarSign size={20} className="text-emerald-500" />
             Relatório OEE por Embarcação (SLA vs Real)
           </CardTitle>
@@ -246,61 +246,50 @@ export default function Home() {
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left">
-              <thead className="text-xs text-slate-500 uppercase bg-slate-50/50 border-b border-slate-200">
+              <thead className="text-[10px] text-slate-500 uppercase bg-slate-50 border-b border-slate-200 font-extrabold tracking-widest">
                 <tr>
-                  <th className="px-6 py-4 font-semibold">Ordem (OP)</th>
-                  <th className="px-6 py-4 font-semibold">Modelo</th>
-                  <th className="px-6 py-4 font-semibold">Status M.E.S</th>
-                  <th className="px-6 py-4 font-semibold">Orçamentado (SLA)</th>
-                  <th className="px-6 py-4 font-semibold">Gasto (IoT)</th>
-                  <th className="px-6 py-4 font-semibold">OEE (%)</th>
-                  <th className="px-6 py-4 font-semibold text-right">Balanço H/H</th>
+                  <th className="px-6 py-4 font-extrabold text-slate-800">Ordem Lab</th>
+                  <th className="px-6 py-4">Status</th>
+                  <th className="px-6 py-4">M.E.S Plan.</th>
+                  <th className="px-6 py-4">M.E.S Efetivo</th>
+                  <th className="px-6 py-4 text-right">Desvio Produtivo</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-100 bg-white">
                 {isLoading ? (
-                  <tr><td colSpan={7} className="text-center py-8 text-slate-400 font-medium">A calcular rendimentos...</td></tr>
+                  <tr><td colSpan={5} className="px-6 py-8 text-center text-slate-400 font-medium">Extraindo Ledger OEE...</td></tr>
                 ) : financas.length === 0 ? (
-                  <tr><td colSpan={7} className="text-center py-8 text-slate-400 font-medium bg-slate-50/30">Sem dados financeiros para apresentar. Nenhuma Ordem processada.</td></tr>
-                ) : (
-                  financas.map((f) => {
-                    const desvioNum = Number(f.desvio);
-                    const isLucro = desvioNum >= 0;
+                  <tr><td colSpan={5} className="px-6 py-8 text-center text-slate-400 font-medium">Nenhum dado produtivo na janela de tempo.</td></tr>
+                ) : financas.map((f, i) => {
+                  const desvioNum = Number(f.desvio);
+                  const isLucro = desvioNum >= 0;
 
-                    return (
-                      <tr key={f.op_id} className="hover:bg-slate-50/50 transition-colors">
-                        <td className="px-6 py-4 font-mono text-slate-600 font-medium">{f.numero}</td>
-                        <td className="px-6 py-4 font-semibold text-blue-700">{f.modelo}</td>
-                        <td className="px-6 py-4">
-                          <span className="bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full text-xs font-medium border border-slate-200">
-                            {f.status}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-slate-600">{f.horasPlaneadas} HH</td>
-                        <td className="px-6 py-4 font-medium text-slate-800">{f.horasReais} HH</td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-24 h-2 bg-slate-100 rounded-full overflow-hidden border border-slate-200">
-                              <div
-                                className={`h-full ${Number(f.oeePerc) >= 100 ? 'bg-emerald-500' : (Number(f.oeePerc) >= 50 ? 'bg-blue-500' : 'bg-red-500')}`}
-                                style={{ width: `${Math.min(100, Number(f.oeePerc))}%` }}
-                              ></div>
-                            </div>
-                            <span className="text-xs font-bold text-slate-700">{f.oeePerc}%</span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          <span className={`px-3 py-1.5 rounded-full text-xs font-bold ${isLucro
-                              ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
-                              : 'bg-red-100 text-red-700 border border-red-200'
+                  return (
+                    <tr key={f.op_id} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="font-extrabold text-slate-800">{f.numero}</div>
+                        <div className="text-xs text-slate-400 font-medium truncate max-w-[200px]" title={f.modelo}>{f.modelo}</div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="bg-slate-100 text-slate-600 text-[10px] font-extrabold px-2.5 py-1 rounded shadow-sm border border-slate-200 uppercase tracking-widest">
+                          {f.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-slate-600 font-medium">{f.horasPlaneadas} HH</td>
+                      <td className="px-6 py-4 font-extrabold text-slate-800">{f.horasReais} HH</td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex items-center justify-end gap-3 font-mono">
+                          <span className={`px-2.5 py-1 rounded text-xs font-extrabold ${isLucro
+                            ? 'bg-emerald-50 text-emerald-600 border border-emerald-200 shadow-sm'
+                            : 'bg-rose-50 text-rose-600 border border-rose-200 shadow-sm'
                             }`}>
-                            {isLucro ? `+${f.desvio} HH Salvas` : `${f.desvio} HH Perdidas`}
+                            {isLucro ? `+${f.desvio} HH Salvo` : `${f.desvio} HH Perda`}
                           </span>
-                        </td>
-                      </tr>
-                    )
-                  })
-                )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
