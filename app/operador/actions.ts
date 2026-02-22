@@ -121,3 +121,48 @@ export async function terminarSessaoTrabalho(registoId: string) {
         return { success: false, error: err instanceof Error ? err.message : "Erro desconhecido" };
     }
 }
+
+// ------------------------------------------------------------------------------------------------
+// [FASE 21] NOVA LÓGICA DE TABLET TOUCH
+// ------------------------------------------------------------------------------------------------
+
+export async function buscarBarcosNaEstacao(estacaoId: string) {
+    try {
+        if (!estacaoId) throw new Error("ID da Estação em falta.");
+
+        // 1. OPs em curso globalmente
+        const { data: pendentes, error: errPend } = await supabase
+            .from('ordens_producao')
+            .select('id, op_numero, hin_hull_id, modelos!inner(nome_modelo)')
+            .in('status', ['IN_PROGRESS', 'Em Produção', 'PLANNED'])
+            .order('data_prevista_inicio', { ascending: true, nullsFirst: false });
+
+        if (errPend) throw errPend;
+        if (!pendentes || pendentes.length === 0) return { success: true, barcos: [] };
+
+        // 2. Filtrar as que já avançaram DESTA estação (i.e. MACRO-OEE já fechou)
+        const opIds = pendentes.map(p => p.id);
+        const { data: concluidas } = await supabase
+            .from('log_estacao_conclusao')
+            .select('op_id')
+            .eq('estacao_id', estacaoId)
+            .in('op_id', opIds);
+
+        const concluidasIds = new Set((concluidas || []).map(c => c.op_id));
+
+        // 3. Devolver formato limpo
+        const barcosParaEstacao = pendentes
+            .filter(p => !concluidasIds.has(p.id))
+            .map(p => ({
+                id: p.id,
+                op_numero: p.op_numero,
+                modelo: (p.modelos as any)?.nome_modelo || 'Desconhecido',
+                hin: p.hin_hull_id || 'S/ Tag'
+            }));
+
+        return { success: true, barcos: barcosParaEstacao };
+    } catch (err: unknown) {
+        console.error("Erro buscarBarcosNaEstacao:", err);
+        return { success: false, error: err instanceof Error ? err.message : "Erro desconhecido", barcos: [] };
+    }
+}
