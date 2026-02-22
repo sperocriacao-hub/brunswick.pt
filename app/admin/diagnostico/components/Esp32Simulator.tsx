@@ -15,6 +15,9 @@ export function Esp32Simulator() {
     const [rfidInput, setRfidInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
+    // Console de Depuração (Live Logs do Hardware para a Cloud)
+    const [consoleLogs, setConsoleLogs] = useState<{ time: string, msg: string, type: 'info' | 'success' | 'error' }[]>([]);
+
     // Contexto Ativo do ESP32 (Estação e a Ordem que ele tem puxada no ecrã)
     const [estacao, setEstacao] = useState<{ id: string, nome: string } | null>(null);
     const [activeOpId, setActiveOpId] = useState<string | null>(null);
@@ -61,6 +64,11 @@ export function Esp32Simulator() {
         );
     };
 
+    // Helper: Adicionar Log à Consola
+    const addLog = (msg: string, type: 'info' | 'success' | 'error' = 'info') => {
+        setConsoleLogs(prev => [{ time: new Date().toLocaleTimeString(), msg, type }, ...prev].slice(0, 5));
+    };
+
     // Apresentar Mensagem Temporária e voltar ao IDLE
     const showResponse = (ms: number, ...lines: string[]) => {
         setState('RESPONSE');
@@ -72,6 +80,8 @@ export function Esp32Simulator() {
     const fireApi = async (action: string, payload: any = {}) => {
         setIsLoading(true);
         draw('A comunicar...', 'Cloud Supabase', '...', '');
+        addLog(`A iniciar POST /api/mes/iot -> [${action}]`, 'info');
+
         try {
             const res = await fetch('/api/mes/iot', {
                 method: 'POST',
@@ -85,9 +95,17 @@ export function Esp32Simulator() {
             });
             const data = await res.json();
             setIsLoading(false);
+
+            if (data.success) {
+                addLog(`Sucesso [${res.status}]: Resposta da Cloud Vercel.`, 'success');
+            } else {
+                addLog(`Gateway Recusou [${res.status}]: ${data.display || 'Desconhecido'}`, 'error');
+            }
+
             return data;
-        } catch (err) {
+        } catch (err: any) {
             setIsLoading(false);
+            addLog(`Erro de Rede Crítico: ${err.message}`, 'error');
             return { success: false, display: 'ERRO HTTPS' };
         }
     };
@@ -278,10 +296,30 @@ export function Esp32Simulator() {
 
                 </div>
 
-                {/* Dica Didática Abaixo */}
-                <p className="mt-8 text-sm text-slate-500 max-w-2xl text-center bg-white p-4 rounded-lg shadow-sm border border-slate-100 italic">
-                    Isto simula a carcaça real 14x7cm. O lado Esquerdo corresponde à placa leitora RFID RC-522 colada no interior da caixa. O lado Direito mapeia a placa microcontroladora ESP32, as ligações LCD I2C e os botões Pull-Up físicos.
-                </p>
+                {/* Consola de Rede Substituta Dica Dinâmica */}
+                <div className="mt-8 w-full max-w-2xl bg-black rounded-lg border border-slate-700 shadow-xl overflow-hidden flex flex-col">
+                    <div className="bg-slate-800 px-4 py-2 flex items-center gap-2 border-b border-slate-700">
+                        <div className="flex gap-1.5 shrink-0">
+                            <span className="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                            <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                        </div>
+                        <span className="text-[10px] font-mono text-slate-400 ml-2 tracking-widest flex-1 uppercase">Terminal Server Logs (Gateway M.E.S)</span>
+                        {isLoading && <RefreshCw size={12} className="text-emerald-500 animate-spin" />}
+                    </div>
+                    <div className="p-4 bg-[#0a0f18] min-h-[140px] font-mono text-xs flex flex-col gap-2">
+                        {consoleLogs.length === 0 ? (
+                            <p className="text-slate-600 italic">// A aguardar beacons do Gêmeo Digital...</p>
+                        ) : (
+                            consoleLogs.map((log, i) => (
+                                <div key={i} className={`flex gap-3 ${log.type === 'error' ? 'text-red-400' : log.type === 'success' ? 'text-emerald-400' : 'text-blue-300'}`}>
+                                    <span className="opacity-50 shrink-0">[{log.time}]</span>
+                                    <span>{log.type === 'info' ? '>' : log.type === 'success' ? '✓' : '✗'} {log.msg}</span>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </div>
             </div>
         </section>
     );
