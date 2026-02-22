@@ -44,7 +44,7 @@ export function LineClientChart({ data }: LineClientChartProps) {
                     contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                     labelStyle={{ color: '#64748b', fontWeight: 600, fontSize: 12, marginBottom: '4px' }}
                     itemStyle={{ color: '#10b981', fontWeight: 800 }}
-                    formatter={(value: number) => [`${value} / 4.0`, 'Nota Diária']}
+                    formatter={(value: any) => [`${value} / 4.0`, 'Nota Diária']}
                 />
                 {/* Threshold target (2.0) */}
                 <ReferenceLine y={2.0} stroke="#f87171" strokeDasharray="3 3" opacity={0.5} />
