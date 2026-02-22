@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Box, GitBranch, Layers, Settings } from 'lucide-react';
+import { Box, GitBranch, Layers, Settings, CalendarDays } from 'lucide-react';
 
 export function Sidebar({ userEmail }: { userEmail: string | undefined }) {
     const pathname = usePathname();
@@ -14,138 +14,106 @@ export function Sidebar({ userEmail }: { userEmail: string | undefined }) {
     ];
 
     return (
-        <aside className="sidebar flex flex-col justify-between">
-            <div style={{ flex: 1 }} className="sidebar-top">
-                <div className="brand-title">Brunswick.pt</div>
-                <nav className="flex flex-col gap-4 mt-8 sidebar-nav">
+        <aside className="w-64 border-r bg-card flex flex-col justify-between h-full overflow-y-auto">
+            <div className="p-6 flex flex-col flex-1 whitespace-nowrap">
+                <div className="text-2xl font-bold tracking-tight text-primary mb-8 px-2 flex items-center gap-2">
+                    <Layers className="text-primary" /> Brunswick.pt
+                </div>
+                <div className="flex flex-col gap-1">
                     {navLinks.map((link) => {
                         const isActive = pathname === link.href;
                         return (
                             <Link
                                 key={link.href}
                                 href={link.href}
-                                className={`p-4 flex items-center gap-4 sidebar-link ${isActive ? 'active glass-panel' : ''}`}
-                                style={{
-                                    opacity: isActive ? 1 : 0.7,
-                                    transition: "all 0.2s",
-                                    borderLeft: isActive ? "4px solid var(--primary)" : "4px solid transparent"
-                                }}
+                                className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${isActive
+                                    ? 'bg-primary text-primary-foreground font-medium shadow-sm'
+                                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                                    }`}
                             >
-                                {link.icon}
-                                <span style={{ fontWeight: 500 }} className="sidebar-text">{link.name}</span>
+                                <span className="text-muted-foreground w-5 h-5 flex items-center justify-center">
+                                    {link.icon}
+                                </span>
+                                <span className="text-sm">{link.name}</span>
                             </Link>
                         );
                     })}
 
-                    <div className="mb-8 mt-4"> {/* Added margin-top for spacing */}
-                        <p className="sidebar-group-title">Equipas e Talento</p>
-                        <nav className="flex flex-col gap-2 mb-4">
-                            <Link href="/admin/rh" className={`p-4 flex items-center gap-4 sidebar-link ${pathname === '/admin/rh' || pathname.startsWith('/admin/rh/cadastro') ? 'active glass-panel' : ''}`}
-                                style={{
-                                    opacity: pathname === '/admin/rh' || pathname.startsWith('/admin/rh/cadastro') ? 1 : 0.7,
-                                    transition: "all 0.2s",
-                                    borderLeft: pathname === '/admin/rh' || pathname.startsWith('/admin/rh/cadastro') ? "4px solid var(--primary)" : "4px solid transparent"
-                                }}>
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-                                <span style={{ fontWeight: 500 }} className="sidebar-text">Gerir Operadores</span>
-                            </Link>
-                            <Link href="/admin/rh/avaliacoes" className={`p-4 flex items-center gap-4 sidebar-link ${pathname.includes('/admin/rh/avaliacoes') ? 'active glass-panel' : ''}`}
-                                style={{
-                                    opacity: pathname.includes('/admin/rh/avaliacoes') ? 1 : 0.7,
-                                    transition: "all 0.2s",
-                                    borderLeft: pathname.includes('/admin/rh/avaliacoes') ? "4px solid var(--primary)" : "4px solid transparent"
-                                }}>
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-                                <span style={{ fontWeight: 500 }} className="sidebar-text">Avaliações Diárias</span>
-                            </Link>
-                        </nav>
-                        <p className="sidebar-group-title">M.E.S Logística</p>
-                        <nav className="flex flex-col gap-2 mb-4">
-                            <Link href="/admin/producao/live" className={`p-4 flex items-center gap-4 sidebar-link ${pathname.includes('/admin/producao/live') ? 'active glass-panel' : ''}`}
-                                style={{
-                                    opacity: pathname.includes('/admin/producao/live') ? 1 : 0.7,
-                                    transition: "all 0.2s",
-                                    borderLeft: pathname.includes('/admin/producao/live') ? "4px solid var(--primary)" : "4px solid transparent"
-                                }}>
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M9 3v18" /><path d="M15 3v18" /></svg>
-                                <span style={{ fontWeight: 500 }} className="sidebar-text">Monitorização Live</span>
-                            </Link>
-                        </nav>
-                        <p className="sidebar-group-title">Engenharia</p>
-                        <nav className="flex flex-col gap-2">
-                            <Link href="/admin/modelos" className={`p-4 flex items-center gap-4 sidebar-link ${pathname === '/admin/modelos' ? 'active glass-panel' : ''}`}
-                                style={{
-                                    opacity: pathname.includes('/admin/modelos') ? 1 : 0.7,
-                                    transition: "all 0.2s",
-                                    borderLeft: pathname.includes('/admin/modelos') ? "4px solid var(--primary)" : "4px solid transparent"
-                                }}>
-                                <Box size={20} />
-                                <span style={{ fontWeight: 500 }} className="sidebar-text">Modelos & Produto</span>
-                            </Link>
-                            <Link href="/admin/engenharia/regras" className={`p-4 flex items-center gap-4 sidebar-link ${pathname.includes('/admin/engenharia/regras') ? 'active glass-panel' : ''}`}
-                                style={{
-                                    opacity: pathname.includes('/admin/engenharia/regras') ? 1 : 0.7,
-                                    transition: "all 0.2s",
-                                    borderLeft: pathname.includes('/admin/engenharia/regras') ? "4px solid var(--primary)" : "4px solid transparent"
-                                }}>
-                                <GitBranch size={20} />
-                                <span style={{ fontWeight: 500 }} className="sidebar-text">Regras de Sequenciamento</span>
-                            </Link>
-                            <Link href="/admin/engenharia/roteiros" className={`p-4 flex items-center gap-4 sidebar-link ${pathname.includes('/admin/engenharia/roteiros') ? 'active glass-panel' : ''}`}
-                                style={{
-                                    opacity: pathname.includes('/admin/engenharia/roteiros') ? 1 : 0.7,
-                                    transition: "all 0.2s",
-                                    borderLeft: pathname.includes('/admin/engenharia/roteiros') ? "4px solid var(--primary)" : "4px solid transparent"
-                                }}>
-                                <Layers size={20} />
-                                <span style={{ fontWeight: 500 }} className="sidebar-text">Roteiros Produtivos</span>
-                            </Link>
-                            <Link href="/admin/fabrica" className={`p-4 flex items-center gap-4 sidebar-link ${pathname.includes('/admin/fabrica') ? 'active glass-panel' : ''}`}
-                                style={{
-                                    opacity: pathname.includes('/admin/fabrica') ? 1 : 0.7,
-                                    transition: "all 0.2s",
-                                    borderLeft: pathname.includes('/admin/fabrica') ? "4px solid var(--primary)" : "4px solid transparent"
-                                }}>
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
-                                <span style={{ fontWeight: 500 }} className="sidebar-text">Estrutura de Fábrica</span>
-                            </Link>
-                        </nav>
-                    </div>
-
-                    <div className="mb-4">
-                        <p className="sidebar-group-title">Plataforma</p>
-                        <nav className="flex flex-col gap-2">
-                            <Link href="/admin/configuracoes" className={`p-4 flex items-center gap-4 sidebar-link ${pathname.includes('/admin/configuracoes') ? 'active glass-panel' : ''}`}
-                                style={{
-                                    opacity: pathname.includes('/admin/configuracoes') ? 1 : 0.7,
-                                    transition: "all 0.2s",
-                                    borderLeft: pathname.includes('/admin/configuracoes') ? "4px solid var(--primary)" : "4px solid transparent"
-                                }}>
+                    <div className="mt-8">
+                        <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Equipas e Talento</p>
+                        <nav className="flex flex-col gap-1 mb-6">
+                            <Link href="/admin/rh" className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${pathname === '/admin/rh' || pathname.startsWith('/admin/rh/cadastro') ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted'}`}>
                                 <Settings size={20} />
-                                <span style={{ fontWeight: 500 }} className="sidebar-text">Configurações Globais</span>
+                                <span className="text-sm">Gerir Operadores</span>
                             </Link>
-                            <Link href="/admin/diagnostico" className={`p-4 flex items-center gap-4 sidebar-link ${pathname.includes('/admin/diagnostico') ? 'active glass-panel' : ''}`}
-                                style={{
-                                    opacity: pathname.includes('/admin/diagnostico') ? 1 : 0.7,
-                                    transition: "all 0.2s",
-                                    borderLeft: pathname.includes('/admin/diagnostico') ? "4px solid var(--primary)" : "4px solid transparent"
-                                }}>
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
-                                <span style={{ fontWeight: 500 }} className="sidebar-text">Diagnóstico ESP32</span>
+                            <Link href="/admin/rh/avaliacoes" className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${pathname.includes('/admin/rh/avaliacoes') ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted'}`}>
+                                <CalendarDays size={20} />
+                                <span className="text-sm">Avaliações Diárias</span>
+                            </Link>
+                        </nav>
+                        <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">M.E.S Logística</p>
+                        <nav className="flex flex-col gap-1 mb-6">
+                            <Link href="/admin/producao/planeamento" className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${pathname.includes('/admin/producao/planeamento') ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted'}`}>
+                                <CalendarDays size={20} />
+                                <span className="text-sm">Planeamento Semanal</span>
+                            </Link>
+                            <Link href="/admin/producao/live" className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${pathname.includes('/admin/producao/live') ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted'}`}>
+                                <Box size={20} />
+                                <span className="text-sm">Monitorização Live</span>
+                            </Link>
+                        </nav>
+                        <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Engenharia</p>
+                        <nav className="flex flex-col gap-1 mb-6">
+                            <Link href="/admin/modelos" className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${pathname.includes('/admin/modelos') ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted'}`}>
+                                <Box size={20} />
+                                <span className="text-sm">Modelos & Produto</span>
+                            </Link>
+                            <Link href="/admin/engenharia/regras" className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${pathname.includes('/admin/engenharia/regras') ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted'}`}>
+                                <GitBranch size={20} />
+                                <span className="text-sm">Regras Sequenciais</span>
+                            </Link>
+                            <Link href="/admin/engenharia/roteiros" className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${pathname.includes('/admin/engenharia/roteiros') ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted'}`}>
+                                <Layers size={20} />
+                                <span className="text-sm">Tempos Roteiro OEE</span>
+                            </Link>
+                        </nav>
+
+                        <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Configuração Fabril</p>
+                        <nav className="flex flex-col gap-1 mb-6">
+                            <Link href="/admin/fabrica" className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${pathname.includes('/admin/fabrica') ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted'}`}>
+                                <Settings size={20} />
+                                <span className="text-sm">Fábrica & Estações</span>
+                            </Link>
+                            <Link href="/admin/qualidade/templates" className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${pathname.includes('/admin/qualidade') ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted'}`}>
+                                <Settings size={20} />
+                                <span className="text-sm">Checklists Qualidade</span>
+                            </Link>
+                        </nav>
+
+                        <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Sistema</p>
+                        <nav className="flex flex-col gap-1">
+                            <Link href="/admin/diagnostico" className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${pathname === '/admin/diagnostico' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted'}`}>
+                                <Settings size={20} />
+                                <span className="text-sm">Central Dispositivos</span>
+                            </Link>
+                            <Link href="/admin/configuracoes" className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${pathname === '/admin/configuracoes' || pathname.startsWith('/admin/configuracoes') ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted'}`}>
+                                <Settings size={20} />
+                                <span className="text-sm">Notificações</span>
                             </Link>
                         </nav>
                     </div>
-                </nav>
+                </div>
             </div>
 
-            <div className="user-info-bottom" style={{ borderTop: '1px solid var(--border)', paddingTop: '1.5rem', marginTop: '1.5rem' }}>
-                <div className="flex items-center gap-3">
-                    <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'linear-gradient(135deg, var(--primary), var(--accent))', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+            {/* Bottom Section - User Profile / Auth */}
+            <div className="p-4 border-t mt-auto">
+                <div className="flex items-center gap-3 px-3 py-2">
+                    <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">
+                        {userEmail?.charAt(0).toUpperCase() || 'A'}
                     </div>
-                    <div style={{ overflow: 'hidden' }} className="user-email-container">
-                        <p style={{ fontSize: '0.75rem', opacity: 0.7, margin: 0 }}>Logado como</p>
-                        <p style={{ fontSize: '0.85rem', fontWeight: 600, margin: 0, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }} title={userEmail}>{userEmail}</p>
+                    <div className="flex flex-col overflow-hidden">
+                        <span className="text-sm font-medium text-foreground truncate">{userEmail}</span>
+                        <span className="text-xs text-muted-foreground">Administrador</span>
                     </div>
                 </div>
             </div>

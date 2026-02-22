@@ -4,6 +4,12 @@ import React, { useState, useEffect } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { UserCheck, HelpCircle, Save, AlertTriangle, UserCircle2 } from 'lucide-react';
 import { AvaliacaoDTO, submeterAvaliacaoDiaria } from './actions';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
 
 type Operador = {
     id: string;
@@ -17,16 +23,13 @@ export default function PaginaAvaliacaoDiaria() {
     const [operadores, setOperadores] = useState<Operador[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
-    // O Operador que estamos ativamente a avaliar (Modal Aberto)
     const [editingOp, setEditingOp] = useState<Operador | null>(null);
 
-    // O FormState para a linha de avaliação
     const [grades, setGrades] = useState({
         hst: 4.0, epi: 4.0, limpeza: 4.0, qualidade: 4.0,
         eficiencia: 4.0, objetivos: 4.0, atitude: 4.0
     });
 
-    // Justificações obrigatórias se < 2.0
     const [justificacoes, setJustificacoes] = useState<Record<string, string>>({});
 
     useEffect(() => {
@@ -56,7 +59,6 @@ export default function PaginaAvaliacaoDiaria() {
 
     const handleGradeChange = (key: keyof typeof grades, value: number) => {
         setGrades(prev => ({ ...prev, [key]: value }));
-        // Se a nota voltou acima de 2.0, limpamos a justificação indevida
         if (value >= 2.0) {
             setJustificacoes(prev => {
                 const next = { ...prev };
@@ -75,7 +77,6 @@ export default function PaginaAvaliacaoDiaria() {
         if (!editingOp) return;
 
         const criticos = getEixosCriticos();
-        // Validar Justificações
         const justificacoesFalta = criticos.filter(ch => !justificacoes[ch] || justificacoes[ch].trim() === '');
         if (justificacoesFalta.length > 0) {
             alert("Precisa de justificar todas as notas inferiores a 2.0 antes de submeter a avaliação.");
@@ -92,7 +93,7 @@ export default function PaginaAvaliacaoDiaria() {
         const res = await submeterAvaliacaoDiaria(dto, "Supervisor Brunswick");
 
         if (res.success) {
-            alert(`Avaliação de ${editingOp.nome_operador} gravada com sucesso! A Matriz de Talento foi atualizada.`);
+            alert(`Avaliação de ${editingOp.nome_operador} gravada com sucesso!`);
             fecharAvaliacao();
         } else {
             alert(`Erro na Submissão: ${res.error}`);
@@ -100,138 +101,161 @@ export default function PaginaAvaliacaoDiaria() {
     };
 
     return (
-        <div className="container animate-fade-in p-6">
+        <div className="container mx-auto py-6 max-w-6xl animate-fade-in">
             <header className="mb-8">
                 <div className="flex items-center gap-3 mb-2">
-                    <UserCheck className="text-[var(--primary)]" size={28} />
-                    <h1 style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--primary)', margin: 0 }}>Grelha de Avaliação Diária</h1>
+                    <UserCheck className="text-primary" size={32} />
+                    <h1 className="text-3xl font-extrabold text-foreground tracking-tight">Avaliações Diárias</h1>
                 </div>
-                <p style={{ color: "rgba(255,255,255,0.7)", marginTop: "0.25rem" }}>
-                    Pontuação Contínua de Desempenho (0.0 a 4.0). Alimentação da Matriz de Talento ILUO.
+                <p className="text-muted-foreground mt-2 font-medium">
+                    Registo Contínuo de Desempenho (Matriz ILUO) para Técnicos e Operadores Ativos.
                 </p>
             </header>
 
-            <div className="glass-panel p-6">
-                <h3 className="text-lg font-bold mb-4 opacity-80">A Minha Equipa (Operadores Ativos)</h3>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <Card className="shadow-sm border-muted/60">
+                <CardHeader className="bg-muted/30 border-b pb-4">
+                    <CardTitle className="text-lg text-foreground">A Minha Equipa</CardTitle>
+                    <CardDescription>
+                        Selecione um operador na tabela abaixo para iniciar o processo de avaliação de turno.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="p-0">
                     {isLoading ? (
-                        <div className="col-span-full text-center py-8 opacity-50">Localizando Colaboradores...</div>
-                    ) : operadores.map(op => (
-                        <div key={op.id} className="flex flex-col p-4 rounded-xl border border-[rgba(255,255,255,0.05)] bg-[rgba(0,0,0,0.2)] hover:border-[var(--primary)] transition-all cursor-pointer" onClick={() => abrirAvaliacao(op)}>
-                            <div className="flex justify-between items-start mb-2">
-                                <div className="flex gap-3 items-center">
-                                    <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center">
-                                        <UserCircle2 size={24} className="text-slate-400" />
-                                    </div>
-                                    <div>
-                                        <h4 className="font-bold text-sm m-0 leading-tight">{op.nome_operador}</h4>
-                                        <span className="text-xs text-[var(--accent)] font-mono">{op.numero_operador}</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="mt-2 text-xs opacity-60 flex gap-2">
-                                <span className="bg-slate-800 px-2 py-1 rounded">Função: {op.funcao || 'N/A'}</span>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </div>
-
-            {/* MODAL DE AVALIAÇÃO DE 7 EIXOS */}
-            {editingOp && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(5px)' }}>
-                    <div className="glass-panel w-full max-w-3xl flex flex-col" style={{ maxHeight: '90vh' }}>
-
-                        <div className="p-5 border-b border-[rgba(255,255,255,0.1)] flex justify-between items-center bg-slate-900/50 rounded-t-2xl">
-                            <div>
-                                <h3 className="font-bold text-lg m-0">Avaliação do Turno</h3>
-                                <p className="text-sm opacity-60">Revisão de Desempenho para <strong style={{ color: 'var(--primary)' }}>{editingOp.nome_operador}</strong></p>
-                            </div>
-                            <button onClick={fecharAvaliacao} className="w-8 h-8 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center">&times;</button>
-                        </div>
-
-                        <form onSubmit={submeter} className="p-6 overflow-y-auto flex-1 custom-scrollbar">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-
-                                {/* Eixos Grelha de Sliders */}
-                                <div className="space-y-6">
-                                    <p className="text-xs tracking-wider uppercase opacity-50 mb-4 font-bold">Classificação Dimensional</p>
-
-                                    {[
-                                        { key: 'hst', label: 'Segurança (HST)' },
-                                        { key: 'epi', label: 'Uso de EPI' },
-                                        { key: 'limpeza', label: 'Limpeza e 5S' },
-                                        { key: 'qualidade', label: 'Qualidade do Registo' },
-                                        { key: 'eficiencia', label: 'Eficiência de Ciclo' },
-                                        { key: 'objetivos', label: 'Metas / Objetivos Diários' },
-                                        { key: 'atitude', label: 'Atitude / Trabalho Equipa' },
-                                    ].map((item) => (
-                                        <div key={item.key} className="bg-[rgba(0,0,0,0.2)] p-4 rounded-lg border border-[rgba(255,255,255,0.05)]">
-                                            <div className="flex justify-between items-center mb-2">
-                                                <label className="text-sm font-semibold">{item.label}</label>
-                                                <span className={`font-mono font-bold px-2 py-0.5 rounded text-xs ${grades[item.key as keyof typeof grades] < 2.0 ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'}`}>
-                                                    {grades[item.key as keyof typeof grades].toFixed(1)}
-                                                </span>
-                                            </div>
-                                            <input
-                                                type="range" min="0" max="4" step="0.5"
-                                                className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-[var(--primary)]"
-                                                value={grades[item.key as keyof typeof grades]}
-                                                onChange={(e) => handleGradeChange(item.key as keyof typeof grades, parseFloat(e.target.value))}
-                                            />
-                                            <div className="flex justify-between mt-1 text-[10px] opacity-40 font-mono">
-                                                <span>Inaceitável (0)</span>
-                                                <span>Aceitável (2)</span>
-                                                <span>Top (4)</span>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-
-                                {/* Zona Crítica: Justificações (Apontamentos) */}
-                                <div className="space-y-4">
-                                    <p className="text-xs tracking-wider uppercase opacity-50 mb-4 font-bold text-red-400 flex items-center gap-2">
-                                        <AlertTriangle size={14} /> Emissão de Apontamentos
-                                    </p>
-
-                                    {getEixosCriticos().length === 0 ? (
-                                        <div className="h-full flex flex-col items-center justify-center opacity-30 text-center p-8 bg-slate-800/20 rounded-xl border border-dashed border-slate-700">
-                                            <HelpCircle size={40} className="mb-4" />
-                                            <p className="text-sm">Nenhum parâmetro da grelha foi classificado como Crítico (&lt; 2.0).</p>
-                                            <p className="text-xs mt-2">O Formulário de Justificação Disciplinar encontra-se bloqueado e desnecessário.</p>
-                                        </div>
-                                    ) : (
-                                        <div className="space-y-4">
-                                            {getEixosCriticos().map(k => (
-                                                <div key={k} className="p-4 rounded-lg bg-red-500/10 border border-red-500/20">
-                                                    <label className="text-xs text-red-300 font-bold mb-2 block uppercase">Atenção Requerida para: {k}</label>
-                                                    <textarea
-                                                        className="w-full bg-[rgba(0,0,0,0.5)] border border-red-500/30 rounded p-3 text-sm focus:outline-none focus:border-red-400 min-h-[100px] text-white"
-                                                        placeholder="Qual é o motivo prático da quebra deste KPI hoje? (Obrigatório preencher)"
-                                                        required
-                                                        value={justificacoes[k] || ''}
-                                                        onChange={(e) => setJustificacoes(prev => ({ ...prev, [k]: e.target.value }))}
-                                                    ></textarea>
+                        <div className="text-center py-12 text-muted-foreground animate-pulse">A carregar registos ativos da fábrica...</div>
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow className="bg-muted/10 hover:bg-muted/10">
+                                        <TableHead className="w-[300px] font-semibold">Colaborador</TableHead>
+                                        <TableHead className="font-semibold">Nº Mecanográfico</TableHead>
+                                        <TableHead className="font-semibold">Cargo / Função</TableHead>
+                                        <TableHead className="text-right font-semibold pr-6">Ação</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {operadores.map(op => (
+                                        <TableRow key={op.id} className="transition-colors hover:bg-muted/50 group">
+                                            <TableCell className="py-4">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20">
+                                                        <UserCircle2 size={20} className="text-primary" />
+                                                    </div>
+                                                    <span className="font-bold text-foreground">{op.nome_operador}</span>
                                                 </div>
-                                            ))}
+                                            </TableCell>
+                                            <TableCell className="font-mono text-sm text-muted-foreground">{op.numero_operador}</TableCell>
+                                            <TableCell>
+                                                <Badge variant="secondary" className="font-normal tracking-wide text-xs">{op.funcao || 'N/A'}</Badge>
+                                            </TableCell>
+                                            <TableCell className="text-right pr-6">
+                                                <Button variant="default" size="sm" onClick={() => abrirAvaliacao(op)} className="opacity-80 group-hover:opacity-100 transition-opacity">
+                                                    Atribuir Classificação
+                                                </Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+
+            <Dialog open={!!editingOp} onOpenChange={(open) => !open && fecharAvaliacao()}>
+                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-0 gap-0">
+                    <div className="p-6 border-b bg-muted/20">
+                        <DialogHeader>
+                            <DialogTitle className="text-xl flex gap-2 items-center">
+                                <UserCheck className="text-primary" size={20} />
+                                Avaliação de Desempenho
+                            </DialogTitle>
+                            <DialogDescription className="text-sm">
+                                Registo de Atividade do Turno para <span className="font-bold text-foreground">{editingOp?.nome_operador}</span>
+                            </DialogDescription>
+                        </DialogHeader>
+                    </div>
+
+                    <form onSubmit={submeter} className="p-6">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            <div className="space-y-6">
+                                <div className="border-b pb-2 mb-4">
+                                    <h4 className="text-sm font-bold text-muted-foreground tracking-wider uppercase">Dimensões de Avaliação</h4>
+                                </div>
+                                {[
+                                    { key: 'hst', label: 'Segurança (HST)' },
+                                    { key: 'epi', label: 'Uso de EPI' },
+                                    { key: 'limpeza', label: 'Limpeza e 5S' },
+                                    { key: 'qualidade', label: 'Qualidade do Registo' },
+                                    { key: 'eficiencia', label: 'Eficiência de Ciclo' },
+                                    { key: 'objetivos', label: 'Metas / Objetivos Diários' },
+                                    { key: 'atitude', label: 'Atitude / Trabalho Equipa' },
+                                ].map((item) => (
+                                    <div key={item.key} className="p-4 rounded-xl border bg-card shadow-sm hover:border-primary/40 transition-colors">
+                                        <div className="flex justify-between items-center mb-3">
+                                            <label className="text-sm font-bold text-foreground">{item.label}</label>
+                                            <Badge variant={grades[item.key as keyof typeof grades] < 2.0 ? 'destructive' : 'default'} className="font-mono shadow-sm">
+                                                {grades[item.key as keyof typeof grades].toFixed(1)}
+                                            </Badge>
                                         </div>
-                                    )}
+                                        <input
+                                            type="range" min="0" max="4" step="0.5"
+                                            className="w-full accent-primary h-2 bg-muted rounded-lg appearance-none cursor-pointer"
+                                            value={grades[item.key as keyof typeof grades]}
+                                            onChange={(e) => handleGradeChange(item.key as keyof typeof grades, parseFloat(e.target.value))}
+                                        />
+                                        <div className="flex justify-between mt-2 text-[11px] text-muted-foreground font-mono font-medium">
+                                            <span>Critico (0)</span>
+                                            <span>Alvo (2)</span>
+                                            <span>Excelência (4)</span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <div className="space-y-4">
+                                <div className="border-b pb-2 mb-4">
+                                    <h4 className="text-sm font-bold text-destructive tracking-wider uppercase flex items-center gap-2">
+                                        <AlertTriangle size={16} /> Apontamentos Obrigatórios
+                                    </h4>
                                 </div>
 
+                                {getEixosCriticos().length === 0 ? (
+                                    <div className="h-full min-h-[300px] flex flex-col items-center justify-center text-center p-8 bg-muted/40 rounded-xl border border-dashed text-muted-foreground">
+                                        <HelpCircle size={48} className="mb-4 opacity-40" />
+                                        <p className="text-sm font-semibold text-foreground/70">Métricas Saudáveis</p>
+                                        <p className="text-xs mt-1 max-w-xs">Nenhum parâmetro inferior a <span className="font-mono">2.0</span>. As Justificações Extraordinárias não são exigidas neste turno.</p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-4">
+                                        {getEixosCriticos().map(k => (
+                                            <div key={k} className="p-4 rounded-xl bg-destructive/5 border border-destructive/20 animate-fade-in shadow-sm">
+                                                <label className="text-xs text-destructive font-bold mb-3 block uppercase tracking-wide">
+                                                    Contexto Requerido para: {k}
+                                                </label>
+                                                <Textarea
+                                                    className="w-full bg-background border-destructive/30 resize-none h-24 text-sm shadow-inner"
+                                                    placeholder={`Detalhe minuciosamente o motivo da quebra pontual neste KPI...`}
+                                                    required
+                                                    value={justificacoes[k] || ''}
+                                                    onChange={(e) => setJustificacoes(prev => ({ ...prev, [k]: e.target.value }))}
+                                                />
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
+                        </div>
 
-                            <div className="mt-8 pt-6 border-t border-[rgba(255,255,255,0.1)] flex justify-end gap-4">
-                                <button type="button" onClick={fecharAvaliacao} className="btn bg-slate-800 text-white hover:bg-slate-700">Cancelar Descarte</button>
-                                <button type="submit" className="btn btn-primary flex gap-2 items-center">
-                                    <Save size={18} /> Confirmar Pontuações na Matriz
-                                </button>
-                            </div>
-                        </form>
-
-                    </div>
-                </div>
-            )}
+                        <DialogFooter className="mt-8 pt-6 border-t border-border gap-4 sm:gap-0">
+                            <Button type="button" variant="outline" onClick={fecharAvaliacao}>Descartar Matriz</Button>
+                            <Button type="submit" className="gap-2 shadow-sm font-bold">
+                                <Save size={16} /> Gravar e Fechar Turno
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

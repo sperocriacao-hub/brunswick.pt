@@ -23,12 +23,12 @@ export default async function AdminLayout({
     }
 
     return (
-        <div className="dashboard-layout">
+        <div className="flex h-screen w-full bg-background text-foreground overflow-hidden">
             <Sidebar userEmail={user?.email} />
 
-            <div className="main-content">
+            <main className="flex-1 overflow-y-auto bg-slate-50/50 p-6 md:p-8">
                 {children}
-            </div>
+            </main>
         </div>
     );
 }
