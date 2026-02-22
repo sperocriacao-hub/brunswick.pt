@@ -5,7 +5,7 @@ import { notFound } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { UserCircle2, ArrowLeft, CalendarDays, LineChart as LineChartIcon, Shield, Activity, TrendingUp, CheckCircle } from 'lucide-react';
-import Link from 'next/line';
+import Link from 'next/link';
 import { RadarClientChart } from '@/components/rh/RadarClientChart';
 import { LineClientChart } from '@/components/rh/LineClientChart';
 
