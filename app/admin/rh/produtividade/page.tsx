@@ -4,6 +4,8 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Activity, Clock, Coffee, AlertCircle, MapPin } from 'lucide-react';
 
 import { cookies } from 'next/headers';
+import { FactoryHeatmap, DB_AvaliacaoDiaria, DB_OperadorArea } from '@/components/rh/FactoryHeatmap';
+import { TopPerformersMural } from '@/components/rh/TopPerformersMural';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,8 +13,27 @@ export default async function ProdutividadeRH() {
     const cookieStore = cookies();
     const supabase = await createClient(cookieStore);
 
-    // 1. Fetch Operadores
-    const { data: operadores } = await supabase.from('operadores').select('*').eq('status', 'Ativo');
+    // 1. Fetch Operadores (Agora com áreas)
+    const { data: rawOperadores } = await supabase
+        .from('operadores')
+        .select(`
+            id, tag_rfid_operador, nome_operador, status, area_base_id,
+            areas_fabrica(nome_area)
+        `)
+        .eq('status', 'Ativo');
+
+    const operadores = rawOperadores?.map(op => ({
+        ...op,
+        area_nome: (op.areas_fabrica as any)?.nome_area || 'Geral'
+    })) || [];
+
+    // 1b. Fetch Avaliações Diárias do Mês Corrente
+    const p1 = new Date();
+    const firstDayOfMonth = new Date(p1.getFullYear(), p1.getMonth(), 1).toISOString().split('T')[0];
+    const { data: avaliacoesMes } = await supabase
+        .from('avaliacoes_diarias')
+        .select('*')
+        .gte('data_avaliacao', firstDayOfMonth);
 
     // 2. Fetch Tarefas (Value Added Time) de hoje
     const hojeIso = new Date().toISOString().split('T')[0];
@@ -142,6 +163,20 @@ export default async function ProdutividadeRH() {
                         </p>
                     </CardContent>
                 </Card>
+            </div>
+
+            {/* Top 3 Performers do Mês */}
+            <TopPerformersMural
+                operadores={(operadores as unknown as DB_OperadorArea[])}
+                avaliacoes={(avaliacoesMes as unknown as DB_AvaliacaoDiaria[]) || []}
+            />
+
+            {/* Mapa Longitudinal de Calor (Factory Heatmap) */}
+            <div className="mt-8 mb-8">
+                <FactoryHeatmap
+                    avaliacoes={(avaliacoesMes as unknown as DB_AvaliacaoDiaria[]) || []}
+                    operadores={(operadores as unknown as DB_OperadorArea[])}
+                />
             </div>
 
             {/* Painel Central das Tabelas OEE RH */}
