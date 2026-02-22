@@ -3,10 +3,13 @@ import { createClient } from '@/utils/supabase/server';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Activity, Clock, Coffee, AlertCircle, MapPin } from 'lucide-react';
 
+import { cookies } from 'next/headers';
+
 export const dynamic = 'force-dynamic';
 
 export default async function ProdutividadeRH() {
-    const supabase = await createClient();
+    const cookieStore = cookies();
+    const supabase = await createClient(cookieStore);
 
     // 1. Fetch Operadores
     const { data: operadores } = await supabase.from('operadores').select('*').eq('status', 'Ativo');
@@ -171,32 +174,32 @@ export default async function ProdutividadeRH() {
                                 <tr key={worker.id} className="hover:bg-blue-50/50 transition-colors">
                                     <td className="px-6 py-4 font-semibold text-slate-800 whitespace-nowrap flex items-center gap-3">
                                         <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xs ring-2 ring-white shadow-sm">
-                                            {worker.nome_operador.substring(0,2).toUpperCase()}
+                                            {worker.nome_operador.substring(0, 2).toUpperCase()}
                                         </div>
                                         {worker.nome_operador}
                                     </td>
-                                    
+
                                     <td className="px-6 py-4 text-center">
                                         {worker.picouHoje ? (
-                                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 uppercase tracking-widest shadow-sm">
+                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 uppercase tracking-widest shadow-sm">
                                                 In-Loco
-                                             </span>
+                                            </span>
                                         ) : (
                                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-500 border border-slate-200 uppercase tracking-widest shadow-sm">
                                                 Ausente
-                                             </span>
+                                            </span>
                                         )}
                                     </td>
 
                                     <td className="px-6 py-4 text-center">
                                         <div className="font-bold text-slate-800 flex items-center justify-center gap-2">
                                             <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                                                 <div className="h-full bg-emerald-500" style={{ width: \`\${Math.min(100, (worker.totalTrabalhoEfetivo / 480)*100)}%\` }}></div>
+                                                <div className="h-full bg-emerald-500" style={{ width: `${Math.min(100, (worker.totalTrabalhoEfetivo / 480) * 100)}%` }}></div>
                                             </div>
                                             {worker.totalTrabalhoEfetivo}m
                                         </div>
                                     </td>
-                                    
+
                                     <td className="px-6 py-4 text-center">
                                         {worker.totalPausas > 0 ? (
                                             <div className="font-bold text-rose-600 flex items-center justify-center gap-1">
@@ -216,16 +219,16 @@ export default async function ProdutividadeRH() {
                                     </td>
                                 </tr>
                             ))}
-                        {statsOperador.length === 0 && (
-                            <tr>
-                                <td colSpan={6} className="px-6 py-8 text-center text-slate-500 font-medium">
-                                    Nenhum Operador Ativo encontrado.
-                                </td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
-        </div>
+                            {statsOperador.length === 0 && (
+                                <tr>
+                                    <td colSpan={6} className="px-6 py-8 text-center text-slate-500 font-medium">
+                                        Nenhum Operador Ativo encontrado.
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
             </Card >
         </div >
     );
