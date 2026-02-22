@@ -62,83 +62,82 @@ export default function GestaoRHPage() {
     });
 
     return (
-        <div className="p-8 max-w-7xl mx-auto animate-fade-in">
-            <header className="flex justify-between items-end mb-8">
+        <div className="p-8 max-w-7xl mx-auto animate-in fade-in duration-500">
+            <header className="flex justify-between items-end mb-8 border-b border-slate-200 pb-4">
                 <div>
-                    <h1 className="text-3xl font-bold mb-2 flex items-center gap-3">
-                        <Users size={32} className="text-[var(--primary)]" />
+                    <h1 className="text-3xl font-extrabold mb-2 flex items-center gap-3 text-slate-900 tracking-tight">
+                        <Users size={32} className="text-blue-600" />
                         Gestão de Equipa (RH)
                     </h1>
-                    <p className="text-white/60">Controlo Cadastral, Permissões M.E.S e Níveis ILUO.</p>
+                    <p className="text-slate-500 font-medium">Controlo Cadastral, Permissões M.E.S e Níveis ILUO.</p>
                 </div>
-                <Link href="/admin/rh/cadastro" className="btn btn-primary flex gap-2 items-center">
+                <Link href="/admin/rh/cadastro" className="bg-blue-600 text-white hover:bg-blue-700 px-4 py-2 rounded-md font-medium transition-colors flex gap-2 items-center shadow-sm">
                     <UserPlus size={18} /> Novo Operário
                 </Link>
             </header>
 
-            <div className="glass-panel p-6 mb-8 flex gap-4 items-center">
+            <div className="bg-white border border-slate-200 rounded-lg p-6 mb-8 flex gap-4 items-center shadow-sm">
                 <div className="relative flex-1">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" size={18} />
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                     <input
                         type="text"
                         placeholder="Pesquisar por Nome, Nº, Função ou Tag RFID..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="form-control"
-                        style={{ paddingLeft: '3rem' }}
+                        className="w-full pl-12 pr-4 py-2 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-slate-50 text-slate-900 placeholder:text-slate-400"
                     />
                 </div>
-                <div className="text-sm text-white/50 px-4 border-l border-[rgba(255,255,255,0.1)]">
-                    Total: <strong className="text-white">{filtrados.length}</strong> Registos
+                <div className="text-sm text-slate-500 px-4 border-l border-slate-200">
+                    Total: <strong className="text-slate-900">{filtrados.length}</strong> Registos
                 </div>
             </div>
 
             {isLoading ? (
-                <div className="flex justify-center p-12 opacity-50"><Loader2 className="animate-spin" size={32} /></div>
+                <div className="flex justify-center p-12 text-slate-400"><Loader2 className="animate-spin" size={32} /></div>
             ) : (
-                <div className="glass-panel border border-[rgba(255,255,255,0.05)] overflow-hidden">
-                    <table className="w-full text-left border-collapse">
+                <div className="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-sm">
+                    <table className="w-full text-left border-collapse text-sm">
                         <thead>
-                            <tr className="bg-[rgba(0,0,0,0.3)] text-xs uppercase tracking-wider text-white/50 border-b border-[rgba(255,255,255,0.05)]">
-                                <th className="p-4 font-semibold">Nº</th>
-                                <th className="p-4 font-semibold">Colaborador</th>
-                                <th className="p-4 font-semibold">Função</th>
-                                <th className="p-4 font-semibold">Permissões M.E.S</th>
-                                <th className="p-4 font-semibold">Status / IoT</th>
-                                <th className="p-4 font-semibold text-right">Ações</th>
+                            <tr className="bg-slate-50 border-b border-slate-200">
+                                <th className="p-4 font-semibold text-slate-600 uppercase tracking-widest text-xs">Nº</th>
+                                <th className="p-4 font-semibold text-slate-600 uppercase tracking-widest text-xs">Colaborador</th>
+                                <th className="p-4 font-semibold text-slate-600 uppercase tracking-widest text-xs">Função</th>
+                                <th className="p-4 font-semibold text-slate-600 uppercase tracking-widest text-xs">Permissões M.E.S</th>
+                                <th className="p-4 font-semibold text-slate-600 uppercase tracking-widest text-xs">Status / IoT</th>
+                                <th className="p-4 font-semibold text-slate-600 uppercase tracking-widest text-xs text-right">Ações</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody className="divide-y divide-slate-100">
                             {filtrados.map(op => (
-                                <tr key={op.id} className="border-b border-[rgba(255,255,255,0.02)] hover:bg-[rgba(255,255,255,0.02)] transition-colors">
-                                    <td className="p-4 text-sm font-mono text-white/50">{op.numero_operador || '---'}</td>
+                                <tr key={op.id} className="hover:bg-blue-50/50 transition-colors">
+                                    <td className="p-4 font-mono text-slate-500 text-xs">{op.numero_operador || '---'}</td>
                                     <td className="p-4">
-                                        <div className="font-semibold">{op.nome_operador}</div>
-                                        <div className="text-xs text-white/40 mt-1 flex items-center gap-2">
-                                            RFID: <span className="font-mono bg-black/30 px-1 rounded">{op.tag_rfid_operador}</span>
+                                        <div className="font-bold text-slate-900">{op.nome_operador}</div>
+                                        <div className="text-xs text-slate-400 mt-1 flex items-center gap-2">
+                                            RFID: <span className="font-mono bg-slate-100 px-1 py-0.5 rounded border border-slate-200">{op.tag_rfid_operador}</span>
                                         </div>
                                     </td>
                                     <td className="p-4">
-                                        <span className="text-sm">{op.funcao || 'Não Atribuída'}</span>
+                                        <span className="font-medium text-slate-700">{op.funcao || 'Não Atribuída'}</span>
                                         {op.iluo_nivel && (
-                                            <span className="ml-2 bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded text-xs border border-indigo-500/20">
+                                            <span className="ml-2 bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider border border-indigo-200">
                                                 ILUO: {op.iluo_nivel}
                                             </span>
                                         )}
                                     </td>
                                     <td className="p-4">
                                         {op.possui_acesso_sistema ? (
-                                            <span className="flex items-center gap-1 text-xs text-green-400 bg-green-500/10 px-2 py-1 rounded inline-block">
-                                                <Shield size={12} /> Acesso Concedido
+                                            <span className="flex items-center gap-1 text-xs text-emerald-700 font-medium bg-emerald-50 px-2 flex-inline max-w-max py-1 rounded border border-emerald-200">
+                                                <Shield size={12} className="text-emerald-500" /> Acesso Concedido
                                             </span>
                                         ) : (
-                                            <span className="text-xs text-white/30">Sem Acesso</span>
+                                            <span className="text-xs text-slate-400 italic font-medium">Sem Acesso Sistémico</span>
                                         )}
                                     </td>
                                     <td className="p-4">
-                                        <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border ${op.status === 'Ativo'
-                                            ? 'bg-green-500/10 text-green-400 border-green-500/20'
-                                            : 'bg-red-500/10 text-red-400 border-red-500/20'
+                                        <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] uppercase font-bold tracking-wider border ${op.status === 'Ativo'
+                                            ? 'bg-green-50 text-green-700 border-green-200'
+                                            : 'bg-red-50 text-red-700 border-red-200'
                                             }`}>
                                             {op.status === 'Ativo' ? <UserCheck size={12} /> : <UserX size={12} />}
                                             {op.status}
@@ -147,16 +146,16 @@ export default function GestaoRHPage() {
                                     <td className="p-4 text-right flex justify-end gap-2">
                                         <button
                                             onClick={() => router.push(`/admin/rh/cadastro?id=${op.id}`)}
-                                            className="p-2 bg-[rgba(255,255,255,0.05)] hover:bg-[var(--primary)] hover:text-white rounded transition-colors"
+                                            className="p-2 text-slate-400 hover:bg-blue-50 hover:text-blue-600 rounded-md transition-colors border border-transparent hover:border-blue-100"
                                             title="Editar Cadastro Completo"
                                         >
                                             <Edit size={16} />
                                         </button>
                                         <button
                                             onClick={() => toggleStatus(op.id, op.status)}
-                                            className={`p-2 rounded transition-colors ${op.status === 'Ativo'
-                                                ? 'bg-[rgba(255,255,255,0.05)] hover:bg-red-500/80 text-white'
-                                                : 'bg-[rgba(255,255,255,0.05)] hover:bg-green-500/80 text-white'
+                                            className={`p-2 rounded-md transition-colors border ${op.status === 'Ativo'
+                                                ? 'text-slate-400 border-transparent hover:border-red-200 hover:bg-red-50 hover:text-red-600'
+                                                : 'text-slate-400 border-transparent hover:border-green-200 hover:bg-green-50 hover:text-green-600'
                                                 }`}
                                             title={op.status === 'Ativo' ? "Suspender/Inativar (Bloqueia IoT)" : "Reativar Colaborador"}
                                         >
@@ -167,7 +166,7 @@ export default function GestaoRHPage() {
                             ))}
                             {filtrados.length === 0 && (
                                 <tr>
-                                    <td colSpan={6} className="p-8 text-center text-white/40">Nenhum operador encontrado na lista.</td>
+                                    <td colSpan={6} className="p-12 text-center text-slate-400 italic">Nenhum operador encontrado na lista.</td>
                                 </tr>
                             )}
                         </tbody>

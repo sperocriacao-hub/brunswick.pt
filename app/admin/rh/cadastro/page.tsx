@@ -121,20 +121,20 @@ function FuncionarioFormCore() {
         return <div className="p-20 flex justify-center opacity-50"><Loader2 className="animate-spin" size={40} /></div>;
     }
 
-    const inputClass = "form-control";
+    const inputClass = "w-full px-3 py-2 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-slate-50 text-slate-900 placeholder:text-slate-400 text-sm";
 
     return (
-        <form onSubmit={handleSalvar} className="max-w-5xl mx-auto p-4 sm:p-8 animate-fade-in pb-20">
-            <header className="flex justify-between items-center mb-8 pb-4 border-b border-[rgba(255,255,255,0.05)]">
+        <form onSubmit={handleSalvar} className="max-w-5xl mx-auto p-4 sm:p-8 animate-in fade-in duration-500 pb-20">
+            <header className="flex justify-between items-center mb-8 pb-4 border-b border-slate-200">
                 <div>
-                    <h1 className="text-2xl font-bold">{id ? 'Editar Colaborador' : 'Admitir Novo Operário'}</h1>
-                    <p className="text-white/60 text-sm mt-1">Ficha Integrada de Recursos Humanos e M.E.S</p>
+                    <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">{id ? 'Editar Colaborador' : 'Admitir Novo Operário'}</h1>
+                    <p className="text-slate-500 font-medium text-sm mt-1">Ficha Integrada de Recursos Humanos e M.E.S</p>
                 </div>
                 <div className="flex gap-3">
-                    <Link href="/admin/rh" className="btn btn-outline border-white/20 text-white flex gap-2">
+                    <Link href="/admin/rh" className="px-4 py-2 border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-md font-medium transition-colors flex gap-2 items-center shadow-sm">
                         <ArrowLeft size={16} /> Cancelar
                     </Link>
-                    <button type="submit" disabled={isLoading} className="btn btn-primary flex gap-2 items-center">
+                    <button type="submit" disabled={isLoading} className="bg-blue-600 text-white hover:bg-blue-700 px-4 py-2 rounded-md font-medium transition-colors flex gap-2 items-center shadow-sm">
                         {isLoading ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
                         {id ? 'Atualizar Registo' : 'Confirmar Admissão'}
                     </button>
@@ -144,41 +144,41 @@ function FuncionarioFormCore() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
                 {/* BLOCO 1: IDENTIFICAÇÃO */}
-                <section className="glass-panel p-6 shadow-sm border border-[rgba(255,255,255,0.05)]">
-                    <h2 className="text-base font-semibold mb-6 text-white/90 border-b border-[rgba(255,255,255,0.05)] pb-3">I. Identificação Pessoal</h2>
+                <section className="bg-white p-6 shadow-sm border border-slate-200 rounded-lg">
+                    <h2 className="text-sm uppercase tracking-widest font-bold mb-6 text-slate-800 border-b border-slate-100 pb-3">I. Identificação Pessoal</h2>
 
                     <div className="grid grid-cols-2 gap-4 mb-4">
                         <div>
-                            <label className="block text-xs uppercase tracking-wider opacity-60 mb-1">Número RH</label>
+                            <label className="block text-xs font-semibold text-slate-600 mb-1">Número RH</label>
                             <input type="text" value={formData.numero_operador} onChange={e => setFormData({ ...formData, numero_operador: e.target.value })} className={inputClass} placeholder="Ex: OP-021" />
                         </div>
                         <div>
-                            <label className="block text-xs uppercase tracking-wider opacity-60 mb-1">Data Nascimento</label>
+                            <label className="block text-xs font-semibold text-slate-600 mb-1">Data Nascimento</label>
                             <input type="date" value={formData.data_nascimento} onChange={e => setFormData({ ...formData, data_nascimento: e.target.value })} className={inputClass} />
                         </div>
                     </div>
                     <div className="mb-4">
-                        <label className="block text-xs uppercase tracking-wider opacity-60 mb-1">Nome Completo *</label>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1">Nome Completo *</label>
                         <input required type="text" value={formData.nome_operador} onChange={e => setFormData({ ...formData, nome_operador: e.target.value })} className={inputClass} placeholder="Nome Profissional" />
                     </div>
                     <div>
-                        <label className="block text-xs uppercase tracking-wider opacity-60 mb-1">Tag RFID / NFC (Chão de Fábrica) *</label>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1">Tag RFID / NFC (Chão de Fábrica) *</label>
                         <input required type="text" value={formData.tag_rfid_operador} onChange={e => setFormData({ ...formData, tag_rfid_operador: e.target.value })} className={inputClass} placeholder="Ler Cartão Físico..." />
-                        <p className="text-[10px] text-white/40 mt-1">Este identificador será intercetado pelas antenas IoT.</p>
+                        <p className="text-[10px] text-slate-400 mt-1 italic">Este identificador será intercetado pelas antenas IoT.</p>
                     </div>
                 </section>
 
                 {/* BLOCO 2: ESTRUTURA E ALOCAÇÃO */}
-                <section className="glass-panel p-6 shadow-sm border border-[rgba(255,255,255,0.05)]">
-                    <h2 className="text-base font-semibold mb-6 text-white/90 border-b border-[rgba(255,255,255,0.05)] pb-3">II. Alocação Estrutural</h2>
+                <section className="bg-white p-6 shadow-sm border border-slate-200 rounded-lg">
+                    <h2 className="text-sm uppercase tracking-widest font-bold mb-6 text-slate-800 border-b border-slate-100 pb-3">II. Alocação Estrutural</h2>
 
                     <div className="grid grid-cols-2 gap-4 mb-4">
                         <div>
-                            <label className="block text-xs uppercase tracking-wider opacity-60 mb-1">Função / Cargo</label>
+                            <label className="block text-xs font-semibold text-slate-600 mb-1">Função / Cargo</label>
                             <input type="text" value={formData.funcao} onChange={e => setFormData({ ...formData, funcao: e.target.value })} className={inputClass} placeholder="Ex: Laminador Sênior" />
                         </div>
                         <div>
-                            <label className="block text-xs uppercase tracking-wider opacity-60 mb-1">Posto de Trabalho (M.E.S)</label>
+                            <label className="block text-xs font-semibold text-slate-600 mb-1">Posto de Trabalho (M.E.S)</label>
                             <select value={formData.posto_base_id} onChange={e => setFormData({ ...formData, posto_base_id: e.target.value })} className={`${inputClass} appearance-none`}>
                                 <option value="">Não Alocado (Móvel)</option>
                                 {estacoesDisponiveis.map(e => (
@@ -189,45 +189,45 @@ function FuncionarioFormCore() {
                     </div>
                     <div className="grid grid-cols-2 gap-4 mb-4">
                         <div>
-                            <label className="block text-xs uppercase tracking-wider opacity-60 mb-1">Equipa / Grupo</label>
+                            <label className="block text-xs font-semibold text-slate-600 mb-1">Equipa / Grupo</label>
                             <input type="text" value={formData.grupo_equipa} onChange={e => setFormData({ ...formData, grupo_equipa: e.target.value })} className={inputClass} placeholder="Ex: Equipa Alfa" />
                         </div>
                         <div>
-                            <label className="block text-xs uppercase tracking-wider opacity-60 mb-1">Turno</label>
+                            <label className="block text-xs font-semibold text-slate-600 mb-1">Turno</label>
                             <input type="text" value={formData.turno} onChange={e => setFormData({ ...formData, turno: e.target.value })} className={inputClass} placeholder="Ex: Diurno" />
                         </div>
                     </div>
-                    <div className="pt-4 border-t border-[rgba(255,255,255,0.05)] grid grid-cols-3 gap-3">
+                    <div className="pt-4 border-t border-slate-100 grid grid-cols-3 gap-3">
                         <div>
-                            <label className="block text-[10px] uppercase opacity-60 mb-1">Líder Equipa</label>
+                            <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Líder Equipa</label>
                             <input type="text" value={formData.lider_nome} onChange={e => setFormData({ ...formData, lider_nome: e.target.value })} className={`${inputClass} text-xs`} />
                         </div>
                         <div>
-                            <label className="block text-[10px] uppercase opacity-60 mb-1">Supervisor</label>
+                            <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Supervisor</label>
                             <input type="text" value={formData.supervisor_nome} onChange={e => setFormData({ ...formData, supervisor_nome: e.target.value })} className={`${inputClass} text-xs`} />
                         </div>
                         <div>
-                            <label className="block text-[10px] uppercase opacity-60 mb-1">Gestor</label>
+                            <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Gestor</label>
                             <input type="text" value={formData.gestor_nome} onChange={e => setFormData({ ...formData, gestor_nome: e.target.value })} className={`${inputClass} text-xs`} />
                         </div>
                     </div>
                 </section>
 
                 {/* BLOCO 3: DADOS CONTRATUAIS */}
-                <section className="glass-panel p-6 shadow-sm border border-[rgba(255,255,255,0.05)]">
-                    <h2 className="text-base font-semibold mb-6 text-white/90 border-b border-[rgba(255,255,255,0.05)] pb-3">III. Vínculo Contratual</h2>
+                <section className="bg-white p-6 shadow-sm border border-slate-200 rounded-lg">
+                    <h2 className="text-sm uppercase tracking-widest font-bold mb-6 text-slate-800 border-b border-slate-100 pb-3">III. Vínculo Contratual</h2>
 
                     <div className="grid grid-cols-2 gap-4 mb-5">
                         <div>
-                            <label className="block text-xs uppercase tracking-wider opacity-60 mb-1">Status RH (Bloqueia Ponto)</label>
-                            <select required value={formData.status} onChange={e => setFormData({ ...formData, status: e.target.value })} className={`${inputClass} appearance-none`}>
-                                <option value="Ativo">🟢 Operador Ativo</option>
-                                <option value="Inativo">🔴 Inativo / Desligado</option>
-                                <option value="Suspenso">🟡 Suspenso</option>
+                            <label className="block text-xs font-semibold text-slate-600 mb-1">Status RH (Bloqueia Ponto)</label>
+                            <select required value={formData.status} onChange={e => setFormData({ ...formData, status: e.target.value })} className={`${inputClass} appearance-none font-medium`}>
+                                <option value="Ativo" className="text-green-700 font-bold">🟢 Operador Ativo</option>
+                                <option value="Inativo" className="text-red-700 font-bold">🔴 Inativo / Desligado</option>
+                                <option value="Suspenso" className="text-yellow-700 font-bold">🟡 Suspenso</option>
                             </select>
                         </div>
                         <div>
-                            <label className="block text-xs uppercase tracking-wider opacity-60 mb-1">Tipo Contrato</label>
+                            <label className="block text-xs font-semibold text-slate-600 mb-1">Tipo Contrato</label>
                             <select value={formData.tipo_contrato} onChange={e => setFormData({ ...formData, tipo_contrato: e.target.value })} className={`${inputClass} appearance-none`}>
                                 <option value="">Selecionar...</option>
                                 <option value="Sem Termo">Sem Termo (Efetivo)</option>
@@ -239,25 +239,25 @@ function FuncionarioFormCore() {
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-[10px] uppercase tracking-wider opacity-60 mb-1">Data Admissão</label>
+                            <label className="block text-xs font-semibold text-slate-600 mb-1">Data Admissão</label>
                             <input type="date" value={formData.data_admissao} onChange={e => setFormData({ ...formData, data_admissao: e.target.value })} className={inputClass} />
                         </div>
                         <div>
-                            <label className="block text-[10px] uppercase tracking-wider opacity-60 mb-1 text-red-300">Data Rescisão</label>
+                            <label className="block text-xs font-semibold text-red-600 mb-1">Data Rescisão</label>
                             <input type="date" value={formData.data_rescisao} onChange={e => setFormData({ ...formData, data_rescisao: e.target.value })} className={inputClass} />
                         </div>
                     </div>
                 </section>
 
                 {/* BLOCO 4: TALENTO E DESENVOLVIMENTO (ILUO) */}
-                <section className="glass-panel p-6 shadow-sm border border-[rgba(255,255,255,0.05)]">
-                    <h2 className="text-base font-semibold mb-6 text-white/90 border-b border-[rgba(255,255,255,0.05)] pb-3">IV. Avaliação e Talento</h2>
+                <section className="bg-white p-6 shadow-sm border border-slate-200 rounded-lg">
+                    <h2 className="text-sm uppercase tracking-widest font-bold mb-6 text-slate-800 border-b border-slate-100 pb-3">IV. Avaliação e Talento</h2>
 
                     <div className="grid grid-cols-2 gap-4 mb-4">
                         <div>
-                            <label className="block text-xs uppercase tracking-wider opacity-60 mb-1" title="I (Trainee), L (Autónomo), U (Especialista), O (Formador)">Matriz Polivalência (ILUO)</label>
-                            <select value={formData.iluo_nivel} onChange={e => setFormData({ ...formData, iluo_nivel: e.target.value })} className={`${inputClass} appearance-none`}>
-                                <option value="">Desconhecido</option>
+                            <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1" title="I (Trainee), L (Autónomo), U (Especialista), O (Formador)">Matriz Polivalência (ILUO)</label>
+                            <select value={formData.iluo_nivel} onChange={e => setFormData({ ...formData, iluo_nivel: e.target.value })} className={`${inputClass} appearance-none font-bold text-indigo-700`}>
+                                <option value="" className="text-slate-900 font-normal">Desconhecido</option>
                                 <option value="I">I - Em Formação (Trainee)</option>
                                 <option value="L">L - Autónomo (Executa)</option>
                                 <option value="U">U - Especialista (Resolve)</option>
@@ -265,45 +265,45 @@ function FuncionarioFormCore() {
                             </select>
                         </div>
                         <div>
-                            <label className="block text-xs uppercase tracking-wider opacity-60 mb-1">Performance (Média 6 Meses)</label>
+                            <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Performance (Meta)</label>
                             <div className="flex items-center gap-2">
                                 <input type="number" step="0.1" min="0" max="100" value={formData.matriz_talento_media} onChange={e => setFormData({ ...formData, matriz_talento_media: e.target.value })} className={inputClass} placeholder="0 - 100" />
-                                <span className="opacity-50 text-sm">%</span>
+                                <span className="font-bold text-slate-400 text-sm">%</span>
                             </div>
                         </div>
                     </div>
                     <div>
-                        <label className="block text-xs uppercase tracking-wider opacity-60 mb-1">Anotações RH</label>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1">Anotações RH</label>
                         <textarea rows={3} value={formData.notas_rh} onChange={e => setFormData({ ...formData, notas_rh: e.target.value })} className={`${inputClass} resize-none`} placeholder="Registo de ausências, feedbacks disciplinares ou elogios..." />
                     </div>
                 </section>
 
                 {/* BLOCO 5: ACESSOS PLATAFORMA (BACKOFFICE) */}
-                <section className="glass-panel p-6 lg:col-span-2 shadow-sm border-t-4 border-x border-b border-x-[rgba(255,255,255,0.05)] border-b-[rgba(255,255,255,0.05)]" style={{ borderTopColor: formData.possui_acesso_sistema ? 'var(--primary)' : 'rgba(255,255,255,0.1)' }}>
-                    <div className="flex justify-between items-center mb-6 border-b border-[rgba(255,255,255,0.05)] pb-3">
-                        <h2 className="text-base font-semibold text-white/90">
-                            V. Acesso ao Sistema (S.C.A.D.A)
+                <section className={`bg-white p-6 lg:col-span-2 shadow-sm rounded-lg border-2 transition-colors duration-300 ${formData.possui_acesso_sistema ? 'border-blue-500 bg-blue-50/10' : 'border-slate-200'}`}>
+                    <div className="flex justify-between items-center mb-6 border-b border-slate-100 pb-3">
+                        <h2 className="text-sm uppercase tracking-widest font-bold text-slate-800">
+                            V. Acesso ao M.E.S Platform
                         </h2>
-                        <label className="flex items-center cursor-pointer gap-2 bg-[rgba(0,0,0,0.3)] p-2 pr-4 rounded-full border border-[rgba(255,255,255,0.1)] hover:border-[rgba(255,255,255,0.3)] transition-all">
+                        <label className="flex items-center cursor-pointer gap-2 bg-slate-100 px-3 py-1.5 rounded-full border border-slate-200 hover:border-slate-300 transition-all">
                             <input
                                 type="checkbox"
-                                className="w-4 h-4 accent-[var(--primary)] cursor-pointer"
+                                className="w-4 h-4 accent-blue-600 cursor-pointer"
                                 checked={formData.possui_acesso_sistema}
                                 onChange={e => setFormData({ ...formData, possui_acesso_sistema: e.target.checked })}
                             />
-                            <span className="text-sm font-semibold select-none">Conceder Acesso Backoffice?</span>
+                            <span className="text-sm font-bold text-slate-700 select-none">Conceder Login Digital?</span>
                         </label>
                     </div>
 
                     {formData.possui_acesso_sistema ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 rounded-lg bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)] animate-fade-in">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-5 rounded-lg bg-blue-50/50 border border-blue-100 animate-in slide-in-from-top-4 duration-300">
                             <div>
-                                <label className="block text-xs uppercase tracking-wider opacity-60 mb-1">E-mail Corporativo (Login)</label>
-                                <input required={formData.possui_acesso_sistema} type="email" value={formData.email_acesso} onChange={e => setFormData({ ...formData, email_acesso: e.target.value })} className={inputClass} placeholder="operador@brunswick.pt" />
+                                <label className="block text-xs font-bold text-blue-900 mb-1">E-mail Corporativo (Login)</label>
+                                <input required={formData.possui_acesso_sistema} type="email" value={formData.email_acesso} onChange={e => setFormData({ ...formData, email_acesso: e.target.value })} className={`${inputClass} border-blue-200 focus:ring-blue-500`} placeholder="operador@brunswick.pt" />
                             </div>
                             <div>
-                                <label className="block text-xs uppercase tracking-wider opacity-60 mb-1">Nível de Permissão (Role)</label>
-                                <select required={formData.possui_acesso_sistema} value={formData.nivel_permissao} onChange={e => setFormData({ ...formData, nivel_permissao: e.target.value })} className={`${inputClass} appearance-none`}>
+                                <label className="block text-xs font-bold text-blue-900 mb-1">Nível de Permissão (Role)</label>
+                                <select required={formData.possui_acesso_sistema} value={formData.nivel_permissao} onChange={e => setFormData({ ...formData, nivel_permissao: e.target.value })} className={`${inputClass} appearance-none border-blue-200 focus:ring-blue-500`}>
                                     <option value="">Selecionar Perfil Cibersegurança...</option>
                                     <option value="Operador">Leitura Básica (Consultas)</option>
                                     <option value="Supervisor">Chefe / Supervisor (Edita Ordens, Vê KPIs)</option>
@@ -313,7 +313,7 @@ function FuncionarioFormCore() {
                             </div>
                         </div>
                     ) : (
-                        <p className="text-sm text-amber-100/50 italic px-4">Ao não conceder acesso, o Colaborador será estritamente físico (apenas interage com hardware IoT via tag NFC/RFID nas linhas de montagem, mas não possui credênciais Web para fazer login nesta plataforma de Gestão).</p>
+                        <p className="text-sm text-slate-500 italic px-4">Ao não conceder acesso, o Colaborador será estritamente físico (apenas interage com hardware IoT via tag NFC/RFID nas linhas de montagem, mas não possui credenciais Web para fazer login nesta plataforma de Gestão).</p>
                     )}
                 </section>
 
@@ -325,7 +325,7 @@ function FuncionarioFormCore() {
 // Wrapper Principal
 export default function FormularioRHPage() {
     return (
-        <Suspense fallback={<div className="p-20 text-center text-white/50">Carregando Módulo Cadastral...</div>}>
+        <Suspense fallback={<div className="p-20 text-center font-mono text-slate-400 animate-pulse">A inicializar os ficheiros do Colaborador...</div>}>
             <FuncionarioFormCore />
         </Suspense>
     );
