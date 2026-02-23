@@ -6,7 +6,7 @@ import { Activity, AlertTriangle, Layers, TrendingUp, DollarSign, UserCircle2, A
 import { fetchDashboardData } from './actions';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { exportToCSV } from '@/utils/csvExport';
+import { exportToExcel } from '@/utils/excelExport';
 
 type Stats = {
   barcosEmProducao: number;
@@ -85,8 +85,8 @@ export default function Home() {
           <h1 className="text-3xl font-bold tracking-tight text-blue-900">S.C.A.D.A & Relatórios Fabris</h1>
           <p className="text-muted-foreground mt-1">Visão OEE e Controlos em Tempo Real - Módulo de Gestão Shopfloor</p>
         </div>
-        <Button variant="outline" disabled={isLoading} className="rounded-full shadow-sm" onClick={() => exportToCSV(financas, 'Relatorio_Financeiro_OEE.csv')}>
-          {isLoading ? 'A calcular...' : 'Exportar OEE Financeiro (CSV)'}
+        <Button variant="outline" disabled={isLoading} className="rounded-full shadow-sm" onClick={() => exportToExcel(financas, 'Relatorio_Financeiro_OEE.xlsx')}>
+          {isLoading ? 'A calcular...' : 'Exportar OEE Financeiro (XLSX)'}
         </Button>
       </header>
 

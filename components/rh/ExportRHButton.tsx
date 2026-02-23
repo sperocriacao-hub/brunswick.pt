@@ -1,7 +1,7 @@
 'use client';
 
 import { Download } from 'lucide-react';
-import { exportToCSV } from '@/utils/csvExport';
+import { exportToExcel } from '@/utils/excelExport';
 
 interface ExportRHButtonProps {
     data: any[];
@@ -21,14 +21,14 @@ export function ExportRHButton({ data, filename }: ExportRHButtonProps) {
             'Estações Visitadas': op.numEstacoesDiferentes
         }));
 
-        exportToCSV(formattedData, filename);
+        exportToExcel(formattedData, filename.replace('.csv', '.xlsx'));
     };
 
     return (
         <button
             onClick={handleExport}
             className="flex items-center gap-2 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-blue-600 font-bold py-1.5 px-3 rounded-lg shadow-sm text-xs transition-colors"
-            title="Exportar Dados da Tabela para CSV"
+            title="Exportar Dados da Tabela para Excel (XLSX)"
         >
             <Download size={14} /> Exportar RH Mestre
         </button>

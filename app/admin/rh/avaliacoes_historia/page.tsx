@@ -4,8 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { ClipboardList, Search, Calendar as CalendarIcon, Filter, ExternalLink, Download } from 'lucide-react';
 import Link from 'next/link';
-
-import { exportToCSV } from '@/utils/csvExport';
+import { exportToExcel } from '@/utils/excelExport';
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -121,7 +120,7 @@ export default function HistoricoAvaliacoesRH() {
                 'Avaliador / Líder': r.supervisor_nome || 'N/A'
             };
         });
-        exportToCSV(dataExp, `Historico_Avaliacoes_RH_${new Date().toISOString().split('T')[0]}.csv`);
+        exportToExcel(dataExp, `Historico_Avaliacoes_RH_${new Date().toISOString().split('T')[0]}.xlsx`);
     };
 
     return (
@@ -173,7 +172,7 @@ export default function HistoricoAvaliacoesRH() {
                                 disabled={registosFiltrados.length === 0}
                                 className="h-8 shadow-sm bg-blue-50 text-blue-700 hover:bg-blue-100 hover:text-blue-800 border-blue-200 transition-colors"
                             >
-                                <Download size={14} className="mr-1.5" /> Exportar Lista (CSV)
+                                <Download size={14} className="mr-1.5" /> Exportar Lista (XLSX)
                             </Button>
                             <Button variant="outline" size="sm" onClick={carregarHistorico} disabled={isLoading} className="h-8 shadow-sm">
                                 Atualizar Dados

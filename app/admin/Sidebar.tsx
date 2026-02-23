@@ -111,6 +111,10 @@ export function Sidebar({ userEmail }: { userEmail: string | undefined }) {
                                     <Layers size={18} className={pathname.includes('/admin/engenharia/roteiros') ? 'text-white' : 'text-blue-300'} />
                                     <span className="text-sm border-transparent">Tempos Roteiro OEE</span>
                                 </Link>
+                                <Link onClick={() => setIsOpen(false)} href="/admin/engenharia/oee" className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes('/admin/engenharia/oee') ? 'bg-blue-800 text-white shadow-sm border border-transparent' : 'text-blue-100 hover:bg-blue-800/50 hover:text-white'}`}>
+                                    <Activity size={18} className={pathname.includes('/admin/engenharia/oee') ? 'text-white' : 'text-blue-300'} />
+                                    <span className="text-sm border-transparent">Desperdício OEE</span>
+                                </Link>
                             </nav>
 
                             <p className="px-3 text-[10px] font-extrabold text-blue-400 uppercase tracking-widest mb-2">Configuração Fabril</p>
@@ -133,7 +137,7 @@ export function Sidebar({ userEmail }: { userEmail: string | undefined }) {
                                 </Link>
                                 <Link onClick={() => setIsOpen(false)} href="/admin/configuracoes" className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname === '/admin/configuracoes' || pathname.startsWith('/admin/configuracoes') ? 'bg-blue-800 text-white shadow-sm border border-transparent' : 'text-blue-100 hover:bg-blue-800/50 hover:text-white'}`}>
                                     <Settings size={18} className={pathname === '/admin/configuracoes' || pathname.startsWith('/admin/configuracoes') ? 'text-white' : 'text-blue-300'} />
-                                    <span className="text-sm border-transparent">Notificações</span>
+                                    <span className="text-sm border-transparent">Configurações Globais</span>
                                 </Link>
                             </nav>
                         </div>
