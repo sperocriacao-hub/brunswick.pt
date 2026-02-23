@@ -2,8 +2,10 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { createClient } from '@/utils/supabase/client';
-import { ClipboardList, Search, Calendar as CalendarIcon, Filter, ExternalLink } from 'lucide-react';
+import { ClipboardList, Search, Calendar as CalendarIcon, Filter, ExternalLink, Download } from 'lucide-react';
 import Link from 'next/link';
+
+import { exportToCSV } from '@/utils/csvExport';
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -96,6 +98,32 @@ export default function HistoricoAvaliacoesRH() {
         return "text-red-600 font-bold bg-red-50";
     };
 
+    const handleExport = () => {
+        if (registosFiltrados.length === 0) return;
+
+        const dataExp = registosFiltrados.map(r => {
+            const op = r.operadores;
+            const area = (op?.areas_fabrica as any)?.nome_area || 'Geral';
+            const med = (r.nota_hst + r.nota_epi + r.nota_5s + r.nota_qualidade + r.nota_eficiencia + r.nota_objetivos + r.nota_atitude) / 7;
+
+            return {
+                'Data Avaliação': new Date(r.data_avaliacao).toLocaleDateString('pt-PT'),
+                'Colaborador': op?.nome_operador || 'Desconhecido',
+                'Área Fabril': area,
+                'Pilar HST': r.nota_hst.toFixed(1),
+                'Pilar EPI': r.nota_epi.toFixed(1),
+                'Pilar 5S': r.nota_5s.toFixed(1),
+                'Pilar Qualidade': r.nota_qualidade.toFixed(1),
+                'Pilar Eficiência': r.nota_eficiencia.toFixed(1),
+                'Pilar Objetivos': r.nota_objetivos.toFixed(1),
+                'Pilar Atitude': r.nota_atitude.toFixed(1),
+                'Média Global': med.toFixed(2),
+                'Avaliador / Líder': r.supervisor_nome || 'N/A'
+            };
+        });
+        exportToCSV(dataExp, `Historico_Avaliacoes_RH_${new Date().toISOString().split('T')[0]}.csv`);
+    };
+
     return (
         <div className="p-6 max-w-[1400px] mx-auto space-y-6 animate-in fade-in duration-500">
             <header className="flex flex-col md:flex-row justify-between md:items-end gap-4 pb-6 border-b border-slate-200">
@@ -137,9 +165,20 @@ export default function HistoricoAvaliacoesRH() {
                         <CardTitle className="text-sm text-slate-700 uppercase tracking-widest flex items-center gap-2">
                             <Filter size={16} /> Grelha Cronológica ({registosFiltrados.length} registos)
                         </CardTitle>
-                        <Button variant="outline" size="sm" onClick={carregarHistorico} disabled={isLoading} className="h-8 shadow-sm">
-                            Atualizar Dados
-                        </Button>
+                        <div className="flex items-center gap-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleExport}
+                                disabled={registosFiltrados.length === 0}
+                                className="h-8 shadow-sm bg-blue-50 text-blue-700 hover:bg-blue-100 hover:text-blue-800 border-blue-200 transition-colors"
+                            >
+                                <Download size={14} className="mr-1.5" /> Exportar Lista (CSV)
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={carregarHistorico} disabled={isLoading} className="h-8 shadow-sm">
+                                Atualizar Dados
+                            </Button>
+                        </div>
                     </div>
                 </CardHeader>
                 <CardContent className="p-0">

@@ -7,6 +7,7 @@ import { cookies } from 'next/headers';
 import { FactoryHeatmap, DB_AvaliacaoDiaria, DB_OperadorArea } from '@/components/rh/FactoryHeatmap';
 import { TopPerformersMural } from '@/components/rh/TopPerformersMural';
 import { ColaboradorRaioXModal } from '@/components/rh/ColaboradorRaioXModal';
+import { ExportRHButton } from '@/components/rh/ExportRHButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -278,6 +279,7 @@ export default async function ProdutividadeRH({ searchParams }: { searchParams: 
                         <span className="flex items-center gap-2">
                             <Activity size={20} className="text-blue-600" /> Rendimento Humano Diário ({hojeIso})
                         </span>
+                        <ExportRHButton data={statsOperador} filename={`Relatorio_Assiduidade_${hojeIso}.csv`} />
                     </CardTitle>
                 </CardHeader>
                 <div className="overflow-x-auto">

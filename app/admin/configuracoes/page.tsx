@@ -2,8 +2,10 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/utils/supabase/client';
-import { Loader2, Save, RefreshCw, Mail, MessageSquare, Settings as SettingsIcon, ShieldAlert, Bell } from 'lucide-react';
+import { Loader2, Save, RefreshCw, Mail, MessageSquare, Settings as SettingsIcon, ShieldAlert, Bell, Database } from 'lucide-react';
 import Link from 'next/link';
+import { FeriadosManager } from './FeriadosManager';
+import { DatabaseManager } from './DatabaseManager';
 
 type ConfigItem = {
     id: string;
@@ -19,7 +21,7 @@ export default function ConfiguracoesPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [configs, setConfigs] = useState<ConfigItem[]>([]);
-    const [activeTab, setActiveTab] = useState<'Geral' | 'Email' | 'SMS'>('Geral');
+    const [activeTab, setActiveTab] = useState<'Geral' | 'Email' | 'SMS' | 'Fabrica' | 'Dados'>('Geral');
 
     // Estado form (chaves alteradas localmente antes do save)
     const [formData, setFormData] = useState<Record<string, string>>({});
@@ -95,6 +97,8 @@ export default function ConfiguracoesPage() {
         if (tabName === 'Geral') return <SettingsIcon size={18} />;
         if (tabName === 'Email') return <Mail size={18} />;
         if (tabName === 'SMS') return <MessageSquare size={18} />;
+        if (tabName === 'Fabrica') return <SettingsIcon size={18} />;
+        if (tabName === 'Dados') return <Database size={18} />;
         return <SettingsIcon size={18} />;
     };
 
@@ -115,7 +119,7 @@ export default function ConfiguracoesPage() {
                     </h1>
                     <div style={{ width: '1px', height: '20px', background: 'rgba(255,255,255,0.2)', margin: '0 12px' }}></div>
                     <p style={{ color: "rgba(255,255,255,0.6)", fontSize: '0.85rem', margin: 0 }}>
-                        Emails, SMTP e SMS Defaults
+                        Emails, SMTP, SMS e Fábrica
                     </p>
                     <div style={{ width: '1px', height: '20px', background: 'rgba(255,255,255,0.2)', margin: '0 12px' }}></div>
                     <Link href="/admin/configuracoes/notificacoes" className="text-amber-400 hover:text-amber-300 font-bold text-sm flex items-center gap-2 bg-amber-900/30 px-3 py-1 rounded-full border border-amber-500/30 transition-all">
@@ -137,10 +141,10 @@ export default function ConfiguracoesPage() {
 
             {/* TAB BAR */}
             <div style={{ display: 'flex', gap: '8px', marginBottom: '2rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.5rem' }}>
-                {['Geral', 'Email', 'SMS'].map((tab) => (
+                {['Geral', 'Email', 'SMS', 'Fabrica', 'Dados'].map((tab) => (
                     <button
                         key={tab}
-                        onClick={() => setActiveTab(tab as 'Geral' | 'Email' | 'SMS')}
+                        onClick={() => setActiveTab(tab as any)}
                         style={{
                             display: 'flex', alignItems: 'center', gap: '8px', padding: '0.75rem 1.5rem', borderRadius: '8px',
                             background: activeTab === tab ? 'rgba(59, 130, 246, 0.2)' : 'transparent',
@@ -206,6 +210,9 @@ export default function ConfiguracoesPage() {
                             ))}
                         </div>
                     )}
+
+                    {activeTab === 'Fabrica' && <FeriadosManager />}
+                    {activeTab === 'Dados' && <DatabaseManager />}
                 </div>
             )}
         </div>

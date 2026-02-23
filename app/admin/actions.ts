@@ -150,3 +150,111 @@ export async function fetchDashboardData() {
         return { success: false, error: err instanceof Error ? err.message : "Erro desconhecido" };
     }
 }
+
+export async function fetchMicroOEEData() {
+    try {
+        const dateLimit = new Date();
+        dateLimit.setDate(dateLimit.getDate() - 30); // Analisar apenas o último mês para NVA
+
+        // 1. Buscar todos os operadores Ativos
+        const { data: operadoresAtivos, error: opErr } = await supabase
+            .from('operadores')
+            .select('id, nome_operador, tag_rfid_operador')
+            .eq('status', 'Ativo');
+
+        if (opErr) throw opErr;
+        const operadores = operadoresAtivos || [];
+
+        // 2. Buscar Leituras RFID de Produção para os ativos
+        const { data: leiturasProducao, error: prodErr } = await supabase
+            .from('registos_rfid_realtime')
+            .select('operador_rfid, timestamp_inicio, timestamp_fim')
+            .gte('timestamp_inicio', dateLimit.toISOString());
+
+        if (prodErr) throw prodErr;
+
+        // 3. Buscar Leituras de Pausas / NVA para os ativos
+        const { data: leiturasPausas, error: pausaErr } = await supabase
+            .from('log_pausas_operador')
+            .select('operador_rfid, timestamp_inicio, timestamp_fim, motivo')
+            .gte('timestamp_inicio', dateLimit.toISOString());
+
+        if (pausaErr) throw pausaErr;
+
+        // 4. Agregar Tempos por Operador
+        const tabelaCruzamento = operadores.map(op => {
+            let horasProducao = 0;
+            let horasPausa = 0;
+
+            // Compute Producao
+            const opProducao = (leiturasProducao || []).filter(l => l.operador_rfid === op.tag_rfid_operador);
+            opProducao.forEach(l => {
+                const s = new Date(l.timestamp_inicio);
+                const e = l.timestamp_fim ? new Date(l.timestamp_fim) : new Date();
+                const diffHoras = (e.getTime() - s.getTime()) / (1000 * 60 * 60);
+                if (diffHoras > 0) horasProducao += diffHoras;
+            });
+
+            // Compute Pausas
+            const opPausas = (leiturasPausas || []).filter(l => l.operador_rfid === op.tag_rfid_operador);
+            opPausas.forEach(l => {
+                const s = new Date(l.timestamp_inicio);
+                const e = l.timestamp_fim ? new Date(l.timestamp_fim) : new Date();
+                const diffHoras = (e.getTime() - s.getTime()) / (1000 * 60 * 60);
+                if (diffHoras > 0) horasPausa += diffHoras;
+            });
+
+            const total = horasProducao + horasPausa;
+            const eficiencia = total > 0 ? (horasProducao / total) * 100 : 0;
+
+            return {
+                id: op.id,
+                nome: op.nome_operador,
+                horasProducao: horasProducao.toFixed(1),
+                horasPausa: horasPausa.toFixed(1),
+                total: total.toFixed(1),
+                eficiencia: eficiencia.toFixed(1)
+            };
+        });
+
+        // 5. Gargalos OEE Rápido (Top 5 Operações mais lentas singulares na semana)
+        const dateWeek = new Date();
+        dateWeek.setDate(dateWeek.getDate() - 7);
+
+        const { data: estacoes } = await supabase.from('estacoes').select('id, nome_estacao');
+        const mapEstacoes = new Map((estacoes || []).map(e => [e.id, e.nome_estacao]));
+
+        const { data: ultimasPassagens } = await supabase
+            .from('registos_rfid_realtime')
+            .select(`
+               id, timestamp_inicio, timestamp_fim, estacao_id, 
+               ordens_producao ( op_numero )
+            `)
+            .gte('timestamp_inicio', dateWeek.toISOString());
+
+        const gargalos = (ultimasPassagens || []).map((p: any) => {
+            const s = new Date(p.timestamp_inicio);
+            const e = p.timestamp_fim ? new Date(p.timestamp_fim) : new Date();
+            const horas = (e.getTime() - s.getTime()) / (1000 * 60 * 60);
+            return {
+                op_numero: p.ordens_producao?.op_numero || 'Desconhecida',
+                estacao: p.estacao_id ? (mapEstacoes.get(p.estacao_id) || 'N/A') : 'N/A',
+                horasGasto: horas
+            };
+        }).filter(g => g.horasGasto > 0)
+            .sort((a, b) => b.horasGasto - a.horasGasto)
+            .slice(0, 5)
+            .map(g => ({ ...g, horasGasto: g.horasGasto.toFixed(2) }));
+
+
+        return {
+            success: true,
+            tabelaCruzamento: tabelaCruzamento.sort((a, b) => Number(b.total) - Number(a.total)),
+            gargalos
+        };
+
+    } catch (err: unknown) {
+        console.error("Micro OEE Fetch Error:", err);
+        return { success: false, error: err instanceof Error ? err.message : "Erro desconhecido" };
+    }
+}
