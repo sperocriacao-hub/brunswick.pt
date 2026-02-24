@@ -10,7 +10,14 @@ const TABLES = [
     { key: 'areas_fabrica', label: 'Áreas de Fábrica', desc: 'Setores estruturais de produção (ex: Laminação).' },
     { key: 'estacoes', label: 'Estações / Postos', desc: 'Máquinas e células operacionais da fábrica.' },
     { key: 'modelos', label: 'Modelos de Barco', desc: 'Catálogo de embarcações fabricadas.' },
-    { key: 'operadores', label: 'Recursos Humanos', desc: 'Trabalhadores e respetivas roles.' }
+    { key: 'operadores', label: 'Recursos Humanos', desc: 'Trabalhadores e respetivas roles.' },
+    { key: 'tarefas_opcionais', label: 'Tarefas Opcionais', desc: 'Tarefas dinâmicas associadas a kits e configurações.' },
+    { key: 'roteiros_producao', label: 'Roteiros de Produção', desc: 'Mapeamento de tempos (SLA) das peças por estação.' },
+    { key: 'ordens_producao', label: 'Ordens de Produção', desc: 'Registo global de OPs em curso e finalizadas.' },
+    { key: 'opcionais', label: 'Catálogo de Opcionais', desc: 'Listagem de opções extra para os modelos na ficha.' },
+    { key: 'estacoes_sequencia', label: 'Sequência de Estações', desc: 'Grafo visual com o fluxo lógico da linha de produção.' },
+    { key: 'avaliacoes_diarias', label: 'Avaliações Diárias', desc: 'Classificações contínuas atribuídas pelos chefes de secção.' },
+    { key: 'apontamentos_negativos', label: 'Apontamentos Disciplinares', desc: 'Registo vitalício de justificativas de baixa performance.' }
 ];
 
 export function DatabaseManager() {
