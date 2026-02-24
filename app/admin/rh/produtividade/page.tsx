@@ -6,8 +6,7 @@ import { Activity, Clock, Coffee, AlertCircle, MapPin, Users, Filter, CalendarDa
 import { cookies } from 'next/headers';
 import { FactoryHeatmap, DB_AvaliacaoDiaria, DB_OperadorArea } from '@/components/rh/FactoryHeatmap';
 import { TopPerformersMural } from '@/components/rh/TopPerformersMural';
-import { ColaboradorRaioXModal } from '@/components/rh/ColaboradorRaioXModal';
-import { ExportRHButton } from '@/components/rh/ExportRHButton';
+import { ProdutividadeTable } from '@/components/rh/ProdutividadeTable';
 
 export const dynamic = 'force-dynamic';
 
@@ -272,101 +271,8 @@ export default async function ProdutividadeRH({ searchParams }: { searchParams: 
                 />
             </div>
 
-            {/* Painel Central das Tabelas OEE RH */}
-            <Card className="border-none shadow-xl bg-white overflow-hidden rounded-2xl ring-1 ring-slate-100">
-                <CardHeader className="bg-slate-50 border-b border-slate-100 py-5">
-                    <CardTitle className="text-slate-800 flex items-center justify-between">
-                        <span className="flex items-center gap-2">
-                            <Activity size={20} className="text-blue-600" /> Rendimento Humano Diário ({hojeIso})
-                        </span>
-                        <ExportRHButton data={statsOperador} filename={`Relatorio_Assiduidade_${hojeIso}.csv`} />
-                    </CardTitle>
-                </CardHeader>
-                <div className="overflow-x-auto">
-                    <table className="w-full text-sm text-left text-slate-600">
-                        <thead className="bg-slate-50 text-xs uppercase font-bold text-slate-500 tracking-wider">
-                            <tr>
-                                <th className="px-6 py-4">Equipa / Operador</th>
-                                <th className="px-6 py-4 text-center">Status</th>
-                                <th className="px-6 py-4 text-center items-center justify-center gap-1 group">
-                                    Valor Produzido <span className="text-[10px] lowercase font-normal opacity-70">(minutos)</span>
-                                </th>
-                                <th className="px-6 py-4 text-center">
-                                    Desperdício <span className="text-[10px] lowercase font-normal opacity-70">(NVA)</span>
-                                </th>
-                                <th className="px-6 py-4 text-center text-blue-800">Taxa Value %</th>
-                                <th className="px-6 py-4 text-center">Zonas de Trânsito</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100">
-                            {statsOperador.map((worker) => (
-                                <ColaboradorRaioXModal
-                                    key={worker.id}
-                                    operadorId={worker.id}
-                                    operadorRfid={worker.tag_rfid_operador}
-                                    nomeOperador={worker.nome_operador}
-                                    funcaoArea={worker.area_nome}
-                                >
-                                    <tr className="hover:bg-blue-50/50 transition-colors w-full flex-table-row items-center border-b border-slate-100">
-                                        <td className="px-6 py-4 font-semibold text-slate-800 whitespace-nowrap flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xs ring-2 ring-white shadow-sm">
-                                                {worker.nome_operador.substring(0, 2).toUpperCase()}
-                                            </div>
-                                            {worker.nome_operador}
-                                        </td>
-
-                                        <td className="px-6 py-4 text-center">
-                                            {worker.picouHoje ? (
-                                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 uppercase tracking-widest shadow-sm">
-                                                    In-Loco
-                                                </span>
-                                            ) : (
-                                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-500 border border-slate-200 uppercase tracking-widest shadow-sm">
-                                                    Ausente
-                                                </span>
-                                            )}
-                                        </td>
-
-                                        <td className="px-6 py-4 text-center">
-                                            <div className="font-bold text-slate-800 flex items-center justify-center gap-2">
-                                                <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden hidden sm:block">
-                                                    <div className="h-full bg-emerald-500" style={{ width: `${Math.min(100, (worker.totalTrabalhoEfetivo / 480) * 100)}%` }}></div>
-                                                </div>
-                                                {worker.totalTrabalhoEfetivo}m
-                                            </div>
-                                        </td>
-
-                                        <td className="px-6 py-4 text-center">
-                                            {worker.totalPausas > 0 ? (
-                                                <div className="font-bold text-rose-600 flex items-center justify-center gap-1">
-                                                    <AlertCircle size={14} className="opacity-70" /> {worker.totalPausas}m
-                                                </div>
-                                            ) : (
-                                                <span className="text-slate-400 font-medium hidden sm:inline">--</span>
-                                            )}
-                                        </td>
-
-                                        <td className="px-6 py-4 text-center text-blue-900 font-extrabold text-lg">
-                                            {worker.valueRation.toFixed(0)}%
-                                        </td>
-
-                                        <td className="px-6 py-4 text-center font-mono opacity-80 text-xs text-slate-700">
-                                            {worker.numEstacoesDiferentes} <span className="hidden sm:inline">Stations</span>
-                                        </td>
-                                    </tr>
-                                </ColaboradorRaioXModal>
-                            ))}
-                            {statsOperador.length === 0 && (
-                                <tr>
-                                    <td colSpan={6} className="px-6 py-8 text-center text-slate-500 font-medium">
-                                        Nenhum Operador Ativo encontrado nestes Filtros M.E.S.
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-            </Card>
+            {/* Painel Central das Tabelas OEE RH (Agora Extrído para Client Component para suportar Search) */}
+            <ProdutividadeTable statsOperador={statsOperador} hojeIso={hojeIso} />
         </div>
     );
 }

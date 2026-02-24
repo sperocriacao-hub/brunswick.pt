@@ -1,13 +1,12 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Dialog,
     DialogContent,
     DialogDescription,
     DialogHeader,
     DialogTitle,
-    DialogTrigger,
 } from "@/components/ui/dialog"
 import { Activity, XCircle, TrendingUp, AlertTriangle } from 'lucide-react';
 import { RadarClientChart } from '@/components/rh/RadarClientChart';
@@ -15,16 +14,16 @@ import { LineClientChart } from '@/components/rh/LineClientChart';
 import { createClient } from '@/utils/supabase/client';
 
 interface ColaboradorRaioXModalProps {
+    isOpen: boolean;
+    onClose: () => void;
     operadorId: string;
     operadorRfid: string;
     nomeOperador: string;
     funcaoArea: string;
-    children: React.ReactNode;
 }
 
-export function ColaboradorRaioXModal({ operadorId, operadorRfid, nomeOperador, funcaoArea, children }: ColaboradorRaioXModalProps) {
+export function ColaboradorRaioXModal({ isOpen, onClose, operadorId, operadorRfid, nomeOperador, funcaoArea }: ColaboradorRaioXModalProps) {
     const supabase = createClient();
-    const [isOpen, setIsOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
 
     // Data Holders
@@ -32,72 +31,75 @@ export function ColaboradorRaioXModal({ operadorId, operadorRfid, nomeOperador, 
     const [historicoLinha, setHistoricoLinha] = useState<any[]>([]);
     const [apontamentosNegativos, setApontamentosNegativos] = useState<any[]>([]);
 
-    const carregarDadosIndividuais = async (open: boolean) => {
-        setIsOpen(open);
-        if (!open || isLoading) return;
+    useEffect(() => {
+        if (!isOpen) return;
 
-        setIsLoading(true);
+        const carregarDadosIndividuais = async () => {
+            setIsLoading(true);
 
-        const dataLimiar = new Date();
-        dataLimiar.setDate(dataLimiar.getDate() - 30);
-        const trintaDiasStr = dataLimiar.toISOString().split('T')[0];
+            const dataLimiar = new Date();
+            dataLimiar.setDate(dataLimiar.getDate() - 30);
+            const trintaDiasStr = dataLimiar.toISOString().split('T')[0];
 
-        // 1. Fetch Médias dos 7 Pilares (Radar)
-        const { data: radarMedias } = await supabase.rpc('get_medias_operador_v2', { target_rfid: operadorRfid });
+            // 1. Fetch Médias dos 7 Pilares (Radar)
+            const { data: radarMedias } = await supabase.rpc('get_medias_operador_v2', { target_rfid: operadorRfid });
 
-        const formattedRadar = [
-            { subject: 'EPI & Fardamento', A: radarMedias?.[0]?.med_epi || 0 },
-            { subject: 'Assiduidade (HST)', A: radarMedias?.[0]?.med_hst || 0 },
-            { subject: 'Auditoria Qualidade', A: radarMedias?.[0]?.med_qualidade || 0 },
-            { subject: 'Metodologia 5S', A: radarMedias?.[0]?.med_5s || 0 },
-            { subject: 'Rendimento OEE', A: radarMedias?.[0]?.med_rendimento || 0 },
-            { subject: 'Polivalência', A: radarMedias?.[0]?.med_polivalencia || 0 },
-            { subject: 'Inovação / Kaisen', A: radarMedias?.[0]?.med_kaisen || 0 },
-        ];
-        setHistoricoRadar(formattedRadar);
+            const formattedRadar = [
+                { subject: 'EPI & Fardamento', A: radarMedias?.[0]?.med_epi || 0 },
+                { subject: 'Assiduidade (HST)', A: radarMedias?.[0]?.med_hst || 0 },
+                { subject: 'Auditoria Qualidade', A: radarMedias?.[0]?.med_qualidade || 0 },
+                { subject: 'Metodologia 5S', A: radarMedias?.[0]?.med_5s || 0 },
+                { subject: 'Rendimento OEE', A: radarMedias?.[0]?.med_rendimento || 0 },
+                { subject: 'Polivalência', A: radarMedias?.[0]?.med_polivalencia || 0 },
+                { subject: 'Inovação / Kaisen', A: radarMedias?.[0]?.med_kaisen || 0 },
+            ];
+            setHistoricoRadar(formattedRadar);
 
-        // 2. Fetch OEE Timeline (Linha de Progressão) Últimos 30 Dias
-        const { data: linhasRaw } = await supabase.from('avaliacoes_diarias')
-            .select('data_avaliacao, pilar_rendimento_oee')
-            .eq('operador_rfid', operadorRfid)
-            .gte('data_avaliacao', trintaDiasStr)
-            .order('data_avaliacao', { ascending: true });
+            // 2. Fetch OEE Timeline (Linha de Progressão) Últimos 30 Dias
+            const { data: linhasRaw } = await supabase.from('avaliacoes_diarias')
+                .select('data_avaliacao, pilar_rendimento_oee')
+                .eq('operador_rfid', operadorRfid)
+                .gte('data_avaliacao', trintaDiasStr)
+                .order('data_avaliacao', { ascending: true });
 
-        const formattedLinha = linhasRaw?.map(row => ({
-            date: new Date(row.data_avaliacao).toLocaleDateString('pt-PT', { day: 'numeric', month: 'short' }),
-            score: row.pilar_rendimento_oee
-        })) || [];
-        setHistoricoLinha(formattedLinha);
+            const formattedLinha = linhasRaw?.map(row => ({
+                date: new Date(row.data_avaliacao).toLocaleDateString('pt-PT', { day: 'numeric', month: 'short' }),
+                score: row.pilar_rendimento_oee
+            })) || [];
+            if (formattedLinha.length === 0) {
+                formattedLinha.push({ date: new Date().toLocaleDateString('pt-PT'), score: 0 });
+            }
+            setHistoricoLinha(formattedLinha);
 
-        // 3. Fetch Apontamentos Negativos Recentes (Abaixo de 2)
-        const { data: anotacoesRaw } = await supabase.from('apontamentos_negativos')
-            .select('data_registo, pilar_afetado, nota_atribuida, justificacao, avaliador_nome')
-            .eq('operador_id', operadorId)
-            .order('data_registo', { ascending: false })
-            .limit(10);
+            // 3. Fetch Apontamentos Negativos Recentes (Abaixo de 2)
+            const { data: anotacoesRaw } = await supabase.from('apontamentos_negativos')
+                .select('data_registo, pilar_afetado, nota_atribuida, justificacao, avaliador_nome')
+                .eq('operador_id', operadorId)
+                .order('data_registo', { ascending: false })
+                .limit(10);
 
-        setApontamentosNegativos(anotacoesRaw || []);
-        setIsLoading(false);
-    };
+            setApontamentosNegativos(anotacoesRaw || []);
+            setIsLoading(false);
+        };
+
+        carregarDadosIndividuais();
+    }, [isOpen, operadorId, operadorRfid, supabase]);
 
     return (
-        <Dialog open={isOpen} onOpenChange={carregarDadosIndividuais}>
-            <DialogTrigger asChild>
-                {/* O trigger é a própria `tr` ou botão envolvente vindo do Parent */}
-                <div className="cursor-pointer">{children}</div>
-            </DialogTrigger>
+        <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+            {/* O Trigger foi removido pois abrimos controladamente via state */}
             <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto p-0 border-none bg-slate-50 shadow-2xl">
                 <div className="sticky top-0 z-10 bg-white border-b border-slate-200 px-8 py-6 shadow-sm">
                     <DialogHeader>
                         <div className="flex items-center gap-4">
                             <div className="w-14 h-14 rounded-full bg-blue-100 text-blue-700 font-extrabold text-xl flex items-center justify-center border-4 border-white shadow-sm ring-1 ring-slate-200">
-                                {nomeOperador.substring(0, 2).toUpperCase()}
+                                {nomeOperador ? nomeOperador.substring(0, 2).toUpperCase() : '?'}
                             </div>
                             <div>
-                                <DialogTitle className="text-2xl font-extrabold text-slate-800 tracking-tight">{nomeOperador}</DialogTitle>
+                                <DialogTitle className="text-2xl font-extrabold text-slate-800 tracking-tight">{nomeOperador || 'Carregando...'}</DialogTitle>
                                 <DialogDescription className="text-slate-500 font-medium text-sm mt-1 whitespace-nowrap">
-                                    <span className="font-mono bg-slate-100 px-1.5 py-0.5 rounded text-slate-600 mr-2 border border-slate-200">{operadorRfid}</span>
-                                    {funcaoArea}
+                                    <span className="font-mono bg-slate-100 px-1.5 py-0.5 rounded text-slate-600 mr-2 border border-slate-200">{operadorRfid || 'N/A'}</span>
+                                    {funcaoArea || 'Geral'}
                                 </DialogDescription>
                             </div>
                         </div>
