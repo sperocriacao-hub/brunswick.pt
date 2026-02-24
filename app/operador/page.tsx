@@ -5,7 +5,7 @@ import { MonitorSmartphone, RefreshCw, ClipboardCheck, Play, Square, AlertCircle
 import { buscarEstacoes, buscarBarcosNaEstacao, iniciarSessaoTrabalho, terminarSessaoTrabalho } from './actions';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -146,16 +146,13 @@ export default function TabletDashboardPage() {
 
                 <div className="flex items-center gap-4 w-full md:w-auto mt-2 md:mt-0">
                     <div className="flex-1 md:w-64">
-                        <Select value={selectedEstacaoId} onValueChange={setSelectedEstacaoId}>
-                            <SelectTrigger className="h-12 text-lg font-bold border-2 border-slate-300">
-                                <SelectValue placeholder="Selecione a sua Estação..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {estacoes.map(est => (
-                                    <SelectItem key={est.id} value={est.id} className="text-lg py-3">{est.nome_estacao}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                        <SearchableSelect
+                            options={estacoes.map(est => ({ value: est.id, label: est.nome_estacao }))}
+                            value={selectedEstacaoId}
+                            onChange={setSelectedEstacaoId}
+                            placeholder="Selecione a sua Estação..."
+                            className="h-12 text-lg font-bold border-2 border-slate-300"
+                        />
                     </div>
                     {selectedEstacaoId && (
                         <Button variant="outline" size="icon" className="h-12 w-12 border-2 border-slate-300 rounded-xl" onClick={loadBarcos} disabled={isRefreshing}>
