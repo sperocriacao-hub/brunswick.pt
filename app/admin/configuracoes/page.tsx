@@ -118,10 +118,6 @@ export default function ConfiguracoesPage() {
                         Configurações Globais
                     </h1>
                     <div style={{ width: '1px', height: '20px', background: 'rgba(255,255,255,0.2)', margin: '0 12px' }}></div>
-                    <p style={{ color: "rgba(255,255,255,0.6)", fontSize: '0.85rem', margin: 0 }}>
-                        Emails, SMTP, SMS e Fábrica
-                    </p>
-                    <div style={{ width: '1px', height: '20px', background: 'rgba(255,255,255,0.2)', margin: '0 12px' }}></div>
                     <Link href="/admin/configuracoes/notificacoes" className="text-amber-400 hover:text-amber-300 font-bold text-sm flex items-center gap-2 bg-amber-900/30 px-3 py-1 rounded-full border border-amber-500/30 transition-all">
                         <Bell size={14} /> Automações de Alertas
                     </Link>
@@ -140,7 +136,7 @@ export default function ConfiguracoesPage() {
             </header>
 
             {/* TAB BAR */}
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '2rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.5rem' }}>
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '2rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.5rem', overflowX: 'auto', WebkitOverflowScrolling: 'touch', whiteSpace: 'nowrap' }}>
                 {['Geral', 'Email', 'SMS', 'Fabrica', 'Dados'].map((tab) => (
                     <button
                         key={tab}
@@ -167,48 +163,52 @@ export default function ConfiguracoesPage() {
             ) : (
                 <div className="glass-panel" style={{ padding: '2rem', maxWidth: '800px' }}>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '2rem', paddingBottom: '1rem', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                        <div style={{ width: 48, height: 48, borderRadius: '12px', background: 'rgba(59, 130, 246, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)' }}>
-                            {getGroupIcon(activeTab)}
-                        </div>
-                        <div>
-                            <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 600 }}>Parâmetros de {activeTab}</h2>
-                            <p style={{ margin: 0, fontSize: '0.85rem', opacity: 0.6 }}>Definições aplicadas a todos os envios e utilizadores do sistema.</p>
-                        </div>
-                    </div>
-
-                    {visibleConfigs.length === 0 ? (
-                        <div className="p-8 text-center opacity-50 border border-dashed rounded-lg" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
-                            Nenhuma restrição ou configuração definida neste grupo.
-                            Corra o ficheiro semente SQL (Migração 0005) na base de dados para provisionar chaves obrigatórias.
-                        </div>
-                    ) : (
-                        <div className="flex flex-col gap-6">
-                            {visibleConfigs.map(config => (
-                                <div key={config.id} className="form-group">
-                                    <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                                        <span style={{ fontWeight: 600, fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                            {config.chave.toUpperCase().replace(/_/g, ' ')}
-                                            <span title="Proteção de Encriptação Ativa (Apenas Visível a Admins)"><ShieldAlert size={14} color="#ef4444" /></span>
-                                        </span>
-                                    </label>
-                                    <p style={{ fontSize: '0.8rem', opacity: 0.5, marginBottom: '0.75rem', marginTop: '-0.25rem' }}>
-                                        {config.descricao}
-                                    </p>
-                                    <input
-                                        type={config.is_secret ? "password" : "text"}
-                                        className="form-control"
-                                        placeholder={`Escreva o valor para ${config.chave}...`}
-                                        value={formData[config.chave] ?? ''}
-                                        onChange={(e) => handleInput(config.chave, e.target.value)}
-                                        style={{
-                                            fontFamily: config.is_secret ? 'monospace' : 'inherit',
-                                            padding: '0.75rem 1rem', width: '100%', maxWidth: '600px'
-                                        }}
-                                    />
+                    {activeTab !== 'Fabrica' && activeTab !== 'Dados' && (
+                        <>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '2rem', paddingBottom: '1rem', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                                <div style={{ width: 48, height: 48, borderRadius: '12px', background: 'rgba(59, 130, 246, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)' }}>
+                                    {getGroupIcon(activeTab)}
                                 </div>
-                            ))}
-                        </div>
+                                <div>
+                                    <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 600 }}>Parâmetros de {activeTab}</h2>
+                                    <p style={{ margin: 0, fontSize: '0.85rem', opacity: 0.6 }}>Definições aplicadas a todos os envios e utilizadores do sistema.</p>
+                                </div>
+                            </div>
+
+                            {visibleConfigs.length === 0 ? (
+                                <div className="p-8 text-center opacity-50 border border-dashed rounded-lg" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
+                                    Nenhuma restrição ou configuração definida neste grupo.
+                                    Corra o ficheiro semente SQL (Migração 0005) na base de dados para provisionar chaves obrigatórias.
+                                </div>
+                            ) : (
+                                <div className="flex flex-col gap-6">
+                                    {visibleConfigs.map(config => (
+                                        <div key={config.id} className="form-group">
+                                            <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                                                <span style={{ fontWeight: 600, fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    {config.chave.toUpperCase().replace(/_/g, ' ')}
+                                                    <span title="Proteção de Encriptação Ativa (Apenas Visível a Admins)"><ShieldAlert size={14} color="#ef4444" /></span>
+                                                </span>
+                                            </label>
+                                            <p style={{ fontSize: '0.8rem', opacity: 0.5, marginBottom: '0.75rem', marginTop: '-0.25rem' }}>
+                                                {config.descricao}
+                                            </p>
+                                            <input
+                                                type={config.is_secret ? "password" : "text"}
+                                                className="form-control"
+                                                placeholder={`Escreva o valor para ${config.chave}...`}
+                                                value={formData[config.chave] ?? ''}
+                                                onChange={(e) => handleInput(config.chave, e.target.value)}
+                                                style={{
+                                                    fontFamily: config.is_secret ? 'monospace' : 'inherit',
+                                                    padding: '0.75rem 1rem', width: '100%', maxWidth: '600px'
+                                                }}
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </>
                     )}
 
                     {activeTab === 'Fabrica' && <FeriadosManager />}
