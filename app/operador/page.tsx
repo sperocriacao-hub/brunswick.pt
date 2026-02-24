@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { MonitorSmartphone, RefreshCw, ClipboardCheck, Play, Square, AlertCircle, ChevronRight, Settings } from 'lucide-react';
+import { MonitorSmartphone, RefreshCw, ClipboardCheck, Play, Square, AlertCircle, ChevronLeft, ChevronRight, Settings } from 'lucide-react';
 import { buscarEstacoes, buscarBarcosNaEstacao, iniciarSessaoTrabalho, terminarSessaoTrabalho } from './actions';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useRouter } from 'next/navigation';
+
 interface Barco {
     id: string;
     op_numero: string;
@@ -125,6 +126,15 @@ export default function TabletDashboardPage() {
             {/* TABLET HEADER */}
             <header className="bg-white border-b border-slate-200 shadow-sm p-4 sticky top-0 z-10 flex flex-col md:flex-row gap-4 items-center justify-between">
                 <div className="flex items-center gap-3">
+                    <Button variant="ghost" size="icon" onClick={() => router.back()} className="mr-2 hover:bg-slate-100 rounded-full h-12 w-12 hidden md:flex">
+                        <ChevronLeft size={28} className="text-slate-600" />
+                    </Button>
+                    <div className="flex items-center gap-2 md:hidden">
+                        <Button variant="ghost" size="icon" onClick={() => router.back()}>
+                            <ChevronLeft size={24} className="text-slate-600" />
+                        </Button>
+                    </div>
+
                     <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center shadow-inner">
                         <MonitorSmartphone className="text-white" size={24} />
                     </div>

@@ -15,11 +15,24 @@ export async function buscarEstacoes() {
     try {
         const { data, error } = await supabase
             .from('estacoes')
-            .select('id, nome_estacao')
+            .select(`
+                id, 
+                nome_estacao,
+                areas_fabrica (nome_area)
+            `)
             .order('nome_estacao', { ascending: true });
 
         if (error) throw error;
-        return { success: true, estacoes: data };
+
+        const formatadas = data.map((e: any) => {
+            const areaName = e.areas_fabrica ? e.areas_fabrica.nome_area : 'Fábrica';
+            return {
+                id: e.id,
+                nome_estacao: `${areaName} - ${e.nome_estacao}`
+            };
+        });
+
+        return { success: true, estacoes: formatadas };
     } catch (err: unknown) {
         console.error("Erro a buscar estações:", err);
         return { success: false, error: err instanceof Error ? err.message : "Erro desconhecido" };
