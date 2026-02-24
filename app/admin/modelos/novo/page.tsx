@@ -1,7 +1,9 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Plus, Trash2, Save, FileText, Settings, X, Upload } from 'lucide-react';
+import { Plus, Trash2, Save, FileText, Settings, X, Upload, Loader2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { criarModeloCompleto, CriarModeloInput } from './actions';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -38,6 +40,9 @@ const ESTACOES = [
 ];
 
 export default function NovoModeloPage() {
+    const router = useRouter();
+    const [isSaving, setIsSaving] = useState(false);
+
     const [nomeModelo, setNomeModelo] = useState('');
     const [modelYear, setModelYear] = useState('');
 
@@ -169,6 +174,41 @@ export default function NovoModeloPage() {
     };
 
     // ==============================================
+    // HANDLER GUARDAR MODELO COMPLETO
+    // ==============================================
+    const handleSaveModelo = async () => {
+        if (!nomeModelo || !modelYear) {
+            alert('Por favor, preencha o Nome do Modelo e o Ano do Modelo (Model Year).');
+            return;
+        }
+
+        setIsSaving(true);
+        try {
+            const input: CriarModeloInput = {
+                nome_modelo: nomeModelo,
+                model_year: modelYear,
+                partes: partes,
+                tarefasGerais: tarefasGerais,
+                opcionais: opcionais
+            };
+
+            const res = await criarModeloCompleto(input);
+            if (!res.success) {
+                throw new Error(res.error);
+            }
+
+            alert('Modelo de Embarcação registado na Base de Dados com todas as dependências M.E.S!');
+            router.push('/admin/modelos');
+            router.refresh();
+        } catch (error) {
+            console.error(error);
+            alert(`Falha Crítica: ${(error as Error).message}`);
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    // ==============================================
     // GERAR PDF (Checklist por Estação)
     // ==============================================
     const generateChecklistPDF = () => {
@@ -280,9 +320,9 @@ export default function NovoModeloPage() {
                         <FileText size={18} className="mr-2" style={{ marginRight: '8px' }} />
                         Relatório Checklist (PDF)
                     </button>
-                    <button className="btn btn-primary">
-                        <Save size={18} style={{ marginRight: '8px' }} />
-                        Salvar Modelo
+                    <button className="btn btn-primary animate-pulse-glow" onClick={handleSaveModelo} disabled={isSaving}>
+                        {isSaving ? <Loader2 size={18} className="animate-spin mr-2" /> : <Save size={18} className="mr-2" />}
+                        {isSaving ? "A Guardar BD..." : "Salvar Modelo"}
                     </button>
                 </div>
             </header>

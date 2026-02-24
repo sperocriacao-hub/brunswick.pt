@@ -8,8 +8,7 @@ import Link from 'next/link';
 type ModeloInfo = {
     id: string;
     nome_modelo: string;
-    versao: string;
-    status: string;
+    model_year: string;
     created_at: string;
 };
 
@@ -23,7 +22,7 @@ export default function ModelosListPage() {
         try {
             const { data, error } = await supabase
                 .from('modelos')
-                .select('id, nome_modelo, versao, status, created_at')
+                .select('id, nome_modelo, model_year, created_at')
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
@@ -97,14 +96,14 @@ export default function ModelosListPage() {
                                 <div style={{ width: 48, height: 48, borderRadius: '12px', background: 'rgba(59, 130, 246, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)', flexShrink: 0 }}>
                                     <Package size={24} />
                                 </div>
-                                <span className={`px-2 py-1 rounded text-xs border ${getStatusColor(modelo.status)}`} style={{ fontWeight: 600 }}>
-                                    {modelo.status}
+                                <span className={`px-2 py-1 rounded text-xs border ${getStatusColor('Ativo')}`} style={{ fontWeight: 600 }}>
+                                    Ativo
                                 </span>
                             </div>
 
                             <div>
                                 <h3 style={{ fontSize: '1.15rem', fontWeight: 700, margin: '0 0 4px 0', color: '#fff' }}>{modelo.nome_modelo}</h3>
-                                <p style={{ fontSize: '0.85rem', opacity: 0.6, margin: 0 }}>Versão: {modelo.versao}</p>
+                                <p style={{ fontSize: '0.85rem', opacity: 0.6, margin: 0 }}>Model Year: {modelo.model_year}</p>
                             </div>
 
                             <div style={{ flex: 1 }}></div>

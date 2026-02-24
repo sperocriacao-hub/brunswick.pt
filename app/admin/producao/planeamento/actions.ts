@@ -17,7 +17,7 @@ export interface OrdemPlaneamento {
 // 1. Fetching
 export async function buscarOrdensPlaneamento(): Promise<{ success: boolean; data?: OrdemPlaneamento[]; error?: string }> {
     try {
-        const cookieStore = cookies();
+        const cookieStore = cookies() as any;
         const supabase = createClient(cookieStore);
 
         // Ler Ordens de Produção Ativas ou Planeadas
@@ -57,14 +57,17 @@ export async function buscarOrdensPlaneamento(): Promise<{ success: boolean; dat
 
         return { success: true, data: mapeadas };
     } catch (err: unknown) {
-        return { success: false, error: err instanceof Error ? err.message : 'Erro ao buscar o planeamento fabril.' };
+        let msg = "Erro desconhecido.";
+        if (err instanceof Error) msg = err.message;
+        else if (typeof err === 'object' && err !== null) msg = JSON.stringify(err);
+        return { success: false, error: msg };
     }
 }
 
 // 2. Drag & Drop Save
 export async function atualizarPlaneamentoMultiplo(updates: { id: string, semana_planeada: string, ordem_sequencial_linha: number }[]): Promise<{ success: boolean; error?: string }> {
     try {
-        const cookieStore = cookies();
+        const cookieStore = cookies() as any;
         const supabase = createClient(cookieStore);
 
         // O Supabase suporta um upsert ou requisições iterativas. 
