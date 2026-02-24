@@ -53,20 +53,23 @@ export default function Home() {
           setFinancas(res.financas || []);
           setTopTalentos(res.topTalentos || []);
 
-          // WIP Placeholder (já poderia vir estruturado se tivéssemos gargalosAgg calculados na action mas adaptámos)
           if (res.stats.estacaoGargalo !== 'Nenhum Enxame Ativo' && res.stats.estacaoGargalo !== 'N/A' && res.stats.estacaoGargalo !== 'Apurando...') {
-            setGargalosGrafo([{ name: res.stats.estacaoGargalo, retidos: 5 }, { name: "Limpeza Frontal", retidos: 2 }]); // UI MOCK for isolated graph display
+            setGargalosGrafo([{ name: res.stats.estacaoGargalo, retidos: 5 }, { name: "Aguardar Mão de Obra", retidos: 2 }]);
           } else {
             setGargalosGrafo([]);
           }
-        }
 
-        setGraficoEvolucao([
-          { name: 'Semana 1', barcos: 4 },
-          { name: 'Semana 2', barcos: 7 },
-          { name: 'Semana 3', barcos: 5 },
-          { name: 'Semana 4', barcos: 9 },
-        ]);
+          if (res.caudalMensal) {
+            setGraficoEvolucao(res.caudalMensal);
+          } else {
+            setGraficoEvolucao([
+              { name: 'Semana 1', barcos: 0 },
+              { name: 'Semana 2', barcos: 0 },
+              { name: 'Semana 3', barcos: 0 },
+              { name: 'Semana 4', barcos: 0 },
+            ]);
+          }
+        }
 
       } catch (e) {
         console.error("Erro a carregar as Dashboards:", e);
@@ -147,7 +150,7 @@ export default function Home() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {isLoading ? (
-              <div className="col-span-3 opacity-50 text-slate-400 py-4 text-center text-sm font-medium">Apurar Matrizes de Talento...</div>
+              <div className="col-span-3 opacity-50 text-slate-400 py-4 text-center text-sm font-medium">Apurar Matrizes de Talento (Base de Dados)...</div>
             ) : topTalentos.length === 0 ? (
               <div className="col-span-3 opacity-50 text-slate-400 py-4 text-center text-sm font-medium">Nenhum Operador Ponderado ainda.</div>
             ) : topTalentos.map((t, index) => (

@@ -119,19 +119,88 @@ export async function fetchDashboardData() {
             nomeGargalo = "Nenhum Enxame Ativo";
         }
 
-        // 4. TOP 3 Pódio de Talentos RH (Matriz)
-        const { data: topTalentosData } = await supabase
+        // 4. TOP 3 Pódio de Talentos RH (Matriz Dinâmica a partir de avaliacoes_diarias)
+        const { data: avaliacoes } = await supabase
+            .from('avaliacoes_diarias')
+            .select('operador_id, avaliacao, data_avaliacao');
+
+        const { data: operadoresBase } = await supabase
             .from('operadores')
-            .select('id, nome_operador, matriz_talento_media')
-            .eq('status', 'Ativo')
-            .not('matriz_talento_media', 'is', null)
-            .order('matriz_talento_media', { ascending: false })
-            .limit(3);
+            .select('id, nome_operador')
+            .eq('status', 'Ativo');
 
-        const topTalentos = topTalentosData || [];
+        let topTalentos: any[] = [];
+        if (avaliacoes && avaliacoes.length > 0 && operadoresBase) {
+            const mapStats: Record<string, { soma: number, count: number }> = {};
+            avaliacoes.forEach((av: any) => {
+                const oid = av.operador_id;
+                if (!mapStats[oid]) mapStats[oid] = { soma: 0, count: 0 };
+                // Converter string ex: '3' para Number
+                const nf = parseFloat(av.avaliacao);
+                if (!isNaN(nf)) {
+                    mapStats[oid].soma += nf;
+                    mapStats[oid].count += 1;
+                }
+            });
 
-        // Gráfico OEE Global Mensal (Mock dinâmico por enquanto, na vida real seria agg por Mês de created_at)
-        const globalOEE = horasReaisGerais > 0 ? Math.min(100, Math.round((horasPlaneadasGerais / horasReaisGerais) * 100)) : 100;
+            const pontuados = operadoresBase.map(op => {
+                const st = mapStats[op.id];
+                const mediaA = st && st.count > 0 ? st.soma / st.count : 0;
+                return {
+                    id: op.id,
+                    nome_operador: op.nome_operador,
+                    matriz_talento_media: mediaA
+                };
+            }).filter(op => op.matriz_talento_media > 0);
+
+            topTalentos = pontuados.sort((a, b) => b.matriz_talento_media - a.matriz_talento_media).slice(0, 3);
+        } else {
+            // Fallback para a coluna legacy da bd caso nao haja avaliacoes preenchidas e haja matriz estática
+            const { data: topTalentosData } = await supabase
+                .from('operadores')
+                .select('id, nome_operador, matriz_talento_media')
+                .eq('status', 'Ativo')
+                .not('matriz_talento_media', 'is', null)
+                .order('matriz_talento_media', { ascending: false })
+                .limit(3);
+
+            topTalentos = topTalentosData || [];
+        }
+
+        // Gráfico OEE Global Mensal 
+        // Se as horas reais ou planeadas estiverem a Zeros, o OEE é 0% para impedir o Falso-Vivo de 100%.
+        const globalOEE = (horasReaisGerais > 0 && horasPlaneadasGerais > 0) ? Math.min(100, Math.round((horasPlaneadasGerais / horasReaisGerais) * 100)) : 0;
+
+        // 5. CAUDAL DE PASSAGENS MENSAL (GRÁFICO)
+        // Agrupar as OPs Criadas/Passadas por Semanas do último mês
+        const dateL = new Date();
+        dateL.setDate(dateL.getDate() - 30);
+
+        const { data: OPsRecentes } = await supabase
+            .from('ordens_producao')
+            .select('created_at, status')
+            .gte('created_at', dateL.toISOString());
+
+        // Preparar arr de 4 semanas
+        const graficoEvolucao = [
+            { name: 'Semana 1', barcos: 0 },
+            { name: 'Semana 2', barcos: 0 },
+            { name: 'Semana 3', barcos: 0 },
+            { name: 'Semana 4', barcos: 0 },
+        ];
+
+        if (OPsRecentes) {
+            const nowTime = new Date().getTime();
+            OPsRecentes.forEach((op: any) => {
+                const opTime = new Date(op.created_at).getTime();
+                const diffDays = Math.floor((nowTime - opTime) / (1000 * 60 * 60 * 24));
+
+                if (diffDays <= 7) graficoEvolucao[3].barcos += 1;       // S4
+                else if (diffDays <= 14) graficoEvolucao[2].barcos += 1; // S3
+                else if (diffDays <= 21) graficoEvolucao[1].barcos += 1; // S2
+                else if (diffDays <= 30) graficoEvolucao[0].barcos += 1; // S1
+            });
+        }
 
         return {
             success: true,
@@ -143,7 +212,8 @@ export async function fetchDashboardData() {
                 oeeGlobal: globalOEE
             },
             financas: tableCustos,
-            topTalentos
+            topTalentos,
+            caudalMensal: graficoEvolucao
         };
     } catch (err: unknown) {
         console.error("Dashboard Fetch Error:", err);
