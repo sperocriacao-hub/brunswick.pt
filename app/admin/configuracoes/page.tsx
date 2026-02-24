@@ -136,19 +136,18 @@ export default function ConfiguracoesPage() {
             </header>
 
             {/* TAB BAR */}
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '2rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.5rem', overflowX: 'auto', WebkitOverflowScrolling: 'touch', whiteSpace: 'nowrap' }}>
+            <div className="flex flex-wrap gap-2 mb-8 border-b border-slate-200 pb-2">
                 {['Geral', 'Email', 'SMS', 'Fabrica', 'Dados'].map((tab) => (
                     <button
                         key={tab}
                         onClick={() => setActiveTab(tab as any)}
-                        style={{
-                            display: 'flex', alignItems: 'center', gap: '8px', padding: '0.75rem 1.5rem', borderRadius: '8px',
-                            background: activeTab === tab ? 'rgba(59, 130, 246, 0.2)' : 'transparent',
-                            color: activeTab === tab ? 'var(--primary)' : 'rgba(255,255,255,0.6)',
-                            border: activeTab === tab ? '1px solid var(--primary)' : '1px solid transparent',
-                            fontWeight: activeTab === tab ? 600 : 400,
-                            transition: 'all 0.2s', cursor: 'pointer'
-                        }}
+                        className={`
+                            flex items-center gap-2 px-6 py-3 rounded-lg font-semibold text-sm transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 flex-shrink-0
+                            ${activeTab === tab
+                                ? 'bg-blue-50 text-blue-700 border border-blue-200 shadow-sm'
+                                : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-50 hover:text-slate-700 hover:border-slate-300'
+                            }
+                        `}
                     >
                         {getGroupIcon(tab)}
                         {tab}
@@ -161,48 +160,45 @@ export default function ConfiguracoesPage() {
                     <Loader2 size={48} className="animate-spin" />
                 </div>
             ) : (
-                <div className="glass-panel" style={{ padding: '2rem', maxWidth: '800px' }}>
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 md:p-8 max-w-4xl">
 
                     {activeTab !== 'Fabrica' && activeTab !== 'Dados' && (
                         <>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '2rem', paddingBottom: '1rem', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                                <div style={{ width: 48, height: 48, borderRadius: '12px', background: 'rgba(59, 130, 246, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)' }}>
+                            <div className="flex items-center gap-4 mb-8 pb-6 border-b border-slate-100">
+                                <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
                                     {getGroupIcon(activeTab)}
                                 </div>
                                 <div>
-                                    <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 600 }}>Parâmetros de {activeTab}</h2>
-                                    <p style={{ margin: 0, fontSize: '0.85rem', opacity: 0.6 }}>Definições aplicadas a todos os envios e utilizadores do sistema.</p>
+                                    <h2 className="text-xl font-extrabold text-slate-800 tracking-tight m-0">Parâmetros de {activeTab}</h2>
+                                    <p className="text-sm font-medium text-slate-500 mt-1 m-0">Definições aplicadas a todos os envios e utilizadores do sistema.</p>
                                 </div>
                             </div>
 
                             {visibleConfigs.length === 0 ? (
-                                <div className="p-8 text-center opacity-50 border border-dashed rounded-lg" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
-                                    Nenhuma restrição ou configuração definida neste grupo.
-                                    Corra o ficheiro semente SQL (Migração 0005) na base de dados para provisionar chaves obrigatórias.
+                                <div className="p-8 text-center text-slate-500 font-medium border border-dashed border-slate-300 rounded-xl bg-slate-50/50">
+                                    Nenhuma restrição ou configuração definida neste grupo.<br /><br />
+                                    <span className="text-xs opacity-70">Despoletar a Semente SQL (Migração 0005) na base de dados para provisionar chaves obrigatórias.</span>
                                 </div>
                             ) : (
-                                <div className="flex flex-col gap-6">
+                                <div className="flex flex-col gap-8">
                                     {visibleConfigs.map(config => (
-                                        <div key={config.id} className="form-group">
-                                            <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                                                <span style={{ fontWeight: 600, fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <div key={config.id} className="relative">
+                                            <label className="flex justify-between items-center mb-1">
+                                                <span className="font-bold text-slate-800 text-sm flex items-center gap-2">
                                                     {config.chave.toUpperCase().replace(/_/g, ' ')}
-                                                    <span title="Proteção de Encriptação Ativa (Apenas Visível a Admins)"><ShieldAlert size={14} color="#ef4444" /></span>
+                                                    {config.is_secret && <span title="Proteção de Encriptação Ativa (Apenas Visível a Admins)"><ShieldAlert size={14} className="text-red-500" /></span>}
                                                 </span>
                                             </label>
-                                            <p style={{ fontSize: '0.8rem', opacity: 0.5, marginBottom: '0.75rem', marginTop: '-0.25rem' }}>
+                                            <p className="text-xs font-medium text-slate-500 mb-3">
                                                 {config.descricao}
                                             </p>
                                             <input
                                                 type={config.is_secret ? "password" : "text"}
-                                                className="form-control"
+                                                className="w-full max-w-2xl px-4 py-2.5 text-sm bg-slate-50 border border-slate-200 text-slate-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all shadow-sm"
                                                 placeholder={`Escreva o valor para ${config.chave}...`}
                                                 value={formData[config.chave] ?? ''}
                                                 onChange={(e) => handleInput(config.chave, e.target.value)}
-                                                style={{
-                                                    fontFamily: config.is_secret ? 'monospace' : 'inherit',
-                                                    padding: '0.75rem 1rem', width: '100%', maxWidth: '600px'
-                                                }}
+                                                style={{ fontFamily: config.is_secret ? 'monospace' : 'inherit' }}
                                             />
                                         </div>
                                     ))}
