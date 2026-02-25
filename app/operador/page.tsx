@@ -1,287 +1,309 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { MonitorSmartphone, RefreshCw, ClipboardCheck, Play, Square, AlertCircle, ChevronLeft, ChevronRight, Settings } from 'lucide-react';
-import { buscarEstacoes, buscarBarcosNaEstacao, iniciarSessaoTrabalho, terminarSessaoTrabalho } from './actions';
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import React, { useState, useEffect, useRef } from 'react';
+import { MonitorSmartphone, ChevronLeft, Wifi } from 'lucide-react';
+import { buscarEstacoes } from './actions';
 import { SearchableSelect } from '@/components/ui/searchable-select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
-
-interface Barco {
-    id: string;
-    op_numero: string;
-    modelo: string;
-    hin: string;
-}
 
 export default function TabletDashboardPage() {
     const router = useRouter();
 
-    // Core State
+    // Context Factory State
     const [estacoes, setEstacoes] = useState<{ id: string, nome_estacao: string }[]>([]);
     const [selectedEstacaoId, setSelectedEstacaoId] = useState<string>('');
-    const [barcos, setBarcos] = useState<Barco[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [isRefreshing, setIsRefreshing] = useState(false);
 
-    // Modal State
-    const [selectedBarco, setSelectedBarco] = useState<Barco | null>(null);
-    const [isModalOpen, setIsModalOpen] = useState(false);
+    // ESP32 Hardware State
+    type HmiMode = 'IDLE' | 'MENU_PAUSA' | 'MENU_FIM';
+    const [mode, setMode] = useState<HmiMode>('IDLE');
 
-    // Action State (Micro-OEE auth)
+    // Pausa Options
+    const pausaOptions = ['WC', 'Formacao', 'Clinica', 'Falta_Material'];
+    const [pausaIndex, setPausaIndex] = useState(0);
+
+    const [lcdLine1, setLcdLine1] = useState('BRUNSWICK MES v2.0');
+    const [lcdLine2, setLcdLine2] = useState('Aguardando Rede...');
     const [rfidInput, setRfidInput] = useState('');
-    const [activeSessaoId, setActiveSessaoId] = useState<string | null>(null);
+    const inputRef = useRef<HTMLInputElement>(null);
 
-    // 1. Initial Load
+    // Boot Sequence
     useEffect(() => {
-        async function fetchInitial() {
+        async function bootSequence() {
+            setLcdLine1('BOOTING SYSTEM...');
+            setLcdLine2('A Ligar a Supabase...');
             const res = await buscarEstacoes();
             if (res.success && res.estacoes) {
                 setEstacoes(res.estacoes);
-                // Try to load last selected station from localStorage for convenience
                 const savedEstacao = localStorage.getItem('tablet_last_estacao');
                 if (savedEstacao && res.estacoes.find(e => e.id === savedEstacao)) {
                     setSelectedEstacaoId(savedEstacao);
+                    setLcdLine1('SISTEMA ONLINE');
+                    setLcdLine2('Ler Cracha / Barco');
+                } else {
+                    setLcdLine1('ATENCAO:');
+                    setLcdLine2('Selecione Estacao!');
                 }
+            } else {
+                setLcdLine1('ERRO DE REDE');
+                setLcdLine2('Contacte a T.I.');
             }
-            setIsLoading(false);
         }
-        fetchInitial();
+        bootSequence();
     }, []);
 
-    // 2. Load Barcos when Station changes
     useEffect(() => {
-        if (!selectedEstacaoId) {
-            setBarcos([]);
-            return;
+        if (selectedEstacaoId) {
+            localStorage.setItem('tablet_last_estacao', selectedEstacaoId);
+            setLcdLine1('SISTEMA ONLINE');
+            setLcdLine2('Ler Cracha / Barco');
         }
-
-        localStorage.setItem('tablet_last_estacao', selectedEstacaoId);
-        loadBarcos();
-
-        // Auto-refresh interval (every 30 seconds)
-        const interval = setInterval(loadBarcos, 30000);
-        return () => clearInterval(interval);
     }, [selectedEstacaoId]);
 
-    const loadBarcos = async () => {
-        if (!selectedEstacaoId) return;
-        setIsRefreshing(true);
-        const res = await buscarBarcosNaEstacao(selectedEstacaoId);
-        if (res.success && res.barcos) {
-            setBarcos(res.barcos);
-        }
-        setIsRefreshing(false);
-    };
+    // Focus Lock for RFID Keyboard
+    useEffect(() => {
+        const interval = setInterval(() => {
+            if (inputRef.current && document.activeElement !== inputRef.current) {
+                inputRef.current.focus();
+            }
+        }, 3000);
+        return () => clearInterval(interval);
+    }, []);
 
-    // 3. UI Actions
-    const handleBarcoClick = (barco: Barco) => {
-        setSelectedBarco(barco);
-        setRfidInput('');
-        setIsModalOpen(true);
-    };
+    const handleRfidSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        const tag = rfidInput.trim().toUpperCase();
+        if (!tag) return;
 
-    const handleStartWork = async () => {
-        if (!selectedBarco || !rfidInput.trim()) {
-            alert('Por favor, prima o seu crachá (RFID) no leitor.');
+        if (!selectedEstacaoId) {
+            setLcdLine1('ERRO LIGACAO');
+            setLcdLine2('Fixe uma Estacao');
+            setRfidInput('');
+            setTimeout(() => {
+                setLcdLine1('ATENCAO:');
+                setLcdLine2('Selecione Estacao!');
+            }, 3000);
             return;
         }
 
-        const res = await iniciarSessaoTrabalho(rfidInput.trim(), selectedBarco.hin, selectedEstacaoId);
-        if (res.success) {
-            alert(`Sessão Iniciada! Bom trabalho na ${selectedBarco.op_numero}.`);
-            setActiveSessaoId(res.registoId || null);
-            setRfidInput('');
-        } else {
-            alert(`Acesso Negado: ${res.error}`);
+        setLcdLine1('A PROCESSAR...');
+        setLcdLine2(`TAG: ${tag}`);
+        setRfidInput('');
+
+        try {
+            // Prepare Custom Variables for Emulation payload
+            let emitType = 'RFID_SCAN';
+            let pauseReason = null;
+            let endStation = null;
+
+            if (mode === 'MENU_PAUSA') {
+                emitType = 'BUTTON_DOWN_PAUSE';
+                pauseReason = pausaOptions[pausaIndex];
+            } else if (mode === 'MENU_FIM') {
+                emitType = 'BUTTON_UP_FINISH';
+                endStation = 'TRUE';
+            }
+
+            // Emulate ESP32 HTTP POST logic here
+            const res = await fetch('/api/mes/iot', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    station_id: selectedEstacaoId,
+                    rfid_tag: tag,
+                    device_mac: "00:00:TABLET:HMI",
+                    firmware_ver: "v2.0_TABLET_EMU",
+                    // Emulated Hardware states
+                    action_override: emitType,
+                    pause_reason: pauseReason,
+                    finish_station: endStation
+                })
+            });
+
+            const rawText = await res.text();
+
+            // Simulação de Beep de Sucesso (Visual)
+            if (res.ok) {
+                setLcdLine1('>>> SUCESSO <<<');
+                setLcdLine2(rawText.substring(0, 16));
+            } else {
+                setLcdLine1('! ACESSO NEGADO');
+                setLcdLine2(rawText.substring(0, 16));
+            }
+
+        } catch (error: any) {
+            setLcdLine1('ERRO DE API');
+            setLcdLine2(error.message?.substring(0, 16) || 'Timeout');
         }
+
+        // Return to Idle after 4 seconds
+        setTimeout(() => {
+            setLcdLine1('SISTEMA ONLINE');
+            setLcdLine2('Ler Cracha / Barco');
+        }, 4000);
     };
 
-    const handleStopWork = async () => {
-        if (!activeSessaoId) return;
+    const handleHardwareButton = (btnLabel: string) => {
+        if (!selectedEstacaoId) return;
 
-        const res = await terminarSessaoTrabalho(activeSessaoId);
-        if (res.success) {
-            alert('Sessão Encerrada! O seu tempo foi registado.');
-            setActiveSessaoId(null);
-            setRfidInput('');
-            setIsModalOpen(false); // Close modal on stop
-        } else {
-            alert(`Erro ao registar fim: ${res.error}`);
+        if (btnLabel === 'DOWN') {
+            if (mode !== 'MENU_PAUSA') {
+                setMode('MENU_PAUSA');
+                setPausaIndex(0);
+                setLcdLine1('> MOTIVO PAUSA <');
+                setLcdLine2(pausaOptions[0].padEnd(16, ' '));
+            } else {
+                // Cycle through pauses
+                const nextIdx = (pausaIndex + 1) % pausaOptions.length;
+                setPausaIndex(nextIdx);
+                setLcdLine2(pausaOptions[nextIdx].padEnd(16, ' '));
+            }
         }
-    };
+        else if (btnLabel === 'UP') {
+            setMode('MENU_FIM');
+            setLcdLine1('> CONCLUIR OP? <');
+            setLcdLine2('Ler Barco/RFID  ');
+        }
+        else if (btnLabel === 'SELECT') {
+            // Cancelar e voltar ao IDLE
+            setMode('IDLE');
+            setLcdLine1('SISTEMA ONLINE');
+            setLcdLine2('Ler Cracha / Barco');
+        }
 
-    const handleNavigateToQuality = () => {
-        if (!selectedBarco) return;
-        // In Fase 21 we pass data via query params so the Quality page knows the context
-        router.push(`/operador/qualidade?op_id=${selectedBarco.id}&hin=${selectedBarco.hin}&nome=${selectedBarco.op_numero}`);
+        inputRef.current?.focus();
     };
 
     return (
-        <div className="min-h-screen bg-slate-100 flex flex-col font-sans">
-            {/* TABLET HEADER */}
-            <header className="bg-white border-b border-slate-200 shadow-sm p-4 sticky top-0 z-10 flex flex-col md:flex-row gap-4 items-center justify-between">
+        <div className="min-h-screen bg-slate-950 flex flex-col font-mono text-slate-300">
+            {/* ADMIN TOP BAR */}
+            <header className="bg-slate-900 border-b border-slate-800 p-4 sticky top-0 z-10 flex flex-col md:flex-row gap-4 items-center justify-between shadow-2xl">
                 <div className="flex items-center gap-3">
-                    <Button variant="ghost" size="icon" onClick={() => router.back()} className="mr-2 hover:bg-slate-100 rounded-full h-12 w-12 hidden md:flex">
-                        <ChevronLeft size={28} className="text-slate-600" />
+                    <Button variant="ghost" size="icon" onClick={() => router.back()} className="mr-2 hover:bg-slate-800 rounded-full h-12 w-12 text-slate-400">
+                        <ChevronLeft size={28} />
                     </Button>
-                    <div className="flex items-center gap-2 md:hidden">
-                        <Button variant="ghost" size="icon" onClick={() => router.back()}>
-                            <ChevronLeft size={24} className="text-slate-600" />
-                        </Button>
-                    </div>
-
-                    <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center shadow-inner">
-                        <MonitorSmartphone className="text-white" size={24} />
+                    <div className="w-12 h-12 bg-emerald-600/20 border border-emerald-500/30 rounded-xl flex items-center justify-center shadow-inner">
+                        <MonitorSmartphone className="text-emerald-500" size={24} />
                     </div>
                     <div>
-                        <h1 className="text-xl font-extrabold text-slate-800 tracking-tight">HMI Tablet Hub</h1>
-                        <p className="text-sm text-slate-500 font-medium">Terminal de Gestão Visual</p>
+                        <h1 className="text-xl font-black text-slate-100 tracking-tight">SUPER EMULATOR HMI</h1>
+                        <p className="text-sm text-emerald-500 font-bold tracking-widest">ESP32 DIGITAL TWIN</p>
                     </div>
                 </div>
 
                 <div className="flex items-center gap-4 w-full md:w-auto mt-2 md:mt-0">
-                    <div className="flex-1 md:w-64">
+                    <div className="flex-1 md:w-80">
                         <SearchableSelect
                             options={estacoes.map(est => ({ value: est.id, label: est.nome_estacao }))}
                             value={selectedEstacaoId}
                             onChange={setSelectedEstacaoId}
-                            placeholder="Selecione a sua Estação..."
-                            className="h-12 text-lg font-bold border-2 border-slate-300"
+                            placeholder="Vincular a Terminal Fisico..."
+                            className="h-12 text-sm font-bold border border-slate-700 bg-slate-800 text-slate-200"
                         />
                     </div>
-                    {selectedEstacaoId && (
-                        <Button variant="outline" size="icon" className="h-12 w-12 border-2 border-slate-300 rounded-xl" onClick={loadBarcos} disabled={isRefreshing}>
-                            <RefreshCw className={`text-slate-600 ${isRefreshing ? 'animate-spin' : ''}`} />
-                        </Button>
-                    )}
                 </div>
             </header>
 
-            {/* MAIN CONTENT AREA */}
-            <main className="flex-1 p-4 md:p-8 overflow-y-auto">
-                {!selectedEstacaoId ? (
-                    <div className="h-[60vh] flex flex-col items-center justify-center text-slate-400">
-                        <Settings size={64} className="mb-4 opacity-20" />
-                        <h2 className="text-2xl font-bold text-slate-500">Nenhuma Estação Selecionada</h2>
-                        <p className="text-lg mt-2">Toque no menu de topo para afixar este Tablet a uma linha mecânica.</p>
+            {/* HARDWARE TWIN AREA */}
+            <main className="flex-1 flex flex-col items-center justify-center p-4 md:p-8 bg-[url('/img/carbon-fiber.png')] bg-repeat">
+
+                {/* The Box */}
+                <div className="bg-gradient-to-br from-slate-200 to-slate-400 border-[12px] border-slate-500 rounded-[3rem] shadow-[0_30px_60px_rgba(0,0,0,0.8),inset_0_4px_10px_rgba(255,255,255,0.8)] w-full max-w-4xl flex flex-col md:flex-row overflow-hidden relative">
+
+                    {/* Fake Screws */}
+                    <div className="absolute top-4 left-4 w-4 h-4 rounded-full bg-slate-400 shadow-[inset_0_2px_4px_rgba(0,0,0,0.4)]"></div>
+                    <div className="absolute top-4 right-4 w-4 h-4 rounded-full bg-slate-400 shadow-[inset_0_2px_4px_rgba(0,0,0,0.4)]"></div>
+                    <div className="absolute bottom-4 left-4 w-4 h-4 rounded-full bg-slate-400 shadow-[inset_0_2px_4px_rgba(0,0,0,0.4)]"></div>
+                    <div className="absolute bottom-4 right-4 w-4 h-4 rounded-full bg-slate-400 shadow-[inset_0_2px_4px_rgba(0,0,0,0.4)]"></div>
+
+                    {/* LEFT PANEL: SCANNER & INPUT */}
+                    <div className="w-full md:w-1/2 p-8 md:p-12 flex flex-col items-center justify-center border-b-8 md:border-b-0 md:border-r-8 border-slate-400/30">
+                        <div className="mb-8 w-48 h-48 rounded-full border-[16px] border-blue-500/20 flex flex-col items-center justify-center bg-blue-100 shadow-[inset_0_10px_20px_rgba(0,0,0,0.1)] relative">
+                            <Wifi size={64} className="text-blue-500 animate-pulse mb-2" />
+                            <span className="text-blue-800 font-extrabold tracking-widest text-sm">RFID SENSOR</span>
+                            {/* Blinking LEDs */}
+                            <div className="absolute top-4 right-8 w-3 h-3 rounded-full bg-green-500 shadow-[0_0_10px_#22c55e]"></div>
+                        </div>
+
+                        <form onSubmit={handleRfidSubmit} className="w-full">
+                            <label className="text-xs font-bold text-slate-500 tracking-widest block mb-2 text-center uppercase">Teclado Manual (Substitui Cartão Fisico)</label>
+                            <input
+                                ref={inputRef}
+                                type="text"
+                                value={rfidInput}
+                                onChange={(e) => setRfidInput(e.target.value)}
+                                placeholder="Pique o Cartão aqui..."
+                                className="w-full h-16 text-center text-2xl font-black tracking-widest uppercase bg-white border-4 border-slate-300 rounded-xl text-slate-800 shadow-inner focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/30 transition-all placeholder:text-slate-300"
+                                autoFocus
+                            />
+                            <button type="submit" className="hidden">Send</button>
+                        </form>
                     </div>
-                ) : isLoading ? (
-                    <div className="flex justify-center mt-20"><RefreshCw className="animate-spin text-blue-500" size={48} /></div>
-                ) : barcos.length === 0 ? (
-                    <div className="h-[50vh] flex flex-col items-center justify-center bg-white rounded-3xl border-2 border-dashed border-slate-300 p-8 text-center max-w-2xl mx-auto">
-                        <AlertCircle size={64} className="text-amber-500 mb-6" />
-                        <h2 className="text-3xl font-extrabold text-slate-700">Linha Vazia</h2>
-                        <p className="text-xl text-slate-500 mt-2">Não existem embarcações ativas pendentes nesta estação de trabalho.</p>
-                    </div>
-                ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                        {barcos.map(barco => (
-                            <Card
-                                key={barco.id}
-                                className="group cursor-pointer border-2 hover:border-blue-500 hover:shadow-xl transition-all rounded-2xl overflow-hidden bg-white"
-                                onClick={() => handleBarcoClick(barco)}
+
+                    {/* RIGHT PANEL: LCD & BUTTONS */}
+                    <div className="w-full md:w-1/2 p-8 flex flex-col items-center bg-slate-800/5 relative">
+
+                        {/* LCD Display 16x2 Emulation */}
+                        <div className="bg-[#1b2b1b] border-8 border-slate-700 rounded-xl w-full p-4 mb-10 shadow-[inset_0_5px_15px_rgba(0,0,0,0.8)] flex flex-col gap-1 relative overflow-hidden">
+                            {/* Bezel branding */}
+                            <div className="absolute top-1 left-2 text-[#4ade80] opacity-20 text-[0.6rem] font-bold">1602A LCD MODULE</div>
+
+                            {/* Glass overlay */}
+                            <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent pointer-events-none"></div>
+
+                            <div className="mt-4 font-mono text-3xl font-black text-[#4ade80] drop-shadow-[0_0_5px_rgba(74,222,128,0.5)] tracking-[0.2em] whitespace-pre truncate">
+                                {lcdLine1.padEnd(16, ' ')}
+                            </div>
+                            <div className="font-mono text-3xl font-black text-[#4ade80] drop-shadow-[0_0_5px_rgba(74,222,128,0.5)] tracking-[0.2em] whitespace-pre truncate">
+                                {lcdLine2.padEnd(16, ' ')}
+                            </div>
+                        </div>
+
+                        {/* Physical Buttons */}
+                        <div className="flex gap-6 w-full justify-center mt-auto">
+                            <button
+                                type="button"
+                                onClick={() => handleHardwareButton('UP')}
+                                className="w-24 h-24 rounded-full bg-rose-500 hover:bg-rose-400 active:bg-rose-600 border-b-8 border-rose-700 active:border-b-0 active:translate-y-2 transition-all shadow-xl flex flex-col items-center justify-center hover:shadow-[0_0_20px_#f43f5e]"
                             >
-                                <div className="h-3 bg-gradient-to-r from-blue-500 to-indigo-600 w-full" />
-                                <CardHeader className="pb-2">
-                                    <p className="text-xs font-bold text-blue-600 tracking-widest uppercase mb-1">CÓDIGO HIN: {barco.hin}</p>
-                                    <CardTitle className="text-3xl font-black text-slate-800 tracking-tight">{barco.op_numero}</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="bg-slate-50 rounded-lg p-3 border border-slate-100 mt-2">
-                                        <p className="text-sm font-semibold text-slate-500 mb-1">MODELO EM CONSTRUÇÃO</p>
-                                        <p className="text-lg font-bold text-slate-700 truncate">{barco.modelo}</p>
-                                    </div>
-                                </CardContent>
-                                <CardFooter className="bg-slate-50 group-hover:bg-blue-50 transition-colors border-t border-slate-100 flex justify-end p-4">
-                                    <span className="flex items-center font-bold text-blue-600">Ações <ChevronRight size={18} /></span>
-                                </CardFooter>
-                            </Card>
-                        ))}
+                                <span className="text-white text-3xl font-black mb-1">▲</span>
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => handleHardwareButton('SELECT')}
+                                className="w-24 h-24 rounded-full bg-blue-500 hover:bg-blue-400 active:bg-blue-600 border-b-8 border-blue-700 active:border-b-0 active:translate-y-2 transition-all shadow-xl flex flex-col items-center justify-center hover:shadow-[0_0_20px_#3b82f6]"
+                            >
+                                <span className="text-white text-lg font-black tracking-widest">SEL</span>
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => handleHardwareButton('DOWN')}
+                                className="w-24 h-24 rounded-full bg-rose-500 hover:bg-rose-400 active:bg-rose-600 border-b-8 border-rose-700 active:border-b-0 active:translate-y-2 transition-all shadow-xl flex flex-col items-center justify-center hover:shadow-[0_0_20px_#f43f5e]"
+                            >
+                                <span className="text-white text-3xl font-black mt-1">▼</span>
+                            </button>
+                        </div>
+
+                        <div className="flex w-full justify-center gap-[4.5rem] mt-4 text-slate-500 font-bold uppercase tracking-widest text-xs">
+                            <span>UP/FIM</span>
+                            <span>SELECT</span>
+                            <span>PAUSAS</span>
+                        </div>
+
                     </div>
-                )}
+                </div>
+
+                {/* Hardware Speaker Holes */}
+                <div className="absolute bottom-8 right-12 flex gap-2 opacity-50">
+                    <div className="w-4 h-4 bg-slate-700 rounded-full"></div>
+                    <div className="w-4 h-4 bg-slate-700 rounded-full"></div>
+                    <div className="w-4 h-4 bg-slate-700 rounded-full"></div>
+                    <div className="w-4 h-4 bg-slate-700 rounded-full"></div>
+                </div>
+
             </main>
-
-            {/* ACTION MODAL (Drawer for the Barco selected) */}
-            <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-                <DialogContent className="sm:max-w-md md:max-w-2xl bg-white border-2 border-slate-200 shadow-2xl rounded-3xl p-0 overflow-hidden">
-                    <div className="bg-gradient-to-r from-slate-900 to-slate-800 p-6 md:p-8 text-white">
-                        <DialogHeader>
-                            <DialogTitle className="text-3xl font-black tracking-tight">{selectedBarco?.op_numero}</DialogTitle>
-                            <DialogDescription className="text-slate-300 text-lg mt-1">
-                                {selectedBarco?.modelo} &mdash; HIN: {selectedBarco?.hin}
-                            </DialogDescription>
-                        </DialogHeader>
-                    </div>
-
-                    <div className="p-6 md:p-8 flex flex-col gap-8">
-                        {/* Seção 1: Produtividade (Operador Pica o Ponto da Tarefa) */}
-                        <div className="border border-slate-200 rounded-2xl p-6 bg-slate-50 relative overflow-hidden">
-                            <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-                                <Play size={20} className="text-emerald-500" /> Registar Tempos (Micro-OEE)
-                            </h3>
-
-                            {!activeSessaoId ? (
-                                <div className="space-y-4">
-                                    <Label className="text-sm font-semibold text-slate-600">PASSE O SEU CRACHÁ (RFID)</Label>
-                                    <div className="flex gap-3">
-                                        <Input
-                                            value={rfidInput}
-                                            onChange={(e) => setRfidInput(e.target.value)}
-                                            placeholder="Ex: TAG-101..."
-                                            className="h-14 text-lg font-mono border-2 border-slate-300 focus-visible:ring-indigo-500"
-                                            autoFocus
-                                        />
-                                        <Button
-                                            size="lg"
-                                            className="h-14 px-8 bg-emerald-600 hover:bg-emerald-700 text-white font-bold tracking-wide rounded-xl"
-                                            onClick={handleStartWork}
-                                        >
-                                            INICIAR
-                                        </Button>
-                                    </div>
-                                    <p className="text-xs text-slate-500">O relógio de fabrico começará a contar no seu perfil associado a este casco.</p>
-                                </div>
-                            ) : (
-                                <div className="flex flex-col items-center justify-center p-4 bg-emerald-50 border border-emerald-200 rounded-xl">
-                                    <div className="flex items-center gap-3 text-emerald-700 font-bold text-xl mb-4 animate-pulse">
-                                        <div className="w-4 h-4 rounded-full bg-emerald-500"></div> SESSÃO ATIVA (EM CURSO)
-                                    </div>
-                                    <Button
-                                        size="lg"
-                                        variant="destructive"
-                                        className="h-16 w-full max-w-sm font-black text-xl rounded-xl shadow-lg shadow-red-500/20"
-                                        onClick={handleStopWork}
-                                    >
-                                        <Square className="mr-2" size={24} /> CONCLUIR E PARAR TEMPO
-                                    </Button>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Seção 2: Qualidade (Tablet PDFs) */}
-                        <div className="border border-indigo-100 rounded-2xl p-6 bg-indigo-50/50">
-                            <h3 className="text-lg font-bold text-indigo-900 mb-2 flex items-center gap-2">
-                                <ClipboardCheck size={20} className="text-indigo-600" /> Auditoria e Checklists
-                            </h3>
-                            <p className="text-sm text-indigo-700 mb-6">Preencha controlos técnicos e gere instantaneamente um Boletim PDF Oficial para este barco.</p>
-
-                            <Button
-                                size="lg"
-                                className="w-full h-16 bg-white text-indigo-700 hover:bg-indigo-100 border-2 border-indigo-200 font-extrabold text-lg rounded-xl shadow-sm"
-                                onClick={handleNavigateToQuality}
-                            >
-                                <ClipboardCheck className="mr-2" size={24} /> ACEDER AO PORTAL QA
-                            </Button>
-                        </div>
-                    </div>
-                </DialogContent>
-            </Dialog>
-
         </div>
     );
 }
