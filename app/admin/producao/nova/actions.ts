@@ -10,34 +10,37 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey);
 export async function fetchFormularioNovaOPData() {
     try {
         // 1. Modelos
-        const { data: modelos } = await supabase
+        const { data: modelos, error: errModelos } = await supabase
             .from('modelos')
             .select('id, nome_modelo, model_year')
             .order('nome_modelo', { ascending: true });
+        if (errModelos) throw errModelos;
 
         // 2. Linhas de Produção
-        const { data: linhas } = await supabase
+        const { data: linhas, error: errLinhas } = await supabase
             .from('linhas_producao')
-            .select('id, nome, letra')
-            .order('letra', { ascending: true });
+            .select('id, descricao_linha, letra_linha')
+            .order('letra_linha', { ascending: true });
+        if (errLinhas) throw errLinhas;
 
         // 3. Roteiros de Produção Completos
-        // Para extrair o offset e duração teremos que cruzar Roteiros com Estações se estruturados assim
-        const { data: roteiros } = await supabase
+        const { data: roteiros, error: errRoteiros } = await supabase
             .from('roteiros_producao')
             .select(`
                 id, 
-                ordem_tarefa, 
+                sequencia, 
                 tempo_ciclo,
                 modelo_id,
                 estacoes (nome_estacao)
             `)
-            .order('ordem_tarefa', { ascending: true });
+            .order('sequencia', { ascending: true });
+        if (errRoteiros) throw errRoteiros;
 
         // 4. Opcionais por Modelo
-        const { data: opcionais } = await supabase
+        const { data: opcionais, error: errOpc } = await supabase
             .from('opcionais')
             .select('id, nome_opcao, modelo_id');
+        if (errOpc) throw errOpc;
 
         // 5. Moldes (Migration 0012)
         const { data: moldes, error: moldesErr } = await supabase

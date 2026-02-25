@@ -103,7 +103,7 @@ export default function NovaOrdermProducaoPage() {
             currentStart = new Date(d_fim);
 
             return {
-                estacao: passo.estacoes?.nome_estacao || `Tarefa ${passo.ordem_tarefa}`,
+                estacao: passo.estacoes?.nome_estacao || `Tarefa ${passo.sequencia}`,
                 inicio: d_inicio.toLocaleDateString('pt-PT'),
                 fim: d_fim.toLocaleDateString('pt-PT')
             };
@@ -201,7 +201,7 @@ export default function NovaOrdermProducaoPage() {
                                             onChange={(e) => setLinhaSelecionada(e.target.value)}
                                         >
                                             <option value="">-- Linha Fabril --</option>
-                                            {dbLinhas.map(l => <option key={l.id} value={l.id}>Linha {l.letra} - {l.nome}</option>)}
+                                            {dbLinhas.map(l => <option key={l.id} value={l.id}>Linha {l.letra_linha} - {l.descricao_linha}</option>)}
                                         </select>
                                     </div>
                                 </div>
