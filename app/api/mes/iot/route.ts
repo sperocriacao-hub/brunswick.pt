@@ -161,6 +161,29 @@ export async function POST(req: Request) {
                 return NextResponse.json({ success: false, error: errFecho.message, display: 'JA FECHADO' });
             }
 
+            // [FASE 44] KITTING LOGÍSTICO J.I.T. (TRIGGER)
+            try {
+                const { data: seq } = await supabase
+                    .from('estacoes_sequencia')
+                    .select('estacao_sucessora_id')
+                    .eq('estacao_predecessora_id', estacao_id)
+                    .limit(1)
+                    .single();
+
+                if (seq && seq.estacao_sucessora_id) {
+                    await supabase.from('logistica_pedidos').insert({
+                        ordem_producao_id: op_id,
+                        estacao_destino_id: seq.estacao_sucessora_id,
+                        status: 'Pendente',
+                        prioridade: 'Normal',
+                        peca_solicitada: 'Kit B.O.M. Standard'
+                    });
+                }
+            } catch (kittingErr) {
+                console.error("Falha ao gerar Kitting Logistico:", kittingErr);
+                // Não falhamos o request principal do operador caso a logistica falhe
+            }
+
             return NextResponse.json({ success: true, display: 'ESTACAO FECHADA', display_2: 'BARCO AVANCOU' });
         }
 
