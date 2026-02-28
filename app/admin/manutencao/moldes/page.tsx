@@ -15,9 +15,15 @@ export default function GestaoMoldesTPMPage() {
 
     async function carregarMoldes() {
         setLoading(true);
-        const res = await getMoldesTPM();
-        if (res.success) setMoldes(res.data || []);
-        setLoading(false);
+        try {
+            const res = await getMoldesTPM();
+            if (res.success) setMoldes(res.data || []);
+            else console.error("Falha a puxar TPM: ", res.error);
+        } catch (err) {
+            console.error("Erro critico servidor TPM: ", err);
+        } finally {
+            setLoading(false);
+        }
     }
 
     async function handleManutencao(moldeId: string) {
