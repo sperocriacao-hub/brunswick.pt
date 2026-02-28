@@ -8,33 +8,47 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.
 // A TV Cast tem Acessos Super Admin ao nivel da base de dados porque corre como Node Edge
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-export async function buscarDashboardsTV(area_id: string) {
+export async function buscarDashboardsTV(tv_id: string) {
     try {
-        // 1. Validar a Linha/Área (Saber se é Traz, Frente, Pintura, Laminação etc.)
-        const { data: areaData, error: lErr } = await supabase
-            .from('areas_fabrica')
+        // 1. O que é que esta TV mostra afinal?
+        const { data: configTv, error: tvErr } = await supabase
+            .from('vw_tvs_configuradas')
             .select('*')
-            .eq('id', area_id)
+            .eq('id', tv_id)
             .single();
 
-        if (lErr || !areaData) {
-            return { success: false, error: "Área Indisponível." };
+        if (tvErr || !configTv) {
+            return { success: false, error: "Referência de TV Indisponível." };
         }
 
-        // 2. Procurar estacoes que pertencem a esta area
-        const { data: estacoesDaArea } = await supabase
-            .from('estacoes')
-            .select('id')
-            .eq('area_id', area_id);
+        const tipoAlvo = configTv.tipo_alvo; // 'LINHA', 'AREA', 'GERAL'
+        const alvoId = configTv.alvo_id;
 
-        const dictEstacoes = estacoesDaArea ? estacoesDaArea.map(e => e.id) : [];
+        // 2. Dependendo do Tipo de Alvo, recolher quais Estações pertencem a esse escopo
+        let dictEstacoes: string[] = [];
 
-        // 3. Buscar Barcos (OPs) In_Progress mapeadas a alguem nesta área (via registos_rfid_realtime)
-        // Como o M.E.S. funciona por estações, pescamos os activos nas estações detectadas
+        if (tipoAlvo === 'LINHA') {
+            const { data: estacoesDaLinha } = await supabase
+                .from('estacoes')
+                .select('id')
+                .eq('linha_id', alvoId);
+            dictEstacoes = estacoesDaLinha ? estacoesDaLinha.map(e => e.id) : [];
+        } else if (tipoAlvo === 'AREA') {
+            const { data: estacoesDaArea } = await supabase
+                .from('estacoes')
+                .select('id')
+                .eq('area_id', alvoId);
+            dictEstacoes = estacoesDaArea ? estacoesDaArea.map(e => e.id) : [];
+        } else {
+            // GERAL: Todas as estações da fábrica
+            const { data: todasEstacoes } = await supabase.from('estacoes').select('id');
+            dictEstacoes = todasEstacoes ? todasEstacoes.map(e => e.id) : [];
+        }
 
+        // 3. Buscar Barcos (OPs) In_Progress nas Estações deste escopo
         let barcos: any[] = [];
         if (dictEstacoes.length > 0) {
-            const { data: opsAtivasArea } = await supabase
+            const { data: opsAtivasScope } = await supabase
                 .from('registos_rfid_realtime')
                 .select(`
                     id, op_id, estacao_id, timestamp_fim,
@@ -45,7 +59,7 @@ export async function buscarDashboardsTV(area_id: string) {
 
             // Deduplicate boats by op_id
             const uniqueBarcos = new Map();
-            opsAtivasArea?.forEach((reg: any) => {
+            opsAtivasScope?.forEach((reg: any) => {
                 if (reg.ordem && !uniqueBarcos.has(reg.ordem.id)) {
                     uniqueBarcos.set(reg.ordem.id, reg.ordem);
                 }
@@ -53,26 +67,23 @@ export async function buscarDashboardsTV(area_id: string) {
             barcos = Array.from(uniqueBarcos.values()).slice(0, 4);
         }
 
-        // 3. Verificar de todas as Estações dessa linha, se existe algum ALERTA ANDON a disparar
-        // Para isso, precisamos mapear as estações ativas com os alertas não resolvidos
+        // 4. Detetar de todas as Estações deste escopo, se existe ALERTA ANDON a disparar
         const { data: alertas, error: aErr } = await supabase
             .from('alertas_andon')
             .select(`
                 id, situacao, estacao_id, created_at, operador_rfid, op_id, tipo_alerta, descricao_alerta,
-                estacoes:estacao_id ( nome_estacao, area_id )
+                estacoes:estacao_id ( nome_estacao, area_id, linha_id )
             `)
-            .eq('resolvido', false);
+            .eq('resolvido', false)
+            .in('estacao_id', dictEstacoes); // <- Filtro direto pelas estações alvo da TV
 
         if (aErr) throw aErr;
 
-        // Filtrar Alertas ativos que pertencem à Área que estamos a monitorizar
-        const alertasGlobais = alertas?.filter((al: any) => al.estacoes?.area_id === area_id) || [];
-
         return {
             success: true,
-            area: areaData,
+            config: configTv,
             barcos: barcos,
-            alertasGlobais: alertasGlobais
+            alertasGlobais: alertas || []
         };
     } catch (err: any) {
         return { success: false, error: err.message || "Erro Técnico TV." };

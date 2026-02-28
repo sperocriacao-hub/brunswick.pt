@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { getAndonHistory, fecharAlertaAndon, getAreasTVLinks } from './actions';
+import { getAndonHistory, fecharAlertaAndon } from './actions';
+import { getTVConfigs } from '../../configuracoes/tvs/actions';
 import { AlertCircle, Clock, CheckCircle2, Factory, Hammer, Tv } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,7 +13,7 @@ import Link from 'next/link';
 export default function AndonDashPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [alertas, setAlertas] = useState<any[]>([]);
-    const [tvLinks, setTvLinks] = useState<{ id: string, nome_area: string }[]>([]);
+    const [tvLinks, setTvLinks] = useState<any[]>([]);
 
     useEffect(() => {
         loadData();
@@ -20,13 +21,13 @@ export default function AndonDashPage() {
 
     async function loadData() {
         setIsLoading(true);
-        const [res, areasRes] = await Promise.all([getAndonHistory(), getAreasTVLinks()]);
+        const [res, tvsRes] = await Promise.all([getAndonHistory(), getTVConfigs()]);
 
         if (res.success) {
             setAlertas(res.data || []);
         }
-        if (areasRes.success) {
-            setTvLinks(areasRes.data || []);
+        if (tvsRes.success) {
+            setTvLinks(tvsRes.data || []);
         }
         setIsLoading(false);
     }
@@ -72,12 +73,12 @@ export default function AndonDashPage() {
                     <CardContent className="p-2">
                         <div className="flex flex-wrap gap-2">
                             {tvLinks.length === 0 ? (
-                                <span className="text-xs text-slate-500 p-2">A carregar ecrãs...</span>
+                                <span className="text-xs text-slate-500 p-2">Nenhum ecrã configurado.</span>
                             ) : (
-                                tvLinks.map(area => (
-                                    <Link key={area.id} href={`/tv/area/${area.id}`} target="_blank">
+                                tvLinks.map(tv => (
+                                    <Link key={tv.id} href={`/tv/live/${tv.id}`} target="_blank">
                                         <Button variant="secondary" size="sm" className="bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700 text-xs">
-                                            {area.nome_area}
+                                            {tv.nome_tv}
                                         </Button>
                                     </Link>
                                 ))
