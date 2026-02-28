@@ -94,39 +94,7 @@ export default function CustomTVDashboardPage() {
     return (
         <div className="w-screen h-screen flex flex-col p-8 md:p-12 overflow-hidden selection:bg-rose-500/30 bg-slate-950">
 
-            {/* McDonald's Style Andon Alerts Banner */}
-            {temAlertaCritico && (
-                <div className="w-full bg-red-600 rounded-[3rem] p-6 mb-8 flex gap-6 overflow-x-auto border-8 border-red-500/50 shadow-[0_0_50px_rgba(220,38,38,0.5)] animate-pulse-slow shrink-0">
-                    <div className="flex items-center justify-center px-10 border-r-4 border-red-400/30 shrink-0">
-                        <AlertTriangle size={100} className="text-white animate-bounce" />
-                        <div className="ml-8">
-                            <h2 className="text-6xl font-black text-white uppercase tracking-tighter leading-none mb-1">ANDON</h2>
-                            <p className="text-red-200 font-bold tracking-widest uppercase">Pausa na Linha</p>
-                        </div>
-                    </div>
-                    {alertas.map(al => (
-                        <div key={al.id} className="bg-black/40 border-[6px] border-white/20 rounded-[2rem] p-8 min-w-[500px] flex flex-col justify-center">
-                            <span className="text-red-200 font-bold uppercase tracking-widest text-2xl mb-2 truncate">
-                                EST. {al.estacoes?.nome_estacao || "DESCONHECIDA"}
-                            </span>
-                            <span className="text-white font-black text-5xl uppercase truncate">
-                                {al.tipo_alerta}
-                            </span>
-                            {al.descricao_alerta && (
-                                <span className="text-white/90 italic text-2xl mt-4 line-clamp-2 leading-tight">
-                                    "{al.descricao_alerta}"
-                                </span>
-                            )}
-                            <div className="mt-auto pt-6 border-t border-white/10 flex justify-between items-center">
-                                <span className="text-white/60 font-mono text-xl tracking-widest">FUNC: {al.operador_rfid}</span>
-                                <span className="bg-red-500 text-white px-4 py-2 rounded-full text-sm font-black uppercase animate-pulse shadow-lg">
-                                    Aguardar Assistência
-                                </span>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            )}
+
             {/* Header Gigante */}
             <header className="flex items-center justify-between border-b-[8px] border-slate-800 pb-8 mb-12">
                 <div className="flex items-center gap-8">
@@ -191,6 +159,46 @@ export default function CustomTVDashboardPage() {
                     </div>
                 )}
             </main>
+
+            {/* McDonald's Style Andon Alerts Banner (Rodapé) */}
+            {temAlertaCritico && (
+                <div className="w-full bg-red-600 rounded-[3rem] p-6 mt-8 flex flex-row gap-6 overflow-x-auto border-8 border-red-500/50 shadow-[0_0_80px_rgba(220,38,38,0.5)] animate-pulse-slow shrink-0 snap-x">
+                    <div className="flex items-center justify-center px-10 border-r-4 border-red-400/30 shrink-0 snap-start">
+                        <AlertTriangle size={120} className="text-white animate-bounce" />
+                        <div className="ml-8">
+                            <h2 className="text-7xl font-black text-white uppercase tracking-tighter leading-none mb-1">ANDON</h2>
+                            <p className="text-red-200 font-bold text-3xl tracking-widest uppercase">Pausa na Linha</p>
+                        </div>
+                    </div>
+                    {/* Alertas Lado a Lado Estilo Senha McDonald's */}
+                    {alertas.map(al => (
+                        <div key={al.id} className="bg-black/40 border-[6px] border-white/20 rounded-[2rem] p-8 min-w-[450px] max-w-[600px] flex flex-col justify-between shrink-0 snap-center shadow-2xl relative">
+                            {/* Tape / Emblema Vermelho do Cartão */}
+                            <div className="absolute top-0 left-0 w-full h-3 bg-red-400 rounded-t-xl opacity-50"></div>
+
+                            <div>
+                                <span className="text-red-300 font-bold uppercase tracking-widest text-3xl mb-2 block truncate mt-2">
+                                    EST. {al.estacoes?.nome_estacao || "DESCONHECIDA"}
+                                </span>
+                                <span className="text-white font-black text-5xl uppercase block leading-tight">
+                                    {al.tipo_alerta}
+                                </span>
+                                {al.descricao_alerta && (
+                                    <span className="text-white/80 font-medium text-3xl mt-4 line-clamp-2 leading-tight block">
+                                        "{al.descricao_alerta}"
+                                    </span>
+                                )}
+                            </div>
+                            <div className="mt-8 pt-6 border-t-[3px] border-white/10 flex justify-between items-center bg-black/20 -mx-8 -mb-8 px-8 py-6 rounded-b-2xl">
+                                <span className="text-white/60 font-mono text-2xl tracking-widest">FUNC: {al.operador_rfid}</span>
+                                <span className="bg-red-500/20 text-red-100 border-2 border-red-400/50 px-6 py-2 rounded-full text-xl font-black uppercase">
+                                    Em Espera
+                                </span>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
         </div>
     );
 }
