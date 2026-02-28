@@ -216,7 +216,7 @@ export default function TVConfiguracoesPage() {
                                 >
                                     <option value="" disabled>Selecione um item da base de dados...</option>
                                     {tipoAlvo === 'LINHA' && linhas.map(l => (
-                                        <option key={l.id} value={l.id}>{l.nome_linha}</option>
+                                        <option key={l.id} value={l.id}>{l.descricao_linha}</option>
                                     ))}
                                     {tipoAlvo === 'AREA' && areas.map(a => (
                                         <option key={a.id} value={a.id}>{a.nome_area}</option>

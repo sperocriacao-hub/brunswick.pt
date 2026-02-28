@@ -33,7 +33,7 @@ SELECT
     t.alvo_id,
     t.layout_preferencial,
     CASE 
-        WHEN t.tipo_alvo = 'LINHA' THEN l.nome_linha
+        WHEN t.tipo_alvo = 'LINHA' THEN l.descricao_linha
         WHEN t.tipo_alvo = 'AREA' THEN a.nome_area
         ELSE 'Toda a Fábrica'
     END as nome_alvo_resolvido
