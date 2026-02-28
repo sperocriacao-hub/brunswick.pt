@@ -69,7 +69,7 @@ export async function getAreasTVLinks() {
         const { data, error } = await supabase
             .from('areas_fabrica')
             .select('id, nome_area')
-            .order('step_order', { ascending: true });
+            .order('nome_area', { ascending: true });
 
         if (error) throw error;
         return { success: true, data: data || [] };

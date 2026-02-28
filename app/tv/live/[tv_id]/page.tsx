@@ -90,46 +90,43 @@ export default function CustomTVDashboardPage() {
         );
     }
 
-    // View do Andon
-    if (temAlertaCritico) {
-        return (
-            <div className="w-screen h-screen bg-red-600 flex flex-col items-center justify-center animate-pulse-slow p-12">
-                <AlertTriangle size={240} className="text-white mb-10 drop-shadow-[0_0_80px_rgba(255,255,255,0.8)] animate-bounce" />
-                <h1 className="text-9xl font-black text-white tracking-tighter text-center uppercase leading-none mb-8 drop-shadow-[0_10px_10px_rgba(0,0,0,0.5)]">
-                    ALERTA ANDON
-                </h1>
-
-                <div className="bg-black/40 border-[16px] border-white/20 rounded-[4rem] p-16 flex flex-col items-center w-full max-w-7xl justify-center backdrop-blur-sm mt-8">
-                    <h2 className="text-6xl text-red-100 font-bold uppercase tracking-widest opacity-90 mb-4 truncate text-center w-full">
-                        {alertas[0]?.tipo_alerta || 'EMERGÊNCIA'} na EST. {alertas[0]?.estacoes?.nome_estacao || "DESCONHECIDA"}
-                    </h2>
-
-                    {alertas[0]?.descricao_alerta && (
-                        <p className="text-5xl text-white font-medium text-center italic opacity-80 mt-4 leading-tight">
-                            "{alertas[0]?.descricao_alerta}"
-                        </p>
-                    )}
-
-                    <div className="mt-12 w-full flex justify-center">
-                        <div className="bg-white/10 px-10 py-6 rounded-full border-4 border-white/30 text-center">
-                            <p className="text-4xl text-white font-mono tracking-widest uppercase">
-                                SOLICITADO POR: {alertas[0]?.operador_rfid}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="absolute bottom-12 right-12 text-white/50 font-mono text-4xl text-right flex flex-col items-end">
-                    <span className="font-bold text-white uppercase">{nomeTv}</span>
-                    <span>VISÃO {alvoNome}</span>
-                </div>
-            </div>
-        );
-    }
-
-    // View Normal Fabril (Nenhum Alarme)
+    // View Normal Fabril + Alertas Top Banner
     return (
         <div className="w-screen h-screen flex flex-col p-8 md:p-12 overflow-hidden selection:bg-rose-500/30 bg-slate-950">
+
+            {/* McDonald's Style Andon Alerts Banner */}
+            {temAlertaCritico && (
+                <div className="w-full bg-red-600 rounded-[3rem] p-6 mb-8 flex gap-6 overflow-x-auto border-8 border-red-500/50 shadow-[0_0_50px_rgba(220,38,38,0.5)] animate-pulse-slow shrink-0">
+                    <div className="flex items-center justify-center px-10 border-r-4 border-red-400/30 shrink-0">
+                        <AlertTriangle size={100} className="text-white animate-bounce" />
+                        <div className="ml-8">
+                            <h2 className="text-6xl font-black text-white uppercase tracking-tighter leading-none mb-1">ANDON</h2>
+                            <p className="text-red-200 font-bold tracking-widest uppercase">Pausa na Linha</p>
+                        </div>
+                    </div>
+                    {alertas.map(al => (
+                        <div key={al.id} className="bg-black/40 border-[6px] border-white/20 rounded-[2rem] p-8 min-w-[500px] flex flex-col justify-center">
+                            <span className="text-red-200 font-bold uppercase tracking-widest text-2xl mb-2 truncate">
+                                EST. {al.estacoes?.nome_estacao || "DESCONHECIDA"}
+                            </span>
+                            <span className="text-white font-black text-5xl uppercase truncate">
+                                {al.tipo_alerta}
+                            </span>
+                            {al.descricao_alerta && (
+                                <span className="text-white/90 italic text-2xl mt-4 line-clamp-2 leading-tight">
+                                    "{al.descricao_alerta}"
+                                </span>
+                            )}
+                            <div className="mt-auto pt-6 border-t border-white/10 flex justify-between items-center">
+                                <span className="text-white/60 font-mono text-xl tracking-widest">FUNC: {al.operador_rfid}</span>
+                                <span className="bg-red-500 text-white px-4 py-2 rounded-full text-sm font-black uppercase animate-pulse shadow-lg">
+                                    Aguardar Assistência
+                                </span>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
             {/* Header Gigante */}
             <header className="flex items-center justify-between border-b-[8px] border-slate-800 pb-8 mb-12">
                 <div className="flex items-center gap-8">

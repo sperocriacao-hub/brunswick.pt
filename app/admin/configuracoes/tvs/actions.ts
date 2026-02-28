@@ -57,7 +57,7 @@ export async function deleteTVConfig(id: string) {
 
 export async function getLinhasForSelect() {
     try {
-        const { data, error } = await supabase.from('linhas_producao').select('id, descricao_linha, status').order('descricao_linha');
+        const { data, error } = await supabase.from('linhas_producao').select('id, descricao_linha').order('descricao_linha');
         if (error) throw error;
         return { success: true, data: data || [] };
     } catch (err: any) {
