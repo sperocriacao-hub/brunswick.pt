@@ -143,7 +143,7 @@ export default function ModelosListPage() {
                                             <Ban size={16} className="text-rose-400" />
                                         )}
                                     </button>
-                                    <Link href={`/admin/modelos/${modelo.id}`} className="p-2 rounded hover:bg-white/10 text-white/50 hover:text-white transition-colors" title="Editar Modelo" onClick={(e) => e.stopPropagation()}>
+                                    <Link href={`/admin/modelos/${modelo.id}`} className="p-2 rounded hover:bg-black/5 text-black/50 hover:text-black transition-colors" title="Editar Modelo" onClick={(e) => e.stopPropagation()}>
                                         <Edit size={16} />
                                     </Link>
                                 </div>
