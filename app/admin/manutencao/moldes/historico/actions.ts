@@ -13,10 +13,11 @@ export async function buscarHistoricoIntervencoes() {
             .select(`
                 id,
                 status,
-                relatorio,
+                descricao,
+                prioridade,
+                reportado_por,
                 data_abertura,
-                data_fecho,
-                volumetry_ciclos_no_fecho,
+                data_conclusao,
                 moldes (
                     nome_parte,
                     rfid,

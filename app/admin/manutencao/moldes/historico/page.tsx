@@ -31,7 +31,7 @@ export default function HistoricoTPMPage() {
 
     const logsFiltrados = historico.filter(h => {
         const p1 = (h.status || '').toLowerCase().includes(searchTerm.toLowerCase());
-        const p2 = (h.relatorio || '').toLowerCase().includes(searchTerm.toLowerCase());
+        const p2 = (h.descricao || '').toLowerCase().includes(searchTerm.toLowerCase());
         const p3 = (h.moldes?.nome_parte || '').toLowerCase().includes(searchTerm.toLowerCase());
         const p4 = (h.id || '').toLowerCase().includes(searchTerm.toLowerCase());
         return p1 || p2 || p3 || p4;
@@ -95,8 +95,8 @@ export default function HistoricoTPMPage() {
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 max-w-[300px]">
-                                            <p className="text-xs text-slate-600 truncate font-medium bg-slate-100 px-2 py-1 rounded inline-block" title={log.relatorio || 'Fim de Ciclo Standard'}>
-                                                {log.relatorio || 'Intervenção Standard Fim de Ciclo'}
+                                            <p className="text-xs text-slate-600 truncate font-medium bg-slate-100 px-2 py-1 rounded inline-block" title={log.descricao || 'Fim de Ciclo Standard'}>
+                                                {log.descricao || 'Intervenção Standard Fim de Ciclo'}
                                             </p>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
@@ -107,9 +107,9 @@ export default function HistoricoTPMPage() {
                                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-widest ${isFechado ? 'bg-emerald-100 text-emerald-800 border-emerald-200' : 'bg-amber-100 text-amber-800 border-amber-200'}`}>
                                                 {log.status}
                                             </span>
-                                            {log.data_fecho && (
+                                            {log.data_conclusao && (
                                                 <div className="text-[10px] text-slate-400 mt-1 uppercase font-bold">
-                                                    Resolvido a: {new Date(log.data_fecho).toLocaleDateString('pt-PT')}
+                                                    Resolvido a: {new Date(log.data_conclusao).toLocaleDateString('pt-PT')}
                                                 </div>
                                             )}
                                         </td>

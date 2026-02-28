@@ -59,7 +59,9 @@ export async function criarIntervencaoManual(moldeId: string, prioridade: string
             .insert({
                 molde_id: moldeId,
                 status: 'Aberta',
-                relatorio: `[Abertura Manual - Prioridade: ${prioridade}] ${observacao}`
+                prioridade: prioridade === 'CRITICA' ? 'Critica' : prioridade === 'MEDIA' ? 'Media' : 'Baixa',
+                descricao: `[Abertura Manual] ${observacao}`,
+                reportado_por: 'Operador M.E.S.'
             })
             .select('id')
             .single();
