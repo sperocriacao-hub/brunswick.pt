@@ -2,12 +2,14 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { getMoldesTPM, registarManutencaoMolde } from './actions';
-import { Wrench, ShieldCheck, ShieldAlert, Cpu } from 'lucide-react';
+import { getMoldesTPM } from './actions';
+import { Wrench, ShieldCheck, ShieldAlert, Cpu, PieChart } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 export default function GestaoMoldesTPMPage() {
     const [moldes, setMoldes] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const router = useRouter();
 
     useEffect(() => {
         carregarMoldes();
@@ -26,14 +28,8 @@ export default function GestaoMoldesTPMPage() {
         }
     }
 
-    async function handleManutencao(moldeId: string) {
-        if (!confirm('Deseja registar a manutenção técnica e reiniciar os ciclos deste molde a ZERO?')) return;
-        const res = await registarManutencaoMolde(moldeId);
-        if (res.success) {
-            carregarMoldes();
-        } else {
-            alert('Erro ao registar manutenção: ' + res.error);
-        }
+    function handleOpenCockpit(moldeId: string) {
+        router.push(`/admin/manutencao/moldes/${moldeId}`);
     }
 
     if (loading) return <div className="p-8 text-center text-slate-500 font-medium animate-pulse">A carregar matriz de desgaste de moldes...</div>;
@@ -45,6 +41,10 @@ export default function GestaoMoldesTPMPage() {
                     <h1 className="text-4xl font-black tracking-tight text-slate-900 uppercase">Preventiva TPM de Moldes</h1>
                     <p className="text-lg text-slate-500 mt-1">Inspeção de Limites de Laminação e Controlo de Desgaste OEE</p>
                 </div>
+                <Button variant="outline" className="border-blue-200 text-blue-700 hover:bg-blue-50" onClick={() => router.push('/admin/manutencao/moldes/dashboard')}>
+                    <PieChart className="w-4 h-4 mr-2" />
+                    KPI Analítico OEE
+                </Button>
             </header>
 
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
@@ -91,9 +91,9 @@ export default function GestaoMoldesTPMPage() {
                                     <Button
                                         variant={isDanger ? "default" : "outline"}
                                         className={isDanger ? 'bg-rose-600 hover:bg-rose-700 shadow-lg shadow-rose-200' : 'text-slate-600 border-slate-300 hover:bg-slate-50'}
-                                        onClick={() => handleManutencao(molde.id)}
+                                        onClick={() => handleOpenCockpit(molde.id)}
                                     >
-                                        <Wrench className="w-4 h-4 mr-2" /> Registar Preventiva
+                                        <Wrench className="w-4 h-4 mr-2" /> Cockpit TPM
                                     </Button>
                                 </div>
                             </CardContent>

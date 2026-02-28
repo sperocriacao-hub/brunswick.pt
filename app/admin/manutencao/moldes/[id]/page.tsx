@@ -8,9 +8,18 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { MapPin, CheckCircle, ArrowLeft, Loader2, Printer } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import {
+    getMoldeDetails,
+    getActiveOrNewIntervention,
+    getMoldeGeometry,
+    getPinsForIntervention,
+    createPin as actionCreatePin,
+    validatePin as actionValidatePin,
+    closeIntervention
+} from './actions';
 
 // Types para lidar com as tabelas de Manutenção TPM NASA
 export type MoldeTPM = {
@@ -49,26 +58,42 @@ const FALLBACK_SVG = `<svg viewBox="0 0 800 400" xmlns="http://www.w3.org/2000/s
     <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="24" fill="#334155" opacity="0.6">Vista Superior Genérica do Molde</text>
 </svg>`;
 
-export function MoldMaintenanceCockpit({ moldeId }: { moldeId: string }) {
+export default function MoldMaintenanceCockpit() {
     const router = useRouter();
+    const params = useParams<{ id: string }>();
+    const moldeId = params?.id || '';
     const [isLoading, setIsLoading] = useState(true);
 
-    // Mock Data para desenvolvimento da interface antes de ligar à BD
-    const [molde, setMolde] = useState<MoldeTPM>({ id: moldeId, nome_molde: "Carregando...", rfid: "...", categoria: "BIG_PART", vida_util_limite: 50, ciclos_atuais: 0 });
-    const [intervencaoAtiva, setIntervencaoAtiva] = useState<Intervencao>({
-        id: "mock-os-1", molde_id: moldeId, reportado_por: "Sistema MES", prioridade: "Media", descricao: "Inspeção de rotina atingida pelo limite de TPM.", status: "Aberta", data_abertura: new Date().toISOString()
-    });
+    const [molde, setMolde] = useState<MoldeTPM | null>(null);
+    const [intervencaoAtiva, setIntervencaoAtiva] = useState<Intervencao | null>(null);
     const [pins, setPins] = useState<DefeitoPin[]>([]);
+    const [svgGeo, setSvgGeo] = useState<string>(FALLBACK_SVG);
 
     const [pinDialog, setPinDialog] = useState<{ x: number, y: number, open: boolean }>({ x: 0, y: 0, open: false });
-    const [pinType, setPinType] = useState("Fissura");
+    const [pinType, setPinType] = useState("Fissura Estrutural");
 
     useEffect(() => {
-        // Simulando delay de DB Load
-        setTimeout(() => {
-            setMolde({ id: moldeId, nome_molde: "Casco Mod. Brunswick Pro", rfid: "M-CC-990", categoria: "BIG_PART", vida_util_limite: 100, ciclos_atuais: 98 });
-            setIsLoading(false);
-        }, 1000);
+        const loadData = async () => {
+            try {
+                const md = await getMoldeDetails(moldeId);
+                setMolde(md as MoldeTPM);
+
+                const intv = await getActiveOrNewIntervention(moldeId);
+                setIntervencaoAtiva(intv as Intervencao);
+
+                const bp = await getMoldeGeometry(moldeId);
+                if (bp && bp.svg_content) setSvgGeo(bp.svg_content);
+
+                const savedPins = await getPinsForIntervention(intv.id);
+                setPins(savedPins as DefeitoPin[]);
+            } catch (err) {
+                console.error("Erro a carregar dados do Molde TPM:", err);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        loadData();
     }, [moldeId]);
 
     const handleSvgClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -79,37 +104,49 @@ export function MoldMaintenanceCockpit({ moldeId }: { moldeId: string }) {
         setPinDialog({ x, y, open: true });
     };
 
-    const confirmPin = () => {
-        const newPin: DefeitoPin = {
-            id: `pin-${Date.now()}`,
-            intervencao_id: intervencaoAtiva.id,
-            coord_x: pinDialog.x,
-            coord_y: pinDialog.y,
-            tipo_defeito: pinType,
-            status: 'Aberto'
-        };
-
-        setPins([...pins, newPin]);
-        setPinDialog({ ...pinDialog, open: false });
+    const confirmPin = async () => {
+        if (!intervencaoAtiva) return;
+        try {
+            const newPin = await actionCreatePin(intervencaoAtiva.id, pinDialog.x, pinDialog.y, pinType);
+            setPins([...pins, newPin as DefeitoPin]);
+            setPinDialog({ ...pinDialog, open: false });
+        } catch (err) {
+            console.error("Erro ao criar pin:", err);
+            alert("Erro ao gravar Defeito no Banco de Dados.");
+        }
     };
 
-    const markPinAsValidated = (id: string) => {
-        setPins(pins.map(p => p.id === id ? { ...p, status: 'Validado' } : p));
+    const markPinAsValidated = async (id: string) => {
+        try {
+            await actionValidatePin(id);
+            setPins(pins.map(p => p.id === id ? { ...p, status: 'Validado' } : p));
+        } catch (err) {
+            console.error("Erro ao validar pin:", err);
+        }
     };
 
-    const closeOrder = () => {
+    const closeOrder = async () => {
+        if (!intervencaoAtiva || !molde) return;
         if (pins.some(p => p.status !== 'Validado')) {
             alert("Existem defeitos não validados. Resolva todas as anomalias para encerrar a OS de Recuperação.");
             return;
         }
-        alert("OS de Manutenção de Molde TPM validada e encerrada com sucesso! Ciclos redefinidos/limpos.");
-        router.push('/admin/manutencao/moldes');
+        try {
+            await closeIntervention(intervencaoAtiva.id, molde.id);
+            alert("OS de Manutenção de Molde TPM validada e encerrada com sucesso! Ciclos redefinidos/limpos.");
+            router.push('/admin/manutencao/moldes');
+        } catch (err) {
+            console.error(err);
+            alert("Falha ao Encerrar a O.S.");
+        }
     };
 
     const printMoldsMaintenanceReport = () => {
         const doc = new jsPDF();
         doc.setFontSize(20);
         doc.text(`Relatório de Conformidade - TPM Molde`, 14, 22);
+
+        if (!molde || !intervencaoAtiva) return;
 
         doc.setFontSize(12);
         doc.text(`Molde: ${molde?.nome_molde} (RFID: ${molde?.rfid})`, 14, 32);
@@ -136,7 +173,7 @@ export function MoldMaintenanceCockpit({ moldeId }: { moldeId: string }) {
         doc.save(`Auditoria_Molde_${molde?.nome_molde.replace(/\s+/g, '_')}_${intervencaoAtiva.id}.pdf`);
     };
 
-    if (isLoading) {
+    if (isLoading || !molde || !intervencaoAtiva) {
         return <div className="flex justify-center py-20"><Loader2 size={48} className="animate-spin text-slate-300" /></div>;
     }
 
@@ -179,7 +216,7 @@ export function MoldMaintenanceCockpit({ moldeId }: { moldeId: string }) {
                             className="relative w-full aspect-[2/1] bg-white rounded-lg border border-slate-200 shadow-inner overflow-hidden cursor-crosshair group flex items-center justify-center transition-all"
                             onClick={handleSvgClick}
                         >
-                            <div className="w-full h-full opacity-80 group-hover:opacity-100 transition-opacity" dangerouslySetInnerHTML={{ __html: FALLBACK_SVG }} />
+                            <div className="w-full h-full opacity-80 group-hover:opacity-100 transition-opacity" dangerouslySetInnerHTML={{ __html: svgGeo }} />
 
                             {/* Renderizar Pinos Registados */}
                             {pins.map(pin => (
