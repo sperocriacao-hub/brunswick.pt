@@ -42,6 +42,15 @@ CREATE POLICY "Permitir Select Peças"
 -- Notificar o DB Realtime se existirem dashboards à escuta
 ALTER PUBLICATION supabase_realtime ADD TABLE public.rastreabilidade_pecas;
 
+-- Função utilitária de Timestamp (Caso não exista na BD)
+CREATE OR REPLACE FUNCTION public.update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
 -- Trigger Atualização de Updated_at
 CREATE TRIGGER trg_rastrear_update
 BEFORE UPDATE ON public.rastreabilidade_pecas
