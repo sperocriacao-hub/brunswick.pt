@@ -19,7 +19,7 @@ export async function buscarDetalhesBarcoPorHin(hin: string) {
                 modelos ( nome_modelo )
             `)
             .eq('hin_hull_id', hin)
-            ...in ('status', ['PLANNED', 'IN_PROGRESS', 'PAUSED'])
+            .in('status', ['PLANNED', 'IN_PROGRESS', 'PAUSED'])
             .order('created_at', { ascending: false })
             .limit(1)
             .single();

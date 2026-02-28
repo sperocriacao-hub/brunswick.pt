@@ -115,6 +115,10 @@ export function Sidebar({ userEmail }: { userEmail: string | undefined }) {
                                     <Activity size={18} className={pathname.includes('/admin/engenharia/oee') ? 'text-white' : 'text-blue-300'} />
                                     <span className="text-sm border-transparent">Desperdício OEE</span>
                                 </Link>
+                                <Link onClick={() => setIsOpen(false)} href="/admin/engenharia/genealogia" className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes('/admin/engenharia/genealogia') ? 'bg-blue-800 text-white shadow-sm border border-transparent' : 'text-blue-100 hover:bg-blue-800/50 hover:text-white'}`}>
+                                    <Layers size={18} className={pathname.includes('/admin/engenharia/genealogia') ? 'text-white' : 'text-blue-300'} />
+                                    <span className="text-sm border-transparent">Rastreabilidade B.O.M</span>
+                                </Link>
                             </nav>
 
                             <p className="px-3 text-[10px] font-extrabold text-blue-400 uppercase tracking-widest mb-2">Configuração Fabril</p>
