@@ -2,8 +2,8 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 export async function getMoldesKPIData() {
@@ -28,12 +28,12 @@ export async function getMoldesKPIData() {
         // 2. Ranking de Moldes Problemáticos (Top 5 com Mais Intervenções)
         const { data: intervencoes, error: iErr } = await supabase
             .from('moldes_intervencoes')
-            .select('molde_id, status, data_abertura, moldes(nome_molde)');
+            .select('molde_id, status, data_abertura, moldes(nome_parte)');
 
         if (iErr) throw iErr;
 
         const moldesCounts = (intervencoes || []).reduce((acc: any, intv: any) => {
-            const mName = intv.moldes?.nome_molde || 'Desconhecido';
+            const mName = intv.moldes?.nome_parte || 'Desconhecido';
             acc[mName] = (acc[mName] || 0) + 1;
             return acc;
         }, {});

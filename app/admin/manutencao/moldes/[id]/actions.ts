@@ -2,8 +2,8 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 // ==========================================
@@ -130,7 +130,7 @@ export async function closeIntervention(intervencaoId: string, moldeId: string) 
     // 2. Resetar os Ciclos do Molde (Voltando a Zero) para recomeçar o contador TPM
     const { error: moldeError } = await supabase
         .from('moldes')
-        .update({ ciclos_atuais: 0 })
+        .update({ ciclos_estimados: 0 })
         .eq('id', moldeId);
 
     if (moldeError) throw new Error(moldeError.message);

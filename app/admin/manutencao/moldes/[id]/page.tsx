@@ -24,11 +24,11 @@ import {
 // Types para lidar com as tabelas de Manutenção TPM NASA
 export type MoldeTPM = {
     id: string;
-    nome_molde: string;
+    nome_parte: string;
     rfid: string;
     categoria: string;
-    vida_util_limite: number;
-    ciclos_atuais: number;
+    manutenir_em: number;
+    ciclos_estimados: number;
 };
 
 export type Intervencao = {
@@ -149,7 +149,7 @@ export default function MoldMaintenanceCockpit() {
         if (!molde || !intervencaoAtiva) return;
 
         doc.setFontSize(12);
-        doc.text(`Molde: ${molde?.nome_molde} (RFID: ${molde?.rfid})`, 14, 32);
+        doc.text(`Molde: ${molde?.nome_parte} (RFID: ${molde?.rfid})`, 14, 32);
         doc.text(`Ordem de Serviço (OS): ${intervencaoAtiva.id}`, 14, 40);
         doc.text(`Data: ${new Date().toLocaleDateString('pt-PT')}`, 14, 48);
 
@@ -170,7 +170,7 @@ export default function MoldMaintenanceCockpit() {
             startY: 60,
         });
 
-        doc.save(`Auditoria_Molde_${molde?.nome_molde.replace(/\s+/g, '_')}_${intervencaoAtiva.id}.pdf`);
+        doc.save(`Auditoria_Molde_${molde?.nome_parte?.replace(/\s+/g, '_')}_${intervencaoAtiva.id}.pdf`);
     };
 
     if (isLoading || !molde || !intervencaoAtiva) {
@@ -189,7 +189,7 @@ export default function MoldMaintenanceCockpit() {
                         <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
                             OS: {intervencaoAtiva.id} <Badge variant="outline" className="text-xs">{molde.rfid}</Badge>
                         </h1>
-                        <p className="text-sm text-slate-500 font-medium">Equipamento: {molde.nome_molde}</p>
+                        <p className="text-sm text-slate-500 font-medium">Equipamento: {molde.nome_parte}</p>
                     </div>
                 </div>
                 <div className="flex gap-2">
