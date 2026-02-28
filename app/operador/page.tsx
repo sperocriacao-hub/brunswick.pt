@@ -373,6 +373,10 @@ export default function TabletDashboardPage() {
                         </DialogTitle>
                         <DialogDescription className="text-slate-400 text-lg">
                             Esta ação irá bloquear a passagem na TV da Área e notificar os Supervisores. Qual é a causa da paragem?
+                            <div className="mt-4 p-3 bg-red-950/40 border border-red-900/50 rounded-md">
+                                <span className="text-red-400 font-bold uppercase tracking-widest text-xs block mb-1">Local da Ocorrência</span>
+                                <span className="text-white font-medium">{estacoes.find(e => e.id === selectedEstacaoId)?.nome_estacao || 'Estação Desconhecida'}</span>
+                            </div>
                         </DialogDescription>
                     </DialogHeader>
 
