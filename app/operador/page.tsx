@@ -6,6 +6,9 @@ import { buscarEstacoes, dispararAlertaAndon } from './actions';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 export default function TabletDashboardPage() {
     const router = useRouter();
@@ -25,7 +28,14 @@ export default function TabletDashboardPage() {
     const [lcdLine1, setLcdLine1] = useState('BRUNSWICK MES v2.0');
     const [lcdLine2, setLcdLine2] = useState('Aguardando Rede...');
     const [rfidInput, setRfidInput] = useState('');
+    // Ref a um input fantasma para garantir que pistoladas (barcode/rfid scanner)
+    // caiem sempre lá quando a app está em idle.
     const inputRef = useRef<HTMLInputElement>(null);
+
+    // Estado do Modal de Andon
+    const [isAndonModalOpen, setIsAndonModalOpen] = useState(false);
+    const [andonType, setAndonType] = useState('Falta de peça');
+    const [andonDesc, setAndonDesc] = useState('');
 
     // Boot Sequence
     useEffect(() => {
@@ -180,12 +190,15 @@ export default function TabletDashboardPage() {
             return;
         }
 
-        const cf = window.confirm("🚨 ATENÇÃO: Disparar ANDON vai acionar os alarmes visuais na TV da Fábrica e notificar os Supervisores no telemóvel. Tem a certeza que precisa de suporte urgente?");
-        if (!cf) return;
+        // Abre o popup para pedir detalhes
+        setIsAndonModalOpen(true);
+    };
 
+    const confirmAndonFire = async () => {
+        setIsAndonModalOpen(false);
         // Usa o input atual ou uma marcação anónima de emergência
         const opRfid = rfidInput || 'EMERGENCIA_MANUAL';
-        const res = await dispararAlertaAndon(selectedEstacaoId, opRfid);
+        const res = await dispararAlertaAndon(selectedEstacaoId, opRfid, undefined, andonType, andonDesc);
 
         if (res.success) {
             setLcdLine1('🚨 ANDON ATIVO 🚨');
@@ -349,6 +362,64 @@ export default function TabletDashboardPage() {
                 </div>
 
             </main>
+
+            {/* Modal Contextual de Disparo Andon */}
+            <Dialog open={isAndonModalOpen} onOpenChange={setIsAndonModalOpen}>
+                <DialogContent className="bg-slate-900 border-slate-800 text-white sm:max-w-[500px]">
+                    <DialogHeader>
+                        <DialogTitle className="text-3xl font-black text-red-500 uppercase tracking-widest flex items-center gap-4">
+                            <AlertTriangle size={32} />
+                            Disparo Andon
+                        </DialogTitle>
+                        <DialogDescription className="text-slate-400 text-lg">
+                            Esta ação irá bloquear a passagem na TV da Área e notificar os Supervisores. Qual é a causa da paragem?
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="py-6 space-y-6">
+                        <div className="space-y-2">
+                            <Label className="text-slate-300 font-bold uppercase tracking-widest mb-2 block">Tipo de Incidência</Label>
+                            <select
+                                value={andonType}
+                                onChange={(e) => setAndonType(e.target.value)}
+                                className="w-full bg-slate-950 border border-slate-700 rounded-lg p-4 text-white text-lg font-medium focus:ring-red-500 focus:border-red-500"
+                            >
+                                <option value="Falta de peça">⚠️ Falta de Peça</option>
+                                <option value="Avaria de equipamento">🔧 Avaria de Equipamento</option>
+                                <option value="Ajuste técnico">⚙️ Ajuste Técnico/Qualidade</option>
+                                <option value="Scrap">🗑️ Defeito / Scrap</option>
+                                <option value="Outros">❓ Outros</option>
+                            </select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label className="text-slate-300 font-bold uppercase tracking-widest block">Observação (Opcional)</Label>
+                            <Textarea
+                                value={andonDesc}
+                                onChange={(e) => setAndonDesc(e.target.value)}
+                                placeholder="Qual peça falta? Qual a máquina partida?"
+                                className="bg-slate-950 border-slate-700 text-white focus-visible:ring-red-500 min-h-[100px]"
+                            />
+                        </div>
+                    </div>
+
+                    <DialogFooter className="sm:justify-between gap-4">
+                        <Button
+                            variant="ghost"
+                            onClick={() => setIsAndonModalOpen(false)}
+                            className="text-slate-400 hover:text-white hover:bg-slate-800"
+                        >
+                            CANCELAR
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            onClick={confirmAndonFire}
+                            className="bg-red-600 hover:bg-red-700 text-white font-black tracking-widest px-8"
+                        >
+                            DISPARAR ALARME
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
