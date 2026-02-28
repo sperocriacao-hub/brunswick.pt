@@ -42,3 +42,34 @@ export async function registarManutencaoMolde(moldeId: string) {
         return { success: false, error: err.message };
     }
 }
+
+export async function criarIntervencaoManual(moldeId: string, prioridade: string, observacao: string) {
+    try {
+        // 1. Force the Molde status to Maintenance
+        const { error: moldeErr } = await supabase
+            .from('moldes')
+            .update({ status: 'Em Manutenção' })
+            .eq('id', moldeId);
+
+        if (moldeErr) throw moldeErr;
+
+        // 2. Create the Intervention Order
+        const { data: invData, error: invErr } = await supabase
+            .from('moldes_intervencoes')
+            .insert({
+                molde_id: moldeId,
+                status: 'Aberta',
+                relatorio: `[Abertura Manual - Prioridade: ${prioridade}] ${observacao}`
+            })
+            .select('id')
+            .single();
+
+        if (invErr) throw invErr;
+
+        revalidatePath('/admin/manutencao/moldes');
+        return { success: true, intervencaoId: invData.id };
+    } catch (err: any) {
+        console.error('criarIntervencaoManual Error:', err);
+        return { success: false, error: err.message };
+    }
+}

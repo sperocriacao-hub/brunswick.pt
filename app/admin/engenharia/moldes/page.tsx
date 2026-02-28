@@ -26,6 +26,7 @@ export default function GestaoMoldesEngPage() {
     const [modeloBaseId, setModeloBaseId] = useState('');
     const [isObrigatorio, setIsObrigatorio] = useState(true);
     const [selectedOpcionais, setSelectedOpcionais] = useState<string[]>([]);
+    const [svgContent, setSvgContent] = useState('');
 
     useEffect(() => {
         carregarTudo();
@@ -69,7 +70,7 @@ export default function GestaoMoldesEngPage() {
             moldagem_obrigatoria: isObrigatorio
         };
 
-        const result = await createMolde(payload, isObrigatorio ? [] : selectedOpcionais);
+        const result = await createMolde(payload, isObrigatorio ? [] : selectedOpcionais, svgContent);
 
         if (result.success) {
             setNomeParte('');
@@ -80,6 +81,7 @@ export default function GestaoMoldesEngPage() {
             setModeloBaseId('');
             setIsObrigatorio(true);
             setSelectedOpcionais([]);
+            setSvgContent('');
             setIsCreating(false);
             carregarTudo();
         } else {
@@ -153,6 +155,20 @@ export default function GestaoMoldesEngPage() {
                                         ))}
                                     </select>
                                 </div>
+                            </div>
+
+                            <div className="space-y-2 mt-4 p-4 bg-slate-50 border border-slate-200 rounded-lg">
+                                <label className="text-xs font-bold text-slate-700 uppercase flex items-center justify-between">
+                                    <span>Blueprint Digital (Código SVG)</span>
+                                    <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded">Para Cockpit TPM 2D</span>
+                                </label>
+                                <textarea
+                                    value={svgContent}
+                                    onChange={(e) => setSvgContent(e.target.value)}
+                                    placeholder='<svg viewBox="0 0 ...'
+                                    className="flex w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm min-h-[120px] font-mono whitespace-pre text-slate-600 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                />
+                                <p className="text-[10px] text-slate-400">Cole o código SVG bruto do desenho 2D da peça para permitir o Pin Mapping de Qualidade. Pode ser adicionado futuramente.</p>
                             </div>
 
                             <hr className="my-6 border-blue-100" />

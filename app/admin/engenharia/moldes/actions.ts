@@ -44,7 +44,7 @@ export async function getOpcionaisForSelect() {
     return data || [];
 }
 
-export async function createMolde(payload: any, optionsIds: string[]) {
+export async function createMolde(payload: any, optionsIds: string[], svgContent: string) {
     try {
         const insertPayload = {
             nome_parte: payload.nome_parte,
@@ -66,6 +66,16 @@ export async function createMolde(payload: any, optionsIds: string[]) {
             }));
             const { error: relErr } = await supabase.from('moldes_opcionais').insert(rels);
             if (relErr) throw relErr;
+        }
+
+        // 3. Cadastrar a Geometria SVG para Cockpit TPM se existir
+        if (svgContent && svgContent.trim().startsWith('<svg')) {
+            const { error: svgErr } = await supabase.from('moldes_geometria').insert({
+                molde_id: data.id,
+                nome_vista: 'Vista Superior',
+                svg_content: svgContent
+            });
+            if (svgErr) console.error("Falha a guardar SVG: ", svgErr);
         }
 
         revalidatePath('/admin/engenharia/moldes');

@@ -2,14 +2,25 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { getMoldesTPM } from './actions';
-import { Wrench, ShieldCheck, ShieldAlert, Cpu, PieChart } from 'lucide-react';
+import { getMoldesTPM, criarIntervencaoManual } from './actions';
+import { Wrench, ShieldCheck, ShieldAlert, Cpu, PieChart, AlertTriangle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function GestaoMoldesTPMPage() {
     const [moldes, setMoldes] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const router = useRouter();
+
+    // Dialog state
+    const [isAlertOpen, setIsAlertOpen] = useState(false);
+    const [selectedMoldeId, setSelectedMoldeId] = useState('');
+    const [prioridade, setPrioridade] = useState('MEDIA');
+    const [observacao, setObservacao] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
         carregarMoldes();
@@ -30,6 +41,27 @@ export default function GestaoMoldesTPMPage() {
 
     function handleOpenCockpit(moldeId: string) {
         router.push(`/admin/manutencao/moldes/${moldeId}`);
+    }
+
+    function openAlertDialog(moldeId: string) {
+        setSelectedMoldeId(moldeId);
+        setPrioridade('MEDIA');
+        setObservacao('');
+        setIsAlertOpen(true);
+    }
+
+    async function handleAberturaManual() {
+        if (!selectedMoldeId) return;
+        setIsSubmitting(true);
+        const res = await criarIntervencaoManual(selectedMoldeId, prioridade, observacao);
+        if (res.success) {
+            setIsAlertOpen(false);
+            carregarMoldes();
+            router.push(`/admin/manutencao/moldes/${selectedMoldeId}`); // Jump straight to cockpit
+        } else {
+            alert('Falha ao abrir OS manual: ' + res.error);
+        }
+        setIsSubmitting(false);
     }
 
     if (loading) return <div className="p-8 text-center text-slate-500 font-medium animate-pulse">A carregar matriz de desgaste de moldes...</div>;
@@ -88,19 +120,65 @@ export default function GestaoMoldesTPMPage() {
                                         {molde.status}
                                     </span>
 
-                                    <Button
-                                        variant={isDanger ? "default" : "outline"}
-                                        className={isDanger ? 'bg-rose-600 hover:bg-rose-700 shadow-lg shadow-rose-200' : 'text-slate-600 border-slate-300 hover:bg-slate-50'}
-                                        onClick={() => handleOpenCockpit(molde.id)}
-                                    >
-                                        <Wrench className="w-4 h-4 mr-2" /> Cockpit TPM
-                                    </Button>
+                                    <div className="flex gap-2">
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="text-amber-600 hover:bg-amber-50"
+                                            onClick={() => openAlertDialog(molde.id)}
+                                            title="Reportar Avaria Manual (Fora de Ciclo)"
+                                        >
+                                            <AlertTriangle className="w-4 h-4" />
+                                        </Button>
+
+                                        <Button
+                                            variant={isDanger ? "default" : "outline"}
+                                            className={isDanger ? 'bg-rose-600 hover:bg-rose-700 shadow-lg shadow-rose-200' : 'text-slate-600 border-slate-300 hover:bg-slate-50'}
+                                            onClick={() => handleOpenCockpit(molde.id)}
+                                        >
+                                            <Wrench className="w-4 h-4 mr-2" /> Cockpit TPM
+                                        </Button>
+                                    </div>
                                 </div>
                             </CardContent>
                         </Card>
                     );
                 })}
             </div>
+
+            <Dialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2"><AlertTriangle className="text-amber-500" /> Reportar Avaria no Molde</DialogTitle>
+                        <DialogDescription>Abrir Ordem de Serviço Manual, interrompendo a produção no molde imediatamente para acionar Qualidade/Ferramentaria.</DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label>Nível de Urgência (Gravidade)</Label>
+                            <Select value={prioridade} onValueChange={setPrioridade}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Selecione a Gravidade" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="BAIXA">Baixa (Reparar no fim do Lote)</SelectItem>
+                                    <SelectItem value="MEDIA">Média (Ação Corretiva)</SelectItem>
+                                    <SelectItem value="CRITICA">Crítica (Molde Inoperável / Empeno)</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Observação Breve da Falha / Riscos Geométricos</Label>
+                            <Input value={observacao} onChange={e => setObservacao(e.target.value)} placeholder="Ex: Molde colou na extração, rachadura no vértice..." />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsAlertOpen(false)} disabled={isSubmitting}>Cancelar</Button>
+                        <Button className="bg-rose-600 hover:bg-rose-700" onClick={handleAberturaManual} disabled={isSubmitting || !observacao}>
+                            {isSubmitting ? 'A Emitir O.S...' : 'Bloquear Molde & Iniciar TPM'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
