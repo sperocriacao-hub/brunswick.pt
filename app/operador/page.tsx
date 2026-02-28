@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { MonitorSmartphone, ChevronLeft, Wifi } from 'lucide-react';
+import { MonitorSmartphone, ChevronLeft, Wifi, QrCode } from 'lucide-react';
 import { buscarEstacoes } from './actions';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import { Button } from '@/components/ui/button';
@@ -192,6 +192,15 @@ export default function TabletDashboardPage() {
                 </div>
 
                 <div className="flex items-center gap-4 w-full md:w-auto mt-2 md:mt-0">
+                    <Button
+                        variant="secondary"
+                        onClick={() => router.push('/operador/rastreabilidade')}
+                        className="h-12 bg-indigo-900 hover:bg-indigo-800 text-indigo-100 border border-indigo-700 font-bold gap-2"
+                    >
+                        <QrCode size={20} className="text-indigo-400" />
+                        <span className="hidden md:inline">Scanner B.O.M.</span>
+                    </Button>
+
                     <div className="flex-1 md:w-80">
                         <SearchableSelect
                             options={estacoes.map(est => ({ value: est.id, label: est.nome_estacao }))}
