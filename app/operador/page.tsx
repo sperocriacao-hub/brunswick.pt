@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { MonitorSmartphone, ChevronLeft, Wifi, QrCode } from 'lucide-react';
-import { buscarEstacoes } from './actions';
+import { MonitorSmartphone, ChevronLeft, Wifi, QrCode, AlertTriangle } from 'lucide-react';
+import { buscarEstacoes, dispararAlertaAndon } from './actions';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
@@ -174,6 +174,32 @@ export default function TabletDashboardPage() {
         inputRef.current?.focus();
     };
 
+    const handleAndonTrigger = async () => {
+        if (!selectedEstacaoId) {
+            alert("⚠️ Selecione a sua Estação primeiro no canto superior direito!");
+            return;
+        }
+
+        const cf = window.confirm("🚨 ATENÇÃO: Disparar ANDON vai acionar os alarmes visuais na TV da Fábrica e notificar os Supervisores no telemóvel. Tem a certeza que precisa de suporte urgente?");
+        if (!cf) return;
+
+        // Usa o input atual ou uma marcação anónima de emergência
+        const opRfid = rfidInput || 'EMERGENCIA_MANUAL';
+        const res = await dispararAlertaAndon(selectedEstacaoId, opRfid);
+
+        if (res.success) {
+            setLcdLine1('🚨 ANDON ATIVO 🚨');
+            setLcdLine2('Ajuda a caminho!');
+            // Return to Idle after 6 seconds
+            setTimeout(() => {
+                setLcdLine1('SISTEMA ONLINE');
+                setLcdLine2('Ler Cracha / Barco');
+            }, 6000);
+        } else {
+            alert(res.error || "Erro ao comunicar com a Base de Dados Central.");
+        }
+    };
+
     return (
         <div className="min-h-screen bg-slate-950 flex flex-col font-mono text-slate-300">
             {/* ADMIN TOP BAR */}
@@ -192,6 +218,16 @@ export default function TabletDashboardPage() {
                 </div>
 
                 <div className="flex items-center gap-4 w-full md:w-auto mt-2 md:mt-0">
+                    <Button
+                        variant="destructive"
+                        onClick={handleAndonTrigger}
+                        className="h-12 bg-red-600 hover:bg-red-700 text-white font-black tracking-widest gap-2 shadow-lg shadow-red-500/20 animate-pulse"
+                    >
+                        <AlertTriangle size={24} />
+                        <span className="hidden xl:inline">ANDON / SUPORTE URGENTE</span>
+                        <span className="inline xl:hidden">ANDON</span>
+                    </Button>
+
                     <Button
                         variant="secondary"
                         onClick={() => router.push('/operador/rastreabilidade')}

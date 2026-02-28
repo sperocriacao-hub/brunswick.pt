@@ -41,3 +41,50 @@ export async function buscarEstacoes() {
 
 // (Removed duplicate/legacy Session and Boat listing queries from Operator dashboard.
 // These actions are now routed entirely via the Hardware Emulator hitting `/api/mes/iot` REST endpoint.)
+
+export async function dispararAlertaAndon(estacao_id: string, rf_tag_operador: string, rf_tag_barco?: string) {
+    try {
+        if (!estacao_id) throw new Error("Terminal/Estação não definida.");
+
+        // 1. Oposto: Procurar qual é a op_id ativa caso o operador tenha fornecido o casco
+        let opTargetId = null;
+        if (rf_tag_barco) {
+            const { data: barco } = await supabase
+                .from('ordens_producao')
+                .select('id')
+                .eq('hin_hull_id', rf_tag_barco)
+                .in('status', ['PLANNED', 'IN_PROGRESS', 'PAUSED'])
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .single();
+            if (barco) opTargetId = barco.id;
+        }
+
+        // 2. Inserir Alarme na Base de Dados (Para TV Piscar em Realtime)
+        const { data: alerta, error } = await supabase
+            .from('alertas_andon')
+            .insert({
+                estacao_id: estacao_id,
+                op_id: opTargetId,
+                operador_rfid: rf_tag_operador || 'DESCONHECIDO'
+            })
+            .select('id')
+            .single();
+
+        if (error) throw error;
+
+        // 3. Notificar as devidas Lideranças e Supervisores logísticos
+        const { data: estacaoData } = await supabase.from('estacoes').select('nome_estacao').eq('id', estacao_id).single();
+        const strEstacao = estacaoData ? estacaoData.nome_estacao : 'Desconhecida';
+
+        await dispatchNotification('ANDON_TRIGGER', {
+            op_numero: rf_tag_barco || 'N/A',
+            op_estacao: strEstacao,
+            op_tag_operador: rf_tag_operador || 'Anon'
+        });
+
+        return { success: true, message: "Andon Disparado com Sucesso" };
+    } catch (err: any) {
+        return { success: false, error: err.message || "Falha a disparar Alerta Fabril" };
+    }
+}
