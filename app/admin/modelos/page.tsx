@@ -10,6 +10,7 @@ type ModeloInfo = {
     nome_modelo: string;
     model_year: string;
     created_at: string;
+    status: string;
 };
 
 export default function ModelosListPage() {
@@ -22,7 +23,7 @@ export default function ModelosListPage() {
         try {
             const { data, error } = await supabase
                 .from('modelos')
-                .select('id, nome_modelo, model_year, created_at')
+                .select('id, nome_modelo, model_year, created_at, status')
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
@@ -45,6 +46,23 @@ export default function ModelosListPage() {
             case 'Em Desenvolvimento': return 'bg-amber-500/20 text-amber-500 border-amber-500/30';
             case 'Descontinuado': return 'bg-stone-500/20 text-stone-500 border-stone-500/30';
             default: return 'bg-slate-500/20 text-slate-500 border-slate-500/30';
+        }
+    };
+
+    const toggleStatus = async (id: string, currentStatus: string) => {
+        const newStatus = (currentStatus === 'Descontinuado' || currentStatus === 'Obsoleto') ? 'Ativo' : 'Obsoleto';
+        if (!confirm(`Deseja alterar o estado deste modelo para: ${newStatus}?`)) return;
+
+        setIsLoading(true);
+        try {
+            const { error } = await supabase.from('modelos').update({ status: newStatus }).eq('id', id);
+            if (error) throw error;
+            await fetchModelos(); // refresh list
+        } catch (err) {
+            console.error(err);
+            alert("Falha ao atualizar o estado do Modelo.");
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -96,8 +114,8 @@ export default function ModelosListPage() {
                                 <div style={{ width: 48, height: 48, borderRadius: '12px', background: 'rgba(59, 130, 246, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)', flexShrink: 0 }}>
                                     <Package size={24} />
                                 </div>
-                                <span className={`px-2 py-1 rounded text-xs border ${getStatusColor('Ativo')}`} style={{ fontWeight: 600 }}>
-                                    Ativo
+                                <span className={`px-2 py-1 rounded text-xs border ${getStatusColor(modelo.status || 'Ativo')}`} style={{ fontWeight: 600 }}>
+                                    {modelo.status || 'Ativo'}
                                 </span>
                             </div>
 
@@ -113,10 +131,17 @@ export default function ModelosListPage() {
                                     Adicionado a {new Date(modelo.created_at).toLocaleDateString('pt-PT')}
                                 </span>
                                 <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                    {/* These are placeholder actions. Future-proofing for edit capabilities */}
-                                    <button className="p-2 rounded hover:bg-white/10 text-white/50 hover:text-white transition-colors" title="Editar Modelo">
-                                        <Edit size={16} />
+                                    {/* Ações de Gestão de Produto */}
+                                    <button
+                                        className="p-2 rounded hover:bg-white/10 text-white/50 hover:text-white transition-colors"
+                                        title={modelo.status === 'Obsoleto' ? 'Reativar Modelo' : 'Marcar como Obsoleto'}
+                                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleStatus(modelo.id, modelo.status); }}
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={modelo.status === 'Obsoleto' || modelo.status === 'Descontinuado' ? 'text-emerald-400' : 'text-rose-400'}><path d="M18.36 6.64A9 9 0 0 0 5.64 5.64M5.64 18.36A9 9 0 0 0 18.36 18.36M12 2v4M12 18v4M2 12h4M18 12h4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" /></svg>
                                     </button>
+                                    <Link href={`/admin/modelos/${modelo.id}`} className="p-2 rounded hover:bg-white/10 text-white/50 hover:text-white transition-colors" title="Editar Modelo" onClick={(e) => e.stopPropagation()}>
+                                        <Edit size={16} />
+                                    </Link>
                                 </div>
                             </div>
                         </div>
