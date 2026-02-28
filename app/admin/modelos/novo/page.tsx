@@ -8,12 +8,6 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 // Tipagem base
-type Parte = {
-    id: string;
-    nome_parte: string;
-    categoria: 'Big' | 'Medium' | 'Small' | '';
-    tag_rfid_molde: string;
-}
 
 type Tarefa = {
     id: string;
@@ -45,23 +39,13 @@ export default function NovoModeloPage() {
 
     const [nomeModelo, setNomeModelo] = useState('');
     const [modelYear, setModelYear] = useState('');
-
-    const [partes, setPartes] = useState<Parte[]>([]);
+    const [partes, setPartes] = useState<any[]>([]); // Keep it defined to avoid errors on addParte although it's removed from UI
     const [tarefasGerais, setTarefasGerais] = useState<Tarefa[]>([]);
     const [opcionais, setOpcionais] = useState<Opcional[]>([]);
 
     // Estado do Modal de Opcional
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [currentOpcional, setCurrentOpcional] = useState<Opcional | null>(null);
-
-    // Handlers Composição
-    const addParte = () => {
-        setPartes([...partes, { id: crypto.randomUUID(), nome_parte: '', categoria: '', tag_rfid_molde: '' }]);
-    };
-    const updateParte = (id: string, field: keyof Parte, value: string) => {
-        setPartes(partes.map(p => p.id === id ? { ...p, [field]: value } : p));
-    };
-    const removeParte = (id: string) => setPartes(partes.filter(p => p.id !== id));
 
     // Handlers Tarefas Gerais
     const addTarefaGeral = () => {
@@ -187,7 +171,6 @@ export default function NovoModeloPage() {
             const input: CriarModeloInput = {
                 nome_modelo: nomeModelo,
                 model_year: modelYear,
-                partes: partes,
                 tarefasGerais: tarefasGerais,
                 opcionais: opcionais
             };
@@ -352,56 +335,7 @@ export default function NovoModeloPage() {
                 </div>
             </section>
 
-            {/* SECCTAO 2: COMPOSIÇÃO MOLDES */}
-            <section className="glass-panel p-6 mb-8 animate-delay-1">
-                <div className="flex justify-between items-center mb-6">
-                    <h2 style={{ fontSize: '1.25rem', color: 'var(--primary)' }}>Composição (Partes e Moldes)</h2>
-                    <button className="btn btn-outline" onClick={addParte}>
-                        <Plus size={18} style={{ marginRight: '8px' }} /> Nova Parte
-                    </button>
-                </div>
 
-                <div className="table-container">
-                    <table className="table-premium">
-                        <thead>
-                            <tr>
-                                <th>Nome da Parte</th>
-                                <th>Categoria</th>
-                                <th>Tag RFID do Molde</th>
-                                <th style={{ textAlign: 'right' }}>Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {partes.length === 0 && (
-                                <tr>
-                                    <td colSpan={4} style={{ textAlign: 'center', opacity: 0.5, padding: '2rem' }}>Ainda não existem partes de composição cadastradas.</td>
-                                </tr>
-                            )}
-                            {partes.map(parte => (
-                                <tr key={parte.id}>
-                                    <td>
-                                        <input type="text" className="form-control" placeholder="Ex: Casco Superior" value={parte.nome_parte} onChange={e => updateParte(parte.id, 'nome_parte', e.target.value)} />
-                                    </td>
-                                    <td>
-                                        <select className="form-control" value={parte.categoria} onChange={e => updateParte(parte.id, 'categoria', e.target.value)}>
-                                            <option value="">Selecione...</option>
-                                            <option value="Big">Grande (Big)</option>
-                                            <option value="Medium">Médio (Medium)</option>
-                                            <option value="Small">Pequeno (Small)</option>
-                                        </select>
-                                    </td>
-                                    <td>
-                                        <input type="text" className="form-control" placeholder="Scan RFID..." value={parte.tag_rfid_molde} onChange={e => updateParte(parte.id, 'tag_rfid_molde', e.target.value)} />
-                                    </td>
-                                    <td style={{ textAlign: 'right' }}>
-                                        <button className="btn-icon danger" onClick={() => removeParte(parte.id)}><Trash2 size={18} /></button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </section>
 
             {/* SECCTAO 3: TAREFAS GERAIS (Roteiro) */}
             <section className="glass-panel p-6 mb-8 animate-delay-2">

@@ -3,14 +3,14 @@
 import { createClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
 
-type InParte = { nome_parte: string; categoria: string; tag_rfid_molde: string };
+
 type InTarefa = { ordem: string; descricao: string; estacao_id: string; imagem_url: string };
 type InOpcional = { nome_opcao: string; descricao_opcao: string; tarefas: InTarefa[] };
 
 export interface CriarModeloInput {
     nome_modelo: string;
     model_year: string;
-    partes: InParte[];
+
     tarefasGerais: InTarefa[];
     opcionais: InOpcional[];
 }
@@ -34,18 +34,6 @@ export async function criarModeloCompleto(input: CriarModeloInput): Promise<{ su
 
         if (errModelo) throw errModelo;
         const modeloId = modeloCriado.id;
-
-        // 2. Inserir Partes / Moldes Associados (B.O.M.)
-        if (input.partes.length > 0) {
-            const partesPayload = input.partes.map(p => ({
-                modelo_id: modeloId,
-                nome_parte: p.nome_parte,
-                categoria: p.categoria || 'Medium',
-                tag_rfid_molde: p.tag_rfid_molde || null
-            }));
-            const { error: errPartes } = await supabase.from('composicao_modelo').insert(partesPayload);
-            if (errPartes) throw errPartes;
-        }
 
         // 3. Inserir Roteiros de Produção Gerais (Tarefas Básicas)
         if (input.tarefasGerais.length > 0) {
