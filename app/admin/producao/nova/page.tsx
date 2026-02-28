@@ -379,28 +379,40 @@ export default function NovaOrdermProducaoPage() {
                                         <Label className="text-xs text-slate-700 font-bold">Molde do Casco</Label>
                                         <select className="flex h-9 w-full rounded-md border border-slate-200 bg-white px-3 py-1 text-xs" value={moldeCascoId} onChange={e => setMoldeCascoId(e.target.value)}>
                                             <option value="">-- Não Associado --</option>
-                                            {dbMoldes.map(m => <option key={m.id} value={m.id}>{m.nome_parte} (Uso: {m.ciclos_estimados})</option>)}
+                                            {dbMoldes.map(m => {
+                                                const isEsgotado = m.status !== 'Ativo';
+                                                return <option key={m.id} value={m.id} disabled={isEsgotado}>{m.nome_parte} (Uso: {m.ciclos_estimados}){isEsgotado ? ' ⛔ MANUTENÇÃO' : ''}</option>
+                                            })}
                                         </select>
                                     </div>
                                     <div className="flex flex-col gap-1">
                                         <Label className="text-xs text-slate-700 font-bold">Molde da Coberta</Label>
                                         <select className="flex h-9 w-full rounded-md border border-slate-200 bg-white px-3 py-1 text-xs" value={moldeCobertaId} onChange={e => setMoldeCobertaId(e.target.value)}>
                                             <option value="">-- Não Associado --</option>
-                                            {dbMoldes.map(m => <option key={m.id} value={m.id}>{m.nome_parte} (Uso: {m.ciclos_estimados})</option>)}
+                                            {dbMoldes.map(m => {
+                                                const isEsgotado = m.status !== 'Ativo';
+                                                return <option key={m.id} value={m.id} disabled={isEsgotado}>{m.nome_parte} (Uso: {m.ciclos_estimados}){isEsgotado ? ' ⛔ MANUTENÇÃO' : ''}</option>
+                                            })}
                                         </select>
                                     </div>
                                     <div className="flex flex-col gap-1">
                                         <Label className="text-xs text-slate-700 font-bold">Molde Small Parts</Label>
                                         <select className="flex h-9 w-full rounded-md border border-slate-200 bg-white px-3 py-1 text-xs" value={moldeSmallPartsId} onChange={e => setMoldeSmallPartsId(e.target.value)}>
                                             <option value="">-- Não Associado --</option>
-                                            {dbMoldes.map(m => <option key={m.id} value={m.id}>{m.nome_parte} (Uso: {m.ciclos_estimados})</option>)}
+                                            {dbMoldes.map(m => {
+                                                const isEsgotado = m.status !== 'Ativo';
+                                                return <option key={m.id} value={m.id} disabled={isEsgotado}>{m.nome_parte} (Uso: {m.ciclos_estimados}){isEsgotado ? ' ⛔ MANUTENÇÃO' : ''}</option>
+                                            })}
                                         </select>
                                     </div>
                                     <div className="flex flex-col gap-1">
                                         <Label className="text-xs text-slate-700 font-bold">Molde Liner</Label>
                                         <select className="flex h-9 w-full rounded-md border border-slate-200 bg-white px-3 py-1 text-xs" value={moldeLinerId} onChange={e => setMoldeLinerId(e.target.value)}>
                                             <option value="">-- Não Associado --</option>
-                                            {dbMoldes.map(m => <option key={m.id} value={m.id}>{m.nome_parte} (Uso: {m.ciclos_estimados})</option>)}
+                                            {dbMoldes.map(m => {
+                                                const isEsgotado = m.status !== 'Ativo';
+                                                return <option key={m.id} value={m.id} disabled={isEsgotado}>{m.nome_parte} (Uso: {m.ciclos_estimados}){isEsgotado ? ' ⛔ MANUTENÇÃO' : ''}</option>
+                                            })}
                                         </select>
                                     </div>
                                 </div>

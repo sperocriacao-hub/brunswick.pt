@@ -42,10 +42,10 @@ export async function fetchFormularioNovaOPData() {
             .select('id, nome_opcao, modelo_id');
         if (errOpc) throw errOpc;
 
-        // 5. Moldes (Migration 0012)
+        // 5. Moldes (Migration 0012 + 0022 TPM)
         const { data: moldes, error: moldesErr } = await supabase
             .from('moldes')
-            .select('id, nome_parte, rfid, ciclos_estimados');
+            .select('id, nome_parte, rfid, ciclos_estimados, manutenir_em, status');
 
         // Se a migration 0012 ainda não tiver corrido do lado do cliente, ignoramos por agora a falha dos moldes.
         const moldesSeguros = moldesErr ? [] : (moldes || []);
@@ -100,6 +100,24 @@ export async function emitirOrdemProducao(payload: any) {
             .single();
 
         if (error) throw error;
+
+        // TPM Moldes Poka-yoke: Incrementar os ciclos dos moldes selecionados
+        const moldesToIncrement = [
+            payload.molde_casco_id,
+            payload.molde_coberta_id,
+            payload.molde_small_parts_id,
+            payload.molde_liner_id
+        ].filter(Boolean);
+
+        if (moldesToIncrement.length > 0) {
+            await Promise.all(moldesToIncrement.map(async (mId) => {
+                // Fetch the current ciclos safely to avoid losing atomicity in simple setups
+                const { data: mData } = await supabase.from('moldes').select('ciclos_estimados').eq('id', mId).single();
+                if (mData) {
+                    await supabase.from('moldes').update({ ciclos_estimados: (mData.ciclos_estimados || 0) + 1 }).eq('id', mId);
+                }
+            }));
+        }
 
         return { success: true, id: data.id };
     } catch (err: unknown) {
