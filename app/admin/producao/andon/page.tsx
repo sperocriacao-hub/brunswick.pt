@@ -20,7 +20,7 @@ export default function AndonDashPage() {
         setIsLoading(true);
         const res = await getAndonHistory();
         if (res.success) {
-            setAlertas(res.data);
+            setAlertas(res.data || []);
         }
         setIsLoading(false);
     }
