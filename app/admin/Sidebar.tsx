@@ -88,6 +88,10 @@ export function Sidebar({ userEmail }: { userEmail: string | undefined }) {
                             </nav>
                             <p className="px-3 text-[10px] font-extrabold text-blue-400 uppercase tracking-widest mb-2 mt-6">M.E.S Logística</p>
                             <nav className="flex flex-col gap-1 mb-6">
+                                <Link onClick={() => setIsOpen(false)} href="/logistica/picking" className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes('/logistica/picking') ? 'bg-blue-800 text-white shadow-sm border border-transparent' : 'text-blue-100 hover:bg-blue-800/50 hover:text-white'}`}>
+                                    <Box size={18} className={pathname.includes('/logistica/picking') ? 'text-white' : 'text-blue-300'} />
+                                    <span className="text-sm border-transparent">Tablet Armazém (Picking)</span>
+                                </Link>
                                 <Link onClick={() => setIsOpen(false)} href="/admin/producao/planeamento" className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes('/admin/producao/planeamento') ? 'bg-blue-800 text-white shadow-sm border border-transparent' : 'text-blue-100 hover:bg-blue-800/50 hover:text-white'}`}>
                                     <CalendarDays size={18} className={pathname.includes('/admin/producao/planeamento') ? 'text-white' : 'text-blue-300'} />
                                     <span className="text-sm border-transparent">Planeamento Semanal</span>
