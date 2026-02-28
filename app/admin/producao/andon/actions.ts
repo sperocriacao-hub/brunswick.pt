@@ -63,3 +63,17 @@ export async function fecharAlertaAndon(alerta_id: string, supervisor_notes: str
         return { success: false, error: err.message };
     }
 }
+
+export async function getAreasTVLinks() {
+    try {
+        const { data, error } = await supabase
+            .from('areas_fabrica')
+            .select('id, nome_area')
+            .order('step_order', { ascending: true });
+
+        if (error) throw error;
+        return { success: true, data: data || [] };
+    } catch (err: any) {
+        return { success: false, error: err.message, data: [] };
+    }
+}

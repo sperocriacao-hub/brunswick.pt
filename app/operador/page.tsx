@@ -36,6 +36,7 @@ export default function TabletDashboardPage() {
     const [isAndonModalOpen, setIsAndonModalOpen] = useState(false);
     const [andonType, setAndonType] = useState('Falta de peça');
     const [andonDesc, setAndonDesc] = useState('');
+    const [causadoraEstacaoId, setCausadoraEstacaoId] = useState('');
 
     // Boot Sequence
     useEffect(() => {
@@ -190,7 +191,7 @@ export default function TabletDashboardPage() {
             return;
         }
 
-        // Abre o popup para pedir detalhes
+        setCausadoraEstacaoId(selectedEstacaoId); // Default to current station
         setIsAndonModalOpen(true);
     };
 
@@ -198,7 +199,8 @@ export default function TabletDashboardPage() {
         setIsAndonModalOpen(false);
         // Usa o input atual ou uma marcação anónima de emergência
         const opRfid = rfidInput || 'EMERGENCIA_MANUAL';
-        const res = await dispararAlertaAndon(selectedEstacaoId, opRfid, undefined, andonType, andonDesc);
+        const targetStation = causadoraEstacaoId || selectedEstacaoId;
+        const res = await dispararAlertaAndon(targetStation, opRfid, undefined, andonType, andonDesc);
 
         if (res.success) {
             setLcdLine1('🚨 ANDON ATIVO 🚨');
@@ -381,6 +383,19 @@ export default function TabletDashboardPage() {
                     </DialogHeader>
 
                     <div className="py-6 space-y-6">
+                        <div className="space-y-2">
+                            <Label className="text-slate-300 font-bold uppercase tracking-widest mb-2 block">Estação Causadora (TV Alvo)</Label>
+                            <select
+                                value={causadoraEstacaoId}
+                                onChange={(e) => setCausadoraEstacaoId(e.target.value)}
+                                className="w-full bg-slate-950 border border-slate-700 rounded-lg p-4 text-white text-lg font-medium focus:ring-red-500 focus:border-red-500"
+                            >
+                                <option value="" disabled>Selecione a Estação / Área Causadora...</option>
+                                {estacoes.map(est => (
+                                    <option key={est.id} value={est.id}>{est.nome_estacao}</option>
+                                ))}
+                            </select>
+                        </div>
                         <div className="space-y-2">
                             <Label className="text-slate-300 font-bold uppercase tracking-widest mb-2 block">Tipo de Incidência</Label>
                             <select

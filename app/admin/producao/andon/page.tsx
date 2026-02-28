@@ -1,16 +1,18 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { getAndonHistory, fecharAlertaAndon } from './actions';
-import { AlertCircle, Clock, CheckCircle2, Factory, Hammer } from 'lucide-react';
+import { getAndonHistory, fecharAlertaAndon, getAreasTVLinks } from './actions';
+import { AlertCircle, Clock, CheckCircle2, Factory, Hammer, Tv } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { format, differenceInMinutes } from 'date-fns';
 import { pt } from 'date-fns/locale';
+import Link from 'next/link';
 
 export default function AndonDashPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [alertas, setAlertas] = useState<any[]>([]);
+    const [tvLinks, setTvLinks] = useState<{ id: string, nome_area: string }[]>([]);
 
     useEffect(() => {
         loadData();
@@ -18,9 +20,13 @@ export default function AndonDashPage() {
 
     async function loadData() {
         setIsLoading(true);
-        const res = await getAndonHistory();
+        const [res, areasRes] = await Promise.all([getAndonHistory(), getAreasTVLinks()]);
+
         if (res.success) {
             setAlertas(res.data || []);
+        }
+        if (areasRes.success) {
+            setTvLinks(areasRes.data || []);
         }
         setIsLoading(false);
     }
@@ -44,14 +50,41 @@ export default function AndonDashPage() {
 
     return (
         <div className="p-8 pb-32 max-w-7xl mx-auto space-y-6 animate-in fade-in duration-500">
-            <header className="mb-8">
-                <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight flex items-center gap-3">
-                    <AlertCircle className="text-red-500" size={36} />
-                    Gestão Pós-Venda Fabril (Andon & KPIs)
-                </h1>
-                <p className="text-slate-500 mt-2 text-lg">
-                    Monitorize a saúde da linha de produção e feche incidentes para medir tempos perdidos de OEE.
-                </p>
+            <header className="mb-8 flex flex-col md:flex-row md:items-start justify-between gap-6">
+                <div>
+                    <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight flex items-center gap-3">
+                        <AlertCircle className="text-red-500" size={36} />
+                        Gestão Pós-Venda Fabril (Andon & KPIs)
+                    </h1>
+                    <p className="text-slate-500 mt-2 text-lg">
+                        Monitorize a saúde da linha de produção e feche incidentes para medir tempos perdidos de OEE.
+                    </p>
+                </div>
+
+                {/* Painel de Acesso Rápido a TVs */}
+                <Card className="bg-slate-900 border-slate-800 text-white shadow-xl max-w-sm w-full shrink-0">
+                    <CardHeader className="py-3 px-4 bg-slate-950/50 border-b border-slate-800">
+                        <CardTitle className="text-sm font-bold tracking-widest uppercase flex items-center gap-2 text-slate-300">
+                            <Tv size={16} className="text-blue-400" />
+                            Acesso a Ecrãs TV
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-2">
+                        <div className="flex flex-wrap gap-2">
+                            {tvLinks.length === 0 ? (
+                                <span className="text-xs text-slate-500 p-2">A carregar ecrãs...</span>
+                            ) : (
+                                tvLinks.map(area => (
+                                    <Link key={area.id} href={`/tv/area/${area.id}`} target="_blank">
+                                        <Button variant="secondary" size="sm" className="bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700 text-xs">
+                                            {area.nome_area}
+                                        </Button>
+                                    </Link>
+                                ))
+                            )}
+                        </div>
+                    </CardContent>
+                </Card>
             </header>
 
             <Card className="shadow-xl border-slate-200">
