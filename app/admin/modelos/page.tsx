@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/utils/supabase/client';
-import { Loader2, Plus, Package, Edit } from 'lucide-react';
+import { Loader2, Plus, Package, Edit, Ban, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 
 type ModeloInfo = {
@@ -133,11 +133,15 @@ export default function ModelosListPage() {
                                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                                     {/* Ações de Gestão de Produto */}
                                     <button
-                                        className="p-2 rounded hover:bg-white/10 text-white/50 hover:text-white transition-colors"
+                                        className="p-2 rounded hover:bg-white/10 text-white/50 hover:text-white transition-colors flex items-center justify-center"
                                         title={modelo.status === 'Obsoleto' ? 'Reativar Modelo' : 'Marcar como Obsoleto'}
                                         onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleStatus(modelo.id, modelo.status); }}
                                     >
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={modelo.status === 'Obsoleto' || modelo.status === 'Descontinuado' ? 'text-emerald-400' : 'text-rose-400'}><path d="M18.36 6.64A9 9 0 0 0 5.64 5.64M5.64 18.36A9 9 0 0 0 18.36 18.36M12 2v4M12 18v4M2 12h4M18 12h4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" /></svg>
+                                        {modelo.status === 'Obsoleto' || modelo.status === 'Descontinuado' ? (
+                                            <CheckCircle2 size={16} className="text-emerald-400" />
+                                        ) : (
+                                            <Ban size={16} className="text-rose-400" />
+                                        )}
                                     </button>
                                     <Link href={`/admin/modelos/${modelo.id}`} className="p-2 rounded hover:bg-white/10 text-white/50 hover:text-white transition-colors" title="Editar Modelo" onClick={(e) => e.stopPropagation()}>
                                         <Edit size={16} />

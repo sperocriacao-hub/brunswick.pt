@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, Trash2, Save, FileText, Settings, X, Upload, Loader2 } from 'lucide-react';
 import { useRouter, useParams } from 'next/navigation';
 import { atualizarModeloCompleto, EditarModeloInput, fetchModeloParaEdicao } from './actions';
@@ -57,8 +57,8 @@ export default function EditarModeloPage() {
                 setNomeModelo(res.data.nome_modelo || '');
                 setModelYear(res.data.model_year || '');
                 setStatus(res.data.status || 'Em Desenvolvimento');
-                setTarefasGerais(res.data.tarefasGerais || []);
-                setOpcionais(res.data.opcionais || []);
+                setTarefasGerais(res.data.tarefasGerais as unknown as Tarefa[] || []);
+                setOpcionais(res.data.opcionais as unknown as Opcional[] || []);
             } else {
                 alert("Erro ao carregar dados do Molde.");
             }
