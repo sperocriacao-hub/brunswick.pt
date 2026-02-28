@@ -9,8 +9,10 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { MapPin, CheckCircle, ArrowLeft, Loader2, Printer } from 'lucide-react';
 import { useRouter, useParams } from 'next/navigation';
+import { useRef } from 'react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import html2canvas from 'html2canvas';
 import {
     getMoldeDetails,
     getActiveOrNewIntervention,
@@ -71,6 +73,9 @@ export default function MoldMaintenanceCockpit() {
 
     const [pinDialog, setPinDialog] = useState<{ x: number, y: number, open: boolean }>({ x: 0, y: 0, open: false });
     const [pinType, setPinType] = useState("Fissura Estrutural");
+    const [isPrinting, setIsPrinting] = useState(false);
+
+    const svgContainerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         const loadData = async () => {
@@ -141,36 +146,66 @@ export default function MoldMaintenanceCockpit() {
         }
     };
 
-    const printMoldsMaintenanceReport = () => {
-        const doc = new jsPDF();
-        doc.setFontSize(20);
-        doc.text(`Relatório de Conformidade - TPM Molde`, 14, 22);
+    const printMoldsMaintenanceReport = async () => {
+        setIsPrinting(true);
+        try {
+            const doc = new jsPDF();
+            doc.setFontSize(20);
+            doc.text(`Relatório de Conformidade - TPM Molde`, 14, 22);
 
-        if (!molde || !intervencaoAtiva) return;
+            if (!molde || !intervencaoAtiva) return;
 
-        doc.setFontSize(12);
-        doc.text(`Molde: ${molde?.nome_parte} (RFID: ${molde?.rfid})`, 14, 32);
-        doc.text(`Ordem de Serviço (OS): ${intervencaoAtiva.id}`, 14, 40);
-        doc.text(`Data: ${new Date().toLocaleDateString('pt-PT')}`, 14, 48);
+            doc.setFontSize(12);
+            doc.text(`Molde: ${molde?.nome_parte} (RFID: ${molde?.rfid})`, 14, 32);
+            doc.text(`Ordem de Serviço (OS): ${intervencaoAtiva.id}`, 14, 40);
+            doc.text(`Data: ${new Date().toLocaleDateString('pt-PT')}`, 14, 48);
 
-        const tableColumn = ["Tipo Defeito", "Coordenadas", "Status Auditoria"];
-        const tableRows: any[] = [];
+            const tableColumn = ["Tipo Defeito", "Coordenadas", "Status Auditoria"];
+            const tableRows: any[] = [];
 
-        pins.forEach(pin => {
-            tableRows.push([
-                pin.tipo_defeito,
-                `[X: ${pin.coord_x.toFixed(1)}%, Y: ${pin.coord_y.toFixed(1)}%]`,
-                pin.status
-            ]);
-        });
+            pins.forEach(pin => {
+                tableRows.push([
+                    pin.tipo_defeito,
+                    `[X: ${pin.coord_x.toFixed(1)}%, Y: ${pin.coord_y.toFixed(1)}%]`,
+                    pin.status
+                ]);
+            });
 
-        autoTable(doc, {
-            head: [tableColumn],
-            body: tableRows,
-            startY: 60,
-        });
+            autoTable(doc, {
+                head: [tableColumn],
+                body: tableRows,
+                startY: 60,
+            });
 
-        doc.save(`Auditoria_Molde_${molde?.nome_parte?.replace(/\s+/g, '_')}_${intervencaoAtiva.id}.pdf`);
+            // Gerar imagem do Canvas (SVG + Pins)
+            if (svgContainerRef.current) {
+                const canvas = await html2canvas(svgContainerRef.current, {
+                    scale: 2,
+                    useCORS: true,
+                    backgroundColor: '#ffffff'
+                });
+                const imgData = canvas.toDataURL('image/png');
+                const finalY = (doc as any).lastAutoTable?.finalY || 100;
+
+                // Calcular dimensões (A4 tem 210mm larg, margem de 14mm) = 182mm max
+                const pdfWidth = 182;
+                const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+
+                if (finalY + pdfHeight + 20 > 280) doc.addPage();
+                const drawY = finalY + pdfHeight + 20 > 280 ? 20 : finalY + 15;
+
+                doc.setFontSize(14);
+                doc.text("Mapa Visual de Anomalias (Defeitos / Danos Georreferenciados):", 14, drawY);
+                doc.addImage(imgData, 'PNG', 14, drawY + 8, pdfWidth, pdfHeight);
+            }
+
+            doc.save(`Auditoria_Molde_${molde?.nome_parte?.replace(/\s+/g, '_')}_${intervencaoAtiva.id}.pdf`);
+        } catch (e) {
+            console.error("Erro ao gerar PDF com Blueprint:", e);
+            alert("Ocorreu um erro na renderização inteligente do Blueprint PDF.");
+        } finally {
+            setIsPrinting(false);
+        }
     };
 
     if (isLoading || !molde || !intervencaoAtiva) {
@@ -193,8 +228,9 @@ export default function MoldMaintenanceCockpit() {
                     </div>
                 </div>
                 <div className="flex gap-2">
-                    <Button variant="outline" onClick={printMoldsMaintenanceReport} className="text-slate-600">
-                        <Printer className="mr-2 h-4 w-4" /> Relatório M.E.S. PDF
+                    <Button variant="outline" onClick={printMoldsMaintenanceReport} disabled={isPrinting} className="text-slate-600">
+                        {isPrinting ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : <Printer className="mr-2 h-4 w-4" />}
+                        {isPrinting ? "A Processar Blueprint..." : "Relatório M.E.S. PDF"}
                     </Button>
                     <Button onClick={closeOrder} className="bg-emerald-600 hover:bg-emerald-500 shadow-md">
                         <CheckCircle className="mr-2 h-4 w-4" /> Validar & Encerrar TPM
@@ -213,6 +249,7 @@ export default function MoldMaintenanceCockpit() {
                     </CardHeader>
                     <CardContent className="p-6 bg-slate-100/30">
                         <div
+                            ref={svgContainerRef}
                             className="relative w-full aspect-[2/1] bg-white rounded-lg border border-slate-200 shadow-inner overflow-hidden cursor-crosshair group flex items-center justify-center transition-all"
                             onClick={handleSvgClick}
                         >
