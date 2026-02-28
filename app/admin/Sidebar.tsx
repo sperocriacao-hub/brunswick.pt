@@ -123,6 +123,10 @@ export function Sidebar({ userEmail }: { userEmail: string | undefined }) {
                                     <Layers size={18} className={pathname.includes('/admin/engenharia/genealogia') ? 'text-white' : 'text-blue-300'} />
                                     <span className="text-sm border-transparent">Rastreabilidade B.O.M</span>
                                 </Link>
+                                <Link onClick={() => setIsOpen(false)} href="/admin/engenharia/moldes" className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes('/admin/engenharia/moldes') ? 'bg-blue-800 text-white shadow-sm border border-transparent' : 'text-blue-100 hover:bg-blue-800/50 hover:text-white'}`}>
+                                    <Box size={18} className={pathname.includes('/admin/engenharia/moldes') ? 'text-white' : 'text-blue-300'} />
+                                    <span className="text-sm border-transparent">Cadastro de Moldes</span>
+                                </Link>
                                 <Link onClick={() => setIsOpen(false)} href="/admin/manutencao/moldes" className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes('/admin/manutencao/moldes') ? 'bg-blue-800 text-white shadow-sm border border-transparent' : 'text-blue-100 hover:bg-blue-800/50 hover:text-white'}`}>
                                     <Settings size={18} className={pathname.includes('/admin/manutencao/moldes') ? 'text-white' : 'text-blue-300'} />
                                     <span className="text-sm border-transparent">Preventiva Moldes (TPM)</span>

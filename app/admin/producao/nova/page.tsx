@@ -18,6 +18,7 @@ export default function NovaOrdermProducaoPage() {
     const [dbRoteiros, setDbRoteiros] = useState<any[]>([]);
     const [dbOpcionais, setDbOpcionais] = useState<any[]>([]);
     const [dbMoldes, setDbMoldes] = useState<any[]>([]);
+    const [dbRelacoes, setDbRelacoes] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -67,6 +68,7 @@ export default function NovaOrdermProducaoPage() {
                 setDbRoteiros(res.data.roteiros);
                 setDbOpcionais(res.data.opcionais);
                 setDbMoldes(res.data.moldes);
+                setDbRelacoes(res.data.moldes_opcionais);
             }
             setIsLoading(false);
         }
@@ -84,6 +86,23 @@ export default function NovaOrdermProducaoPage() {
             setOpcionaisSelecionados([...opcionaisSelecionados, id]);
         }
     };
+
+    // --- LÓGICA CONDICIONAL DE MOLDES (POKA-YOKE) ---
+    // Filtramos primeiro para os compatíveis com o modelo atual
+    const moldesCompativeis = dbMoldes.filter(m => !m.modelo_base_id || m.modelo_base_id === modeloSelecionado);
+
+    // Mofo só é mostrado se for Obrigatório OU se fizer parte de um Opcional escolhido pelo Comercial
+    const moldesAtivos = moldesCompativeis.filter(m => {
+        if (m.moldagem_obrigatoria) return true;
+        // Verificar se este molde opcional foi acionado pelas checkboxes de Encomenda
+        const triggersOpts = dbRelacoes.filter(r => r.molde_id === m.id).map(r => r.opcional_id);
+        return triggersOpts.some(triggerId => opcionaisSelecionados.includes(triggerId));
+    });
+
+    const mCascos = moldesAtivos.filter(m => m.categoria === 'BIG_PART' && m.tipo_parte?.toLowerCase().includes('casc'));
+    const mCobertas = moldesAtivos.filter(m => m.categoria === 'BIG_PART' && m.tipo_parte?.toLowerCase().includes('cobert'));
+    const mMedium = moldesAtivos.filter(m => m.categoria === 'MEDIUM_PART');
+    const mSmall = moldesAtivos.filter(m => m.categoria === 'SMALL_PART');
 
     useEffect(() => {
         if (!dataInicio || !modeloSelecionado) {
@@ -374,47 +393,58 @@ export default function NovaOrdermProducaoPage() {
                                     Associe que moldes exatos desta fábrica irão injetar as partes desta OP garantindo Rastreabilidade e Saúde do Gelcoat.
                                 </p>
 
-                                <div className="flex flex-col gap-4">
-                                    <div className="flex flex-col gap-1">
-                                        <Label className="text-xs text-slate-700 font-bold">Molde do Casco</Label>
-                                        <select className="flex h-9 w-full rounded-md border border-slate-200 bg-white px-3 py-1 text-xs" value={moldeCascoId} onChange={e => setMoldeCascoId(e.target.value)}>
-                                            <option value="">-- Não Associado --</option>
-                                            {dbMoldes.map(m => {
-                                                const isEsgotado = m.status !== 'Ativo';
-                                                return <option key={m.id} value={m.id} disabled={isEsgotado}>{m.nome_parte} (Uso: {m.ciclos_estimados}){isEsgotado ? ' ⛔ MANUTENÇÃO' : ''}</option>
-                                            })}
-                                        </select>
-                                    </div>
-                                    <div className="flex flex-col gap-1">
-                                        <Label className="text-xs text-slate-700 font-bold">Molde da Coberta</Label>
-                                        <select className="flex h-9 w-full rounded-md border border-slate-200 bg-white px-3 py-1 text-xs" value={moldeCobertaId} onChange={e => setMoldeCobertaId(e.target.value)}>
-                                            <option value="">-- Não Associado --</option>
-                                            {dbMoldes.map(m => {
-                                                const isEsgotado = m.status !== 'Ativo';
-                                                return <option key={m.id} value={m.id} disabled={isEsgotado}>{m.nome_parte} (Uso: {m.ciclos_estimados}){isEsgotado ? ' ⛔ MANUTENÇÃO' : ''}</option>
-                                            })}
-                                        </select>
-                                    </div>
-                                    <div className="flex flex-col gap-1">
-                                        <Label className="text-xs text-slate-700 font-bold">Molde Small Parts</Label>
-                                        <select className="flex h-9 w-full rounded-md border border-slate-200 bg-white px-3 py-1 text-xs" value={moldeSmallPartsId} onChange={e => setMoldeSmallPartsId(e.target.value)}>
-                                            <option value="">-- Não Associado --</option>
-                                            {dbMoldes.map(m => {
-                                                const isEsgotado = m.status !== 'Ativo';
-                                                return <option key={m.id} value={m.id} disabled={isEsgotado}>{m.nome_parte} (Uso: {m.ciclos_estimados}){isEsgotado ? ' ⛔ MANUTENÇÃO' : ''}</option>
-                                            })}
-                                        </select>
-                                    </div>
-                                    <div className="flex flex-col gap-1">
-                                        <Label className="text-xs text-slate-700 font-bold">Molde Liner</Label>
-                                        <select className="flex h-9 w-full rounded-md border border-slate-200 bg-white px-3 py-1 text-xs" value={moldeLinerId} onChange={e => setMoldeLinerId(e.target.value)}>
-                                            <option value="">-- Não Associado --</option>
-                                            {dbMoldes.map(m => {
-                                                const isEsgotado = m.status !== 'Ativo';
-                                                return <option key={m.id} value={m.id} disabled={isEsgotado}>{m.nome_parte} (Uso: {m.ciclos_estimados}){isEsgotado ? ' ⛔ MANUTENÇÃO' : ''}</option>
-                                            })}
-                                        </select>
-                                    </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {mCascos.length > 0 && (
+                                        <div className="flex flex-col gap-1">
+                                            <Label className="text-xs text-slate-700 font-bold">Molde do Casco (Big Part)</Label>
+                                            <select className="flex h-9 w-full rounded-md border border-slate-200 bg-white px-3 py-1 text-xs" value={moldeCascoId} onChange={e => setMoldeCascoId(e.target.value)}>
+                                                <option value="">-- Não Associado --</option>
+                                                {mCascos.map(m => {
+                                                    const isEsgotado = m.status !== 'Ativo';
+                                                    return <option key={m.id} value={m.id} disabled={isEsgotado}>{m.nome_parte} (Uso: {m.ciclos_estimados}){isEsgotado ? ' ⛔ MANUTENÇÃO' : ''}</option>
+                                                })}
+                                            </select>
+                                        </div>
+                                    )}
+
+                                    {mCobertas.length > 0 && (
+                                        <div className="flex flex-col gap-1">
+                                            <Label className="text-xs text-slate-700 font-bold">Molde da Coberta (Big Part)</Label>
+                                            <select className="flex h-9 w-full rounded-md border border-slate-200 bg-white px-3 py-1 text-xs" value={moldeCobertaId} onChange={e => setMoldeCobertaId(e.target.value)}>
+                                                <option value="">-- Não Associado --</option>
+                                                {mCobertas.map(m => {
+                                                    const isEsgotado = m.status !== 'Ativo';
+                                                    return <option key={m.id} value={m.id} disabled={isEsgotado}>{m.nome_parte} (Uso: {m.ciclos_estimados}){isEsgotado ? ' ⛔ MANUTENÇÃO' : ''}</option>
+                                                })}
+                                            </select>
+                                        </div>
+                                    )}
+
+                                    {mMedium.length > 0 && (
+                                        <div className="flex flex-col gap-1">
+                                            <Label className="text-xs text-slate-700 font-bold">Molde Medium Parts (Liner/Config)</Label>
+                                            <select className="flex h-9 w-full rounded-md border border-slate-200 bg-white px-3 py-1 text-xs" value={moldeLinerId} onChange={e => setMoldeLinerId(e.target.value)}>
+                                                <option value="">-- Não Associado --</option>
+                                                {mMedium.map(m => {
+                                                    const isEsgotado = m.status !== 'Ativo';
+                                                    return <option key={m.id} value={m.id} disabled={isEsgotado}>{m.nome_parte} (Uso: {m.ciclos_estimados}){isEsgotado ? ' ⛔ MANUTENÇÃO' : ''}</option>
+                                                })}
+                                            </select>
+                                        </div>
+                                    )}
+
+                                    {mSmall.length > 0 && (
+                                        <div className="flex flex-col gap-1">
+                                            <Label className="text-xs text-slate-700 font-bold">Molde Small Parts (Tampas/Extras)</Label>
+                                            <select className="flex h-9 w-full rounded-md border border-slate-200 bg-white px-3 py-1 text-xs" value={moldeSmallPartsId} onChange={e => setMoldeSmallPartsId(e.target.value)}>
+                                                <option value="">-- Não Associado --</option>
+                                                {mSmall.map(m => {
+                                                    const isEsgotado = m.status !== 'Ativo';
+                                                    return <option key={m.id} value={m.id} disabled={isEsgotado}>{m.nome_parte} (Uso: {m.ciclos_estimados}){isEsgotado ? ' ⛔ MANUTENÇÃO' : ''}</option>
+                                                })}
+                                            </select>
+                                        </div>
+                                    )}
                                 </div>
                             </CardContent>
                         </Card>

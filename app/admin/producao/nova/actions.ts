@@ -42,13 +42,17 @@ export async function fetchFormularioNovaOPData() {
             .select('id, nome_opcao, modelo_id');
         if (errOpc) throw errOpc;
 
-        // 5. Moldes (Migration 0012 + 0022 TPM)
+        // 5. Moldes (Migration 0012 + 0022 TPM + 0023 Categorizations)
         const { data: moldes, error: moldesErr } = await supabase
             .from('moldes')
-            .select('id, nome_parte, rfid, ciclos_estimados, manutenir_em, status');
+            .select('id, nome_parte, rfid, ciclos_estimados, manutenir_em, status, categoria, tipo_parte, modelo_base_id, moldagem_obrigatoria');
 
         // Se a migration 0012 ainda não tiver corrido do lado do cliente, ignoramos por agora a falha dos moldes.
         const moldesSeguros = moldesErr ? [] : (moldes || []);
+
+        const { data: moldes_opcionais, error: relErr } = await supabase
+            .from('moldes_opcionais')
+            .select('molde_id, opcional_id');
 
         return {
             success: true,
@@ -57,7 +61,8 @@ export async function fetchFormularioNovaOPData() {
                 linhas: linhas || [],
                 roteiros: roteiros || [],
                 opcionais: opcionais || [],
-                moldes: moldesSeguros
+                moldes: moldesSeguros,
+                moldes_opcionais: moldes_opcionais || []
             }
         };
 
