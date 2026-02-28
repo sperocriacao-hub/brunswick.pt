@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Box, GitBranch, Layers, Settings, CalendarDays, Activity, Menu, X } from 'lucide-react';
+import { Box, GitBranch, Layers, Settings, CalendarDays, Activity, Menu, X, AlertTriangle } from 'lucide-react';
 
 export function Sidebar({ userEmail }: { userEmail: string | undefined }) {
     const pathname = usePathname();
