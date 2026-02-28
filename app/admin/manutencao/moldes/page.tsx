@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getMoldesTPM, criarIntervencaoManual } from './actions';
-import { Wrench, ShieldCheck, ShieldAlert, Cpu, PieChart, AlertTriangle } from 'lucide-react';
+import { Wrench, ShieldCheck, ShieldAlert, Cpu, PieChart, AlertTriangle, CalendarClock } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -73,10 +73,16 @@ export default function GestaoMoldesTPMPage() {
                     <h1 className="text-4xl font-black tracking-tight text-slate-900 uppercase">Preventiva TPM de Moldes</h1>
                     <p className="text-lg text-slate-500 mt-1">Inspeção de Limites de Laminação e Controlo de Desgaste OEE</p>
                 </div>
-                <Button variant="outline" className="border-blue-200 text-blue-700 hover:bg-blue-50" onClick={() => router.push('/admin/manutencao/moldes/dashboard')}>
-                    <PieChart className="w-4 h-4 mr-2" />
-                    KPI Analítico OEE
-                </Button>
+                <div className="flex gap-2">
+                    <Button variant="outline" className="border-slate-200 text-slate-700 hover:bg-slate-50" onClick={() => router.push('/admin/manutencao/moldes/historico')}>
+                        <CalendarClock className="w-4 h-4 mr-2 text-slate-500" />
+                        Histórico O.S.
+                    </Button>
+                    <Button variant="outline" className="border-blue-200 text-blue-700 hover:bg-blue-50" onClick={() => router.push('/admin/manutencao/moldes/dashboard')}>
+                        <PieChart className="w-4 h-4 mr-2" />
+                        KPI Analítico OEE
+                    </Button>
+                </div>
             </header>
 
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
