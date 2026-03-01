@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { SearchableSelect } from "@/components/ui/searchable-select";
-import { PlusCircle, Loader2, Hospital, AlertTriangle, ShieldAlert, CheckCircle2, ChevronRight, Activity, Crosshair } from 'lucide-react';
+import { PlusCircle, Loader2, Hospital, AlertTriangle, ShieldAlert, CheckCircle2, ChevronRight, Activity, Crosshair, Search } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
