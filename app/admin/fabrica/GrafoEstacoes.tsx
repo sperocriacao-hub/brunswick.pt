@@ -13,7 +13,8 @@ import {
     Edge,
     Node,
     BackgroundVariant,
-    MarkerType
+    MarkerType,
+    useReactFlow
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { createClient } from '@/utils/supabase/client';
@@ -44,6 +45,15 @@ interface LinhaProducao {
     capacidade_diaria: number;
 }
 
+// Representa a Extensão DB da Ligação (Edge)
+interface SequenciaDb {
+    id: string;
+    predecessora_id: string;
+    sucessora_id: string;
+    requer_kitting: boolean;
+    kitting_offset_horas: number;
+}
+
 interface GrafoProps {
     estacoes: Estacao[];
     areas: AreaFabrica[];
@@ -55,6 +65,11 @@ export default function GrafoEstacoes({ estacoes, areas, linhas }: GrafoProps) {
     const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
     const [isLoadingLinks, setIsLoadingLinks] = useState(true);
+
+    // Modal de Edição da Aresta (Edge / Sequência)
+    const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
+    const [edgeConfig, setEdgeConfig] = useState<SequenciaDb | null>(null);
+    const [isEdgeModalOpen, setIsEdgeModalOpen] = useState(false);
 
     // Inicializar Nós (Auto-Layout baseado em Áreas e Linhas)
     useEffect(() => {
@@ -116,11 +131,14 @@ export default function GrafoEstacoes({ estacoes, areas, linhas }: GrafoProps) {
                     source: link.predecessora_id,
                     target: link.sucessora_id,
                     animated: true,
-                    style: { stroke: 'var(--primary)', strokeWidth: 2 },
+                    style: { stroke: link.requer_kitting ? '#f59e0b' : 'var(--primary)', strokeWidth: link.requer_kitting ? 3 : 2 },
                     markerEnd: {
                         type: MarkerType.ArrowClosed,
-                        color: 'var(--primary)',
+                        color: link.requer_kitting ? '#f59e0b' : 'var(--primary)',
                     },
+                    data: {
+                        dbData: link
+                    }
                 }));
                 setEdges(initialEdges);
             }
@@ -144,7 +162,9 @@ export default function GrafoEstacoes({ estacoes, areas, linhas }: GrafoProps) {
                 .from('estacoes_sequencia')
                 .insert([{
                     predecessora_id: params.source,
-                    sucessora_id: params.target
+                    sucessora_id: params.target,
+                    requer_kitting: false,
+                    kitting_offset_horas: 0
                 }])
                 .select()
                 .single();
@@ -166,6 +186,7 @@ export default function GrafoEstacoes({ estacoes, areas, linhas }: GrafoProps) {
                 animated: true,
                 style: { stroke: 'var(--primary)', strokeWidth: 2 },
                 markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--primary)' },
+                data: { dbData: data }
             };
             setEdges((eds) => addEdge(newEdge, eds));
         },
@@ -190,6 +211,50 @@ export default function GrafoEstacoes({ estacoes, areas, linhas }: GrafoProps) {
         [supabase],
     );
 
+    // Evento de Clique numa Ligação (Aresta)
+    const onEdgeClick = useCallback((event: React.MouseEvent, edge: Edge) => {
+        const dbData = edge.data?.dbData as SequenciaDb;
+        if (dbData) {
+            setSelectedEdgeId(dbData.id);
+            setEdgeConfig(dbData);
+            setIsEdgeModalOpen(true);
+        }
+    }, []);
+
+    // Salvar Configuração do Edge
+    const handleSaveEdgeConfig = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!edgeConfig) return;
+
+        const { error } = await supabase
+            .from('estacoes_sequencia')
+            .update({
+                requer_kitting: edgeConfig.requer_kitting,
+                kitting_offset_horas: edgeConfig.kitting_offset_horas
+            })
+            .eq('id', edgeConfig.id);
+
+        if (error) {
+            alert("Erro ao salvar regras logísticas: " + error.message);
+        } else {
+            // Atualiza localmente o estilo do edge
+            setEdges((eds) => eds.map(edge => {
+                if (edge.id === selectedEdgeId) {
+                    return {
+                        ...edge,
+                        style: { stroke: edgeConfig.requer_kitting ? '#f59e0b' : 'var(--primary)', strokeWidth: edgeConfig.requer_kitting ? 3 : 2 },
+                        markerEnd: { type: MarkerType.ArrowClosed, color: edgeConfig.requer_kitting ? '#f59e0b' : 'var(--primary)' },
+                        data: { ...edge.data, dbData: edgeConfig }
+                    };
+                }
+                return edge;
+            }));
+            setIsEdgeModalOpen(false);
+            setSelectedEdgeId(null);
+            setEdgeConfig(null);
+        }
+    };
+
     if (isLoadingLinks) {
         return (
             <div className="flex h-full w-full items-center justify-center" style={{ background: 'var(--background-base)' }}>
@@ -206,6 +271,7 @@ export default function GrafoEstacoes({ estacoes, areas, linhas }: GrafoProps) {
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
             onEdgesDelete={onEdgesDelete}
+            onEdgeClick={onEdgeClick}
             fitView
             minZoom={0.2}
             maxZoom={2}
@@ -219,6 +285,69 @@ export default function GrafoEstacoes({ estacoes, areas, linhas }: GrafoProps) {
             />
             <Controls style={{ backgroundColor: 'rgba(30, 41, 59, 1)', fill: 'white', color: 'white' }} />
             <Background variant={BackgroundVariant.Dots} gap={24} size={2} color="rgba(255,255,255,0.15)" />
+
+            {/* Modal de Configuração da Aresta (Edge) */}
+            {isEdgeModalOpen && edgeConfig && (
+                <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+                    <div className="bg-slate-900 border border-slate-700 rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95">
+                        <div className="px-6 py-4 border-b border-slate-800 bg-slate-900/50 flex justify-between items-center">
+                            <h3 className="text-xl font-bold text-white tracking-tight">Regras da Conexão</h3>
+                            <button onClick={() => setIsEdgeModalOpen(false)} className="text-slate-400 hover:text-white transition-colors">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                            </button>
+                        </div>
+                        <form onSubmit={handleSaveEdgeConfig} className="p-6 space-y-6">
+
+                            <div className="flex flex-col gap-3 p-4 rounded-lg bg-slate-800/50 border border-slate-700">
+                                <label className="flex items-start gap-3 cursor-pointer">
+                                    <div className="mt-1">
+                                        <input
+                                            type="checkbox"
+                                            checked={edgeConfig.requer_kitting}
+                                            onChange={(e) => setEdgeConfig({ ...edgeConfig, requer_kitting: e.target.checked })}
+                                            className="w-5 h-5 rounded border-slate-600 bg-slate-800 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-900"
+                                        />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-bold text-slate-200">Requer Fornecimento do Armazém (Kitting)</p>
+                                        <p className="text-xs text-slate-400 mt-1 leading-relaxed">Se ativado, ao entrar nesta transição, será gerado automaticamente um pedido no Tablet da Logística.</p>
+                                    </div>
+                                </label>
+                            </div>
+
+                            {edgeConfig.requer_kitting && (
+                                <div className="space-y-3 p-4 rounded-lg border border-amber-500/20 bg-amber-500/5 animate-in slide-in-from-top-4 fade-in">
+                                    <label className="text-sm font-semibold text-amber-500 flex items-center gap-2">
+                                        Aviso Prévio (Antecedência em Horas)
+                                    </label>
+                                    <div className="flex gap-2 items-center">
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            value={edgeConfig.kitting_offset_horas}
+                                            onChange={(e) => setEdgeConfig({ ...edgeConfig, kitting_offset_horas: parseInt(e.target.value) || 0 })}
+                                            className="form-control w-24 text-center font-bold text-lg"
+                                        />
+                                        <span className="text-sm font-medium text-slate-400">Horas de antecedência face ao SLA desta estação.</span>
+                                    </div>
+                                    <p className="text-xs text-slate-400 mt-2">
+                                        Se 0, o aviso toca no armazém no exato segundo em que o Barco chega. Se &gt; 0, o armazém é notificado precocemente.
+                                    </p>
+                                </div>
+                            )}
+
+                            <div className="flex justify-end pt-4 border-t border-slate-800 gap-3">
+                                <button type="button" onClick={() => setIsEdgeModalOpen(false)} className="px-4 py-2 rounded-md font-medium text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
+                                    Cancelar
+                                </button>
+                                <button type="submit" className="px-6 py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-lg shadow-blue-900/50 transition-all active:scale-95">
+                                    Salvar Alterações
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </ReactFlow>
     );
 }
