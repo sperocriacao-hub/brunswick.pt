@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient } from '@supabase/supabase-js';
+import { revalidatePath } from 'next/cache';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
@@ -47,19 +48,28 @@ export async function saveHst8D(ocorrenciaId: string, payload: any) {
 
         let result;
 
-        if (id) {
-            // Se já temos o ID do 8D, fazemos Update explícito
+        // Pre-flight check para garantir que contornamos as caches agressivas do Next.js Client Router
+        const { data: existing } = await supabase
+            .from('hst_8d')
+            .select('id')
+            .eq('ocorrencia_id', ocorrenciaId)
+            .maybeSingle();
+
+        const actualId = id || existing?.id;
+
+        if (actualId) {
+            // Se já temos o ID na db real, obriga ao Update explícito
             const { data: updateRes, error: updateErr } = await supabase
                 .from('hst_8d')
                 .update(updateData)
-                .eq('id', id)
+                .eq('id', actualId)
                 .select()
                 .single();
 
             if (updateErr) throw updateErr;
             result = updateRes;
         } else {
-            // Se não temos ID, é uma Inserção nova
+            // Inserção nova real
             const { data: insertRes, error: insertErr } = await supabase
                 .from('hst_8d')
                 .insert([{ ocorrencia_id: ocorrenciaId, ...updateData }])
@@ -69,6 +79,10 @@ export async function saveHst8D(ocorrenciaId: string, payload: any) {
             if (insertErr) throw insertErr;
             result = insertRes;
         }
+
+        // Limpar caches do lado do servidor para forçar o front-end a ler dados frescos
+        revalidatePath(`/admin/hst/8d/novo/${ocorrenciaId}`, 'page');
+        revalidatePath(`/admin/hst/8d/historico`, 'page');
 
         return { success: true, data: result };
     } catch (e: any) {
