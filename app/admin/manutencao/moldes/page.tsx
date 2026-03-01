@@ -130,19 +130,28 @@ export default function GestaoMoldesTPMPage() {
                                         <Button
                                             variant="ghost"
                                             size="sm"
-                                            className="text-amber-600 hover:bg-amber-50"
+                                            className="text-amber-600 hover:bg-amber-50 rounded-full"
                                             onClick={() => openAlertDialog(molde.id)}
                                             title="Reportar Avaria Manual (Fora de Ciclo)"
                                         >
-                                            <AlertTriangle className="w-4 h-4" />
+                                            <AlertTriangle className="w-5 h-5" />
+                                        </Button>
+
+                                        <Button
+                                            variant="outline"
+                                            className="text-blue-600 border-blue-200 hover:bg-blue-50 hover:text-blue-700 font-bold shadow-sm"
+                                            onClick={() => router.push(`/admin/manutencao/moldes/auditoria/${molde.id}`)}
+                                            title="Registar Defeito Geométrico (Poka-Yoke)"
+                                        >
+                                            <Cpu className="w-4 h-4 mr-2" /> Geo-Audit
                                         </Button>
 
                                         <Button
                                             variant={isDanger ? "default" : "outline"}
-                                            className={isDanger ? 'bg-rose-600 hover:bg-rose-700 shadow-lg shadow-rose-200' : 'text-slate-600 border-slate-300 hover:bg-slate-50'}
+                                            className={isDanger ? 'bg-rose-600 hover:bg-rose-700 shadow-lg shadow-rose-200' : 'text-slate-600 border-slate-300 hover:bg-slate-50 font-bold'}
                                             onClick={() => handleOpenCockpit(molde.id)}
                                         >
-                                            <Wrench className="w-4 h-4 mr-2" /> Cockpit TPM
+                                            <Wrench className="w-4 h-4 mr-2" /> Tratar O.S.
                                         </Button>
                                     </div>
                                 </div>

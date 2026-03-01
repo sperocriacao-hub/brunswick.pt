@@ -22,6 +22,6 @@ CREATE POLICY "Enable write access for admins"
     USING (
         EXISTS (
             SELECT 1 FROM public.operadores
-            WHERE id = auth.uid() AND categoria IN ('Engenheiro', 'Administrador')
+            WHERE id = auth.uid() AND nivel_permissao IN ('Planeador', 'Admin')
         )
     );
