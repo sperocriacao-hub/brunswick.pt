@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ListTodo, CheckCircle2, Clock, AlertTriangle, MessageSquarePlus, Lightbulb, MapPin, Loader2, GripVertical, Check, Search, History, LayoutDashboard, Save, Plus, Trash2, FileText, Target, Crosshair } from 'lucide-react';
+import { ListTodo, CheckCircle2, Clock, AlertTriangle, MessageSquarePlus, Lightbulb, MapPin, Loader2, GripVertical, Check, Search, History, LayoutDashboard, Save, Plus, Trash2, FileText, Target, Crosshair, Printer, Calendar } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
@@ -17,7 +17,9 @@ export default function GlobalLeanActionsPage() {
 
     // Filter Controls
     const [searchTerm, setSearchTerm] = useState('');
-    const [activeTab, setActiveTab] = useState<'kanban' | 'historico'>('kanban');
+    const [activeTab, setActiveTab] = useState<'kanban' | 'historico' | 'lista'>('kanban');
+    const [dataInicio, setDataInicio] = useState('');
+    const [dataFim, setDataFim] = useState('');
 
     // A3 Modal State
     const [selectedAction, setSelectedAction] = useState<any | null>(null);
@@ -123,7 +125,7 @@ export default function GlobalLeanActionsPage() {
 
     return (
         <div className="p-8 space-y-8 pb-32 max-w-[1600px] mx-auto animate-in fade-in zoom-in-95 duration-500 bg-slate-50/50 min-h-screen">
-            <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 border-b pb-6 border-slate-200">
+            <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 border-b pb-6 border-slate-200 print:hidden">
                 <div>
                     <h1 className="text-4xl font-black tracking-tight text-slate-900 uppercase flex items-center gap-3">
                         <ListTodo className="text-emerald-600" size={36} /> Painel de Ações Contínuas
@@ -134,38 +136,148 @@ export default function GlobalLeanActionsPage() {
                 <div className="flex bg-slate-200/50 p-1 rounded-xl w-full md:w-auto">
                     <button
                         onClick={() => setActiveTab('kanban')}
-                        className={`flex-1 md:px-6 py-2.5 rounded-lg font-bold text-sm flex items-center justify-center gap-2 transition-all \${activeTab === 'kanban' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                        className={`flex-1 md:px-4 py-2.5 rounded-lg font-bold text-sm flex items-center justify-center gap-2 transition-all \${activeTab === 'kanban' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                     >
                         <LayoutDashboard size={16} />
-                        Kanban Ativo
+                        Kanban
                     </button>
                     <button
                         onClick={() => setActiveTab('historico')}
-                        className={`flex-1 md:px-6 py-2.5 rounded-lg font-bold text-sm flex items-center justify-center gap-2 transition-all \${activeTab === 'historico' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                        className={`flex-1 md:px-4 py-2.5 rounded-lg font-bold text-sm flex items-center justify-center gap-2 transition-all \${activeTab === 'historico' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                     >
                         <History size={16} />
-                        Arquivo (Done)
+                        Arquivo
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('lista')}
+                        className={`flex-1 md:px-4 py-2.5 rounded-lg font-bold text-sm flex items-center justify-center gap-2 transition-all \${activeTab === 'lista' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                    >
+                        <FileText size={16} />
+                        Relatórios
                     </button>
                 </div>
             </header>
 
-            <div className="flex flex-col md:flex-row gap-4 items-center bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+            <div className="flex flex-col xl:flex-row gap-4 items-center bg-white p-4 rounded-xl border border-slate-200 shadow-sm print:hidden">
                 <div className="relative flex-1 w-full">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                     <input
                         type="text"
-                        placeholder="Pesquisar por Tarefa, Descrição, Origem ou Área..."
+                        placeholder="Pesquisar por Tarefa, Resp., Origem ou Causa..."
                         value={searchTerm}
                         onChange={e => setSearchTerm(e.target.value)}
                         className="w-full pl-10 pr-4 py-3 bg-slate-50 border-none rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-slate-700 font-medium"
                     />
                 </div>
+                {activeTab === 'lista' && (
+                    <div className="flex flex-wrap items-center gap-3 w-full xl:w-auto">
+                        <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-lg border border-slate-200">
+                            <Calendar className="text-slate-400 ml-2" size={16} />
+                            <input
+                                type="date"
+                                value={dataInicio}
+                                onChange={e => setDataInicio(e.target.value)}
+                                className="bg-transparent text-sm text-slate-600 focus:outline-none px-1"
+                                title="Data Inicial"
+                            />
+                            <span className="text-slate-400 text-sm font-medium">até</span>
+                            <input
+                                type="date"
+                                value={dataFim}
+                                onChange={e => setDataFim(e.target.value)}
+                                className="bg-transparent text-sm text-slate-600 focus:outline-none px-1"
+                                title="Data Final"
+                            />
+                        </div>
+                        <Button onClick={() => window.print()} className="bg-slate-800 hover:bg-slate-900 text-white shadow-sm w-full sm:w-auto">
+                            <Printer size={16} className="mr-2" /> Imprimir
+                        </Button>
+                    </div>
+                )}
             </div>
 
             {loading ? (
                 <div className="p-12 flex justify-center"><Loader2 className="w-8 h-8 text-emerald-500 animate-spin" /></div>
+            ) : activeTab === 'lista' ? (
+                <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-x-auto print:overflow-visible print:border-none print:shadow-none print:-mt-8">
+                    <div className="hidden print:block mb-6">
+                        <h2 className="text-2xl font-black text-slate-900 border-b border-slate-200 pb-2">Relatório Consolidado de Ações (A3/PDCA)</h2>
+                        <p className="text-slate-500 mt-2 font-mono text-sm">Data de Emissão: {new Date().toLocaleDateString()}</p>
+                    </div>
+                    <table className="w-full text-left border-collapse min-w-[1000px] print:min-w-0">
+                        <thead>
+                            <tr className="bg-slate-50 print:bg-transparent border-b border-slate-200 text-xs uppercase tracking-widest text-slate-500">
+                                <th className="p-4 font-bold">Data</th>
+                                <th className="p-4 font-bold">Origem</th>
+                                <th className="p-4 font-bold">Ação / Problema</th>
+                                <th className="p-4 font-bold">Responsável</th>
+                                <th className="p-4 font-bold w-1/4">Causa Raiz Aferida</th>
+                                <th className="p-4 font-bold">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 print:divide-slate-200 text-sm text-slate-700">
+                            {acoes.filter(a => {
+                                // Search
+                                if (searchTerm) {
+                                    const term = searchTerm.toLowerCase();
+                                    const whyStr = Array.isArray(a.causa_raiz_5w) ? a.causa_raiz_5w.join(" ") : "";
+                                    if (!(
+                                        a.titulo?.toLowerCase().includes(term) ||
+                                        a.descricao?.toLowerCase().includes(term) ||
+                                        a.origem_tipo?.toLowerCase().includes(term) ||
+                                        a.equipa_trabalho?.toLowerCase().includes(term) ||
+                                        whyStr.toLowerCase().includes(term)
+                                    )) return false;
+                                }
+                                // Date Filters
+                                if (dataInicio && new Date(a.created_at) < new Date(dataInicio)) return false;
+                                if (dataFim) {
+                                    const end = new Date(dataFim);
+                                    end.setHours(23, 59, 59, 999);
+                                    if (new Date(a.created_at) > end) return false;
+                                }
+                                return true;
+                            }).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                                .map(task => {
+                                    // Find best "Why" (last filled one or first)
+                                    const ws = Array.isArray(task.causa_raiz_5w) ? task.causa_raiz_5w.filter((w: string) => w.trim() !== '') : [];
+                                    const mainCause = ws.length > 0 ? ws[ws.length - 1] : "Não definida";
+
+                                    return (
+                                        <tr key={task.id} className="hover:bg-slate-50/50 transition-colors group cursor-pointer print:hover:bg-transparent" onClick={() => openA3Modal(task)}>
+                                            <td className="p-4 font-mono text-slate-500 whitespace-nowrap text-xs">{new Date(task.created_at).toLocaleDateString()}</td>
+                                            <td className="p-4 whitespace-nowrap">
+                                                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 bg-slate-100 print:bg-transparent print:border print:border-slate-300 px-2 py-1 rounded inline-flex items-center gap-1">
+                                                    {getOriginIcon(task.origem_tipo)} {task.origem_tipo}
+                                                </span>
+                                            </td>
+                                            <td className="p-4 font-bold text-slate-900 group-hover:text-indigo-600 print:group-hover:text-slate-900 transition-colors">
+                                                {task.titulo}
+                                            </td>
+                                            <td className="p-4 text-slate-600 font-medium">
+                                                {task.equipa_trabalho || '-'}
+                                            </td>
+                                            <td className="p-4 text-slate-500 italic text-xs leading-relaxed max-w-[250px] truncate print:whitespace-normal print:break-words">
+                                                {mainCause}
+                                            </td>
+                                            <td className="p-4 whitespace-nowrap">
+                                                <span className={`px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest print:bg-transparent print:border \${
+                                                task.status === 'Done' ? 'bg-emerald-100 text-emerald-600 print:border-emerald-600' :
+                                                task.status === 'In Progress' ? 'bg-indigo-100 text-indigo-600 print:border-indigo-600' :
+                                                task.status === 'Blocked' ? 'bg-rose-100 text-rose-600 print:border-rose-600' :
+                                                'bg-slate-100 text-slate-600 print:border-slate-600'
+                                            }`}>
+                                                    {task.status}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                        </tbody>
+                    </table>
+                </div>
             ) : (
-                <div className="flex flex-col lg:flex-row gap-6 w-full items-start">
+                <div className="flex flex-col lg:flex-row gap-6 w-full items-start print:hidden">
 
                     {StatusColumns.map(columnId => {
                         // Esconder colunas não pertencentes à tab
