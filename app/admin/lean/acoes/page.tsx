@@ -3,8 +3,13 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ListTodo, CheckCircle2, Clock, AlertTriangle, MessageSquarePlus, Lightbulb, MapPin, Loader2, GripVertical, Check, Search, History, LayoutDashboard } from 'lucide-react';
-import { getLeanAcoes, updateActionStatus } from './actions';
+import { ListTodo, CheckCircle2, Clock, AlertTriangle, MessageSquarePlus, Lightbulb, MapPin, Loader2, GripVertical, Check, Search, History, LayoutDashboard, Save, Plus, Trash2, FileText, Target, Crosshair } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { getLeanAcoes, updateActionStatus, updateA3Report } from './actions';
 
 export default function GlobalLeanActionsPage() {
     const [acoes, setAcoes] = useState<any[]>([]);
@@ -13,6 +18,18 @@ export default function GlobalLeanActionsPage() {
     // Filter Controls
     const [searchTerm, setSearchTerm] = useState('');
     const [activeTab, setActiveTab] = useState<'kanban' | 'historico'>('kanban');
+
+    // A3 Modal State
+    const [selectedAction, setSelectedAction] = useState<any | null>(null);
+    const [isA3Open, setIsA3Open] = useState(false);
+    const [isSavingA3, setIsSavingA3] = useState(false);
+
+    // Form Temporary State mimicking A3 fields
+    const [equipa, setEquipa] = useState("");
+    const [indicadores, setIndicadores] = useState("");
+    const [validacao, setValidacao] = useState("Pendente");
+    const [whys, setWhys] = useState<string[]>(['', '', '', '', '']);
+    const [tasks5w, setTasks5w] = useState<any[]>([]);
 
     useEffect(() => {
         carregarAcoes();
@@ -40,6 +57,59 @@ export default function GlobalLeanActionsPage() {
             carregarAcoes();
             alert("Erro a mover a tarefa: " + res.error);
         }
+    };
+
+    const openA3Modal = (action: any) => {
+        setSelectedAction(action);
+        setEquipa(action.equipa_trabalho || "");
+        setIndicadores(action.indicadores_sucesso || "");
+        setValidacao(action.validacao_eficacia || "Pendente");
+
+        const loadedWhys = Array.isArray(action.causa_raiz_5w) && action.causa_raiz_5w.length > 0
+            ? action.causa_raiz_5w
+            : ['', '', '', '', ''];
+        setWhys(loadedWhys);
+
+        const loadedTasks = Array.isArray(action.plano_acao_5w2h) ? action.plano_acao_5w2h : [];
+        setTasks5w(loadedTasks);
+
+        setIsA3Open(true);
+    };
+
+    const handleSalvarA3 = async () => {
+        if (!selectedAction) return;
+        setIsSavingA3(true);
+
+        const payload = {
+            equipa_trabalho: equipa,
+            causa_raiz_5w: whys,
+            plano_acao_5w2h: tasks5w,
+            indicadores_sucesso: indicadores,
+            validacao_eficacia: validacao
+        };
+
+        const res = await updateA3Report(selectedAction.id, payload);
+        if (res.success) {
+            setIsA3Open(false);
+            carregarAcoes(); // Recarregar para ter os dados frescos no cartão
+        } else {
+            alert("Erro ao gravar Relatório A3: " + res.error);
+        }
+        setIsSavingA3(false);
+    };
+
+    const handleAddTask5w = () => {
+        setTasks5w([...tasks5w, { o_que: '', quem: '', quando: '', status: 'Pendente' }]);
+    };
+
+    const updateTask5w = (index: number, field: string, value: string) => {
+        const nf = [...tasks5w];
+        nf[index][field] = value;
+        setTasks5w(nf);
+    };
+
+    const removeTask5w = (index: number) => {
+        setTasks5w(tasks5w.filter((_, i) => i !== index));
     };
 
     const StatusColumns = ["To Do", "In Progress", "Blocked", "Done"];
@@ -143,7 +213,15 @@ export default function GlobalLeanActionsPage() {
                                         </div>
                                     ) : (
                                         colItems.map(task => (
-                                            <Card key={task.id} className="cursor-pointer border-slate-200 shadow-sm hover:shadow-md hover:border-indigo-300 transition-all active:scale-95 group relative bg-white overflow-hidden">
+                                            <Card
+                                                key={task.id}
+                                                onClick={(e) => {
+                                                    // Only open modal if we didn't click an action button
+                                                    if ((e.target as HTMLElement).closest('button')) return;
+                                                    openA3Modal(task);
+                                                }}
+                                                className="cursor-pointer border-slate-200 shadow-sm hover:shadow-md hover:border-indigo-300 transition-all active:scale-95 group relative bg-white overflow-hidden"
+                                            >
                                                 {/* Sidebar accent color */}
                                                 <div className={`absolute left-0 top-0 bottom-0 w-1 \${
                                                     task.origem_tipo === 'Kaizen' ? 'bg-amber-400' :
@@ -195,6 +273,205 @@ export default function GlobalLeanActionsPage() {
                     })}
                 </div>
             )}
+
+            {/* Modal A3 (PDCA Problem Solving) */}
+            <Dialog open={isA3Open} onOpenChange={setIsA3Open}>
+                <DialogContent className="max-w-[1000px] h-[90vh] flex flex-col p-0 border-slate-200 bg-slate-50 overflow-hidden">
+                    <DialogHeader className="bg-white px-8 py-6 border-b border-slate-200 shrink-0">
+                        <div className="flex justify-between items-start">
+                            <div>
+                                <DialogTitle className="text-2xl font-black text-slate-800 flex items-center gap-3">
+                                    <FileText className="text-indigo-600" /> Relatório de Resolução A3
+                                    <span className="text-xs bg-slate-100 text-slate-500 font-bold px-3 py-1 rounded-full border border-slate-200 uppercase tracking-widest">{selectedAction?.status}</span>
+                                </DialogTitle>
+                                <DialogDescription className="text-slate-500 font-medium mt-1 text-base">
+                                    {selectedAction?.titulo}
+                                </DialogDescription>
+                            </div>
+                        </div>
+                    </DialogHeader>
+
+                    <div className="flex-1 overflow-y-auto w-full p-8 pb-32">
+                        <Tabs defaultValue="definicao" className="w-full">
+                            <TabsList className="grid w-full max-w-2xl grid-cols-4 bg-slate-200/50 p-1 mb-8">
+                                <TabsTrigger value="definicao" className="font-bold text-xs uppercase data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-sm">1. Definição</TabsTrigger>
+                                <TabsTrigger value="root_cause" className="font-bold text-xs uppercase data-[state=active]:bg-white data-[state=active]:text-amber-700 data-[state=active]:shadow-sm">2. Origem (5 Porquês)</TabsTrigger>
+                                <TabsTrigger value="plano" className="font-bold text-xs uppercase data-[state=active]:bg-white data-[state=active]:text-blue-700 data-[state=active]:shadow-sm">3. Plano 5W2H</TabsTrigger>
+                                <TabsTrigger value="verificacao" className="font-bold text-xs uppercase data-[state=active]:bg-white data-[state=active]:text-emerald-700 data-[state=active]:shadow-sm">4. Verificação</TabsTrigger>
+                            </TabsList>
+
+                            {/* TAB 1: DEFINIÇÃO */}
+                            <TabsContent value="definicao" className="space-y-6 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                <div>
+                                    <h3 className="font-black text-lg text-slate-800 mb-4 flex items-center gap-2"><Target size={18} className="text-indigo-500" /> Definição do Problema</h3>
+                                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-slate-700 leading-relaxed min-h-[100px] whitespace-pre-wrap text-sm">
+                                        {selectedAction?.descricao}
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label className="font-bold text-slate-600 text-sm">Equipa de Trabalho</Label>
+                                    <Input
+                                        placeholder="Ex: Pedro (Engenharia), Maria (Qualidade), João (Produção)"
+                                        value={equipa} onChange={e => setEquipa(e.target.value)}
+                                        className="bg-slate-50"
+                                    />
+                                    <p className="text-xs text-slate-400">Quem está envolvido na resolução desta anomalia.</p>
+                                </div>
+                            </TabsContent>
+
+                            {/* TAB 2: ROOT CAUSE (5 WHYS) */}
+                            <TabsContent value="root_cause" className="space-y-6 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                <div>
+                                    <h3 className="font-black text-lg text-slate-800 mb-1 flex items-center gap-2"><AlertTriangle size={18} className="text-amber-500" /> Causa Raiz (5 Porquês)</h3>
+                                    <p className="text-sm text-slate-500 mb-6 font-medium">Questione o sintoma repetidamente até chegar à verdadeira causa organizativa.</p>
+                                </div>
+
+                                <div className="space-y-3 pl-4 border-l-2 border-amber-200">
+                                    {whys.map((why, idx) => (
+                                        <div key={idx} className="relative">
+                                            <div className="absolute -left-[30px] top-2 bg-amber-100 text-amber-800 w-6 h-6 rounded-full flex items-center justify-center font-black text-xs border border-amber-300 shadow-sm">
+                                                {idx + 1}
+                                            </div>
+                                            <Input
+                                                placeholder={`Porquê..?`}
+                                                value={why}
+                                                onChange={e => {
+                                                    const w = [...whys];
+                                                    w[idx] = e.target.value;
+                                                    setWhys(w);
+                                                }}
+                                                className="bg-slate-50 border-slate-200 focus-visible:ring-amber-500 font-medium"
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+                            </TabsContent>
+
+                            {/* TAB 3: PLANO DE AÇÃO 5W2H */}
+                            <TabsContent value="plano" className="space-y-6 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                <div className="flex justify-between items-end mb-6">
+                                    <div>
+                                        <h3 className="font-black text-lg text-slate-800 mb-1 flex items-center gap-2"><ListTodo size={18} className="text-blue-500" /> Plano de Ação (Subtarefas)</h3>
+                                        <p className="text-sm text-slate-500 font-medium">Contramedidas para atacar a causa raiz que acabou de ser identificada.</p>
+                                    </div>
+                                    <Button onClick={handleAddTask5w} size="sm" className="bg-blue-100 text-blue-700 hover:bg-blue-200 font-bold border border-blue-200">
+                                        <Plus size={16} className="mr-1" /> Adicionar Ação
+                                    </Button>
+                                </div>
+
+                                {tasks5w.length === 0 ? (
+                                    <div className="text-center py-10 bg-slate-50 border border-slate-200 border-dashed rounded-xl text-slate-500 font-medium text-sm">
+                                        Nenhuma ação corretiva definida.
+                                    </div>
+                                ) : (
+                                    <div className="space-y-3">
+                                        {tasks5w.map((t, idx) => (
+                                            <div key={idx} className="flex flex-col md:flex-row gap-3 bg-slate-50 p-3 rounded-lg border border-slate-200 items-start md:items-center">
+                                                <div className="flex-1 space-y-1 w-full">
+                                                    <Input
+                                                        placeholder="O Que Fazer (What)? Ex: Mudar sensor"
+                                                        value={t.o_que} onChange={e => updateTask5w(idx, 'o_que', e.target.value)}
+                                                        className="h-8 text-sm font-bold bg-white"
+                                                    />
+                                                </div>
+                                                <div className="w-full md:w-[150px]">
+                                                    <Input
+                                                        placeholder="Quem (Who)?"
+                                                        value={t.quem} onChange={e => updateTask5w(idx, 'quem', e.target.value)}
+                                                        className="h-8 text-sm bg-white"
+                                                    />
+                                                </div>
+                                                <div className="w-full md:w-[150px]">
+                                                    <Input
+                                                        type="date"
+                                                        value={t.quando} onChange={e => updateTask5w(idx, 'quando', e.target.value)}
+                                                        className="h-8 text-sm bg-white text-slate-600"
+                                                    />
+                                                </div>
+                                                <div className="w-full md:w-[130px]">
+                                                    <select
+                                                        className="w-full h-8 text-sm rounded-md border border-slate-200 bg-white px-2 pr-6 font-semibold truncate"
+                                                        value={t.status} onChange={e => updateTask5w(idx, 'status', e.target.value)}
+                                                    >
+                                                        <option value="Pendente">Pendente</option>
+                                                        <option value="Feito">Feito</option>
+                                                    </select>
+                                                </div>
+                                                <Button variant="ghost" size="icon" onClick={() => removeTask5w(idx)} className="text-rose-400 hover:text-rose-600 hover:bg-rose-50 h-8 w-8 rounded-full shrink-0">
+                                                    <Trash2 size={14} />
+                                                </Button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </TabsContent>
+
+                            {/* TAB 4: VERIFICAÇÃO */}
+                            <TabsContent value="verificacao" className="space-y-6 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                <div>
+                                    <h3 className="font-black text-lg text-slate-800 mb-1 flex items-center gap-2"><Crosshair size={18} className="text-emerald-500" /> Padronização e Verificação (Act)</h3>
+                                    <p className="text-sm text-slate-500 font-medium">Após as ações serem fechadas, volte ao terreno para aferir se o problema desapareceu.</p>
+                                </div>
+
+                                <div className="space-y-6 pt-4">
+                                    <div className="space-y-2">
+                                        <Label className="font-bold text-slate-600 text-sm">Indicadores de Controlo (Como Medimos o Sucesso?)</Label>
+                                        <Textarea
+                                            placeholder="Ex: Acompanhar o OEE da máquina durante 15 dias. O defeito não pode voltar a aparecer."
+                                            value={indicadores} onChange={e => setIndicadores(e.target.value)}
+                                            className="bg-slate-50 min-h-[80px]"
+                                        />
+                                    </div>
+
+                                    <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
+                                        <Label className="font-black text-slate-800 text-sm block">Veredicto Final do Comitê</Label>
+                                        <div className="flex gap-4">
+                                            <button
+                                                onClick={() => setValidacao('Pendente')}
+                                                className={`flex-1 py-3 rounded-lg border-2 font-bold text-sm transition-all \${validacao === 'Pendente' ? 'border-amber-400 bg-amber-50 text-amber-800 shadow-sm' : 'border-transparent bg-white text-slate-500 hover:bg-slate-100 hover:text-slate-700'}`}
+                                            >
+                                                Em Análise / Observação
+                                            </button>
+                                            <button
+                                                onClick={() => setValidacao('Eficaz')}
+                                                className={`flex-1 py-3 rounded-lg border-2 font-bold text-sm transition-all \${validacao === 'Eficaz' ? 'border-emerald-500 bg-emerald-50 text-emerald-800 shadow-sm' : 'border-transparent bg-white text-slate-500 hover:bg-slate-100 hover:text-slate-700'}`}
+                                            >
+                                                Padrão Eficaz (Fechado)
+                                            </button>
+                                            <button
+                                                onClick={() => setValidacao('Ineficaz')}
+                                                className={`flex-1 py-3 rounded-lg border-2 font-bold text-sm transition-all \${validacao === 'Ineficaz' ? 'border-rose-500 bg-rose-50 text-rose-800 shadow-sm' : 'border-transparent bg-white text-slate-500 hover:bg-slate-100 hover:text-slate-700'}`}
+                                            >
+                                                Falhou (Reabrir Análise)
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </TabsContent>
+                        </Tabs>
+                    </div>
+
+                    <DialogFooter className="bg-white border-t border-slate-200 px-8 py-4 sm:justify-between absolute bottom-0 left-0 right-0 z-10 w-full shrink-0 items-center">
+                        <div className="text-sm font-medium text-slate-400 flex items-center gap-2">
+                            <span>Estado da Ação Kanban:</span>
+                            <span className="bg-slate-100 px-2 py-1 rounded border border-slate-200 text-slate-600 font-black uppercase text-xs">{selectedAction?.status}</span>
+                        </div>
+                        <div className="flex gap-2">
+                            <Button variant="outline" onClick={() => setIsA3Open(false)} className="font-bold border-slate-200">Cancelar</Button>
+                            <Button
+                                disabled={isSavingA3}
+                                onClick={handleSalvarA3}
+                                className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold w-[180px]"
+                            >
+                                {isSavingA3 ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+                                Guardar Relatório A3
+                            </Button>
+                        </div>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
         </div>
     );
 }
