@@ -32,13 +32,13 @@ export async function getSelectData() {
     try {
         const { data: ops } = await supabase
             .from("ordens_producao")
-            .select("id, modelos (nome_modelo)")
+            .select("id, modelos(nome_modelo), linhas_producao(nome_linha)")
             .neq("estado", "Concluida")
             .order("data_prevista_inicio", { ascending: false });
 
         const { data: estacoes } = await supabase
             .from("estacoes")
-            .select("id, nome_estacao, areas_fabrica(nome_area)")
+            .select("id, nome_estacao, areas_fabrica(nome_area), linhas_producao(nome_linha)")
             .order("areas_fabrica(ordem_sequencial)", { ascending: true });
 
         return { success: true, ops, estacoes };

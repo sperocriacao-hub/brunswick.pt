@@ -43,8 +43,8 @@ export default function NovaRncPage() {
         setSubmitting(true);
 
         const payload = {
-            ordem_producao_id: opId || null,
-            estacao_id: estacaoId || null,
+            ordem_producao_id: opId === 'none' || !opId ? null : opId,
+            estacao_id: estacaoId === 'none' || !estacaoId ? null : estacaoId,
             detetado_por_nome: detetadoPor,
             tipo_defeito: tipo,
             gravidade: gravidade,
@@ -92,7 +92,7 @@ export default function NovaRncPage() {
                                         <SelectItem value="none">-- RNC Geral (Sem OP Específica) --</SelectItem>
                                         {ops.map(op => (
                                             <SelectItem key={op.id} value={op.id}>
-                                                O.P. {op.id.split('-')[0]} ({op.modelos?.nome_modelo})
+                                                {op.linhas_producao?.nome_linha || 'Sem Linha'} - O.P. {op.id.split('-')[0]} ({op.modelos?.nome_modelo})
                                             </SelectItem>
                                         ))}
                                     </SelectContent>
@@ -109,7 +109,7 @@ export default function NovaRncPage() {
                                         <SelectItem value="none">-- Não Especificado --</SelectItem>
                                         {estacoes.map(st => (
                                             <SelectItem key={st.id} value={st.id}>
-                                                {st.areas_fabrica?.nome_area} - {st.nome_estacao}
+                                                {st.linhas_producao?.nome_linha || 'Sem Linha'} - {st.areas_fabrica?.nome_area} - {st.nome_estacao}
                                             </SelectItem>
                                         ))}
                                     </SelectContent>
