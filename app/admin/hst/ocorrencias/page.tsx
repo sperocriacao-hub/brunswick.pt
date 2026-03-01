@@ -230,7 +230,7 @@ export default function RegistosHstPage() {
                             <div className="space-y-2">
                                 <label className="text-xs font-bold text-slate-500 uppercase">Colaborador Envolvido</label>
                                 <SearchableSelect
-                                    options={operadores.map(op => ({ value: op.id, label: `\${op.numero_operador || ''} - \${op.nome_operador || 'Colaborador sem Nome'}` }))}
+                                    options={operadores.map(op => ({ value: op.id, label: `${op.numero_operador || ''} - ${op.nome_operador || 'Colaborador sem Nome'}` }))}
                                     value={colabId} onChange={setColabId} placeholder="Pesquisar..."
                                 />
                             </div>
