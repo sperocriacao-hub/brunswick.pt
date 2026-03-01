@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Box, GitBranch, Layers, Settings, CalendarDays, Activity, Menu, X, AlertTriangle, Lightbulb, Footprints, Crosshair, ListTodo, ShieldCheck } from 'lucide-react';
+import { Box, GitBranch, Layers, Settings, CalendarDays, Activity, Menu, X, AlertTriangle, Lightbulb, Footprints, Crosshair, ListTodo, ShieldCheck, ShieldAlert, History } from 'lucide-react';
 
 export function Sidebar({ userEmail }: { userEmail: string | undefined }) {
     const pathname = usePathname();
@@ -182,9 +182,21 @@ export function Sidebar({ userEmail }: { userEmail: string | undefined }) {
                                     <Crosshair size={18} className={pathname.includes('/admin/hst/ocorrencias') ? 'text-white' : 'text-rose-400'} />
                                     <span className="text-sm border-transparent">Registar Ocorrência</span>
                                 </Link>
-                                <Link onClick={() => setIsOpen(false)} href="/admin/hst/epis" className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium \${pathname.includes('/admin/hst/epis') ? 'bg-rose-600 text-white shadow-sm border border-transparent' : 'text-blue-100 hover:bg-blue-800/50 hover:text-white'}`}>
+                                <Link onClick={() => setIsOpen(false)} href="/admin/hst/epis" className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes('/admin/hst/epis') ? 'bg-rose-600 text-white shadow-sm border border-transparent' : 'text-blue-100 hover:bg-blue-800/50 hover:text-white'}`}>
                                     <ShieldCheck size={18} className={pathname.includes('/admin/hst/epis') ? 'text-white' : 'text-rose-400'} />
                                     <span className="text-sm border-transparent">Matriz Ocupacional</span>
+                                </Link>
+                                <Link onClick={() => setIsOpen(false)} href="/admin/hst/dashboard" className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname === '/admin/hst/dashboard' ? 'bg-rose-600 text-white shadow-sm border border-transparent' : 'text-blue-100 hover:bg-blue-800/50 hover:text-white'}`}>
+                                    <ShieldAlert size={18} className={pathname === '/admin/hst/dashboard' ? 'text-white' : 'text-rose-400'} />
+                                    <span className="text-sm border-transparent">Cruz de Segurança</span>
+                                </Link>
+                                <Link onClick={() => setIsOpen(false)} href="/admin/hst/8d/historico" className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes('/admin/hst/8d') ? 'bg-rose-600 text-white shadow-sm border border-transparent' : 'text-blue-100 hover:bg-blue-800/50 hover:text-white'}`}>
+                                    <History size={18} className={pathname.includes('/admin/hst/8d') ? 'text-white' : 'text-rose-400'} />
+                                    <span className="text-sm border-transparent">Investigações 8D</span>
+                                </Link>
+                                <Link onClick={() => setIsOpen(false)} href="/admin/hst/acoes" className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname === '/admin/hst/acoes' ? 'bg-rose-600 text-white shadow-sm border border-transparent' : 'text-blue-100 hover:bg-blue-800/50 hover:text-white'}`}>
+                                    <ListTodo size={18} className={pathname === '/admin/hst/acoes' ? 'text-white' : 'text-rose-400'} />
+                                    <span className="text-sm border-transparent">Scrum Board (Ações)</span>
                                 </Link>
                             </nav>
                             <p className="px-3 text-[10px] font-extrabold text-blue-400 uppercase tracking-widest mb-2">Sistema</p>
