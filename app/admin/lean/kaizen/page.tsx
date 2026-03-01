@@ -143,25 +143,33 @@ export default function ComiteKaizenPage() {
                         return matchSearch && matchTab;
                     }).map(k => {
                         const isEmAberto = k.status === 'Pendente' || k.status === 'Em Analise';
+                        const isRejeitada = k.status === 'Rejeitada';
                         const diag = k.esforco_estimado ? getMatrixQuadrant(k.esforco_estimado, k.impacto_estimado) : null;
 
                         return (
-                            <Card key={k.id} className={`border border-slate-200 shadow-sm overflow-hidden transition-all \${isEmAberto ? 'hover:shadow-lg hover:border-amber-300/50 hover:-translate-y-1' : 'opacity-75 bg-slate-50/50'}`}>
-                                <div className={`h-2 w-full \${isEmAberto ? 'bg-amber-400' : k.status === 'Aceite' ? 'bg-emerald-400' : 'bg-slate-300'}`}></div>
+                            <Card key={k.id} className={`border shadow-sm overflow-hidden transition-all \${
+                                isEmAberto ? 'border-slate-200 hover:shadow-lg hover:border-amber-300/50 hover:-translate-y-1' : 
+                                isRejeitada ? 'border-rose-200 bg-rose-50/30 opacity-75 grayscale-[0.5]' :
+                                'border-emerald-100 bg-slate-50/50 opacity-90'
+                            }`}>
+                                <div className={`h-2 w-full \${isEmAberto ? 'bg-amber-400' : k.status === 'Aceite' ? 'bg-emerald-500' : 'bg-rose-400'}`}></div>
                                 <CardHeader className="pb-2">
                                     <div className="flex justify-between items-start mb-2">
-                                        <div className="text-[10px] font-black tracking-widest uppercase bg-slate-100 text-slate-500 px-2 py-1 rounded">
+                                        <div className="text-[10px] font-black tracking-widest uppercase bg-white border border-slate-200 text-slate-500 px-2 py-1 rounded">
                                             {k.categoria}
                                         </div>
                                         <div className={`text-[10px] font-black uppercase px-2 py-1 rounded \${
-                                            k.status === 'Pendente' ? 'bg-rose-100 text-rose-700' : 
+                                            k.status === 'Pendente' ? 'bg-blue-100 text-blue-700' : 
                                             k.status === 'Em Analise' ? 'bg-amber-100 text-amber-700' :
-                                            k.status === 'Aceite' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-500'
+                                            k.status === 'Aceite' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 
+                                            k.status === 'Rejeitada' ? 'bg-slate-800 text-rose-300' : 'bg-slate-200 text-slate-500'
                                         }`}>
                                             {k.status}
                                         </div>
                                     </div>
-                                    <CardTitle className="text-lg leading-tight text-slate-800">{k.titulo}</CardTitle>
+                                    <CardTitle className={`text-lg leading-tight \${isRejeitada ? 'text-slate-500 line-through decoration-rose-300' : 'text-slate-800'}`}>
+                                        {k.titulo}
+                                    </CardTitle>
                                     <CardDescription className="text-xs font-mono uppercase">Por {k.operadores?.nome_operador} • {k.areas_fabrica?.nome_area || 'Fábrica Geral'}</CardDescription>
                                 </CardHeader>
                                 <CardContent className="space-y-4">
