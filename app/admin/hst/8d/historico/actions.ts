@@ -13,9 +13,9 @@ export async function getHstOcorrenciasWith8D() {
             .from('hst_ocorrencias')
             .select(`
                 *,
-                operadores:colaborador_envolvido (nome_operador),
-                areas_fabrica:area_id (nome_area),
-                estacoes:estacao_id (nome_estacao),
+                operadores(nome_operador),
+                areas_fabrica(nome_area),
+                estacoes(nome_estacao),
                 hst_8d (
                     id,
                     status,
