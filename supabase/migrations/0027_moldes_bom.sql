@@ -1,11 +1,5 @@
 -- Migration 0027: Moldes Categorization & B.O.M Linkage
 
--- 1. Add Category to existing Moldes table
-ALTER TABLE public.moldes
-    ADD COLUMN categoria TEXT DEFAULT 'Casco';
-
-COMMENT ON COLUMN public.moldes.categoria IS 'Categoria Estrutural do Molde (Casco, Convés, Consola, Peças Menores, etc).';
-
 -- 2. Create the Pivot Table for Moldes <-> Opcionais (B.O.M)
 CREATE TABLE IF NOT EXISTS public.moldes_opcionais (
     molde_id UUID NOT NULL REFERENCES public.moldes(id) ON DELETE CASCADE,

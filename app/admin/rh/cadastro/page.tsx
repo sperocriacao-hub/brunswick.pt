@@ -44,7 +44,9 @@ function FuncionarioFormCore() {
         // 5. Acesso
         possui_acesso_sistema: false,
         email_acesso: '',
-        nivel_permissao: ''
+        nivel_permissao: '',
+        // 6. Financeiro OEE
+        salario_hora: '10.00'
     });
 
     useEffect(() => {
@@ -78,7 +80,8 @@ function FuncionarioFormCore() {
                             notas_rh: data.notas_rh || '',
                             possui_acesso_sistema: data.possui_acesso_sistema || false,
                             email_acesso: data.email_acesso || '',
-                            nivel_permissao: data.nivel_permissao || ''
+                            nivel_permissao: data.nivel_permissao || '',
+                            salario_hora: data.salario_hora?.toString() || '10.00'
                         });
                     }
                     setIsFetchingData(false);
@@ -96,6 +99,9 @@ function FuncionarioFormCore() {
         if (payload.data_nascimento === '') payload.data_nascimento = null;
         if (payload.data_admissao === '') payload.data_admissao = null;
         if (payload.data_rescisao === '') payload.data_rescisao = null;
+
+        // Parse float for DB
+        payload.salario_hora = parseFloat(formData.salario_hora) || 0.0;
 
         let errorObj = null;
 
@@ -237,6 +243,18 @@ function FuncionarioFormCore() {
                             </select>
                         </div>
                     </div>
+
+                    <div className="grid grid-cols-2 gap-4 mb-4 pb-4 border-b border-slate-100">
+                        <div className="col-span-1 border-r border-slate-100 pr-4">
+                            <label className="block text-xs font-semibold text-emerald-700 mb-1">Custo Horário (Salário/Hora) *</label>
+                            <div className="flex items-center gap-2">
+                                <input type="number" step="0.01" min="0" required value={formData.salario_hora} onChange={e => setFormData({ ...formData, salario_hora: e.target.value })} className={`${inputClass} border-emerald-200 focus:ring-emerald-500`} placeholder="10.00" />
+                                <span className="font-bold text-slate-400 text-sm">€ / h</span>
+                            </div>
+                            <p className="text-[10px] text-slate-400 mt-1 italic">Usado unicamente para cálculo financeiro do OEE e desvios ao SLA da Produção.</p>
+                        </div>
+                    </div>
+
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <label className="block text-xs font-semibold text-slate-600 mb-1">Data Admissão</label>

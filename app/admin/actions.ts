@@ -328,3 +328,108 @@ export async function fetchMicroOEEData() {
         return { success: false, error: err instanceof Error ? err.message : "Erro desconhecido" };
     }
 }
+
+// Fase 47: Motor OEE Financeiro (Salário vs Tempo Produção vs SLA)
+export async function calculateFinancialDeviations(diasJanela: number = 30) {
+    try {
+        const dateLimit = new Date();
+        dateLimit.setDate(dateLimit.getDate() - diasJanela);
+
+        // 1. Obter Operários e Salários
+        const { data: ops } = await supabase.from('operadores').select('tag_rfid_operador, salario_hora');
+        const mapSalarios = new Map((ops || []).map(o => [o.tag_rfid_operador, Number(o.salario_hora || 0)]));
+
+        // 2. Obter OPs fechadas/ativas recentes (com os roteiros para saber o SLA)
+        const { data: ordens, error: errorOrdens } = await supabase
+            .from('ordens_producao')
+            .select(`
+                id, op_numero, status, created_at,
+                modelos (
+                    nome_modelo, 
+                    roteiros_producao ( tempo_ciclo )
+                ),
+                linhas!inner ( nome_linha ),
+                registos_rfid_realtime ( operador_rfid, timestamp_inicio, timestamp_fim )
+            `)
+            .gte('created_at', dateLimit.toISOString());
+
+        if (errorOrdens) throw errorOrdens;
+
+        const financas = [];
+        let acumuladoSemana = 0; // Se negativo lucrámos (gastamos menos do que orçamentado), se positivo tivemos custo extra (prejuízo)
+
+        for (const op of (ordens || [])) {
+            const linhaNome = (op.linhas as unknown as { nome_linha?: string })?.nome_linha || 'Linha N/A';
+            const modeloNome = String((op.modelos as unknown as { nome_modelo?: string })?.nome_modelo || 'N/A');
+
+            // A) Quanto tempo devia demorar (SLA Total do Barco)
+            let tempoPlaneadoHoras = 0;
+            const roteiros = (op.modelos as unknown as { roteiros_producao?: { tempo_ciclo?: number | string }[] })?.roteiros_producao || [];
+            roteiros.forEach((r) => { tempoPlaneadoHoras += Number(r.tempo_ciclo || 0); });
+
+            // B) Quem e quanto tempo esteve no barco?
+            let tempoRealHoras = 0;
+            let custoRealCalculadoEur = 0;
+
+            const leituras = (op.registos_rfid_realtime as unknown[]) || [];
+
+            leituras.forEach((reg: unknown) => {
+                const reading = reg as { operador_rfid: string, timestamp_inicio: string, timestamp_fim: string | null };
+                const s = new Date(reading.timestamp_inicio);
+                const e = reading.timestamp_fim ? new Date(reading.timestamp_fim) : new Date();
+
+                const diffHoras = (e.getTime() - s.getTime()) / (1000 * 60 * 60);
+                if (diffHoras > 0) {
+                    tempoRealHoras += diffHoras;
+                    // Multiplica as horas gastas por este operador pelo seu salário hora
+                    const wage = mapSalarios.get(reading.operador_rfid) || 10; // 10€ default fallback
+                    custoRealCalculadoEur += (diffHoras * wage);
+                }
+            });
+
+            // C) Qual deveria ser o Custo Planeado?
+            // Formula Média: Se devia demorar 10 horas, assumimos um Custo Standard Médio de (Ex: 12€ hora dependendo do setor).
+            // Numa Fase ideal cada estação tem um custo. A título de POC, assumimos 12€/h Média de Engenhagem
+            const CUSTO_MEDIO_HORA = 12.0;
+            const custoPlaneadoEur = tempoPlaneadoHoras * CUSTO_MEDIO_HORA;
+
+            const margemEuros = custoPlaneadoEur - custoRealCalculadoEur; // Positivo = Economia, Negativo = Perda
+
+            if (tempoPlaneadoHoras > 0 || tempoRealHoras > 0) {
+                // Aumentamos os KPIs globais
+                acumuladoSemana += margemEuros;
+
+                financas.push({
+                    op_id: op.id,
+                    numero: op.op_numero,
+                    modelo: modeloNome,
+                    linha: linhaNome,
+                    status: op.status,
+                    tempoRealH: tempoRealHoras.toFixed(1),
+                    tempoSLAH: tempoPlaneadoHoras.toFixed(1),
+                    custoReal: custoRealCalculadoEur.toFixed(2),
+                    custoPlaneado: custoPlaneadoEur.toFixed(2),
+                    desvioFinanceiro: margemEuros.toFixed(2),
+                    isLucro: margemEuros >= 0
+                });
+            }
+        }
+
+        // Ordenar do pior prejuízo para a maior poupança
+        financas.sort((a, b) => Number(a.desvioFinanceiro) - Number(b.desvioFinanceiro));
+
+        return {
+            success: true,
+            data: financas,
+            kpis: {
+                balancoGlobal: acumuladoSemana.toFixed(2),
+                isBalancoPositivo: acumuladoSemana >= 0,
+                barcosAvaliados: financas.length
+            }
+        };
+
+    } catch (err: unknown) {
+        console.error("Ledger Fetch Error:", err);
+        return { success: false, error: err instanceof Error ? err.message : "Erro desconhecido" };
+    }
+}
