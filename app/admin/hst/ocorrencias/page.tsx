@@ -13,9 +13,13 @@ import { getHstOcorrencias, submitHstOcorrencia, fecharOcorrencia } from './acti
 import { getLeanFormData } from '@/app/operador/ideias/actions';
 import { getSelectData } from '@/app/admin/qualidade/rnc/actions'; // Use Qualidade deps
 
+import { useRouter } from 'next/navigation';
+
 export default function RegistosHstPage() {
+    const router = useRouter();
     const [ocorrencias, setOcorrencias] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [searchTerm, setSearchTerm] = useState('');
 
     // Dependentes Listas
     const [operadores, setOperadores] = useState<any[]>([]);
@@ -56,8 +60,18 @@ export default function RegistosHstPage() {
         if (reqLean.success) setOperadores(reqLean.operadores || []);
         if (reqLean.success) setAreas(reqLean.areas || []);
         if (reqRnc.success) setEstacoes(reqRnc.estacoes || []);
+        if (reqRnc.success) setEstacoes(reqRnc.estacoes || []);
         setLoading(false);
     }
+
+    const filteredOcorrencias = ocorrencias.filter(o => {
+        const searchU = searchTerm.toUpperCase();
+        return !searchTerm ||
+            (o.tipo_ocorrencia || '').toUpperCase().includes(searchU) ||
+            (o.descricao_evento || '').toUpperCase().includes(searchU) ||
+            (o.areas_fabrica?.nome_area || '').toUpperCase().includes(searchU) ||
+            (o.operadores?.nome_operador || '').toUpperCase().includes(searchU);
+    });
 
     const handleSubmitNova = async () => {
         setIsSubmitting(true);
@@ -109,31 +123,51 @@ export default function RegistosHstPage() {
             <header className="flex justify-between items-end border-b pb-4 border-slate-200">
                 <div>
                     <h1 className="text-4xl font-black tracking-tight text-slate-900 uppercase flex items-center gap-3">
-                        <Hospital className="text-rose-600" size={36} fill="currentColor" /> Relatórios de HST
+                        <Crosshair className="text-rose-600" size={36} /> Gestão de Ocorrências (HST)
                     </h1>
-                    <p className="text-lg text-slate-500 mt-1">Registo de Acidentes, Incidentes (Near-Miss) e Doenças Profissionais.</p>
+                    <p className="text-lg text-slate-500 mt-1">Registo Oficial de Sinistralidade, Quase-Acidentes e Doenças. Base de Dados Viva.</p>
                 </div>
-                <Button onClick={() => setIsNewModalOpen(true)} className="bg-rose-600 hover:bg-rose-700 h-12 px-6 font-bold shadow-md shadow-rose-500/20 text-white">
-                    <AlertTriangle className="mr-2 h-5 w-5" /> Declarar Ocorrência
+                <Button onClick={() => setIsNewModalOpen(true)} className="bg-rose-600 hover:bg-rose-700 shadow-lg shadow-rose-200 font-bold">
+                    <PlusCircle className="w-5 h-5 mr-2" /> Reportar Nova Ocorrência
                 </Button>
             </header>
 
+            <div className="flex bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                <div className="relative flex-1 w-full">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                    <input
+                        type="text"
+                        placeholder="Pesquisar sinistro por colaborador, tipo ou área fabril..."
+                        value={searchTerm}
+                        onChange={e => setSearchTerm(e.target.value)}
+                        className="w-full pl-10 pr-4 py-3 bg-slate-50 border-none rounded-lg focus:ring-2 focus:ring-rose-500 outline-none text-slate-700 font-medium"
+                    />
+                </div>
+            </div>
+
             {loading ? (
                 <div className="p-12 flex justify-center"><Loader2 className="w-8 h-8 text-rose-500 animate-spin" /></div>
-            ) : ocorrencias.length === 0 ? (
+            ) : filteredOcorrencias.length === 0 ? (
                 <div className="p-12 text-center text-slate-500 border-2 border-dashed border-slate-200 rounded-xl bg-white">
                     <Crosshair className="mx-auto h-12 w-12 text-slate-300 mb-4" />
                     Zero Acidentes Reportados. Continue com o bom trabalho!
                 </div>
             ) : (
-                <div className="grid gap-4">
-                    {ocorrencias.map(o => {
-                        const style = getIconColor(o.tipo_ocorrencia);
+                <div className="grid grid-cols-1 gap-4">
+                    {filteredOcorrencias.map(o => {
                         const isFechado = o.status === 'Fechado';
 
+                        const getIconColor = (tipo: string) => {
+                            if (!tipo) return "bg-slate-100 text-slate-800 border-slate-200";
+                            if (tipo.includes('Baixa')) return "bg-rose-100 text-rose-800 border-rose-200";
+                            if (tipo.includes('Incidente')) return "bg-amber-100 text-amber-800 border-amber-200";
+                            return "bg-blue-100 text-blue-800 border-blue-200"; // default/Doenca
+                        };
+                        const style = getIconColor(o.tipo_ocorrencia);
+
                         return (
-                            <Card key={o.id} className={`overflow-hidden transition-all shadow-sm flex flex-col sm:flex-row \${isFechado ? 'opacity-80 bg-slate-50' : 'bg-white border-slate-300 hover:shadow-md'}`}>
-                                <div className={`w-3 \${isFechado ? 'bg-emerald-400' : o.tipo_ocorrencia.includes('Baixa') ? 'bg-rose-500' : 'bg-amber-400'}`}></div>
+                            <Card key={o.id} className={`overflow-hidden transition-all shadow-sm flex flex-col sm:flex-row ${isFechado ? 'opacity-80 bg-slate-50' : 'bg-white border-slate-300 hover:shadow-md'}`}>
+                                <div className={`w-3 ${isFechado ? 'bg-emerald-400' : o.tipo_ocorrencia.includes('Baixa') ? 'bg-rose-500' : 'bg-amber-400'}`}></div>
 
                                 <div className="p-5 flex-1 flex flex-col md:flex-row gap-6">
                                     {/* Esquerda: Meteo */}
@@ -198,6 +232,12 @@ export default function RegistosHstPage() {
                                     {/* Direita: Ações */}
                                     {!isFechado && (
                                         <div className="flex flex-col justify-end w-full md:w-auto h-full space-y-2 shrink-0 md:pl-4">
+                                            <Button
+                                                onClick={() => router.push(`/admin/hst/8d/novo/\${o.id}`)}
+                                                className="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold"
+                                            >
+                                                Iniciar 8D <AlertTriangle size={16} className="ml-1 opacity-70" />
+                                            </Button>
                                             <Button
                                                 onClick={() => { setSelectedOcc(o); setIsCloseModalOpen(true); }}
                                                 className="w-full bg-emerald-600 hover:bg-emerald-700 font-bold"
