@@ -22,7 +22,7 @@ export async function getLeanFormData() {
 
         const { data: operadores, error: opErr } = await supabase
             .from("operadores")
-            .select("id, nome_operador, numero_mecanografico, funcao, avatar_url")
+            .select("id, nome_operador, numero_operador, funcao")
             .order("nome_operador", { ascending: true });
 
         if (areaErr || opErr || estErr) {
