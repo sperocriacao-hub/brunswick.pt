@@ -42,8 +42,8 @@ CREATE TABLE IF NOT EXISTS public.hst_acoes (
 );
 
 -- Triggers for updated_at
-CREATE TRIGGER handle_updated_at_hst_8d BEFORE UPDATE ON public.hst_8d FOR EACH ROW EXECUTE PROCEDURE moddatetime();
-CREATE TRIGGER handle_updated_at_hst_acoes BEFORE UPDATE ON public.hst_acoes FOR EACH ROW EXECUTE PROCEDURE moddatetime();
+CREATE TRIGGER handle_updated_at_hst_8d BEFORE UPDATE ON public.hst_8d FOR EACH ROW EXECUTE PROCEDURE moddatetime(updated_at);
+CREATE TRIGGER handle_updated_at_hst_acoes BEFORE UPDATE ON public.hst_acoes FOR EACH ROW EXECUTE PROCEDURE moddatetime(updated_at);
 
 -- RLS Policies
 ALTER TABLE public.hst_8d ENABLE ROW LEVEL SECURITY;
