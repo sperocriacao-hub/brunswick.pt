@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { MonitorSmartphone, ChevronLeft, Wifi, QrCode, AlertTriangle } from 'lucide-react';
+import { MonitorSmartphone, ChevronLeft, Wifi, QrCode, AlertTriangle, Lightbulb } from 'lucide-react';
 import { buscarEstacoes, dispararAlertaAndon } from './actions';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import { Button } from '@/components/ui/button';
@@ -241,6 +241,15 @@ export default function TabletDashboardPage() {
                         <AlertTriangle size={24} />
                         <span className="hidden xl:inline">ANDON / SUPORTE URGENTE</span>
                         <span className="inline xl:hidden">ANDON</span>
+                    </Button>
+
+                    <Button
+                        variant="secondary"
+                        onClick={() => router.push('/operador/ideias')}
+                        className="h-12 bg-amber-900/80 hover:bg-amber-800 text-amber-100 border border-amber-700/50 font-bold gap-2"
+                    >
+                        <Lightbulb size={20} className="text-amber-400" />
+                        <span className="hidden md:inline">Mural Kaizen</span>
                     </Button>
 
                     <Button

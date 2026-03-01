@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Box, GitBranch, Layers, Settings, CalendarDays, Activity, Menu, X, AlertTriangle } from 'lucide-react';
+import { Box, GitBranch, Layers, Settings, CalendarDays, Activity, Menu, X, AlertTriangle, Lightbulb, Footprints, Crosshair, ListTodo } from 'lucide-react';
 
 export function Sidebar({ userEmail }: { userEmail: string | undefined }) {
     const pathname = usePathname();
@@ -158,6 +158,29 @@ export function Sidebar({ userEmail }: { userEmail: string | undefined }) {
                                 <Link onClick={() => setIsOpen(false)} href="/admin/configuracoes/tvs" className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes('/admin/configuracoes/tvs') ? 'bg-blue-800 text-white shadow-sm border border-transparent' : 'text-blue-100 hover:bg-blue-800/50 hover:text-white'}`}>
                                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={pathname.includes('/admin/configuracoes/tvs') ? 'text-white' : 'text-blue-300'}><rect x="2" y="7" width="20" height="15" rx="2" ry="2"></rect><polyline points="17 2 12 7 7 2"></polyline></svg>
                                     <span className="text-sm border-transparent">Gestão de Ecrãs (TVs)</span>
+                                </Link>
+                            </nav>
+                            <p className="px-3 text-[10px] font-extrabold text-[#f59e0b] uppercase tracking-widest mb-2 mt-4">Lean & Manufatura Lean</p>
+                            <nav className="flex flex-col gap-1 mb-6">
+                                <Link onClick={() => setIsOpen(false)} href="/admin/lean/kaizen" className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes('/admin/lean/kaizen') ? 'bg-amber-600 text-white shadow-sm border border-transparent' : 'text-blue-100 hover:bg-blue-800/50 hover:text-white'}`}>
+                                    <Lightbulb size={18} className={pathname.includes('/admin/lean/kaizen') ? 'text-white' : 'text-amber-400'} />
+                                    <span className="text-sm border-transparent">Ideias Kaizen</span>
+                                </Link>
+                                <Link onClick={() => setIsOpen(false)} href="/admin/lean/gemba" className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes('/admin/lean/gemba') ? 'bg-amber-600 text-white shadow-sm border border-transparent' : 'text-blue-100 hover:bg-blue-800/50 hover:text-white'}`}>
+                                    <Footprints size={18} className={pathname.includes('/admin/lean/gemba') ? 'text-white' : 'text-amber-400'} />
+                                    <span className="text-sm border-transparent">Gemba Walks</span>
+                                </Link>
+                                <Link onClick={() => setIsOpen(false)} href="/admin/lean/acoes" className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes('/admin/lean/acoes') ? 'bg-amber-600 text-white shadow-sm border border-transparent' : 'text-blue-100 hover:bg-blue-800/50 hover:text-white'}`}>
+                                    <ListTodo size={18} className={pathname.includes('/admin/lean/acoes') ? 'text-white' : 'text-amber-400'} />
+                                    <span className="text-sm border-transparent">Scrum Board (Ações)</span>
+                                </Link>
+                            </nav>
+
+                            <p className="px-3 text-[10px] font-extrabold text-[#f43f5e] uppercase tracking-widest mb-2 mt-4">Saúde, Seg. e Ambiente</p>
+                            <nav className="flex flex-col gap-1 mb-6">
+                                <Link onClick={() => setIsOpen(false)} href="/admin/hst/ocorrencias" className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes('/admin/hst/ocorrencias') ? 'bg-rose-600 text-white shadow-sm border border-transparent' : 'text-blue-100 hover:bg-blue-800/50 hover:text-white'}`}>
+                                    <Crosshair size={18} className={pathname.includes('/admin/hst/ocorrencias') ? 'text-white' : 'text-rose-400'} />
+                                    <span className="text-sm border-transparent">Registar Ocorrência</span>
                                 </Link>
                             </nav>
 
