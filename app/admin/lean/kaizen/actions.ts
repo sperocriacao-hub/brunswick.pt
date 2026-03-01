@@ -12,7 +12,7 @@ export async function getKaizens() {
             .from("lean_kaizen")
             .select(`
                 *,
-                operadores(nome, apelido),
+                operadores(nome_operador, sobrenome),
                 areas_fabrica(nome_area)
             `)
             .order("created_at", { ascending: false });
@@ -45,7 +45,7 @@ export async function convertKaizenToAction(kaizen: any) {
             .from("lean_acoes")
             .insert([{
                 titulo: `KAIZEN: \${kaizen.titulo}`,
-                descricao: `Implementar a melhoria proposta por \${kaizen.operadores?.nome}.\\nSOLUÇÃO: \${kaizen.proposta_melhoria}`,
+                descricao: `Implementar a melhoria proposta por \${kaizen.operadores?.nome_operador}.\\nSOLUÇÃO: \${kaizen.proposta_melhoria}`,
                 origem_tipo: 'Kaizen',
                 origem_id: kaizen.id,
                 area_id: kaizen.area_id,
