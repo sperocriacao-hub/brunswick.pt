@@ -13,17 +13,22 @@ export async function getLeanFormData() {
             .select("id, nome_area, ordem_sequencial")
             .order("ordem_sequencial", { ascending: true });
 
+        const { data: estacoes, error: estErr } = await supabase
+            .from("estacoes")
+            .select("id, nome_estacao, area_id:areas_fabrica(id), areas_fabrica_id")
+            .order("nome_estacao", { ascending: true });
+
         const { data: operadores, error: opErr } = await supabase
             .from("operadores")
             .select("id, nome, apelido, numero_mecanografico, funcao, avatar_url")
-            .eq("status", "Ativo")
             .order("nome", { ascending: true });
 
-        if (areaErr || opErr) {
+        if (areaErr || opErr || estErr) {
+            console.error("DEBUG FETCH:", areaErr, opErr, estErr);
             return { success: false, error: "Erro a carregar as dependências." };
         }
 
-        return { success: true, areas, operadores };
+        return { success: true, areas, estacoes, operadores };
     } catch (e: any) {
         return { success: false, error: e.message };
     }

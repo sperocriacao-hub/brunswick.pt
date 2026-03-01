@@ -15,6 +15,7 @@ export default function KaizenTabletPortal() {
     const [submitting, setSubmitting] = useState(false);
 
     const [areas, setAreas] = useState<any[]>([]);
+    const [estacoes, setEstacoes] = useState<any[]>([]);
     const [operadores, setOperadores] = useState<any[]>([]);
 
     // Form Fields
@@ -35,7 +36,17 @@ export default function KaizenTabletPortal() {
         const res = await getLeanFormData();
         if (res.success) {
             setAreas(res.areas || []);
+            setEstacoes(res.estacoes || []);
             setOperadores(res.operadores || []);
+
+            // Auto-Select bound terminal area
+            const savedEstacao = localStorage.getItem('tablet_last_estacao');
+            if (savedEstacao && res.estacoes) {
+                const targetEst = res.estacoes.find((e: any) => e.id === savedEstacao);
+                if (targetEst && targetEst.areas_fabrica_id) {
+                    setAreaId(targetEst.areas_fabrica_id);
+                }
+            }
         }
     }
 
@@ -136,15 +147,15 @@ export default function KaizenTabletPortal() {
 
                             <div className="mt-8 space-y-4">
                                 <div className="flex items-center gap-3 text-sm text-slate-300">
-                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold font-mono transition-colors \${step >= 1 ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : 'bg-slate-800 text-slate-500'}`}>1</div>
+                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold font-mono transition-colors ${step >= 1 ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : 'bg-slate-800 text-slate-500'}`}>1</div>
                                     <span>Identificação do Problema</span>
                                 </div>
                                 <div className="flex items-center gap-3 text-sm text-slate-300">
-                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold font-mono transition-colors \${step >= 2 ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : 'bg-slate-800 text-slate-500'}`}>2</div>
+                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold font-mono transition-colors ${step >= 2 ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : 'bg-slate-800 text-slate-500'}`}>2</div>
                                     <span>A Sua Visão (Solução)</span>
                                 </div>
                                 <div className="flex items-center gap-3 text-sm text-slate-300">
-                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold font-mono transition-colors \${step >= 3 ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-slate-800 text-slate-500'}`}>3</div>
+                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold font-mono transition-colors ${step >= 3 ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-slate-800 text-slate-500'}`}>3</div>
                                     <span>Engenharia Avalia!</span>
                                 </div>
                             </div>
@@ -184,10 +195,15 @@ export default function KaizenTabletPortal() {
                                         <SelectTrigger className="bg-slate-900 border-slate-700 text-white h-12">
                                             <SelectValue placeholder="Em que setor físico ocorre?" />
                                         </SelectTrigger>
-                                        <SelectContent className="bg-slate-800 border-slate-700 text-white">
-                                            {areas.map(a => (
-                                                <SelectItem key={a.id} value={a.id}>{a.nome_area}</SelectItem>
-                                            ))}
+                                        <SelectContent className="bg-slate-800 border-slate-700 text-white max-h-64">
+                                            {areas.map(a => {
+                                                const estMatch = estacoes.find(e => e.areas_fabrica_id === a.id);
+                                                return (
+                                                    <SelectItem key={a.id} value={a.id}>
+                                                        {a.nome_area} {estMatch ? `(Ex: ${estMatch.nome_estacao})` : ''}
+                                                    </SelectItem>
+                                                )
+                                            })}
                                         </SelectContent>
                                     </Select>
                                 </div>
@@ -207,10 +223,10 @@ export default function KaizenTabletPortal() {
                                             <button
                                                 key={cat.id}
                                                 onClick={() => setCategoria(cat.id)}
-                                                className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all \${categoria === cat.id ? 'border-amber-500 bg-amber-500/10 scale-[1.02]' : 'border-slate-800 bg-slate-900 hover:border-slate-600'}`}
+                                                className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all ${categoria === cat.id ? 'border-amber-500 bg-amber-500/10 scale-[1.02]' : 'border-slate-800 bg-slate-900 hover:border-slate-600'}`}
                                             >
-                                                <cat.icon className={`w-6 h-6 mb-2 \${cat.color}`} />
-                                                <span className={`text-xs font-bold \${categoria === cat.id ? 'text-amber-500' : 'text-slate-400'}`}>{cat.label}</span>
+                                                <cat.icon className={`w-6 h-6 mb-2 ${cat.color}`} />
+                                                <span className={`text-xs font-bold ${categoria === cat.id ? 'text-amber-500' : 'text-slate-400'}`}>{cat.label}</span>
                                             </button>
                                         ))}
                                     </div>
