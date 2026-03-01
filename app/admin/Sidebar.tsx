@@ -141,14 +141,18 @@ export function Sidebar({ userEmail }: { userEmail: string | undefined }) {
                                 </Link>
                             </nav>
 
-                            <p className="px-3 text-[10px] font-extrabold text-blue-400 uppercase tracking-widest mb-2">Configuração Fabril</p>
+                            <p className="px-3 text-[10px] font-extrabold text-blue-400 uppercase tracking-widest mb-2">Qualidade e Fábrica</p>
                             <nav className="flex flex-col gap-1 mb-6">
                                 <Link onClick={() => setIsOpen(false)} href="/admin/fabrica" className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes('/admin/fabrica') ? 'bg-blue-800 text-white shadow-sm border border-transparent' : 'text-blue-100 hover:bg-blue-800/50 hover:text-white'}`}>
                                     <Settings size={18} className={pathname.includes('/admin/fabrica') ? 'text-white' : 'text-blue-300'} />
                                     <span className="text-sm border-transparent">Fábrica & Estações</span>
                                 </Link>
-                                <Link onClick={() => setIsOpen(false)} href="/admin/qualidade/templates" className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes('/admin/qualidade') ? 'bg-blue-800 text-white shadow-sm border border-transparent' : 'text-blue-100 hover:bg-blue-800/50 hover:text-white'}`}>
-                                    <Settings size={18} className={pathname.includes('/admin/qualidade') ? 'text-white' : 'text-blue-300'} />
+                                <Link onClick={() => setIsOpen(false)} href="/admin/qualidade/rnc" className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes('/admin/qualidade/rnc') ? 'bg-blue-800 text-white shadow-sm border border-transparent' : 'text-blue-100 hover:bg-blue-800/50 hover:text-white'}`}>
+                                    <AlertTriangle size={18} className={pathname.includes('/admin/qualidade/rnc') ? 'text-white' : 'text-blue-300'} />
+                                    <span className="text-sm border-transparent">Gestão RNC (8D / A3)</span>
+                                </Link>
+                                <Link onClick={() => setIsOpen(false)} href="/admin/qualidade/templates" className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes('/admin/qualidade/templates') ? 'bg-blue-800 text-white shadow-sm border border-transparent' : 'text-blue-100 hover:bg-blue-800/50 hover:text-white'}`}>
+                                    <Settings size={18} className={pathname.includes('/admin/qualidade/templates') ? 'text-white' : 'text-blue-300'} />
                                     <span className="text-sm border-transparent">Checklists Qualidade</span>
                                 </Link>
                                 <Link onClick={() => setIsOpen(false)} href="/admin/configuracoes/tvs" className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes('/admin/configuracoes/tvs') ? 'bg-blue-800 text-white shadow-sm border border-transparent' : 'text-blue-100 hover:bg-blue-800/50 hover:text-white'}`}>
