@@ -22,8 +22,8 @@ export async function getLeanFormData() {
 
         const { data: operadores, error: opErr } = await supabase
             .from("operadores")
-            .select("id, nome, apelido, numero_mecanografico, funcao, avatar_url")
-            .order("nome", { ascending: true });
+            .select("id, nome_operador, numero_mecanografico, funcao, avatar_url")
+            .order("nome_operador", { ascending: true });
 
         if (areaErr || opErr || estErr) {
             console.error("DEBUG FETCH:", areaErr, opErr, estErr);

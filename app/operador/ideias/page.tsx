@@ -183,7 +183,7 @@ export default function KaizenTabletPortal() {
                                         </SelectTrigger>
                                         <SelectContent className="bg-slate-800 border-slate-700 text-white">
                                             {operadores.map(op => (
-                                                <SelectItem key={op.id} value={op.id}>{op.nome} {op.apelido || ''}</SelectItem>
+                                                <SelectItem key={op.id} value={op.id}>{op.nome_operador}</SelectItem>
                                             ))}
                                         </SelectContent>
                                     </Select>
