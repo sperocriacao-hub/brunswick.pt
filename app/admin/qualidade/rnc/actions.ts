@@ -33,15 +33,15 @@ export async function getSelectData() {
         const { data: ops, error: opError } = await supabase
             .from("ordens_producao")
             .select("id, modelos(nome_modelo), linhas_producao(letra_linha)")
-            .neq("estado", "Concluida")
-            .order("data_prevista_inicio", { ascending: false });
+            .neq("status", "COMPLETED")
+            .order("data_inicio", { ascending: false });
 
         if (opError) console.error("OP Error: ", opError);
 
         const { data: estacoes, error: actError } = await supabase
             .from("estacoes")
             .select("id, nome_estacao, areas_fabrica(nome_area), linhas_producao(letra_linha)")
-            .order("areas_fabrica(ordem_sequencial)", { ascending: true });
+            .order("nome_estacao", { ascending: true });
 
         if (actError) console.error("Act Error: ", actError);
 
