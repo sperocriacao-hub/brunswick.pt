@@ -43,8 +43,8 @@ export default function KaizenTabletPortal() {
             const savedEstacao = localStorage.getItem('tablet_last_estacao');
             if (savedEstacao && res.estacoes) {
                 const targetEst = res.estacoes.find((e: any) => e.id === savedEstacao);
-                if (targetEst && targetEst.areas_fabrica_id) {
-                    setAreaId(targetEst.areas_fabrica_id);
+                if (targetEst && targetEst.area_id) {
+                    setAreaId(targetEst.area_id);
                 }
             }
         }
@@ -197,7 +197,7 @@ export default function KaizenTabletPortal() {
                                         </SelectTrigger>
                                         <SelectContent className="bg-slate-800 border-slate-700 text-white max-h-64">
                                             {areas.map(a => {
-                                                const estMatch = estacoes.find(e => e.areas_fabrica_id === a.id);
+                                                const estMatch = estacoes.find(e => e.area_id === a.id);
                                                 return (
                                                     <SelectItem key={a.id} value={a.id}>
                                                         {a.nome_area} {estMatch ? `(Ex: ${estMatch.nome_estacao})` : ''}

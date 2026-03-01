@@ -15,7 +15,7 @@ export async function getLeanFormData() {
 
         const { data: estacoes, error: estErr } = await supabase
             .from("estacoes")
-            .select("id, nome_estacao, area_id:areas_fabrica(id), areas_fabrica_id")
+            .select("id, nome_estacao, area_id")
             .order("nome_estacao", { ascending: true });
 
         const { data: operadores, error: opErr } = await supabase
