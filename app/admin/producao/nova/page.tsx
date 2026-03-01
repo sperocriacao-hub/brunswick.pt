@@ -94,10 +94,28 @@ export default function NovaOrdermProducaoPage() {
     // Mofo só é mostrado se for Obrigatório OU se fizer parte de um Opcional escolhido pelo Comercial
     const moldesAtivos = moldesCompativeis.filter(m => {
         if (m.moldagem_obrigatoria) return true;
-        // Verificar se este molde opcional foi acionado pelas checkboxes de Encomenda
-        const triggersOpts = dbRelacoes.filter(r => r.molde_id === m.id).map(r => r.opcional_id);
-        return triggersOpts.some(triggerId => opcionaisSelecionados.includes(triggerId));
+        // Obter os IDs de opcionais que ativam este molde
+        const triggerOptsIds = dbRelacoes.filter(r => r.molde_id === m.id).map(r => r.opcional_id);
+        // Se pelo menos um dos opcionais que ativam o molde estiver selecionado, exibe-o.
+        return triggerOptsIds.some(triggerId => opcionaisSelecionados.includes(triggerId));
     });
+
+    // Auto-Select logic para os dropdowns
+    useEffect(() => {
+        // Se a lista de moldes ativos mudar, tentar fazer auto-select caso haja apenas uma escolha válida
+        const cascos = moldesAtivos.filter(m => m.categoria === 'BIG_PART' && m.tipo_parte?.toLowerCase().includes('casc'));
+        if (cascos.length === 1 && moldeCascoId === '') setMoldeCascoId(cascos[0].id);
+
+        const cobertas = moldesAtivos.filter(m => m.categoria === 'BIG_PART' && m.tipo_parte?.toLowerCase().includes('cobert'));
+        if (cobertas.length === 1 && moldeCobertaId === '') setMoldeCobertaId(cobertas[0].id);
+
+        const medium = moldesAtivos.filter(m => m.categoria === 'MEDIUM_PART');
+        if (medium.length === 1 && moldeLinerId === '') setMoldeLinerId(medium[0].id);
+
+        const small = moldesAtivos.filter(m => m.categoria === 'SMALL_PART');
+        if (small.length === 1 && moldeSmallPartsId === '') setMoldeSmallPartsId(small[0].id);
+
+    }, [moldesAtivos]);
 
     const mCascos = moldesAtivos.filter(m => m.categoria === 'BIG_PART' && m.tipo_parte?.toLowerCase().includes('casc'));
     const mCobertas = moldesAtivos.filter(m => m.categoria === 'BIG_PART' && m.tipo_parte?.toLowerCase().includes('cobert'));
@@ -242,17 +260,34 @@ export default function NovaOrdermProducaoPage() {
                                             {modelosOpcionais.length === 0 ? (
                                                 <span className="text-xs text-slate-500">Sem opcionais registados para este modelo.</span>
                                             ) : (
-                                                modelosOpcionais.map(opc => (
-                                                    <label key={opc.id} className="flex items-center gap-2 cursor-pointer">
-                                                        <input
-                                                            type="checkbox"
-                                                            className="rounded text-blue-600 focus:ring-blue-500"
-                                                            checked={opcionaisSelecionados.includes(opc.id)}
-                                                            onChange={() => toggleOpcional(opc.id)}
-                                                        />
-                                                        <span className="text-sm font-medium text-slate-700">{opc.nome_opcao}</span>
-                                                    </label>
-                                                ))
+                                                modelosOpcionais.map(opc => {
+                                                    // Determinar quais moldes este opcional ativa
+                                                    const moldesEngatilhados = dbRelacoes
+                                                        .filter(r => r.opcional_id === opc.id)
+                                                        .map(r => {
+                                                            const m = dbMoldes.find(mx => mx.id === r.molde_id);
+                                                            return m ? m.nome_parte : null;
+                                                        }).filter(Boolean);
+
+                                                    return (
+                                                        <label key={opc.id} className="flex flex-col gap-1 p-2 border-b border-slate-100 last:border-0 hover:bg-slate-100 cursor-pointer">
+                                                            <div className="flex items-center gap-2">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    className="rounded text-blue-600 focus:ring-blue-500"
+                                                                    checked={opcionaisSelecionados.includes(opc.id)}
+                                                                    onChange={() => toggleOpcional(opc.id)}
+                                                                />
+                                                                <span className="text-sm font-medium text-slate-700">{opc.nome_opcao}</span>
+                                                            </div>
+                                                            {moldesEngatilhados.length > 0 && opcionaisSelecionados.includes(opc.id) && (
+                                                                <div className="ml-6 text-[10px] text-amber-600 font-bold bg-amber-50 px-2 py-0.5 rounded border border-amber-100 w-max">
+                                                                    MOLDES: {moldesEngatilhados.join(', ')}
+                                                                </div>
+                                                            )}
+                                                        </label>
+                                                    );
+                                                })
                                             )}
                                         </div>
                                     </div>
