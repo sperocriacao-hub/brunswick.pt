@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { getMoldeDetails, saveDefectPin } from './actions';
+import { getMoldeDetails, saveDefectPin } from '../actions';
 import { ArrowLeft, MapPin, AlertCircle, Save, Loader2, CheckCircle2 } from 'lucide-react';
 
 export default function AuditoriaMoldePage() {
