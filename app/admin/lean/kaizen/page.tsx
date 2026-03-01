@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Lightbulb, Target, Sparkles, AlertCircle, ArrowRight, Loader2, PlaySquare } from 'lucide-react';
+import { Lightbulb, Target, Sparkles, ArrowRight, Loader2, PlaySquare, Search, History, LayoutDashboard } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { getKaizens, convertKaizenToAction, updateKaizenStatus } from './actions';
 import { Label } from '@/components/ui/label';
@@ -13,6 +13,10 @@ export default function ComiteKaizenPage() {
     const [loading, setLoading] = useState(true);
     const [selectedKaizen, setSelectedKaizen] = useState<any | null>(null);
     const [isEvaluating, setIsEvaluating] = useState(false);
+
+    // UI States
+    const [activeTab, setActiveTab] = useState<'pendentes' | 'historico'>('pendentes');
+    const [searchTerm, setSearchTerm] = useState('');
 
     // Evaluation Form
     const [effort, setEffort] = useState(5);
@@ -78,14 +82,44 @@ export default function ComiteKaizenPage() {
 
     return (
         <div className="p-8 space-y-8 pb-32 max-w-[1400px] mx-auto animate-in fade-in zoom-in-95 duration-500 bg-slate-50/50 min-h-screen">
-            <header className="flex justify-between items-end border-b pb-4 border-slate-200">
+            <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 border-b pb-6 border-slate-200">
                 <div>
                     <h1 className="text-4xl font-black tracking-tight text-slate-900 uppercase flex items-center gap-3">
-                        <Lightbulb className="text-amber-500" size={36} fill="currentColor" /> Comitê Lean (Avaliação Kaizen)
+                        <Lightbulb className="text-amber-500" size={36} fill="currentColor" /> Comitê Lean (Kaizen)
                     </h1>
-                    <p className="text-lg text-slate-500 mt-1">Transforme ideias da fábrica em Ações de Melhoria Contínua.</p>
+                    <p className="text-lg text-slate-500 mt-1">Transforme ideias da fábrica em Ações de Melhoria.</p>
+                </div>
+
+                <div className="flex bg-slate-200/50 p-1 rounded-xl w-full md:w-auto">
+                    <button
+                        onClick={() => setActiveTab('pendentes')}
+                        className={`flex-1 md:px-6 py-2.5 rounded-lg font-bold text-sm flex items-center justify-center gap-2 transition-all \${activeTab === 'pendentes' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                    >
+                        <LayoutDashboard size={16} />
+                        Por Avaliar
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('historico')}
+                        className={`flex-1 md:px-6 py-2.5 rounded-lg font-bold text-sm flex items-center justify-center gap-2 transition-all \${activeTab === 'historico' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                    >
+                        <History size={16} />
+                        Histórico
+                    </button>
                 </div>
             </header>
+
+            <div className="flex flex-col md:flex-row gap-4 items-center bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                <div className="relative flex-1 w-full">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                    <input
+                        type="text"
+                        placeholder="Pesquisar por Título, Área ou Colaborador..."
+                        value={searchTerm}
+                        onChange={e => setSearchTerm(e.target.value)}
+                        className="w-full pl-10 pr-4 py-3 bg-slate-50 border-none rounded-lg focus:ring-2 focus:ring-amber-500 outline-none text-slate-700 font-medium"
+                    />
+                </div>
+            </div>
 
             {loading ? (
                 <div className="p-12 flex justify-center"><Loader2 className="w-8 h-8 text-amber-500 animate-spin" /></div>
@@ -95,7 +129,19 @@ export default function ComiteKaizenPage() {
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                    {kaizens.map(k => {
+                    {kaizens.filter(k => {
+                        // Filter by Search Term
+                        const matchSearch = searchTerm === '' ||
+                            k.titulo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            k.operadores?.nome_operador?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            k.areas_fabrica?.nome_area?.toLowerCase().includes(searchTerm.toLowerCase());
+
+                        // Filter by Tab
+                        const isAberto = k.status === 'Pendente' || k.status === 'Em Analise';
+                        const matchTab = activeTab === 'pendentes' ? isAberto : !isAberto;
+
+                        return matchSearch && matchTab;
+                    }).map(k => {
                         const isEmAberto = k.status === 'Pendente' || k.status === 'Em Analise';
                         const diag = k.esforco_estimado ? getMatrixQuadrant(k.esforco_estimado, k.impacto_estimado) : null;
 

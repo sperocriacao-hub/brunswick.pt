@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ListTodo, CheckCircle2, Clock, AlertTriangle, MessageSquarePlus, Lightbulb, MapPin, Loader2, GripVertical, Check } from 'lucide-react';
+import { ListTodo, CheckCircle2, Clock, AlertTriangle, MessageSquarePlus, Lightbulb, MapPin, Loader2, GripVertical, Check, Search, History, LayoutDashboard } from 'lucide-react';
 import { getLeanAcoes, updateActionStatus } from './actions';
 
 export default function GlobalLeanActionsPage() {
@@ -11,7 +11,8 @@ export default function GlobalLeanActionsPage() {
     const [loading, setLoading] = useState(true);
 
     // Filter Controls
-    const [statusFilter, setStatusFilter] = useState<string>('ALL');
+    const [searchTerm, setSearchTerm] = useState('');
+    const [activeTab, setActiveTab] = useState<'kanban' | 'historico'>('kanban');
 
     useEffect(() => {
         carregarAcoes();
@@ -52,17 +53,44 @@ export default function GlobalLeanActionsPage() {
 
     return (
         <div className="p-8 space-y-8 pb-32 max-w-[1600px] mx-auto animate-in fade-in zoom-in-95 duration-500 bg-slate-50/50 min-h-screen">
-            <header className="flex justify-between items-end border-b pb-4 border-slate-200">
+            <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 border-b pb-6 border-slate-200">
                 <div>
                     <h1 className="text-4xl font-black tracking-tight text-slate-900 uppercase flex items-center gap-3">
                         <ListTodo className="text-emerald-600" size={36} /> Painel de Ações Contínuas
                     </h1>
                     <p className="text-lg text-slate-500 mt-1">Trâmite de Tarefas de Resolução RNC, Gembas e Kaizens (Agile/Scrum Board).</p>
                 </div>
-                <div className="flex gap-2">
-                    {/* Add Filter buttons later if required */}
+
+                <div className="flex bg-slate-200/50 p-1 rounded-xl w-full md:w-auto">
+                    <button
+                        onClick={() => setActiveTab('kanban')}
+                        className={`flex-1 md:px-6 py-2.5 rounded-lg font-bold text-sm flex items-center justify-center gap-2 transition-all \${activeTab === 'kanban' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                    >
+                        <LayoutDashboard size={16} />
+                        Kanban Ativo
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('historico')}
+                        className={`flex-1 md:px-6 py-2.5 rounded-lg font-bold text-sm flex items-center justify-center gap-2 transition-all \${activeTab === 'historico' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                    >
+                        <History size={16} />
+                        Arquivo (Done)
+                    </button>
                 </div>
             </header>
+
+            <div className="flex flex-col md:flex-row gap-4 items-center bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                <div className="relative flex-1 w-full">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                    <input
+                        type="text"
+                        placeholder="Pesquisar por Tarefa, Descrição, Origem ou Área..."
+                        value={searchTerm}
+                        onChange={e => setSearchTerm(e.target.value)}
+                        className="w-full pl-10 pr-4 py-3 bg-slate-50 border-none rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-slate-700 font-medium"
+                    />
+                </div>
+            </div>
 
             {loading ? (
                 <div className="p-12 flex justify-center"><Loader2 className="w-8 h-8 text-emerald-500 animate-spin" /></div>
@@ -70,7 +98,22 @@ export default function GlobalLeanActionsPage() {
                 <div className="flex flex-col lg:flex-row gap-6 w-full items-start">
 
                     {StatusColumns.map(columnId => {
-                        const colItems = acoes.filter(a => a.status === columnId);
+                        // Esconder colunas não pertencentes à tab
+                        if (activeTab === 'kanban' && columnId === 'Done') return null;
+                        if (activeTab === 'historico' && columnId !== 'Done') return null;
+
+                        const colItems = acoes.filter(a => {
+                            if (a.status !== columnId) return false;
+
+                            if (searchTerm === '') return true;
+                            const term = searchTerm.toLowerCase();
+                            return (
+                                a.titulo?.toLowerCase().includes(term) ||
+                                a.descricao?.toLowerCase().includes(term) ||
+                                a.origem_tipo?.toLowerCase().includes(term) ||
+                                a.areas_fabrica?.nome_area?.toLowerCase().includes(term)
+                            );
+                        });
 
                         // Theme definitions
                         let headerTheme = "bg-slate-100 text-slate-700 border-slate-200";
