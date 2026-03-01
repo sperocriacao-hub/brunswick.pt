@@ -157,7 +157,7 @@ export default function RegistosHstPage() {
                                         <div className="flex justify-between items-start">
                                             <div>
                                                 <h3 className="font-bold text-lg text-slate-800 leading-tight">
-                                                    Colaborador: {o.operadores?.nome} {o.operadores?.apelido}
+                                                    Colaborador: {o.operadores?.nome_operador}
                                                 </h3>
                                                 <p className="text-sm font-medium text-slate-500 flex flex-wrap gap-2 items-center mt-1">
                                                     <span>📍 {o.areas_fabrica?.nome_area}</span>
@@ -230,7 +230,7 @@ export default function RegistosHstPage() {
                             <div className="space-y-2">
                                 <label className="text-xs font-bold text-slate-500 uppercase">Colaborador Envolvido</label>
                                 <SearchableSelect
-                                    options={operadores.map(op => ({ value: op.id, label: `\${op.numero_mecanografico} - \${op.nome} \${op.apelido || ''}` }))}
+                                    options={operadores.map(op => ({ value: op.id, label: `\${op.numero_mecanografico} - \${op.nome_operador}` }))}
                                     value={colabId} onChange={setColabId} placeholder="Pesquisar..."
                                 />
                             </div>
