@@ -116,7 +116,7 @@ export default function ComiteKaizenPage() {
                                         </div>
                                     </div>
                                     <CardTitle className="text-lg leading-tight text-slate-800">{k.titulo}</CardTitle>
-                                    <CardDescription className="text-xs font-mono uppercase">Por {k.operadores?.nome_operador} {k.operadores?.sobrenome} • {k.areas_fabrica?.nome_area || 'Fábrica Geral'}</CardDescription>
+                                    <CardDescription className="text-xs font-mono uppercase">Por {k.operadores?.nome_operador} • {k.areas_fabrica?.nome_area || 'Fábrica Geral'}</CardDescription>
                                 </CardHeader>
                                 <CardContent className="space-y-4">
                                     <div className="text-sm bg-slate-50 p-3 rounded-lg border border-slate-100 text-slate-600 line-clamp-3 relative group">

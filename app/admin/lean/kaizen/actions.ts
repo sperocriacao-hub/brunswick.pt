@@ -14,7 +14,7 @@ export async function getKaizens() {
             .from("lean_kaizen")
             .select(`
                 *,
-                operadores(nome_operador, sobrenome),
+                operadores(nome_operador),
                 areas_fabrica(nome_area)
             `)
             .order("created_at", { ascending: false });
