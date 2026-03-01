@@ -45,21 +45,32 @@ export async function saveHst8D(ocorrenciaId: string, payload: any) {
     try {
         const { id, ...updateData } = payload;
 
-        // Usamos upsert para resolver qualquer problema de concorrência ou sync, focando na chave única "ocorrencia_id"
-        const { data, error } = await supabase
-            .from('hst_8d')
-            .upsert({
-                ocorrencia_id: ocorrenciaId,
-                ...updateData
-            }, {
-                onConflict: 'ocorrencia_id'
-            })
-            .select()
-            .single();
+        let result;
 
-        if (error) throw error;
+        if (id) {
+            // Se já temos o ID do 8D, fazemos Update explícito
+            const { data: updateRes, error: updateErr } = await supabase
+                .from('hst_8d')
+                .update(updateData)
+                .eq('id', id)
+                .select()
+                .single();
 
-        return { success: true, data: data };
+            if (updateErr) throw updateErr;
+            result = updateRes;
+        } else {
+            // Se não temos ID, é uma Inserção nova
+            const { data: insertRes, error: insertErr } = await supabase
+                .from('hst_8d')
+                .insert([{ ocorrencia_id: ocorrenciaId, ...updateData }])
+                .select()
+                .single();
+
+            if (insertErr) throw insertErr;
+            result = insertRes;
+        }
+
+        return { success: true, data: result };
     } catch (e: any) {
         return { success: false, error: e.message };
     }
