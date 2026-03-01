@@ -1,4 +1,5 @@
 import React from 'react';
+import HSTBanner from './HSTBanner';
 
 export default function TVLayout({
     children,
@@ -8,8 +9,9 @@ export default function TVLayout({
     // Layout exclusivo para TVs de 55"
     // Sem Sidebar, fundo 100% negro para poupança de energia e contraste máximo
     return (
-        <div className="w-screen h-screen overflow-hidden bg-black text-white selection:bg-rose-500/30">
+        <div className="w-screen h-screen overflow-hidden bg-black text-white selection:bg-rose-500/30 relative">
             {children}
+            <HSTBanner />
         </div>
     );
 }

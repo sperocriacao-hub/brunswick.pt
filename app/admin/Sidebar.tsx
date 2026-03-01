@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Box, GitBranch, Layers, Settings, CalendarDays, Activity, Menu, X, AlertTriangle, Lightbulb, Footprints, Crosshair, ListTodo } from 'lucide-react';
+import { Box, GitBranch, Layers, Settings, CalendarDays, Activity, Menu, X, AlertTriangle, Lightbulb, Footprints, Crosshair, ListTodo, ShieldCheck } from 'lucide-react';
 
 export function Sidebar({ userEmail }: { userEmail: string | undefined }) {
     const pathname = usePathname();
@@ -182,8 +182,11 @@ export function Sidebar({ userEmail }: { userEmail: string | undefined }) {
                                     <Crosshair size={18} className={pathname.includes('/admin/hst/ocorrencias') ? 'text-white' : 'text-rose-400'} />
                                     <span className="text-sm border-transparent">Registar Ocorrência</span>
                                 </Link>
+                                <Link onClick={() => setIsOpen(false)} href="/admin/hst/epis" className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium \${pathname.includes('/admin/hst/epis') ? 'bg-rose-600 text-white shadow-sm border border-transparent' : 'text-blue-100 hover:bg-blue-800/50 hover:text-white'}`}>
+                                    <ShieldCheck size={18} className={pathname.includes('/admin/hst/epis') ? 'text-white' : 'text-rose-400'} />
+                                    <span className="text-sm border-transparent">Matriz Ocupacional</span>
+                                </Link>
                             </nav>
-
                             <p className="px-3 text-[10px] font-extrabold text-blue-400 uppercase tracking-widest mb-2">Sistema</p>
                             <nav className="flex flex-col gap-1">
                                 <Link onClick={() => setIsOpen(false)} href="/admin/diagnostico" className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname === '/admin/diagnostico' ? 'bg-blue-800 text-white shadow-sm border border-transparent' : 'text-blue-100 hover:bg-blue-800/50 hover:text-white'}`}>
