@@ -27,9 +27,13 @@ export async function getHst8D(ocorrenciaId: string) {
             .from('hst_8d')
             .select('*')
             .eq('ocorrencia_id', ocorrenciaId)
-            .single();
+            .maybeSingle(); // Retorna null sem erro se não existir 
 
-        // Se não existir, otdData será null, o que está correto (novo 8D)
+        if (otdErr) {
+            console.error("Erro no get hst_8d:", otdErr);
+            throw otdErr;
+        }
+
         return { success: true, ocorrencia: occData, relatorio8d: otdData };
 
     } catch (e: any) {
@@ -41,30 +45,21 @@ export async function saveHst8D(ocorrenciaId: string, payload: any) {
     try {
         const { id, ...updateData } = payload;
 
-        let result;
+        // Usamos upsert para resolver qualquer problema de concorrência ou sync, focando na chave única "ocorrencia_id"
+        const { data, error } = await supabase
+            .from('hst_8d')
+            .upsert({
+                ocorrencia_id: ocorrenciaId,
+                ...updateData
+            }, {
+                onConflict: 'ocorrencia_id'
+            })
+            .select()
+            .single();
 
-        if (id) {
-            // Update
-            const { data, error } = await supabase
-                .from('hst_8d')
-                .update(updateData)
-                .eq('id', id)
-                .select()
-                .single();
-            if (error) throw error;
-            result = data;
-        } else {
-            // Insert
-            const { data, error } = await supabase
-                .from('hst_8d')
-                .insert([{ ocorrencia_id: ocorrenciaId, ...updateData }])
-                .select()
-                .single();
-            if (error) throw error;
-            result = data;
-        }
+        if (error) throw error;
 
-        return { success: true, data: result };
+        return { success: true, data: data };
     } catch (e: any) {
         return { success: false, error: e.message };
     }
