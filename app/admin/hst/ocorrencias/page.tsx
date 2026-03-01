@@ -233,7 +233,7 @@ export default function RegistosHstPage() {
                                     {!isFechado && (
                                         <div className="flex flex-col justify-end w-full md:w-auto h-full space-y-2 shrink-0 md:pl-4">
                                             <Button
-                                                onClick={() => router.push(`/admin/hst/8d/novo/\${o.id}`)}
+                                                onClick={() => router.push(`/admin/hst/8d/novo/${o.id}`)}
                                                 className="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold"
                                             >
                                                 Iniciar 8D <AlertTriangle size={16} className="ml-1 opacity-70" />
