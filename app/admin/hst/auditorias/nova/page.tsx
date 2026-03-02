@@ -198,18 +198,20 @@ export default function NovaAuditoriaPage() {
                                     </div>
                                     <h3 className="text-lg md:text-xl font-bold text-slate-800 leading-tight mb-6">{t.topico}</h3>
 
-                                    <div className="grid grid-cols-2 gap-3 mb-4">
+                                    <div className="grid grid-cols-2 gap-4 mb-4">
                                         <button
-                                            className={`flex items-center justify-center gap-2 py-4 rounded-xl font-bold transition-all \${hasRsp && isConforme ? 'bg-emerald-500 text-white shadow-md scale-[1.02]' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
+                                            className={`flex flex-col items-center justify-center gap-2 py-6 rounded-2xl font-black transition-all border-2 \${hasRsp && isConforme ? 'bg-emerald-500 text-white border-emerald-600 shadow-lg scale-[1.02] ring-4 ring-emerald-500/20' : 'bg-white text-slate-400 border-slate-200 hover:border-emerald-300 hover:text-emerald-600 hover:bg-emerald-50/30'}`}
                                             onClick={() => handleAnswer(t.id, true)}
                                         >
-                                            <CheckCircle2 size={24} /> Conforme
+                                            <CheckCircle2 size={32} />
+                                            <span className="text-sm uppercase tracking-wider">Conforme</span>
                                         </button>
                                         <button
-                                            className={`flex items-center justify-center gap-2 py-4 rounded-xl font-bold transition-all \${hasRsp && !isConforme ? 'bg-rose-500 text-white shadow-md scale-[1.02]' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
+                                            className={`flex flex-col items-center justify-center gap-2 py-6 rounded-2xl font-black transition-all border-2 \${hasRsp && !isConforme ? 'bg-rose-500 text-white border-rose-600 shadow-lg scale-[1.02] ring-4 ring-rose-500/20' : 'bg-white text-slate-400 border-slate-200 hover:border-rose-300 hover:text-rose-600 hover:bg-rose-50/30'}`}
                                             onClick={() => handleAnswer(t.id, false)}
                                         >
-                                            <XCircle size={24} /> Não Conforme
+                                            <XCircle size={32} />
+                                            <span className="text-sm uppercase tracking-wider">Não Conforme</span>
                                         </button>
                                     </div>
 
