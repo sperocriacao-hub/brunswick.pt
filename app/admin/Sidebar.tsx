@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Box, GitBranch, Layers, Settings, CalendarDays, Activity, Menu, X, AlertTriangle, Lightbulb, Footprints, Crosshair, ListTodo, ShieldCheck, ShieldAlert, History } from 'lucide-react';
+import { Box, GitBranch, Layers, Settings, CalendarDays, Activity, Menu, X, AlertTriangle, Lightbulb, Footprints, Crosshair, ListTodo, ShieldCheck, ShieldAlert, History, Award } from 'lucide-react';
 
 export function Sidebar({ userEmail }: { userEmail: string | undefined }) {
     const pathname = usePathname();
@@ -185,6 +185,14 @@ export function Sidebar({ userEmail }: { userEmail: string | undefined }) {
                                 <Link onClick={() => setIsOpen(false)} href="/admin/hst/epis" className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes('/admin/hst/epis') ? 'bg-rose-600 text-white shadow-sm border border-transparent' : 'text-blue-100 hover:bg-blue-800/50 hover:text-white'}`}>
                                     <ShieldCheck size={18} className={pathname.includes('/admin/hst/epis') ? 'text-white' : 'text-rose-400'} />
                                     <span className="text-sm border-transparent">Matriz Ocupacional</span>
+                                </Link>
+                                <Link onClick={() => setIsOpen(false)} href="/admin/hst/certificacoes" className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes('/admin/hst/certificacoes') ? 'bg-rose-600 text-white shadow-sm border border-transparent' : 'text-blue-100 hover:bg-blue-800/50 hover:text-white'}`}>
+                                    <Award size={18} className={pathname.includes('/admin/hst/certificacoes') ? 'text-white' : 'text-rose-400'} />
+                                    <span className="text-sm border-transparent">Certificações</span>
+                                </Link>
+                                <Link onClick={() => setIsOpen(false)} href="/admin/hst/auditorias" className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes('/admin/hst/auditorias') ? 'bg-rose-600 text-white shadow-sm border border-transparent' : 'text-blue-100 hover:bg-blue-800/50 hover:text-white'}`}>
+                                    <ShieldCheck size={18} className={pathname.includes('/admin/hst/auditorias') ? 'text-white' : 'text-rose-400'} />
+                                    <span className="text-sm border-transparent">Auditorias Seg.</span>
                                 </Link>
                                 <Link onClick={() => setIsOpen(false)} href="/admin/hst/dashboard" className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname === '/admin/hst/dashboard' ? 'bg-rose-600 text-white shadow-sm border border-transparent' : 'text-blue-100 hover:bg-blue-800/50 hover:text-white'}`}>
                                     <ShieldAlert size={18} className={pathname === '/admin/hst/dashboard' ? 'text-white' : 'text-rose-400'} />
