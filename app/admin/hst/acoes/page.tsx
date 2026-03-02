@@ -2,17 +2,20 @@
 
 import React, { useEffect, useState } from 'react';
 import { getHstAcoes, updateHstAcaoStatus, deleteHstAcao, criarHstAcao } from './actions';
+import { getHstOcorrencias } from '../ocorrencias/actions'; // Added this import
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { ListTodo, CheckCircle2, Clock, AlertTriangle, MessageSquarePlus, MapPin, Loader2, Search, History, LayoutDashboard, Plus, Trash2, Calendar, Target, ShieldAlert } from 'lucide-react';
+import { ListTodo, CheckCircle2, Clock, AlertTriangle, MessageSquarePlus, MapPin, Loader2, Search, History, LayoutDashboard, Plus, Trash2, Calendar, Target, ShieldAlert, ArrowRight } from 'lucide-react'; // Added ArrowRight
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
+import { useRouter } from 'next/navigation'; // Added this import
 
 export default function HstActionsKanbanPage() {
     const [acoes, setAcoes] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const router = useRouter(); // Added this line
 
     // Filter Controls
     const [searchTerm, setSearchTerm] = useState('');
@@ -188,7 +191,7 @@ export default function HstActionsKanbanPage() {
                                                 {task.descricao_acao}
                                             </h4>
 
-                                            <div className="flex justify-between items-end">
+                                            <div className="flex justify-between items-end mt-3 border-t border-slate-100 pt-3">
                                                 <div className="flex flex-col gap-1">
                                                     <div className="text-xs text-slate-500 flex items-center gap-1.5 font-medium">
                                                         <Target size={12} className="text-slate-400" />
@@ -201,7 +204,12 @@ export default function HstActionsKanbanPage() {
                                                     )}
                                                 </div>
 
-                                                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity items-center">
+                                                    {task.relatorio_8d_id && task.ocorrencia_id && (
+                                                        <Button variant="outline" size="sm" className="h-6 text-[10px] px-2 py-0 border-slate-200 text-slate-600 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50" onClick={() => router.push(`/admin/hst/8d/novo/${task.ocorrencia_id}`)} title="Abrir Documento 8D">
+                                                            Abrir 8D <ArrowRight size={10} className="ml-1" />
+                                                        </Button>
+                                                    )}
                                                     <Button variant="ghost" size="icon" className="h-6 w-6 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700" onClick={() => moveCard(task.id, 'Done')} title="Marcar Concluída">
                                                         <CheckCircle2 size={14} />
                                                     </Button>

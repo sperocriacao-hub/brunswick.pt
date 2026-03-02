@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
-import { getHstOcorrencias, submitHstOcorrencia, fecharOcorrencia } from './actions';
+import { getHstOcorrencias, submitHstOcorrencia, fecharOcorrencia, iniciarInvestigacaoHST } from './actions';
 import { getLeanFormData } from '@/app/operador/ideias/actions';
 import { getSelectData } from '@/app/admin/qualidade/rnc/actions'; // Use Qualidade deps
 
@@ -20,6 +20,7 @@ export default function RegistosHstPage() {
     const [ocorrencias, setOcorrencias] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [investigatingId, setInvestigatingId] = useState<string | null>(null);
 
     // Dependentes Listas
     const [operadores, setOperadores] = useState<any[]>([]);
@@ -118,8 +119,19 @@ export default function RegistosHstPage() {
         return 'text-slate-600 bg-slate-100 border-slate-400';
     };
 
+    const handleIniciarInvestigacao = async (ocorrenciaId: string, tipoOcorrencia: string) => {
+        setInvestigatingId(ocorrenciaId);
+        const res = await iniciarInvestigacaoHST(ocorrenciaId, tipoOcorrencia);
+        if (res.success) {
+            router.push('/admin/hst/acoes'); // Redirect visual imediato para o Kanban
+        } else {
+            alert("Erro ao iniciar investigação: " + res.error);
+            setInvestigatingId(null);
+        }
+    }
+
     return (
-        <div className="p-8 space-y-8 pb-32 max-w-[1200px] mx-auto animate-in fade-in zoom-in-95 duration-500 bg-slate-50/50 min-h-screen">
+        <div className="p-8 space-y-8 max-w-[1400px] mx-auto animate-in fade-in zoom-in-95 duration-500 pb-32 bg-slate-50/50 min-h-screen">
             <header className="flex justify-between items-end border-b pb-4 border-slate-200">
                 <div>
                     <h1 className="text-4xl font-black tracking-tight text-slate-900 uppercase flex items-center gap-3">
@@ -233,14 +245,16 @@ export default function RegistosHstPage() {
                                     {!isFechado && (
                                         <div className="flex flex-col justify-end w-full md:w-auto h-full space-y-2 shrink-0 md:pl-4">
                                             <Button
-                                                onClick={() => router.push(`/admin/hst/8d/novo/${o.id}`)}
-                                                className="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold"
+                                                onClick={() => handleIniciarInvestigacao(o.id, o.tipo_ocorrencia)}
+                                                disabled={investigatingId === o.id}
+                                                className="w-full md:w-48 bg-slate-800 hover:bg-slate-900 text-white font-bold"
                                             >
-                                                Iniciar 8D <AlertTriangle size={16} className="ml-1 opacity-70" />
+                                                {investigatingId === o.id ? <Loader2 className="animate-spin w-4 h-4 mr-2" /> : "Enviar p/ Investigação"}
+                                                {investigatingId !== o.id && <AlertTriangle size={16} className="ml-1 opacity-70" />}
                                             </Button>
                                             <Button
                                                 onClick={() => { setSelectedOcc(o); setIsCloseModalOpen(true); }}
-                                                className="w-full bg-emerald-600 hover:bg-emerald-700 font-bold"
+                                                className="w-full md:w-48 bg-emerald-600 hover:bg-emerald-700 font-bold"
                                             >
                                                 Encerrar Caso <ChevronRight size={16} className="ml-1" />
                                             </Button>
