@@ -36,7 +36,7 @@ export async function toggleEpiRequirement(areaId: string, epiColumn: string, is
             .from("hst_matriz_epis")
             .select("id")
             .eq("area_id", areaId)
-            .single();
+            .maybeSingle();
 
         if (existing) {
             // Atualiza
