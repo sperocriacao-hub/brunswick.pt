@@ -53,7 +53,7 @@ export async function getOperadoresComCertificados() {
         // Busca operadores ativos e suas certificacoes
         const { data: operadores, error: opErr } = await supabase
             .from("operadores")
-            .select("id, nome_operador, area_id")
+            .select("id, nome_operador, area_base_id")
             .eq("status", "Ativo")
             .order("nome_operador", { ascending: true });
 
@@ -69,7 +69,7 @@ export async function getOperadoresComCertificados() {
 
         // Mapear area nome para os operadores
         const opsFull = operadores.map(op => {
-            const areaName = areas?.find(a => a.id === op.area_id)?.nome_area || 'S/ Área';
+            const areaName = areas?.find(a => a.id === op.area_base_id)?.nome_area || 'S/ Área';
             return {
                 ...op,
                 nome_area: areaName
