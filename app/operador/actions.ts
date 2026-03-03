@@ -101,12 +101,12 @@ export async function getStationOperators(estacaoId: string) {
     if (!estacaoId) return { success: false, data: [] };
 
     try {
-        // 1. Fetch Operadores assignados a esta estação
+        // 1. Fetch Operadores assignados a esta estação (Nativos OU Emprestados temporariamente)
         const { data: operadores, error: opError } = await supabase
             .from("operadores")
-            .select("id, nome_operador, tag_rfid_operador")
+            .select("id, nome_operador, tag_rfid_operador, posto_base_id, estacao_alocada_temporaria")
             .eq("status", "Ativo")
-            .eq("posto_base_id", estacaoId);
+            .or(`posto_base_id.eq.${estacaoId},estacao_alocada_temporaria.eq.${estacaoId}`);
 
         if (opError) throw opError;
         if (!operadores || operadores.length === 0) return { success: true, data: [] };
@@ -130,12 +130,14 @@ export async function getStationOperators(estacaoId: string) {
             // Find the most recent log for this operator
             const ultimoLog = logsPonto?.find((log: any) => log.operador_rfid === op.tag_rfid_operador);
             const isClockedIn = ultimoLog ? ultimoLog.tipo_registo === "ENTRADA" : false;
+            const isGuest = op.estacao_alocada_temporaria === estacaoId;
 
             return {
                 id: op.id,
                 nome: op.nome_operador,
                 rfid: op.tag_rfid_operador,
-                isClockedIn
+                isClockedIn,
+                isGuest
             };
         });
 

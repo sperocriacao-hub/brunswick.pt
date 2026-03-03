@@ -418,15 +418,25 @@ export default function InteractiveTabletPage() {
                         </div>
                     ) : (
                         <div className="flex flex-col gap-2">
-                            {operadores.map((op) => (
-                                <div key={op.id} className={`p-4 rounded-xl border flex items-center gap-4 transition-colors ${op.isClockedIn ? 'bg-green-950/30 border-green-800/50' : 'bg-slate-800/30 border-slate-800'}`}>
-                                    <div className={`p-2 rounded-full ${op.isClockedIn ? 'bg-green-600/20 text-green-400' : 'bg-slate-700/50 text-slate-500'}`}>
-                                        {op.isClockedIn ? <UserCheck className="w-5 h-5" /> : <UserX className="w-5 h-5" />}
+                            {operadores.map((op: any) => (
+                                <div key={op.id} className={`p-4 rounded-xl border flex justify-between items-center transition-colors ${op.isClockedIn ? 'bg-green-950/30 border-green-800/50' : 'bg-slate-800/30 border-slate-800'}`}>
+                                    <div className="flex items-center gap-4">
+                                        <div className={`p-2 rounded-full ${op.isClockedIn ? 'bg-green-600/20 text-green-400 shadow-[0_0_10px_rgba(34,197,94,0.3)]' : 'bg-slate-700/50 text-slate-500'}`}>
+                                            {op.isClockedIn ? <UserCheck className="w-5 h-5" /> : <UserX className="w-5 h-5" />}
+                                        </div>
+                                        <div>
+                                            <p className={`font-bold flex items-center gap-2 ${op.isClockedIn ? 'text-green-400' : 'text-slate-400'}`}>
+                                                {op.nome}
+                                            </p>
+                                            <p className="text-xs text-slate-500 font-mono mt-1">TAG: {op.rfid}</p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <p className={`font-bold ${op.isClockedIn ? 'text-green-400' : 'text-slate-400'}`}>{op.nome}</p>
-                                        <p className="text-xs text-slate-500 font-mono">TAG: {op.rfid}</p>
-                                    </div>
+
+                                    {op.isGuest && (
+                                        <span className="text-[10px] uppercase tracking-wider font-bold bg-amber-500/20 text-amber-500 border border-amber-500/30 px-2 py-1 rounded-md">
+                                            Emprestado
+                                        </span>
+                                    )}
                                 </div>
                             ))}
                         </div>

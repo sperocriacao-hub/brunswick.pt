@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { createClient } from '@/utils/supabase/client';
-import { Loader2, Search, UserPlus, Users, Edit, UserX, UserCheck, Shield } from 'lucide-react';
+import { Loader2, Search, UserPlus, Users, Edit, UserX, UserCheck, Shield, Repeat, X } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -15,6 +15,14 @@ type OperadorInfo = {
     status: string;
     iluo_nivel: string | null;
     possui_acesso_sistema: boolean;
+    posto_base_id: string | null;
+    estacao_alocada_temporaria: string | null;
+    em_realocacao: boolean;
+};
+
+type EstacaoInfo = {
+    id: string;
+    nome_estacao: string;
 };
 
 export default function GestaoRHPage() {
@@ -22,17 +30,29 @@ export default function GestaoRHPage() {
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(true);
     const [operadores, setOperadores] = useState<OperadorInfo[]>([]);
+    const [estacoes, setEstacoes] = useState<EstacaoInfo[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
+
+    // Relocation Modal State
+    const [isRelocateModalOpen, setIsRelocateModalOpen] = useState(false);
+    const [relocatingOp, setRelocatingOp] = useState<OperadorInfo | null>(null);
+    const [selectedEstacaoId, setSelectedEstacaoId] = useState<string>('');
 
     const carregarEquipa = async () => {
         setIsLoading(true);
-        const { data, error } = await supabase
-            .from('operadores')
-            .select('id, numero_operador, nome_operador, tag_rfid_operador, funcao, status, iluo_nivel, possui_acesso_sistema')
-            .order('nome_operador');
+        const [{ data: ops }, { data: ests }] = await Promise.all([
+            supabase
+                .from('operadores')
+                .select('id, numero_operador, nome_operador, tag_rfid_operador, funcao, status, iluo_nivel, possui_acesso_sistema, posto_base_id, estacao_alocada_temporaria, em_realocacao')
+                .order('nome_operador'),
+            supabase
+                .from('estacoes')
+                .select('id, nome_estacao')
+                .order('nome_estacao')
+        ]);
 
-        if (data) setOperadores(data);
-        if (error) console.error("Erro a carregar RH:", error);
+        if (ops) setOperadores(ops);
+        if (ests) setEstacoes(ests);
         setIsLoading(false);
     };
 
@@ -49,6 +69,29 @@ export default function GestaoRHPage() {
         } else {
             alert('Erro ao alterar status: ' + error.message);
         }
+    };
+
+    const handleRelocate = async () => {
+        if (!relocatingOp) return;
+
+        setIsLoading(true);
+        // Se a estacao selecionada for VAZIA ou iqual à base, cancela realocacao
+        const isCancelamento = selectedEstacaoId === '' || selectedEstacaoId === relocatingOp.posto_base_id;
+
+        const updatePayload = {
+            estacao_alocada_temporaria: isCancelamento ? null : selectedEstacaoId,
+            em_realocacao: !isCancelamento
+        };
+
+        const { error } = await supabase.from('operadores').update(updatePayload).eq('id', relocatingOp.id);
+
+        if (error) {
+            alert('Erro ao realocar: ' + error.message);
+        } else {
+            setIsRelocateModalOpen(false);
+            carregarEquipa();
+        }
+        setIsLoading(false);
     };
 
     const filtrados = operadores.filter(op => {
@@ -135,15 +178,33 @@ export default function GestaoRHPage() {
                                         )}
                                     </td>
                                     <td className="p-4">
-                                        <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] uppercase font-bold tracking-wider border ${op.status === 'Ativo'
-                                            ? 'bg-green-50 text-green-700 border-green-200'
-                                            : 'bg-red-50 text-red-700 border-red-200'
-                                            }`}>
-                                            {op.status === 'Ativo' ? <UserCheck size={12} /> : <UserX size={12} />}
-                                            {op.status}
-                                        </span>
+                                        <div className="flex flex-col gap-1 items-start">
+                                            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] uppercase font-bold tracking-wider border ${op.status === 'Ativo'
+                                                ? 'bg-green-50 text-green-700 border-green-200'
+                                                : 'bg-red-50 text-red-700 border-red-200'
+                                                }`}>
+                                                {op.status === 'Ativo' ? <UserCheck size={12} /> : <UserX size={12} />}
+                                                {op.status}
+                                            </span>
+                                            {op.em_realocacao && (
+                                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] uppercase font-bold tracking-wider bg-amber-50 text-amber-700 border border-amber-200">
+                                                    <Repeat size={10} /> Emprestado
+                                                </span>
+                                            )}
+                                        </div>
                                     </td>
                                     <td className="p-4 text-right flex justify-end gap-2">
+                                        <button
+                                            onClick={() => {
+                                                setRelocatingOp(op);
+                                                setSelectedEstacaoId(op.estacao_alocada_temporaria || '');
+                                                setIsRelocateModalOpen(true);
+                                            }}
+                                            className="p-2 text-slate-400 hover:bg-amber-50 hover:text-amber-600 rounded-md transition-colors border border-transparent hover:border-amber-100"
+                                            title="Emprestar / Realocar Operador Temporariamente"
+                                        >
+                                            <Repeat size={16} />
+                                        </button>
                                         <button
                                             onClick={() => router.push(`/admin/rh/cadastro?id=${op.id}`)}
                                             className="p-2 text-slate-400 hover:bg-blue-50 hover:text-blue-600 rounded-md transition-colors border border-transparent hover:border-blue-100"
@@ -171,6 +232,55 @@ export default function GestaoRHPage() {
                             )}
                         </tbody>
                     </table>
+                </div>
+            )}
+
+            {/* MODAL DE REALOCAÇÃO */}
+            {isRelocateModalOpen && relocatingOp && (
+                <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
+                    <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden border border-slate-200">
+                        <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                            <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                                <Repeat size={18} className="text-amber-500" />
+                                Realocação de Turno
+                            </h3>
+                            <button onClick={() => setIsRelocateModalOpen(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <div className="p-6">
+                            <p className="text-sm text-slate-600 mb-6 border-l-4 border-amber-400 pl-3 py-1 bg-amber-50/50">
+                                Emprestar <strong>{relocatingOp.nome_operador}</strong> temporariamente a outra estação. Esta alteração reflete-se imediatamente no Tablet dessa estação.
+                            </p>
+
+                            <div className="flex flex-col gap-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Destino / Estação</label>
+                                    <select
+                                        className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                                        value={selectedEstacaoId}
+                                        onChange={(e) => setSelectedEstacaoId(e.target.value)}
+                                    >
+                                        <option value="">-- Remover Realocação (Devolver à Base) --</option>
+                                        {estacoes.map(est => (
+                                            <option key={est.id} value={est.id} disabled={est.id === relocatingOp.posto_base_id}>
+                                                {est.nome_estacao} {est.id === relocatingOp.posto_base_id ? '(Estação Base)' : ''}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
+                            <button onClick={() => setIsRelocateModalOpen(false)} className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">Cancelar</button>
+                            <button onClick={handleRelocate} disabled={isLoading} className="px-6 py-2 bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium rounded-md shadow-sm transition-colors flex items-center gap-2">
+                                {isLoading ? <Loader2 size={16} className="animate-spin" /> : <Repeat size={16} />}
+                                Confirmar Empréstimo
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>
