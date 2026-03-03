@@ -165,3 +165,39 @@ export async function getFactoryContext() {
         return { success: false, error: e.message };
     }
 }
+
+// --- Integração KPIs: Avaliação Diária de Turnos ---
+export async function getShiftSafetyKPIs() {
+    try {
+        const { data, error } = await supabase
+            .from("avaliacoes_diarias")
+            .select("nota_hst, nota_epi");
+
+        if (error) throw error;
+
+        // Calculate Averages
+        if (!data || data.length === 0) {
+            return { success: true, kpiHst: 0, kpiEpi: 0, count: 0 };
+        }
+
+        const sumHst = data.reduce((acc, row) => acc + Number(row.nota_hst), 0);
+        const sumEpi = data.reduce((acc, row) => acc + Number(row.nota_epi), 0);
+
+        // Scale is 0.0 - 4.0. We want a 0-100% percentage representation.
+        // So (average / 4) * 100
+        const avgHst = sumHst / data.length;
+        const avgEpi = sumEpi / data.length;
+
+        const kpiHst = (avgHst / 4) * 100;
+        const kpiEpi = (avgEpi / 4) * 100;
+
+        return {
+            success: true,
+            kpiHst: parseFloat(kpiHst.toFixed(1)),
+            kpiEpi: parseFloat(kpiEpi.toFixed(1)),
+            count: data.length
+        };
+    } catch (e: any) {
+        return { success: false, error: e.message };
+    }
+}

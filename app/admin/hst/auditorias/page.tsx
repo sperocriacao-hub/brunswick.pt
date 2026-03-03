@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { getAuditoriaTopicos, addAuditoriaTopico, toggleTopicoStatus, getAuditorias } from "./actions";
-import { ShieldCheck, Calendar, Loader2, Plus, Target, Search, ArrowRight, LayoutDashboard, Settings2, BarChart3, AlertTriangle, FileText, History } from "lucide-react";
+import { getAuditoriaTopicos, addAuditoriaTopico, toggleTopicoStatus, getAuditorias, getShiftSafetyKPIs } from "./actions";
+import { ShieldCheck, Calendar, Loader2, Plus, Target, Search, ArrowRight, LayoutDashboard, Settings2, BarChart3, AlertTriangle, FileText, History, UserCheck, HardHat } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,19 +39,23 @@ export default function AuditoriasDashboardPage() {
     const [formTopico, setFormTopico] = useState({ topico: '', categoria: '' });
     const [searchTerm, setSearchTerm] = useState("");
 
+    const [shiftKpis, setShiftKpis] = useState({ kpiHst: 0, kpiEpi: 0, count: 0 });
+
     useEffect(() => {
         carregarDados();
     }, []);
 
     const carregarDados = async () => {
         setLoading(true);
-        const [resTopicos, resAudits] = await Promise.all([
+        const [resTopicos, resAudits, resShift] = await Promise.all([
             getAuditoriaTopicos(),
-            getAuditorias()
+            getAuditorias(),
+            getShiftSafetyKPIs()
         ]);
 
         if (resTopicos.success) setTopicos(resTopicos.data || []);
         if (resAudits.success) setAuditorias(resAudits.data || []);
+        if (resShift.success) setShiftKpis({ kpiHst: resShift.kpiHst || 0, kpiEpi: resShift.kpiEpi || 0, count: resShift.count || 0 });
 
         setLoading(false);
     };
@@ -131,33 +135,48 @@ export default function AuditoriasDashboardPage() {
                         <div className="space-y-6 animate-in slide-in-from-bottom-4">
 
                             {/* Roadmap KPIs */}
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                <Card className="border-slate-200 shadow-sm">
-                                    <CardContent className="p-6 flex items-center justify-between">
-                                        <div>
-                                            <p className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-1">Conformidade Fabril</p>
-                                            <h2 className="text-4xl font-black text-slate-800">{globalScore.toFixed(1)}%</h2>
-                                            <p className="text-xs text-slate-400 mt-1">Média global baseada em {auditorias.length} inspeções.</p>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                                <Card className="border-slate-200 shadow-sm hover:shadow-md transition-all">
+                                    <CardContent className="p-6 flex flex-col justify-between h-full">
+                                        <div className="flex items-start justify-between">
+                                            <div>
+                                                <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Conformidade Fabril</p>
+                                                <h2 className="text-3xl font-black text-slate-800">{globalScore.toFixed(1)}%</h2>
+                                            </div>
+                                            <div className="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-500 shrink-0">
+                                                <Target size={24} />
+                                            </div>
                                         </div>
-                                        <div className="w-16 h-16 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-500">
-                                            <Target size={32} />
-                                        </div>
+                                        <p className="text-[10px] uppercase font-bold text-slate-400 mt-4 tracking-wider">Média Global de {auditorias.length} Gemba Walks</p>
                                     </CardContent>
                                 </Card>
-                                <Card className="border-slate-200 shadow-sm">
-                                    <CardContent className="p-6 flex items-center justify-between">
-                                        <div>
-                                            <p className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-1">Última Auditoria</p>
-                                            <h2 className="text-xl font-bold text-slate-800 mt-2">
-                                                {auditorias.length > 0 ? format(new Date(auditorias[0].data_auditoria), 'dd MMM yyyy', { locale: pt }) : 'Nenhuma'}
-                                            </h2>
-                                            <p className="text-xs text-slate-400 mt-1 uppercase tracking-wider">{auditorias.length > 0 ? auditorias[0].areas_fabrica?.nome_area : '-'}</p>
+
+                                <Card className="border-slate-200 shadow-sm hover:shadow-md transition-all group">
+                                    <CardContent className="p-6 flex flex-col justify-between h-full relative overflow-hidden">
+                                        <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-110 transition-transform"><UserCheck size={80} /></div>
+                                        <div className="flex items-start justify-between relative z-10">
+                                            <div>
+                                                <p className="text-xs font-black text-blue-500 uppercase tracking-widest mb-1">Segurança Diária</p>
+                                                <h2 className={`text-3xl font-black ${shiftKpis.kpiHst >= 80 ? 'text-emerald-600' : 'text-amber-500'}`}>{shiftKpis.kpiHst}%</h2>
+                                            </div>
                                         </div>
-                                        <div className="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center text-blue-500">
-                                            <Calendar size={32} />
-                                        </div>
+                                        <p className="text-[10px] uppercase font-bold text-slate-400 mt-4 tracking-wider relative z-10">Score de Setup de Turno ({shiftKpis.count} logs)</p>
                                     </CardContent>
                                 </Card>
+
+                                <Card className="border-slate-200 shadow-sm hover:shadow-md transition-all group">
+                                    <CardContent className="p-6 flex flex-col justify-between h-full relative overflow-hidden">
+                                        <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-110 transition-transform"><HardHat size={80} /></div>
+                                        <div className="flex items-start justify-between relative z-10">
+                                            <div>
+                                                <p className="text-xs font-black text-amber-500 uppercase tracking-widest mb-1">Uso de EPIs</p>
+                                                <h2 className={`text-3xl font-black ${shiftKpis.kpiEpi >= 80 ? 'text-emerald-600' : 'text-amber-500'}`}>{shiftKpis.kpiEpi}%</h2>
+                                            </div>
+                                        </div>
+                                        <p className="text-[10px] uppercase font-bold text-slate-400 mt-4 tracking-wider relative z-10">Inspeção de Turno ({shiftKpis.count} logs)</p>
+                                    </CardContent>
+                                </Card>
+
                                 <Card className="bg-emerald-600 border-none shadow-md shadow-emerald-600/20 text-white cursor-pointer hover:bg-emerald-700 transition-colors" onClick={() => router.push('/admin/hst/auditorias/nova')}>
                                     <CardContent className="p-6 flex flex-col items-center justify-center h-full text-center group">
                                         <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
