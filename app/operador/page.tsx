@@ -20,6 +20,7 @@ export default function TabletDashboardPage() {
     // ESP32 Hardware State
     type HmiMode = 'IDLE' | 'MENU_PAUSA' | 'MENU_FIM';
     const [mode, setMode] = useState<HmiMode>('IDLE');
+    const [currentOpId, setCurrentOpId] = useState<string>('');
 
     // Pausa Options
     const pausaOptions = ['WC', 'Formacao', 'Clinica', 'Falta_Material'];
@@ -68,8 +69,36 @@ export default function TabletDashboardPage() {
             localStorage.setItem('tablet_last_estacao', selectedEstacaoId);
             setLcdLine1('SISTEMA ONLINE');
             setLcdLine2('Ler Cracha / Barco');
+            buscarTurnoAtualOP();
         }
     }, [selectedEstacaoId]);
+
+    const buscarTurnoAtualOP = async () => {
+        if (!selectedEstacaoId) return;
+        try {
+            const res = await fetch('/api/mes/iot', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    device_id: "00:00:TABLET:HMI",
+                    estacao_id: selectedEstacaoId,
+                    action: 'GET_NEXT_OP'
+                })
+            });
+            const data = await res.json();
+            if (data.success && data.op_id) {
+                setCurrentOpId(data.op_id);
+                setLcdLine1(data.display?.substring(0, 16) || 'BARCO PRONTO');
+                setLcdLine2(data.display_2?.substring(0, 16) || 'Pique o Cartao');
+            } else if (data.success && !data.op_id) {
+                setCurrentOpId('');
+                setLcdLine1(data.display || 'FILA VAZIA');
+                setLcdLine2(data.display_2 || 'AGUARDAR OP');
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    };
 
     // Focus Lock for RFID Keyboard
     useEffect(() => {
@@ -102,44 +131,53 @@ export default function TabletDashboardPage() {
         setRfidInput('');
 
         try {
-            // Prepare Custom Variables for Emulation payload
-            let emitType = 'RFID_SCAN';
-            let pauseReason = null;
-            let endStation = null;
+            // Mapping UI modes directly to API required actions
+            let actionName = 'TOGGLE_TAREFA';
+            let pauseReason = undefined;
 
             if (mode === 'MENU_PAUSA') {
-                emitType = 'BUTTON_DOWN_PAUSE';
+                actionName = 'REGISTAR_PAUSA';
                 pauseReason = pausaOptions[pausaIndex];
             } else if (mode === 'MENU_FIM') {
-                emitType = 'BUTTON_UP_FINISH';
-                endStation = 'TRUE';
+                actionName = 'FECHAR_ESTACAO';
+            } else if (mode === 'IDLE') {
+                actionName = 'TOGGLE_TAREFA';
             }
 
-            // Emulate ESP32 HTTP POST logic here
+            // Emulate ESP32 HTTP POST logic exactly as the API expects
             const res = await fetch('/api/mes/iot', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    station_id: selectedEstacaoId,
-                    rfid_tag: tag,
-                    device_mac: "00:00:TABLET:HMI",
-                    firmware_ver: "v2.0_TABLET_EMU",
-                    // Emulated Hardware states
-                    action_override: emitType,
-                    pause_reason: pauseReason,
-                    finish_station: endStation
+                    device_id: "00:00:TABLET:HMI",
+                    action: actionName,
+                    operador_rfid: tag,
+                    estacao_id: selectedEstacaoId,
+                    op_id: currentOpId || undefined,
+                    motivo_pausa: pauseReason
                 })
             });
 
+            let data;
             const rawText = await res.text();
 
-            // Simulação de Beep de Sucesso (Visual)
-            if (res.ok) {
-                setLcdLine1('>>> SUCESSO <<<');
-                setLcdLine2(rawText.substring(0, 16));
+            try {
+                data = JSON.parse(rawText);
+            } catch (e) {
+                data = { success: false, display: 'ERRO JSON', display_2: rawText.substring(0, 12) };
+            }
+
+            // Simulação Visual LCD
+            if (res.ok && data.success) {
+                setLcdLine1(data.display?.substring(0, 16) || 'SUCESSO');
+                setLcdLine2(data.display_2?.substring(0, 16) || '');
+                if (actionName === 'FECHAR_ESTACAO') {
+                    // Update OP if we finished the previous one
+                    setTimeout(() => buscarTurnoAtualOP(), 3000);
+                }
             } else {
-                setLcdLine1('! ACESSO NEGADO');
-                setLcdLine2(rawText.substring(0, 16));
+                setLcdLine1(data.display?.substring(0, 16) || '! ACESSO NEGADO');
+                setLcdLine2(data.display_2?.substring(0, 16) || data.error?.substring(0, 16) || '');
             }
 
         } catch (error: any) {
@@ -149,8 +187,13 @@ export default function TabletDashboardPage() {
 
         // Return to Idle after 4 seconds
         setTimeout(() => {
-            setLcdLine1('SISTEMA ONLINE');
-            setLcdLine2('Ler Cracha / Barco');
+            if (currentOpId && mode === 'IDLE') return; // If we stay in idle, it returns inside buscarTurnoAtualOP automatically if we re-fetch, but let's just restore from state
+            setMode('IDLE');
+            if (currentOpId) buscarTurnoAtualOP();
+            else {
+                setLcdLine1('SISTEMA ONLINE');
+                setLcdLine2('Ler Cracha / Barco');
+            }
         }, 4000);
     };
 
@@ -178,8 +221,7 @@ export default function TabletDashboardPage() {
         else if (btnLabel === 'SELECT') {
             // Cancelar e voltar ao IDLE
             setMode('IDLE');
-            setLcdLine1('SISTEMA ONLINE');
-            setLcdLine2('Ler Cracha / Barco');
+            buscarTurnoAtualOP();
         }
 
         inputRef.current?.focus();
@@ -220,7 +262,7 @@ export default function TabletDashboardPage() {
             {/* ADMIN TOP BAR */}
             <header className="bg-slate-900 border-b border-slate-800 p-4 sticky top-0 z-10 flex flex-col md:flex-row gap-4 items-center justify-between shadow-2xl">
                 <div className="flex items-center gap-3">
-                    <Button variant="ghost" size="icon" onClick={() => router.back()} className="mr-2 hover:bg-slate-800 rounded-full h-12 w-12 text-slate-400">
+                    <Button variant="ghost" size="icon" onClick={() => router.push('/')} className="mr-2 hover:bg-slate-800 rounded-full h-12 w-12 text-slate-400">
                         <ChevronLeft size={28} />
                     </Button>
                     <div className="w-12 h-12 bg-emerald-600/20 border border-emerald-500/30 rounded-xl flex items-center justify-center shadow-inner">
@@ -277,7 +319,7 @@ export default function TabletDashboardPage() {
             <main className="flex-1 flex flex-col items-center justify-center p-4 md:p-8 bg-[url('/img/carbon-fiber.png')] bg-repeat">
 
                 {/* The Box */}
-                <div className="bg-gradient-to-br from-slate-200 to-slate-400 border-[12px] border-slate-500 rounded-[3rem] shadow-[0_30px_60px_rgba(0,0,0,0.8),inset_0_4px_10px_rgba(255,255,255,0.8)] w-full max-w-4xl flex flex-col md:flex-row overflow-hidden relative">
+                <div className="bg-gradient-to-br from-slate-200 to-slate-400 border-[12px] border-slate-500 rounded-[3rem] shadow-[0_30px_60px_rgba(0,0,0,0.8),inset_0_4px_10px_rgba(255,255,255,0.8)] w-full max-w-6xl flex flex-col md:flex-row overflow-hidden relative">
 
                     {/* Fake Screws */}
                     <div className="absolute top-4 left-4 w-4 h-4 rounded-full bg-slate-400 shadow-[inset_0_2px_4px_rgba(0,0,0,0.4)]"></div>
@@ -320,10 +362,10 @@ export default function TabletDashboardPage() {
                             {/* Glass overlay */}
                             <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent pointer-events-none"></div>
 
-                            <div className="mt-4 font-mono text-3xl font-black text-[#4ade80] drop-shadow-[0_0_5px_rgba(74,222,128,0.5)] tracking-[0.2em] whitespace-pre truncate">
+                            <div className="mt-4 font-mono text-2xl font-black text-[#4ade80] drop-shadow-[0_0_5px_rgba(74,222,128,0.5)] tracking-[0.2em] whitespace-pre truncate">
                                 {lcdLine1.padEnd(16, ' ')}
                             </div>
-                            <div className="font-mono text-3xl font-black text-[#4ade80] drop-shadow-[0_0_5px_rgba(74,222,128,0.5)] tracking-[0.2em] whitespace-pre truncate">
+                            <div className="font-mono text-2xl font-black text-[#4ade80] drop-shadow-[0_0_5px_rgba(74,222,128,0.5)] tracking-[0.2em] whitespace-pre truncate">
                                 {lcdLine2.padEnd(16, ' ')}
                             </div>
                         </div>
