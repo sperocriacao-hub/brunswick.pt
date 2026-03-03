@@ -2,12 +2,6 @@
 
 import { cookies } from 'next/headers';
 import { createClient } from '@/utils/supabase/server';
-import { createClient as createAdminClient } from '@supabase/supabase-js';
-
-const supabaseAdmin = createAdminClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
 
 export type AvaliacaoDTO = {
     funcionario_id: string;
@@ -44,8 +38,8 @@ export async function submeterAvaliacaoDiaria(avaliacao: AvaliacaoDTO, autoSuper
     try {
         if (!avaliacao.funcionario_id) throw new Error("ID de Funcionário em falta.");
 
-        // Use Admin client to bypass RLS for inserts (since supervisors might not be logged in directly to Supabase Auth during prototype)
-        const supabase = supabaseAdmin;
+        const cookieStore = cookies();
+        const supabase = createClient(cookieStore);
 
         // 1. Inserir Avaliação (Isto chamará o Trigger PostgreSQL de atualização da matriz master)
         const { data: avalData, error: avalError } = await supabase
