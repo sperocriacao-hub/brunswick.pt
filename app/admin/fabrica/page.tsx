@@ -444,8 +444,8 @@ export default function FabricaLayoutPage() {
             {/* MODAL: NOVA LINHA */}
             {
                 isLinhaModalOpen && (
-                    <div className="modal-overlay">
-                        <div className="modal-content">
+                    <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                        <div className="bg-slate-900 text-slate-100 rounded-xl shadow-2xl border border-slate-700 w-full max-w-md p-6 overflow-y-auto max-h-[90vh]">
                             <div className="flex justify-between items-center mb-6">
                                 <h3 className="text-xl font-bold bg-gradient-to-r from-white to-white/50 bg-clip-text text-transparent">{editingLinhaId ? 'Editar Linha' : 'Criar Linha Produtiva'}</h3>
                                 <button type="button" onClick={fechaLinhaModal} className="p-2 hover:bg-white/10 rounded-full transition-colors"><X size={20} className="opacity-70" /></button>
@@ -473,8 +473,8 @@ export default function FabricaLayoutPage() {
             {/* MODAL: NOVA ÁREA KANBAN */}
             {
                 isAreaModalOpen && (
-                    <div className="modal-overlay">
-                        <div className="modal-content">
+                    <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                        <div className="bg-slate-900 text-slate-100 rounded-xl shadow-2xl border border-slate-700 w-full max-w-md p-6 overflow-y-auto max-h-[90vh]">
                             <div className="flex justify-between items-center mb-6">
                                 <h3 className="text-xl font-bold bg-gradient-to-r from-white to-white/50 bg-clip-text text-transparent">{editingAreaId ? 'Editar Zona de Fabrico' : 'Criar Zona de Fabrico'}</h3>
                                 <button type="button" onClick={fechaAreaModal} className="p-2 hover:bg-white/10 rounded-full transition-colors"><X size={20} className="opacity-70" /></button>
@@ -504,8 +504,8 @@ export default function FabricaLayoutPage() {
             {/* MODAL: NOVA ESTAÇÃO FÍSICA */}
             {
                 isEstacaoModalOpen && (
-                    <div className="modal-overlay">
-                        <div className="modal-content" style={{ borderColor: 'var(--accent)' }}>
+                    <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                        <div className="bg-slate-900 text-slate-100 rounded-xl shadow-2xl border border-slate-700 w-full max-w-lg p-6 overflow-y-auto max-h-[90vh]">
                             <div className="flex justify-between items-center mb-6">
                                 <h3 className="text-xl font-bold bg-gradient-to-r from-white to-[var(--accent)] bg-clip-text text-transparent">{editingEstacaoId ? 'Editar Máquina/Estação' : 'Registrar Máquina/Estação'}</h3>
                                 <button type="button" onClick={fechaEstacaoModal} className="p-2 hover:bg-white/10 rounded-full transition-colors"><X size={20} className="opacity-70" /></button>
@@ -549,8 +549,8 @@ export default function FabricaLayoutPage() {
             {/* MODAL: NOVO TURNO */}
             {
                 isTurnoModalOpen && (
-                    <div className="modal-overlay">
-                        <div className="modal-content">
+                    <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                        <div className="bg-slate-900 text-slate-100 rounded-xl shadow-2xl border border-slate-700 w-full max-w-2xl p-6 overflow-y-auto max-h-[90vh]">
                             <div className="flex justify-between items-center mb-6">
                                 <h3 className="text-xl font-bold bg-gradient-to-r from-white to-blue-500 bg-clip-text text-transparent">{editingTurnoId ? 'Editar Regras do Turno' : 'Adicionar Turno OEE'}</h3>
                                 <button type="button" onClick={fechaTurnoModal} className="p-2 hover:bg-white/10 rounded-full transition-colors"><X size={20} className="opacity-70" /></button>
