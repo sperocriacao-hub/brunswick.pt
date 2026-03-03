@@ -25,12 +25,13 @@ export async function POST(req: Request) {
             return NextResponse.json({ success: false, error: 'Payload incompleto. Requer "action" e "operador_rfid"' }, { status: 400 });
         }
 
-        // Verificar Operador Mestre
+        // Verificar Operador Mestre (permitir tanto Cartão Físico como Nº de Empregado para testes)
         const { data: operador, error: errOp } = await supabase
             .from('operadores')
             .select('id, nome_operador, status')
-            .eq('tag_rfid_operador', operador_rfid)
-            .single();
+            .or(`tag_rfid_operador.eq.${operador_rfid},numero_operador.eq.${operador_rfid}`)
+            .limit(1)
+            .maybeSingle();
 
         if (errOp || !operador) {
             return NextResponse.json({ success: false, error: 'Colaborador RFID Desconhecido ou Inválido', display: 'RFID DESCONHECIDO' }, { status: 404 });
