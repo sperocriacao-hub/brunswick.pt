@@ -36,7 +36,7 @@ export async function getSafetyCross(year: number, month: number) {
                 id,
                 data_hora_ocorrencia,
                 tipo_ocorrencia,
-                descricao,
+                descricao_evento,
                 gravidade
             `)
             .gte('data_hora_ocorrencia', startDate.toISOString())
@@ -90,7 +90,7 @@ export async function getSafetyCross(year: number, month: number) {
                     }
 
                     // Append detail
-                    crossData[day].ocorrenciasStr += `\n- [${format(oDate, 'HH:mm')}] ${o.tipo_ocorrencia} (${o.gravidade}): ${o.descricao}`;
+                    crossData[day].ocorrenciasStr += `\n- [${format(oDate, 'HH:mm')}] ${o.tipo_ocorrencia} (${o.gravidade}): ${o.descricao_evento}`;
                 }
             });
         }
