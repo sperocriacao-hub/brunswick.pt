@@ -260,7 +260,7 @@ export default function FabricaLayoutPage() {
                     </button>
                     <button className="btn btn-outline" style={{ borderRadius: '4px', padding: '0.4rem 1rem', fontSize: '0.85rem', flexShrink: 0, display: 'inline-flex', alignItems: 'center' }} onClick={() => setViewMode(viewMode === 'turnos' ? 'matriz' : 'turnos')}>
                         <TableProperties size={14} style={{ marginRight: '6px' }} />
-                        {viewMode === 'turnos' ? 'Voltar ao Layout Fabril' : 'Configurar Turnos OEE'}
+                        {viewMode === 'turnos' ? 'Voltar ao Layout Fabril' : 'Configurar Turnos e Pausas (Almoço/Janta)'}
                     </button>
                     <button className="btn btn-outline" style={{ borderRadius: '4px', padding: '0.4rem 1rem', fontSize: '0.85rem', flexShrink: 0, display: 'inline-flex', alignItems: 'center' }} onClick={() => setViewMode(viewMode === 'matriz' ? 'grafos' : 'matriz')}>
                         {viewMode === 'matriz' ? <Network size={14} style={{ marginRight: '6px' }} /> : <TableProperties size={14} style={{ marginRight: '6px' }} />}

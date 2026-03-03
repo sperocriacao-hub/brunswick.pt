@@ -209,6 +209,10 @@ export function Sidebar({ userEmail }: { userEmail: string | undefined }) {
                             </nav>
                             <p className="px-3 text-[10px] font-extrabold text-blue-400 uppercase tracking-widest mb-2">Sistema</p>
                             <nav className="flex flex-col gap-1">
+                                <Link onClick={() => setIsOpen(false)} href="/admin/producao/logs" className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname === '/admin/producao/logs' ? 'bg-blue-800 text-white shadow-sm border border-transparent' : 'text-blue-100 hover:bg-blue-800/50 hover:text-white'}`}>
+                                    <History size={18} className={pathname === '/admin/producao/logs' ? 'text-white' : 'text-blue-300'} />
+                                    <span className="text-sm border-transparent">Auditoria Telemetria</span>
+                                </Link>
                                 <Link onClick={() => setIsOpen(false)} href="/admin/diagnostico" className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname === '/admin/diagnostico' ? 'bg-blue-800 text-white shadow-sm border border-transparent' : 'text-blue-100 hover:bg-blue-800/50 hover:text-white'}`}>
                                     <Settings size={18} className={pathname === '/admin/diagnostico' ? 'text-white' : 'text-blue-300'} />
                                     <span className="text-sm border-transparent">Central Dispositivos</span>
