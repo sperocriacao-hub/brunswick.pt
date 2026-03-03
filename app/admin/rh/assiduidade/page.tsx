@@ -26,10 +26,13 @@ export default async function AssiduidadeDashboard() {
         .eq('status', 'ATIVO');
 
     // 2. Fetch Quem Picou Hoje (Distinct RFID) - Considera NVA e VA
-    const { data: presencasRaw } = await supabase.rpc('get_picagens_unicas_hoje_v2', { target_date: hojeStr });
+    const { data: presencasRaw } = await supabase.from('log_ponto_diario')
+        .select('operador_rfid')
+        .gte('timestamp', `${hojeStr}T00:00:00Z`)
+        .lte('timestamp', `${hojeStr}T23:59:59Z`);
 
     // Lista Plana de RFIDs detetados na fábrica hoje
-    const rfidsPresentes = (presencasRaw || []).map((p: any) => p.rfid_operador);
+    const rfidsPresentes = Array.from(new Set((presencasRaw || []).map((p: any) => p.operador_rfid)));
 
     // 3. Processamento Nuclear Nível 1: Macro Fábrica
     const totalCadastrados = operadoresRaw?.length || 0;
