@@ -46,15 +46,21 @@ export default function TabletDashboardPage() {
             setLcdLine2('A Ligar a Supabase...');
             const res = await buscarEstacoes();
             if (res.success && res.estacoes) {
-                setEstacoes(res.estacoes);
+                // Add virtual "Relógio de Ponto" station
+                const estacoesPlusPonto = [
+                    ...res.estacoes,
+                    { id: 'PONTO_MODE', nome_estacao: '⏰ TERMINAL: RELÓGIO DE PONTO (RH)' }
+                ];
+                setEstacoes(estacoesPlusPonto);
+
                 const savedEstacao = localStorage.getItem('tablet_last_estacao');
-                if (savedEstacao && res.estacoes.find(e => e.id === savedEstacao)) {
+                if (savedEstacao && estacoesPlusPonto.find(e => e.id === savedEstacao)) {
                     setSelectedEstacaoId(savedEstacao);
                     setLcdLine1('SISTEMA ONLINE');
-                    setLcdLine2('Ler Cracha / Barco');
+                    setLcdLine2('Ler Cracha');
                 } else {
                     setLcdLine1('ATENCAO:');
-                    setLcdLine2('Selecione Estacao!');
+                    setLcdLine2('Selecione Modo!');
                 }
             } else {
                 setLcdLine1('ERRO DE REDE');
@@ -67,9 +73,15 @@ export default function TabletDashboardPage() {
     useEffect(() => {
         if (selectedEstacaoId) {
             localStorage.setItem('tablet_last_estacao', selectedEstacaoId);
-            setLcdLine1('SISTEMA ONLINE');
-            setLcdLine2('Ler Cracha / Barco');
-            buscarTurnoAtualOP();
+            if (selectedEstacaoId === 'PONTO_MODE') {
+                setLcdLine1('RELOGIO DE PONTO');
+                setLcdLine2('Pique o Cracha');
+                setCurrentOpId('');
+            } else {
+                setLcdLine1('SISTEMA ONLINE');
+                setLcdLine2('A Ler Fila...');
+                buscarTurnoAtualOP();
+            }
         }
     }, [selectedEstacaoId]);
 
@@ -141,7 +153,25 @@ export default function TabletDashboardPage() {
             } else if (mode === 'MENU_FIM') {
                 actionName = 'FECHAR_ESTACAO';
             } else if (mode === 'IDLE') {
-                actionName = 'TOGGLE_TAREFA';
+                // Se estamos no modo relógio de ponto, a ação é PONTO
+                if (selectedEstacaoId === 'PONTO_MODE') {
+                    actionName = 'PONTO';
+                }
+                // Se a fila está vazia num posto, não bate ponto automaticamente, apenas falha elegantemente.
+                // Mas a pedido do user, a API já foi protegida? 
+                // Vamos enviar TOGGLE_TAREFA de igual forma, mas se falhar avisamos o HMI de antemão ou deixamos a API rejeitar
+                else if (!currentOpId) {
+                    setLcdLine1('! ERRO DE DADOS');
+                    setLcdLine2('Falta OP na Fila');
+                    setRfidInput('');
+                    setTimeout(() => {
+                        setLcdLine1('FILA VAZIA');
+                        setLcdLine2('AGUARDAR OP');
+                    }, 3000);
+                    return;
+                } else {
+                    actionName = 'TOGGLE_TAREFA';
+                }
             }
 
             // Emulate ESP32 HTTP POST logic exactly as the API expects
@@ -187,12 +217,17 @@ export default function TabletDashboardPage() {
 
         // Return to Idle after 4 seconds
         setTimeout(() => {
-            if (currentOpId && mode === 'IDLE') return; // If we stay in idle, it returns inside buscarTurnoAtualOP automatically if we re-fetch, but let's just restore from state
+            if (currentOpId && mode === 'IDLE' && selectedEstacaoId !== 'PONTO_MODE') return; // If we stay in idle, it returns inside buscarTurnoAtualOP automatically if we re-fetch, but let's just restore from state
             setMode('IDLE');
-            if (currentOpId) buscarTurnoAtualOP();
-            else {
+
+            if (selectedEstacaoId === 'PONTO_MODE') {
+                setLcdLine1('RELOGIO DE PONTO');
+                setLcdLine2('Pique o Cracha');
+            } else if (currentOpId) {
+                buscarTurnoAtualOP();
+            } else {
                 setLcdLine1('SISTEMA ONLINE');
-                setLcdLine2('Ler Cracha / Barco');
+                setLcdLine2('Ler Cracha');
             }
         }, 4000);
     };
@@ -316,10 +351,10 @@ export default function TabletDashboardPage() {
             </header>
 
             {/* HARDWARE TWIN AREA */}
-            <main className="flex-1 flex flex-col items-center justify-center p-4 md:p-8 bg-[url('/img/carbon-fiber.png')] bg-repeat">
+            <main className="flex-1 flex flex-col items-center justify-center p-4 md:p-8 bg-[url('/img/carbon-fiber.png')] bg-repeat shadow-inner">
 
-                {/* The Box */}
-                <div className="bg-gradient-to-br from-slate-200 to-slate-400 border-[12px] border-slate-500 rounded-[3rem] shadow-[0_30px_60px_rgba(0,0,0,0.8),inset_0_4px_10px_rgba(255,255,255,0.8)] w-full max-w-6xl flex flex-col md:flex-row overflow-hidden relative">
+                {/* The Box - Dobro da Altura, mais imersivo */}
+                <div className="bg-gradient-to-br from-slate-300 via-slate-400 to-slate-500 border-[16px] border-slate-600 rounded-[3rem] shadow-[0_40px_80px_rgba(0,0,0,0.9),inset_0_8px_20px_rgba(255,255,255,0.7)] w-full max-w-5xl min-h-[700px] flex flex-col md:flex-row overflow-hidden relative">
 
                     {/* Fake Screws */}
                     <div className="absolute top-4 left-4 w-4 h-4 rounded-full bg-slate-400 shadow-[inset_0_2px_4px_rgba(0,0,0,0.4)]"></div>
@@ -352,20 +387,23 @@ export default function TabletDashboardPage() {
                     </div>
 
                     {/* RIGHT PANEL: LCD & BUTTONS */}
-                    <div className="w-full md:w-1/2 p-8 flex flex-col items-center bg-slate-800/5 relative">
+                    <div className="w-full md:w-1/2 p-8 md:p-12 flex flex-col items-center justify-center bg-slate-900 border-l border-slate-500 relative shadow-inner shadow-black/50">
 
-                        {/* LCD Display 16x2 Emulation */}
-                        <div className="bg-[#1b2b1b] border-8 border-slate-700 rounded-xl w-full p-4 mb-10 shadow-[inset_0_5px_15px_rgba(0,0,0,0.8)] flex flex-col gap-1 relative overflow-hidden">
+                        {/* LCD Display 16x2 Emulation - Visual Realista de LED Dot Matrix */}
+                        <div className="bg-[#0f1f0f] border-[12px] border-slate-800 rounded-lg w-full min-h-[220px] p-6 mb-12 shadow-[inset_0_10px_30px_rgba(0,0,0,0.9),0_0_20px_rgba(0,0,0,0.5)] flex flex-col justify-center relative overflow-hidden">
                             {/* Bezel branding */}
-                            <div className="absolute top-1 left-2 text-[#4ade80] opacity-20 text-[0.6rem] font-bold">1602A LCD MODULE</div>
+                            <div className="absolute top-2 left-3 text-[#4ade80] opacity-30 text-[0.55rem] font-bold tracking-widest font-sans">BRUNSWICK HMI-2026</div>
 
-                            {/* Glass overlay */}
-                            <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent pointer-events-none"></div>
+                            {/* Pixel Grid Overlay (Simulates LCD dots) */}
+                            <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPgo8cmVjdCB3aWR0aD0iNCIgaGVpZ2h0PSI0IiBmaWxsPSJ0cmFuc3BhcmVudCIvPgo8Y2lyY2xlIGN4PSIyIiBjeT0iMiIgcj0iMSIgZmlsbD0icmdiYSgwLDAsMCwwLjMpIi8+Cjwvc3ZnPg==')] opacity-50 pointer-events-none"></div>
 
-                            <div className="mt-4 font-mono text-2xl font-black text-[#4ade80] drop-shadow-[0_0_5px_rgba(74,222,128,0.5)] tracking-[0.2em] whitespace-pre truncate">
+                            {/* Inner Glow to simulate backlight */}
+                            <div className="absolute inset-0 shadow-[inset_0_0_50px_rgba(74,222,128,0.15)] pointer-events-none"></div>
+
+                            <div className="font-mono text-xl md:text-[1.35rem] font-bold text-[#4ade80] drop-shadow-[0_0_8px_rgba(74,222,128,0.8)] tracking-[0.25em] whitespace-pre truncate uppercase leading-loose" style={{ fontFamily: 'Courier New, Courier, monospace', fontWeight: 900 }}>
                                 {lcdLine1.padEnd(16, ' ')}
                             </div>
-                            <div className="font-mono text-2xl font-black text-[#4ade80] drop-shadow-[0_0_5px_rgba(74,222,128,0.5)] tracking-[0.2em] whitespace-pre truncate">
+                            <div className="font-mono text-xl md:text-[1.35rem] font-bold text-[#4ade80] drop-shadow-[0_0_8px_rgba(74,222,128,0.8)] tracking-[0.25em] whitespace-pre truncate uppercase leading-loose mt-2" style={{ fontFamily: 'Courier New, Courier, monospace', fontWeight: 900 }}>
                                 {lcdLine2.padEnd(16, ' ')}
                             </div>
                         </div>
