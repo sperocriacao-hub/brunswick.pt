@@ -5,6 +5,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Users, AlertTriangle, ShieldCheck, UserX, Activity, ArrowRightLeft } from 'lucide-react';
 import Link from 'next/link';
 
+import AssiduidadeLogViewer from './AssiduidadeLogViewer';
 export const dynamic = 'force-dynamic';
 
 export default async function AssiduidadeDashboard() {
@@ -275,6 +276,9 @@ export default async function AssiduidadeDashboard() {
                     </Card>
                 </div>
             </div>
+
+            {/* LISTA COMPLETA DE REGISTOS E EDIÇÃO */}
+            <AssiduidadeLogViewer />
         </div>
     );
 }
