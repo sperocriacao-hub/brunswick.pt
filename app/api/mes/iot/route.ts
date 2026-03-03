@@ -196,7 +196,7 @@ export async function POST(req: Request) {
             const { data: pendentes, error: errPend } = await supabase
                 .from('ordens_producao')
                 .select('id, op_numero, modelos!inner(nome_modelo)')
-                .in('status', ['IN_PROGRESS', 'Em Produção'])
+                .in('status', ['PLANNED', 'Planeada', 'IN_PROGRESS', 'Em Produção'])
                 .order('data_prevista_inicio', { ascending: true, nullsFirst: false }); // Fila Lógica
 
             if (errPend || !pendentes || pendentes.length === 0) {
