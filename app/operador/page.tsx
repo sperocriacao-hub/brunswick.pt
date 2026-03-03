@@ -446,14 +446,18 @@ export default function InteractiveTabletPage() {
                             <Wifi className={`w-5 h-5 ${selectedEstacaoId ? 'text-green-500' : 'text-slate-600'}`} />
                         </div>
 
-                        {/* LCD Display */}
-                        <div className="bg-[#1b2b1b] border-8 border-slate-900 rounded-xl w-full p-4 mb-8 shadow-[inset_0_5px_15px_rgba(0,0,0,0.8)] flex flex-col gap-1 relative overflow-hidden min-h-[140px] justify-center">
+                        {/* LCD Display 16x2 Emulation */}
+                        <div className="bg-[#1b2b1b] border-8 border-slate-700 rounded-xl w-full p-4 mb-10 shadow-[inset_0_5px_15px_rgba(0,0,0,0.8)] flex flex-col gap-2 relative overflow-hidden min-h-[180px] justify-center">
+                            {/* Bezel branding */}
+                            <div className="absolute top-1 left-2 text-[#4ade80] opacity-20 text-[0.6rem] font-bold">1602A LCD MODULE</div>
+
+                            {/* Glass overlay */}
                             <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent pointer-events-none"></div>
 
-                            <div className="mt-2 font-mono text-2xl font-black text-[#4ade80] drop-shadow-[0_0_5px_rgba(74,222,128,0.5)] tracking-[0.2em] whitespace-pre truncate uppercase">
+                            <div className="mt-2 font-mono text-lg md:text-2xl font-black text-[#4ade80] drop-shadow-[0_0_5px_rgba(74,222,128,0.5)] tracking-[0.2em] whitespace-pre truncate uppercase">
                                 {lcdLine1.padEnd(16, ' ')}
                             </div>
-                            <div className="font-mono text-2xl font-black text-[#4ade80] drop-shadow-[0_0_5px_rgba(74,222,128,0.5)] tracking-[0.2em] whitespace-pre truncate uppercase mt-1">
+                            <div className="font-mono text-lg md:text-2xl font-black text-[#4ade80] drop-shadow-[0_0_5px_rgba(74,222,128,0.5)] tracking-[0.2em] whitespace-pre truncate uppercase mt-1">
                                 {lcdLine2.padEnd(16, ' ')}
                             </div>
                         </div>
