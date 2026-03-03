@@ -17,6 +17,17 @@ type AreaFabrica = {
     cor_destaque: string;
 }
 
+type Turno = {
+    id: string;
+    linha_producao_id: string;
+    nome_turno: string;
+    hora_inicio: string;
+    hora_fim: string;
+    tem_pausa_refeicao: boolean;
+    hora_inicio_refeicao: string | null;
+    hora_fim_refeicao: string | null;
+}
+
 type LinhaProducao = {
     id: string;
     letra_linha: string;
@@ -37,42 +48,48 @@ type Estacao = {
 
 export default function FabricaLayoutPage() {
     const supabase = createClient();
-    const [viewMode, setViewMode] = useState<'matriz' | 'grafos'>('matriz');
+    const [viewMode, setViewMode] = useState<'matriz' | 'grafos' | 'turnos'>('matriz');
 
     // Estados de Dados da BD
     const [areas, setAreas] = useState<AreaFabrica[]>([]);
     const [linhas, setLinhas] = useState<LinhaProducao[]>([]);
     const [estacoes, setEstacoes] = useState<Estacao[]>([]);
+    const [turnos, setTurnos] = useState<Turno[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     // Estados dos Modais
     const [isLinhaModalOpen, setIsLinhaModalOpen] = useState(false);
     const [isAreaModalOpen, setIsAreaModalOpen] = useState(false);
     const [isEstacaoModalOpen, setIsEstacaoModalOpen] = useState(false);
+    const [isTurnoModalOpen, setIsTurnoModalOpen] = useState(false);
 
     // Formulários
     const [formLinha, setFormLinha] = useState({ letra: '', descricao: '', capacidade: 1 });
     const [formArea, setFormArea] = useState({ nome: '', ordem: 1, cor: '#3b82f6' });
     const [formEstacao, setFormEstacao] = useState({ nome: '', area_id: '', linha_id: '', ciclo: 60, capacidade: 1, rfid: '' });
+    const [formTurno, setFormTurno] = useState({ linha_id: '', nome_turno: 'T1', hora_inicio: '06:00', hora_fim: '14:00', tem_pausa_refeicao: true, hora_inicio_refeicao: '12:00', hora_fim_refeicao: '12:30' });
 
     // IDs de Edição
     const [editingLinhaId, setEditingLinhaId] = useState<string | null>(null);
     const [editingAreaId, setEditingAreaId] = useState<string | null>(null);
     const [editingEstacaoId, setEditingEstacaoId] = useState<string | null>(null);
+    const [editingTurnoId, setEditingTurnoId] = useState<string | null>(null);
 
     // Fetch Inicial
     const fetchData = async () => {
         setIsLoading(true);
         try {
-            const [resAreas, resLinhas, resEstacoes] = await Promise.all([
+            const [resAreas, resLinhas, resEstacoes, resTurnos] = await Promise.all([
                 supabase.from('areas_fabrica').select('*').order('ordem_sequencial', { ascending: true }),
                 supabase.from('linhas_producao').select('*').order('letra_linha', { ascending: true }),
-                supabase.from('estacoes').select('*')
+                supabase.from('estacoes').select('*'),
+                supabase.from('configuracao_turnos').select('*')
             ]);
 
             if (resAreas.data) setAreas(resAreas.data as AreaFabrica[]);
             if (resLinhas.data) setLinhas(resLinhas.data as LinhaProducao[]);
             if (resEstacoes.data) setEstacoes(resEstacoes.data as Estacao[]);
+            if (resTurnos.data) setTurnos(resTurnos.data as Turno[]);
         } catch (error) {
             console.error("Erro ao carregar estrutura de fábrica:", error);
         } finally {
@@ -156,6 +173,32 @@ export default function FabricaLayoutPage() {
         } else alert("Erro ao salvar Estação: " + error.message);
     };
 
+    const handleSalvarTurno = async (e: React.FormEvent) => {
+        e.preventDefault();
+        const payload = {
+            linha_producao_id: formTurno.linha_id,
+            nome_turno: formTurno.nome_turno,
+            hora_inicio: formTurno.hora_inicio,
+            hora_fim: formTurno.hora_fim,
+            tem_pausa_refeicao: formTurno.tem_pausa_refeicao,
+            hora_inicio_refeicao: formTurno.tem_pausa_refeicao ? formTurno.hora_inicio_refeicao : null,
+            hora_fim_refeicao: formTurno.tem_pausa_refeicao ? formTurno.hora_fim_refeicao : null,
+        };
+
+        let req;
+        if (editingTurnoId) {
+            req = supabase.from('configuracao_turnos').update(payload).eq('id', editingTurnoId);
+        } else {
+            req = supabase.from('configuracao_turnos').insert([payload]);
+        }
+
+        const { error } = await req;
+        if (!error) {
+            fechaTurnoModal();
+            fetchData();
+        } else alert("Erro ao salvar Turno: O Sistema não permite duplicar 'T1' na mesma linha por causa das chaves Únicas!");
+    };
+
     // AÇÕES DE EXCLUSÃO
     const handleExcluirArea = async (id: string, nome: string) => {
         if (!window.confirm(`Tem a certeza que deseja excluir a área ${nome}? Todas as estações dentro dela poderão perder a sua área delegada.`)) return;
@@ -175,10 +218,17 @@ export default function FabricaLayoutPage() {
         if (!error) fetchData(); else alert("Erro: " + error.message);
     };
 
+    const handleExcluirTurno = async (id: string, nome: string) => {
+        if (!window.confirm(`Tem a certeza que deseja excluir o turno ${nome}?`)) return;
+        const { error } = await supabase.from('configuracao_turnos').delete().eq('id', id);
+        if (!error) fetchData(); else alert("Erro: " + error.message);
+    };
+
     // HELPERS PARA FECHAR MODAIS E LIMPAR ESTADOS
     const fechaAreaModal = () => { setIsAreaModalOpen(false); setEditingAreaId(null); setFormArea({ nome: '', ordem: areas.length + 1, cor: '#3b82f6' }); };
     const fechaLinhaModal = () => { setIsLinhaModalOpen(false); setEditingLinhaId(null); setFormLinha({ letra: '', descricao: '', capacidade: 1 }); };
     const fechaEstacaoModal = () => { setIsEstacaoModalOpen(false); setEditingEstacaoId(null); setFormEstacao({ nome: '', area_id: '', linha_id: '', ciclo: 60, capacidade: 1, rfid: '' }); };
+    const fechaTurnoModal = () => { setIsTurnoModalOpen(false); setEditingTurnoId(null); setFormTurno({ linha_id: '', nome_turno: 'T1', hora_inicio: '06:00', hora_fim: '14:00', tem_pausa_refeicao: true, hora_inicio_refeicao: '12:00', hora_fim_refeicao: '12:30' }); };
 
 
 
@@ -208,9 +258,13 @@ export default function FabricaLayoutPage() {
                     <button className="btn btn-primary" style={{ background: 'var(--accent)', borderRadius: '4px', padding: '0.4rem 1rem', fontSize: '0.85rem', boxShadow: '0 0 10px var(--accent)', flexShrink: 0, display: 'inline-flex', alignItems: 'center' }} onClick={() => setIsEstacaoModalOpen(true)}>
                         <Plus size={14} style={{ marginRight: '6px' }} /> Nova Estação
                     </button>
+                    <button className="btn btn-outline" style={{ borderRadius: '4px', padding: '0.4rem 1rem', fontSize: '0.85rem', flexShrink: 0, display: 'inline-flex', alignItems: 'center' }} onClick={() => setViewMode(viewMode === 'turnos' ? 'matriz' : 'turnos')}>
+                        <TableProperties size={14} style={{ marginRight: '6px' }} />
+                        {viewMode === 'turnos' ? 'Voltar ao Layout Fabril' : 'Configurar Turnos OEE'}
+                    </button>
                     <button className="btn btn-outline" style={{ borderRadius: '4px', padding: '0.4rem 1rem', fontSize: '0.85rem', flexShrink: 0, display: 'inline-flex', alignItems: 'center' }} onClick={() => setViewMode(viewMode === 'matriz' ? 'grafos' : 'matriz')}>
                         {viewMode === 'matriz' ? <Network size={14} style={{ marginRight: '6px' }} /> : <TableProperties size={14} style={{ marginRight: '6px' }} />}
-                        {viewMode === 'matriz' ? 'Modo Grafo Lógico' : 'Matriz Kanban 2D'}
+                        Modo Grafo Lógico
                     </button>
                 </header>
 
@@ -330,6 +384,55 @@ export default function FabricaLayoutPage() {
                                 <GrafoEstacoes estacoes={estacoes} areas={areas} linhas={linhas} />
                             </div>
                         )}
+
+                        {/* SECTÃO 3: TURNOS E PAUSAS */}
+                        {viewMode === 'turnos' && (
+                            <div className="p-4" style={{ maxWidth: '1200px', margin: '0 auto' }}>
+                                <div className="flex justify-between items-center mb-6">
+                                    <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+                                        <Settings className="text-blue-500" /> Matriz de Horários e Pausas
+                                    </h2>
+                                    <button className="btn btn-primary" onClick={() => setIsTurnoModalOpen(true)}>
+                                        <Plus size={16} className="mr-2" /> Adicionar Turno (Por Linha)
+                                    </button>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    {linhas.map(linha => {
+                                        const turnosDestaLinha = turnos.filter(t => t.linha_producao_id === linha.id);
+                                        return (
+                                            <div key={linha.id} className="glass-panel p-6 border border-slate-700/50">
+                                                <h3 className="text-xl font-bold text-blue-400 mb-4 border-b border-slate-700 pb-2">Linha {linha.letra_linha} - {linha.descricao_linha}</h3>
+                                                {turnosDestaLinha.length === 0 ? (
+                                                    <p className="text-slate-500 text-sm text-center py-4">Sem turnos associados. Linha Inativa.</p>
+                                                ) : (
+                                                    <div className="flex flex-col gap-3">
+                                                        {turnosDestaLinha.map(t => (
+                                                            <div key={t.id} className="bg-slate-800/50 rounded-lg p-3 border border-slate-700 relative group">
+                                                                <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                    <button onClick={() => { setEditingTurnoId(t.id); setFormTurno({ linha_id: t.linha_producao_id, nome_turno: t.nome_turno, hora_inicio: t.hora_inicio.substring(0, 5), hora_fim: t.hora_fim.substring(0, 5), tem_pausa_refeicao: t.tem_pausa_refeicao, hora_inicio_refeicao: t.hora_inicio_refeicao?.substring(0, 5) || '', hora_fim_refeicao: t.hora_fim_refeicao?.substring(0, 5) || '' }); setIsTurnoModalOpen(true); }} className="text-slate-400 hover:text-white"><Edit size={14} /></button>
+                                                                    <button onClick={() => handleExcluirTurno(t.id, t.nome_turno)} className="text-slate-400 hover:text-red-400"><Trash2 size={14} /></button>
+                                                                </div>
+                                                                <div className="flex items-center gap-2 mb-2">
+                                                                    <span className="bg-blue-600 font-bold px-2 py-0.5 rounded text-xs">{t.nome_turno}</span>
+                                                                    <span className="text-slate-300 font-mono text-sm">{t.hora_inicio.substring(0, 5)} - {t.hora_fim.substring(0, 5)}</span>
+                                                                </div>
+                                                                {t.tem_pausa_refeicao && t.hora_inicio_refeicao && t.hora_fim_refeicao && (
+                                                                    <div className="flex items-center gap-2 mt-1 text-xs text-amber-500 bg-amber-950/30 p-1.5 rounded border border-amber-900/50">
+                                                                        <span>🍽️ Auto-Pausa Almoço:</span>
+                                                                        <span className="font-mono">{t.hora_inicio_refeicao.substring(0, 5)} as {t.hora_fim_refeicao.substring(0, 5)}</span>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
                     </>
                 )}
             </div>
@@ -437,6 +540,70 @@ export default function FabricaLayoutPage() {
                                     </div>
                                 </div>
                                 <button type="submit" className="btn btn-primary mt-4 py-3 shadow-lg shadow-[var(--accent)]/20" style={{ background: 'var(--accent)' }}>Montar Estação</button>
+                            </form>
+                        </div>
+                    </div>
+                )
+            }
+
+            {/* MODAL: NOVO TURNO */}
+            {
+                isTurnoModalOpen && (
+                    <div className="modal-overlay">
+                        <div className="modal-content">
+                            <div className="flex justify-between items-center mb-6">
+                                <h3 className="text-xl font-bold bg-gradient-to-r from-white to-blue-500 bg-clip-text text-transparent">{editingTurnoId ? 'Editar Regras do Turno' : 'Adicionar Turno OEE'}</h3>
+                                <button type="button" onClick={fechaTurnoModal} className="p-2 hover:bg-white/10 rounded-full transition-colors"><X size={20} className="opacity-70" /></button>
+                            </div>
+                            <form onSubmit={handleSalvarTurno} className="flex flex-col gap-4">
+                                <div className="form-group">
+                                    <label>Aplicar à Linha:</label>
+                                    <select className="form-control" required value={formTurno.linha_id} onChange={(e) => setFormTurno({ ...formTurno, linha_id: e.target.value })}>
+                                        <option value="" disabled>Selecione a Linha</option>
+                                        {linhas.map(l => <option key={l.id} value={l.id}>Linha {l.letra_linha}</option>)}
+                                    </select>
+                                </div>
+                                <div className="grid grid-cols-3 gap-4">
+                                    <div className="form-group">
+                                        <label>Nome (ID)</label>
+                                        <input type="text" className="form-control" placeholder="Ex: T1, T2" required maxLength={10} value={formTurno.nome_turno} onChange={(e) => setFormTurno({ ...formTurno, nome_turno: e.target.value })} />
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Hora Início</label>
+                                        <input type="time" className="form-control" required value={formTurno.hora_inicio} onChange={(e) => setFormTurno({ ...formTurno, hora_inicio: e.target.value })} />
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Hora Fim</label>
+                                        <input type="time" className="form-control" required value={formTurno.hora_fim} onChange={(e) => setFormTurno({ ...formTurno, hora_fim: e.target.value })} />
+                                    </div>
+                                </div>
+
+                                <div className="p-4 border border-slate-700 rounded-lg bg-slate-800/30 mt-2">
+                                    <div className="flex items-center gap-3 mb-4">
+                                        <input
+                                            type="checkbox"
+                                            id="tem_pausa"
+                                            checked={formTurno.tem_pausa_refeicao}
+                                            onChange={(e) => setFormTurno({ ...formTurno, tem_pausa_refeicao: e.target.checked })}
+                                            className="w-5 h-5 rounded border-slate-600"
+                                        />
+                                        <label htmlFor="tem_pausa" className="font-bold text-slate-200 cursor-pointer">Descontar Pausa de Refeição (OEE Freeze)</label>
+                                    </div>
+
+                                    {formTurno.tem_pausa_refeicao && (
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="form-group">
+                                                <label>Início da Refeição</label>
+                                                <input type="time" className="form-control" required={formTurno.tem_pausa_refeicao} value={formTurno.hora_inicio_refeicao} onChange={(e) => setFormTurno({ ...formTurno, hora_inicio_refeicao: e.target.value })} />
+                                            </div>
+                                            <div className="form-group">
+                                                <label>Fim da Refeição</label>
+                                                <input type="time" className="form-control" required={formTurno.tem_pausa_refeicao} value={formTurno.hora_fim_refeicao} onChange={(e) => setFormTurno({ ...formTurno, hora_fim_refeicao: e.target.value })} />
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                                <button type="submit" className="btn btn-primary mt-2 py-3 shadow-lg shadow-blue-500/20">Gravar Horário</button>
                             </form>
                         </div>
                     </div>
