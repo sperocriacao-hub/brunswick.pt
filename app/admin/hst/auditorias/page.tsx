@@ -335,7 +335,7 @@ export default function AuditoriasDashboardPage() {
                                                         </div>
                                                     </td>
                                                     <td className="p-4 text-right">
-                                                        <Button variant="ghost" className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 font-medium text-xs">
+                                                        <Button variant="ghost" onClick={() => router.push(`/admin/hst/auditorias/${a.id}`)} className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 font-medium text-xs">
                                                             Detalhes <ArrowRight size={14} className="ml-1" />
                                                         </Button>
                                                     </td>

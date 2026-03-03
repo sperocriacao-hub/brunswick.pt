@@ -158,6 +158,25 @@ export async function getDetalheAuditoria(auditoriaId: string) {
     }
 }
 
+export async function getAuditoriaById(id: string) {
+    try {
+        const { data, error } = await supabase
+            .from("hst_auditorias")
+            .select(`
+                *,
+                operadores:auditor_id (nome_operador),
+                areas_fabrica:area_id (nome_area)
+            `)
+            .eq("id", id)
+            .single();
+
+        if (error) throw error;
+        return { success: true, data };
+    } catch (e: any) {
+        return { success: false, error: e.message };
+    }
+}
+
 export async function getFactoryContext() {
     try {
         const { data: areas } = await supabase.from('areas_fabrica').select('id, nome_area').order('ordem_sequencial');
