@@ -11,14 +11,14 @@ export async function POST(req: Request) {
         const { device_id, action, operador_rfid, estacao_id, op_id } = body;
 
         // Validar credenciais mínimas Anon ESP32 enviadas por Headers ou via Payload
-        if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+        if (!process.env.NEXT_PUBLIC_SUPABASE_URL || (!process.env.SUPABASE_SERVICE_ROLE_KEY && !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)) {
             return NextResponse.json({ success: false, error: 'Server Missconfiguration (API Keys)' }, { status: 500 });
         }
 
-        // Usar privilégios de Service Role para operações logísticas críticas
+        // Usar privilégios de Service Role se disponíveis, ou cair para Anon key (via RLS aberto no 0041)
         const supabase = createClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL,
-            process.env.SUPABASE_SERVICE_ROLE_KEY
+            process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
         );
 
         if (!action || !operador_rfid) {
