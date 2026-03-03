@@ -172,13 +172,13 @@ export default function CertificacoesPage() {
 
                 <div className="flex bg-slate-100/80 rounded-lg p-1 border border-slate-200/60 shadow-inner">
                     <button
-                        className={`px-5 py-2.5 text-sm font-bold rounded-md transition-all \${activeTab === 'matriz' ? 'bg-white text-blue-700 shadow shadow-blue-900/10 border border-slate-200/50' : 'text-slate-500 hover:text-blue-600 hover:bg-blue-50/30 border border-transparent'}`}
+                        className={`px-5 py-2.5 text-sm font-bold rounded-full transition-all ${activeTab === 'matriz' ? 'bg-white text-blue-700 shadow-sm ring-1 ring-slate-900/5' : 'text-slate-500 hover:text-blue-700 hover:bg-slate-200/50'}`}
                         onClick={() => setActiveTab('matriz')}
                     >
                         Matriz Fabril
                     </button>
                     <button
-                        className={`px-5 py-2.5 text-sm font-bold rounded-md transition-all \${activeTab === 'gestao' ? 'bg-white text-blue-700 shadow shadow-blue-900/10 border border-slate-200/50' : 'text-slate-500 hover:text-blue-600 hover:bg-blue-50/30 border border-transparent'}`}
+                        className={`px-5 py-2.5 text-sm font-bold rounded-full transition-all ${activeTab === 'gestao' ? 'bg-white text-blue-700 shadow-sm ring-1 ring-slate-900/5' : 'text-slate-500 hover:text-blue-700 hover:bg-slate-200/50'}`}
                         onClick={() => setActiveTab('gestao')}
                     >
                         Gerir Tipos de Certificado

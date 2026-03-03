@@ -107,13 +107,13 @@ export default function AuditoriasDashboardPage() {
 
                 <div className="flex bg-slate-100/80 rounded-lg p-1 border border-slate-200/60 shadow-inner">
                     <button
-                        className={`px-5 py-2.5 text-sm font-bold rounded-md transition-all flex items-center gap-2 \${activeTab === 'dashboard' ? 'bg-white text-emerald-700 shadow shadow-emerald-900/10 border border-slate-200/50' : 'text-slate-500 hover:text-emerald-700 hover:bg-emerald-50/40 border border-transparent'}`}
+                        className={`px-5 py-2.5 text-sm font-bold rounded-full transition-all flex items-center gap-2 ${activeTab === 'dashboard' ? 'bg-white text-emerald-700 shadow-sm ring-1 ring-slate-900/5' : 'text-slate-500 hover:text-emerald-700 hover:bg-slate-200/50'}`}
                         onClick={() => setActiveTab('dashboard')}
                     >
                         <LayoutDashboard size={18} /> Roadmap & Histórico
                     </button>
                     <button
-                        className={`px-5 py-2.5 text-sm font-bold rounded-md transition-all flex items-center gap-2 \${activeTab === 'configuracao' ? 'bg-white text-emerald-700 shadow shadow-emerald-900/10 border border-slate-200/50' : 'text-slate-500 hover:text-emerald-700 hover:bg-emerald-50/40 border border-transparent'}`}
+                        className={`px-5 py-2.5 text-sm font-bold rounded-full transition-all flex items-center gap-2 ${activeTab === 'configuracao' ? 'bg-white text-emerald-700 shadow-sm ring-1 ring-slate-900/5' : 'text-slate-500 hover:text-emerald-700 hover:bg-slate-200/50'}`}
                         onClick={() => setActiveTab('configuracao')}
                     >
                         <Settings2 size={18} /> Configurar Tópicos

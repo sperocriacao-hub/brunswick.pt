@@ -200,17 +200,17 @@ export default function NovaAuditoriaPage() {
 
                                     <div className="grid grid-cols-2 gap-4 mb-4">
                                         <button
-                                            className={`flex flex-col items-center justify-center gap-2 py-6 rounded-2xl font-black transition-all border-2 \${hasRsp && isConforme ? 'bg-emerald-500 text-white border-emerald-600 shadow-lg scale-[1.02] ring-4 ring-emerald-500/20' : 'bg-white text-slate-400 border-slate-200 hover:border-emerald-300 hover:text-emerald-600 hover:bg-emerald-50/30'}`}
+                                            className={`flex flex-col items-center justify-center gap-2 py-6 rounded-2xl font-black transition-all duration-300 active:scale-95 border-2 ${hasRsp && isConforme ? 'bg-gradient-to-br from-emerald-500 to-emerald-600 text-white border-emerald-400 shadow-lg shadow-emerald-500/30' : 'bg-white text-slate-400 border-slate-200 hover:border-emerald-300 hover:text-emerald-600 hover:bg-emerald-50/50 group'}`}
                                             onClick={() => handleAnswer(t.id, true)}
                                         >
-                                            <CheckCircle2 size={32} />
+                                            <CheckCircle2 size={32} className={hasRsp && isConforme ? '' : 'group-hover:scale-110 transition-transform duration-300'} />
                                             <span className="text-sm uppercase tracking-wider">Conforme</span>
                                         </button>
                                         <button
-                                            className={`flex flex-col items-center justify-center gap-2 py-6 rounded-2xl font-black transition-all border-2 \${hasRsp && !isConforme ? 'bg-rose-500 text-white border-rose-600 shadow-lg scale-[1.02] ring-4 ring-rose-500/20' : 'bg-white text-slate-400 border-slate-200 hover:border-rose-300 hover:text-rose-600 hover:bg-rose-50/30'}`}
+                                            className={`flex flex-col items-center justify-center gap-2 py-6 rounded-2xl font-black transition-all duration-300 active:scale-95 border-2 ${hasRsp && !isConforme ? 'bg-gradient-to-br from-rose-500 to-rose-600 text-white border-rose-400 shadow-lg shadow-rose-500/30' : 'bg-white text-slate-400 border-slate-200 hover:border-rose-300 hover:text-rose-600 hover:bg-rose-50/50 group'}`}
                                             onClick={() => handleAnswer(t.id, false)}
                                         >
-                                            <XCircle size={32} />
+                                            <XCircle size={32} className={hasRsp && !isConforme ? '' : 'group-hover:scale-110 transition-transform duration-300'} />
                                             <span className="text-sm uppercase tracking-wider">Não Conforme</span>
                                         </button>
                                     </div>
