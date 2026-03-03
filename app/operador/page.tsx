@@ -560,48 +560,74 @@ export default function InteractiveTabletPage() {
 
             {/* ANDON MODAL */}
             <Dialog open={isAndonModalOpen} onOpenChange={setIsAndonModalOpen}>
-                <DialogContent className="bg-slate-900 text-white border-slate-800 sm:max-w-[425px]">
+                <DialogContent className="bg-slate-900 border-slate-800 text-white sm:max-w-[500px]">
                     <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2 text-red-500">
-                            <AlertTriangle className="w-6 h-6" /> Pedir Ajuda (Andon)
+                        <DialogTitle className="text-3xl font-black text-red-500 uppercase tracking-widest flex items-center gap-4">
+                            <AlertTriangle size={32} />
+                            Disparo Andon
                         </DialogTitle>
-                        <DialogDescription className="text-slate-400">
-                            Preencha os dados abaixo para acionar a equipa Leader/Manutenção até à sua estação.
+                        <DialogDescription className="text-slate-400 text-lg">
+                            Esta ação irá bloquear a passagem na TV da Área e notificar os Supervisores. Qual é a causa da paragem?
+                            <div className="mt-4 p-3 bg-red-950/40 border border-red-900/50 rounded-md">
+                                <span className="text-red-400 font-bold uppercase tracking-widest text-xs block mb-1">Local da Ocorrência</span>
+                                <span className="text-white font-medium">{estacoes.find(e => e.id === selectedEstacaoId)?.nome_estacao || 'Estação Desconhecida'}</span>
+                            </div>
                         </DialogDescription>
                     </DialogHeader>
-                    <div className="grid gap-4 py-4">
-                        <div className="grid gap-2">
-                            <Label htmlFor="tipo" className="text-slate-300">Tipo de Problema</Label>
+
+                    <div className="py-6 space-y-6">
+                        <div className="space-y-2">
+                            <Label className="text-slate-300 font-bold uppercase tracking-widest mb-2 block">Estação Causadora (TV Alvo)</Label>
                             <select
-                                id="tipo"
-                                value={andonType}
-                                onChange={e => setAndonType(e.target.value)}
-                                className="w-full bg-slate-800 border border-slate-700 rounded-md p-2 text-white h-10"
+                                value={causadoraEstacaoId}
+                                onChange={(e) => setCausadoraEstacaoId(e.target.value)}
+                                className="w-full bg-slate-950 border border-slate-700 rounded-lg p-4 text-white text-lg font-medium focus:ring-red-500 focus:border-red-500"
                             >
-                                <option value="Falta de peça">Falta de Peça</option>
-                                <option value="Avaria de máquina">Avaria de Máquina</option>
-                                <option value="Defeito de qualidade">Defeito de Qualidade</option>
-                                <option value="Acidente de trabalho">Acidente / Segurança</option>
-                                <option value="Outro">Outro (Especificar)</option>
+                                <option value="" disabled>Selecione a Estação / Área Causadora...</option>
+                                {estacoes.map(est => (
+                                    <option key={est.id} value={est.id}>{est.nome_estacao}</option>
+                                ))}
                             </select>
                         </div>
-                        <div className="grid gap-2">
-                            <Label htmlFor="desc" className="text-slate-300">Descrição (Opcional)</Label>
+                        <div className="space-y-2">
+                            <Label className="text-slate-300 font-bold uppercase tracking-widest mb-2 block">Tipo de Incidência</Label>
+                            <select
+                                value={andonType}
+                                onChange={(e) => setAndonType(e.target.value)}
+                                className="w-full bg-slate-950 border border-slate-700 rounded-lg p-4 text-white text-lg font-medium focus:ring-red-500 focus:border-red-500"
+                            >
+                                <option value="Falta de peça">⚠️ Falta de Peça</option>
+                                <option value="Avaria de equipamento">🔧 Avaria de Equipamento</option>
+                                <option value="Ajuste técnico">⚙️ Ajuste Técnico/Qualidade</option>
+                                <option value="Scrap">🗑️ Defeito / Scrap</option>
+                                <option value="Outros">❓ Outros</option>
+                            </select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label className="text-slate-300 font-bold uppercase tracking-widest block">Observação (Opcional)</Label>
                             <Textarea
-                                id="desc"
                                 value={andonDesc}
-                                onChange={e => setAndonDesc(e.target.value)}
-                                className="bg-slate-800 border-slate-700 text-white"
-                                placeholder="Dê mais detalhes para a equipa vir preparada..."
+                                onChange={(e) => setAndonDesc(e.target.value)}
+                                placeholder="Qual peça falta? Qual a máquina partida?"
+                                className="bg-slate-950 border-slate-700 text-white focus-visible:ring-red-500 min-h-[100px]"
                             />
                         </div>
                     </div>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsAndonModalOpen(false)} className="border-slate-700 text-slate-300 hover:bg-slate-800">
-                            Cancelar
+
+                    <DialogFooter className="sm:justify-between gap-4">
+                        <Button
+                            variant="ghost"
+                            onClick={() => setIsAndonModalOpen(false)}
+                            className="text-slate-400 hover:text-white hover:bg-slate-800"
+                        >
+                            CANCELAR
                         </Button>
-                        <Button className="bg-red-600 hover:bg-red-700 text-white font-bold" onClick={confirmAndonFire}>
-                            Disparar Alerta
+                        <Button
+                            variant="destructive"
+                            onClick={confirmAndonFire}
+                            className="bg-red-600 hover:bg-red-700 text-white font-black tracking-widest px-8"
+                        >
+                            DISPARAR ALARME
                         </Button>
                     </DialogFooter>
                 </DialogContent>
