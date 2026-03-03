@@ -387,7 +387,7 @@ export default function InteractiveTabletPage() {
                             Scanner B.O.M.
                         </Button>
 
-                        <div className={`w-64 transition-opacity ${!isClockedIn ? 'opacity-50 pointer-events-none' : ''}`}>
+                        <div className={`w-64 transition-opacity`}>
                             <SearchableSelect
                                 options={estacoes.map(est => ({ value: est.id, label: est.nome_estacao }))}
                                 value={selectedEstacaoId}
