@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { getAuditoriaTopicos, addAuditoriaTopico, toggleTopicoStatus, getAuditorias, getShiftSafetyKPIs } from "./actions";
-import { ShieldCheck, Calendar, Loader2, Plus, Target, Search, ArrowRight, LayoutDashboard, Settings2, BarChart3, AlertTriangle, FileText, History, UserCheck, HardHat } from "lucide-react";
+import { getAuditoriaTopicos, addAuditoriaTopico, toggleTopicoStatus, getAuditorias, getShiftSafetyKPIs, getShiftEvaluationDetails } from "./actions";
+import { ShieldCheck, Calendar, Loader2, Plus, Target, Search, ArrowRight, LayoutDashboard, Settings2, BarChart3, AlertTriangle, FileText, History, UserCheck, HardHat, TrendingUp, Skull } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,6 +40,9 @@ export default function AuditoriasDashboardPage() {
     const [searchTerm, setSearchTerm] = useState("");
 
     const [shiftKpis, setShiftKpis] = useState({ kpiHst: 0, kpiEpi: 0, count: 0 });
+    const [areaRanking, setAreaRanking] = useState<any[]>([]);
+    const [opsInRisk, setOpsInRisk] = useState<any[]>([]);
+    const [monthlyTrends, setMonthlyTrends] = useState<any[]>([]);
 
     useEffect(() => {
         carregarDados();
@@ -47,15 +50,21 @@ export default function AuditoriasDashboardPage() {
 
     const carregarDados = async () => {
         setLoading(true);
-        const [resTopicos, resAudits, resShift] = await Promise.all([
+        const [resTopicos, resAudits, resShift, resDetails] = await Promise.all([
             getAuditoriaTopicos(),
             getAuditorias(),
-            getShiftSafetyKPIs()
+            getShiftSafetyKPIs(),
+            getShiftEvaluationDetails()
         ]);
 
         if (resTopicos.success) setTopicos(resTopicos.data || []);
         if (resAudits.success) setAuditorias(resAudits.data || []);
         if (resShift.success) setShiftKpis({ kpiHst: resShift.kpiHst || 0, kpiEpi: resShift.kpiEpi || 0, count: resShift.count || 0 });
+        if (resDetails.success) {
+            setAreaRanking(resDetails.areaRanking || []);
+            setOpsInRisk(resDetails.operatorsNeedingSupport || []);
+            setMonthlyTrends(resDetails.monthlyTrends || []);
+        }
 
         setLoading(false);
     };
@@ -184,6 +193,106 @@ export default function AuditoriasDashboardPage() {
                                         </div>
                                         <h3 className="font-bold text-lg">Nova Auditoria</h3>
                                         <p className="text-emerald-100/80 text-xs mt-1">Ir para o Tablet de Inspeção</p>
+                                    </CardContent>
+                                </Card>
+                            </div>
+
+                            {/* Detalhes Analíticos: Áreas e Colaboradores */}
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+                                {/* Ranking de Áreas */}
+                                <Card className="border-slate-200 shadow-sm bg-white lg:col-span-1">
+                                    <CardHeader className="pb-2 border-b border-slate-100 bg-slate-50/50">
+                                        <CardTitle className="text-sm font-black text-slate-700 uppercase tracking-widest flex items-center gap-2">
+                                            <Target size={16} className="text-blue-500" /> Ranking de Segurança
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="p-0">
+                                        <div className="divide-y divide-slate-100">
+                                            {areaRanking.map((area, idx) => (
+                                                <div key={idx} className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-6 text-center font-bold text-slate-400 text-xs">#{idx + 1}</div>
+                                                        <div>
+                                                            <p className="font-bold text-slate-800 text-sm">{area.name}</p>
+                                                            <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">{area.count} avaliações</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className={`px-2 py-1 rounded text-xs font-black \${area.score >= 85 ? 'bg-emerald-50 text-emerald-600' : area.score >= 70 ? 'bg-amber-50 text-amber-600' : 'bg-rose-50 text-rose-600'}`}>
+                                                        {area.score}%
+                                                    </div>
+                                                </div>
+                                            ))}
+                                            {areaRanking.length === 0 && <div className="p-6 text-center text-slate-400 text-xs font-medium">Sem dados suficientes.</div>}
+                                        </div>
+                                    </CardContent>
+                                </Card>
+
+                                {/* Colaboradores em Risco */}
+                                <Card className="border-rose-200 shadow-sm bg-white lg:col-span-1 relative overflow-hidden">
+                                    <div className="absolute top-0 right-0 p-4 opacity-5"><Skull size={100} className="text-rose-500" /></div>
+                                    <CardHeader className="pb-2 border-b border-rose-100 bg-rose-50/50 relative z-10">
+                                        <CardTitle className="text-sm font-black text-rose-700 uppercase tracking-widest flex items-center gap-2">
+                                            <AlertTriangle size={16} /> Foco de Sensibilização
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="p-0 relative z-10">
+                                        <div className="divide-y divide-slate-100">
+                                            {opsInRisk.map((op, idx) => (
+                                                <div key={idx} className="p-4 flex items-center justify-between hover:bg-rose-50/50 transition-colors">
+                                                    <div>
+                                                        <p className="font-bold text-slate-800 text-sm">{op.name}</p>
+                                                        <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider flex items-center gap-1">
+                                                            <Target size={10} /> {op.area}
+                                                        </p>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <div className="text-rose-600 font-black text-sm">{op.scoreGlobal}%</div>
+                                                        <div className="text-[9px] text-slate-400 uppercase tracking-widest mt-0.5">Média HST/EPI</div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                            {opsInRisk.length === 0 && (
+                                                <div className="p-8 text-center text-emerald-600">
+                                                    <ShieldCheck size={32} className="mx-auto mb-2 opacity-50" />
+                                                    <p className="text-xs font-bold uppercase tracking-wider">Zero Colaboradores em Risco</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </CardContent>
+                                </Card>
+
+                                {/* Evolução Mensal */}
+                                <Card className="border-slate-200 shadow-sm bg-white lg:col-span-1">
+                                    <CardHeader className="pb-2 border-b border-slate-100 bg-slate-50/50">
+                                        <CardTitle className="text-sm font-black text-slate-700 uppercase tracking-widest flex items-center gap-2">
+                                            <TrendingUp size={16} className="text-emerald-500" /> Evolução de Cultura (6M)
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="p-6">
+                                        <div className="h-48 flex items-end justify-between gap-2">
+                                            {monthlyTrends.map((trend, idx) => {
+                                                // Calculate height percentage (min height 10% for visibility)
+                                                const height = Math.max((trend.score / 100) * 100, 10);
+                                                return (
+                                                    <div key={idx} className="flex flex-col items-center flex-1 group">
+                                                        <div className="text-[10px] font-black text-slate-400 mb-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            {trend.score}%
+                                                        </div>
+                                                        <div className="w-full bg-slate-100 rounded-t-sm relative flex justify-center">
+                                                            <div
+                                                                className={`absolute bottom-0 w-full rounded-t-sm transition-all duration-1000 \${trend.score >= 85 ? 'bg-emerald-500' : trend.score >= 70 ? 'bg-amber-400' : 'bg-rose-500'}`}
+                                                                style={{ height: `${height}%` }}
+                                                            ></div>
+                                                        </div>
+                                                        <div className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-3 rotate-45 md:rotate-0 text-center w-full truncate">
+                                                            {trend.label.split(' ')[0]}
+                                                        </div>
+                                                    </div>
+                                                )
+                                            })}
+                                            {monthlyTrends.length === 0 && <div className="w-full text-center text-slate-400 text-xs font-medium">Agregando dados históricos...</div>}
+                                        </div>
                                     </CardContent>
                                 </Card>
                             </div>

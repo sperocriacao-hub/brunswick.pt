@@ -1,6 +1,8 @@
 "use server";
 
 import { createClient } from "@supabase/supabase-js";
+import { format } from "date-fns";
+import { pt } from "date-fns/locale";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
@@ -196,6 +198,119 @@ export async function getShiftSafetyKPIs() {
             kpiHst: parseFloat(kpiHst.toFixed(1)),
             kpiEpi: parseFloat(kpiEpi.toFixed(1)),
             count: data.length
+        };
+    } catch (e: any) {
+        return { success: false, error: e.message };
+    }
+}
+
+// --- Integração KPIs: Dashboards Detalhados por Área e Operador ---
+export async function getShiftEvaluationDetails() {
+    try {
+        const { data, error } = await supabase
+            .from("avaliacoes_diarias")
+            .select(`
+                id,
+                nota_hst,
+                nota_epi,
+                data_avaliacao,
+                operadores:funcionario_id (
+                    id,
+                    nome_operador,
+                    areas_fabrica:area_base_id (
+                        id,
+                        nome_area
+                    )
+                )
+            `)
+            .order('data_avaliacao', { ascending: false });
+
+        if (error) throw error;
+
+        const evaluations = data || [];
+
+        // 1. Ranking de Áreas
+        const areaMap = new Map();
+
+        // 2. Ranking de Colaboradores (Focus List)
+        const opMap = new Map();
+
+        // 3. Evolução Mensal (Tendência Últimos 6 meses)
+        const trendMap = new Map();
+
+        evaluations.forEach((ev: any) => {
+            const hstScore = (Number(ev.nota_hst) / 4) * 100;
+            const epiScore = (Number(ev.nota_epi) / 4) * 100;
+            const globalScore = (hstScore + epiScore) / 2;
+
+            const op = ev.operadores;
+            if (!op) return;
+
+            const opName = op.nome_operador || 'Desconhecido';
+            const areaName = op.areas_fabrica?.nome_area || 'Sem Área';
+
+            // Area Aggregation
+            if (!areaMap.has(areaName)) {
+                areaMap.set(areaName, { name: areaName, totalScore: 0, count: 0 });
+            }
+            const aData = areaMap.get(areaName);
+            aData.totalScore += globalScore;
+            aData.count += 1;
+
+            // Operator Aggregation
+            if (!opMap.has(opName)) {
+                opMap.set(opName, { name: opName, area: areaName, totalHst: 0, totalEpi: 0, totalGlobal: 0, count: 0 });
+            }
+            const oData = opMap.get(opName);
+            oData.totalHst += hstScore;
+            oData.totalEpi += epiScore;
+            oData.totalGlobal += globalScore;
+            oData.count += 1;
+
+            // Trend Aggregation (Month-Year)
+            const dateObj = new Date(ev.data_avaliacao);
+            const monthYear = format(dateObj, 'MMM yyyy', { locale: pt });
+
+            if (!trendMap.has(monthYear)) {
+                // Use the raw date object to sort chronologically later, keep string for label
+                trendMap.set(monthYear, { label: monthYear, date: dateObj, totalScore: 0, count: 0 });
+            }
+            const tData = trendMap.get(monthYear);
+            tData.totalScore += globalScore;
+            tData.count += 1;
+        });
+
+        // Compute Averages and Sort
+        const areaRanking = Array.from(areaMap.values()).map(a => ({
+            name: a.name,
+            score: parseFloat((a.totalScore / a.count).toFixed(1)),
+            count: a.count
+        })).sort((a, b) => b.score - a.score);
+
+        const operatorsNeedingSupport = Array.from(opMap.values()).map(o => ({
+            name: o.name,
+            area: o.area,
+            scoreHst: parseFloat((o.totalHst / o.count).toFixed(1)),
+            scoreEpi: parseFloat((o.totalEpi / o.count).toFixed(1)),
+            scoreGlobal: parseFloat((o.totalGlobal / o.count).toFixed(1)),
+            count: o.count
+        }))
+            // Filter operators that have a global average below 85% indicating need for support
+            .filter(o => o.scoreGlobal < 85)
+            .sort((a, b) => a.scoreGlobal - b.scoreGlobal)
+            .slice(0, 5); // Top 5 critical
+
+        const monthlyTrends = Array.from(trendMap.values()).map(t => ({
+            label: t.label,
+            date: t.date,
+            score: parseFloat((t.totalScore / t.count).toFixed(1))
+        })).sort((a, b) => a.date.getTime() - b.date.getTime()).slice(-6); // Last 6 months chronological
+
+        return {
+            success: true,
+            areaRanking,
+            operatorsNeedingSupport,
+            monthlyTrends
         };
     } catch (e: any) {
         return { success: false, error: e.message };
