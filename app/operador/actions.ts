@@ -183,3 +183,47 @@ export async function getStationChecklist(opId: string, estacaoId: string) {
         return { success: false, error: error.message };
     }
 }
+
+/**
+ * Busca a Fila de Produção (Próximos 5 Barcos na Linha Puxada) para uma dada estação.
+ * Só contabiliza as OPs que ainda não foram marcadas como FECHADAS nesta estação.
+ */
+export async function getUpcomingQueue(estacaoId: string) {
+    if (!estacaoId) return { success: false, data: [] };
+
+    try {
+        const { data: pendentes, error: errPend } = await supabase
+            .from('ordens_producao')
+            .select('id, op_numero, status, modelos!inner(nome_modelo), clientes!left(nome)')
+            .in('status', ['PLANNED', 'Planeada', 'IN_PROGRESS', 'Em Produção'])
+            .order('data_prevista_inicio', { ascending: true, nullsFirst: false });
+
+        if (errPend) throw errPend;
+        if (!pendentes || pendentes.length === 0) return { success: true, data: [] };
+
+        const opIds = pendentes.map((p: any) => p.id);
+        const { data: concluidas } = await supabase
+            .from('log_estacao_conclusao')
+            .select('op_id')
+            .eq('estacao_id', estacaoId)
+            .in('op_id', opIds);
+
+        const concluidasIds = new Set((concluidas || []).map((c: any) => c.op_id));
+        const proximasOPs = pendentes.filter((p: any) => !concluidasIds.has(p.id)).slice(0, 5); // Limit for UI
+
+        const formatadas = proximasOPs.map((p: any) => ({
+            id: p.id,
+            numero: p.op_numero,
+            status: p.status,
+            modelo: p.modelos?.nome_modelo || 'N/A',
+            cliente: p.clientes?.nome || 'Stock Factory'
+        }));
+
+        return { success: true, data: formatadas };
+
+    } catch (error: any) {
+        console.error("Erro ao buscar Fila de Produção:", error);
+        return { success: false, error: error.message };
+    }
+}
+

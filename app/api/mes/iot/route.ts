@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 export async function POST(req: Request) {
     try {
         const body = await req.json();
-        const { device_id, action, operador_rfid, estacao_id, op_id } = body;
+        const { device_id, action, operador_rfid, estacao_id, op_id, shift_action } = body;
 
         // Validar credenciais mínimas Anon ESP32 enviadas por Headers ou via Payload
         if (!process.env.NEXT_PUBLIC_SUPABASE_URL || (!process.env.SUPABASE_SERVICE_ROLE_KEY && !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)) {
@@ -44,20 +44,24 @@ export async function POST(req: Request) {
 
         // 1. AÇÃO: ASSIDUIDADE (PONTO RH DIÁRIO)
         if (action === 'PONTO') {
-            // Verificar último registo do dia deste operador
-            const hojeIso = new Date().toISOString().split('T')[0];
-            const { data: ultimoReg } = await supabase
-                .from('log_ponto_diario')
-                .select('tipo_registo, timestamp')
-                .eq('operador_rfid', operador_rfid)
-                .gte('timestamp', `${hojeIso}T00:00:00Z`)
-                .order('timestamp', { ascending: false })
-                .limit(1)
-                .single();
+            let novoTipo = shift_action; // 'ENTRADA' ou 'SAIDA' se vier forçado pelo Tablet Menu
 
-            let novoTipo = 'ENTRADA';
-            if (ultimoReg && ultimoReg.tipo_registo === 'ENTRADA') {
-                novoTipo = 'SAIDA';
+            // Se forçado, não precisa autoverificar, caso contrário cai no Toggle natural
+            if (!novoTipo) {
+                const hojeIso = new Date().toISOString().split('T')[0];
+                const { data: ultimoReg } = await supabase
+                    .from('log_ponto_diario')
+                    .select('tipo_registo, timestamp')
+                    .eq('operador_rfid', operador_rfid)
+                    .gte('timestamp', `${hojeIso}T00:00:00Z`)
+                    .order('timestamp', { ascending: false })
+                    .limit(1)
+                    .single();
+
+                novoTipo = 'ENTRADA';
+                if (ultimoReg && ultimoReg.tipo_registo === 'ENTRADA') {
+                    novoTipo = 'SAIDA';
+                }
             }
 
             const { error: errPonto } = await supabase.from('log_ponto_diario').insert({

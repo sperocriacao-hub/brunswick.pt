@@ -5,7 +5,7 @@ import { MonitorSmartphone, AlertTriangle, Lightbulb, QrCode, FileText, UserChec
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
-import { getStationOperators, getStationChecklist, buscarEstacoes, dispararAlertaAndon } from './actions';
+import { getStationOperators, getStationChecklist, buscarEstacoes, dispararAlertaAndon, getUpcomingQueue } from './actions';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -18,10 +18,9 @@ export default function InteractiveTabletPage() {
     const [selectedEstacaoId, setSelectedEstacaoId] = useState<string>('');
 
     // ESP32 Hardware State (Mirrored)
-    type HmiMode = 'IDLE' | 'MENU_PAUSA' | 'MENU_FIM';
+    type HmiMode = 'IDLE' | 'MENU_PAUSA' | 'MENU_FIM' | 'MENU_TURNO';
     const [mode, setMode] = useState<HmiMode>('IDLE');
     const [currentOpId, setCurrentOpId] = useState<string>('');
-    const [isClockedIn, setIsClockedIn] = useState<boolean>(false);
 
     const [lcdLine1, setLcdLine1] = useState('BRUNSWICK MES v2.0');
     const [lcdLine2, setLcdLine2] = useState('Aguardando Rede...');
@@ -31,11 +30,19 @@ export default function InteractiveTabletPage() {
     // Tablet Additions State
     const [operadores, setOperadores] = useState<any[]>([]);
     const [checklist, setChecklist] = useState<any[]>([]);
+    const [upcomingQueue, setUpcomingQueue] = useState<any[]>([]);
     const [selectedPdf, setSelectedPdf] = useState<string | null>(null);
 
-    // Pausa Options
-    const pausaOptions = ['WC', 'Formacao', 'Clinica', 'Falta_Material'];
+    // Pausa & Turno Options
+    const pausaOptions = ['Almoco', 'Jantar', 'WC', 'Formacao', 'Clinica', 'Falta_Material'];
     const [pausaIndex, setPausaIndex] = useState(0);
+
+    const turnoOptions = ['PONTO ENTRADA', 'PONTO SAIDA'];
+    const [turnoIndex, setTurnoIndex] = useState(0);
+
+    // Derived states
+    const clockedInOperators = operadores.filter(o => o.isClockedIn);
+    const isAnyoneClockedIn = clockedInOperators.length > 0;
 
     // Andon State
     const [isAndonModalOpen, setIsAndonModalOpen] = useState(false);
@@ -79,13 +86,13 @@ export default function InteractiveTabletPage() {
             localStorage.setItem('shopfloor_tablet_estacao', selectedEstacaoId);
             refreshStationData();
 
-            if (isClockedIn) {
+            if (isAnyoneClockedIn) {
                 setLcdLine1('SISTEMA ONLINE');
                 setLcdLine2('A Ler Fila...');
                 buscarTurnoAtualOP();
             }
         }
-    }, [selectedEstacaoId, isClockedIn]);
+    }, [selectedEstacaoId, isAnyoneClockedIn]);
 
     useEffect(() => {
         if (currentOpId && selectedEstacaoId) {
@@ -128,10 +135,18 @@ export default function InteractiveTabletPage() {
                 setCurrentOpId(data.op_id);
                 setLcdLine1(data.display?.substring(0, 16) || 'BARCO PRONTO');
                 setLcdLine2(data.display_2?.substring(0, 16) || 'Pique o Cartao');
+                setUpcomingQueue([]);
             } else if (data.success && !data.op_id) {
                 setCurrentOpId('');
                 setLcdLine1(data.display || 'FILA VAZIA');
                 setLcdLine2(data.display_2 || 'AGUARDAR OP');
+
+                const queueData = await getUpcomingQueue(selectedEstacaoId);
+                if (queueData.success && queueData.data) {
+                    setUpcomingQueue(queueData.data);
+                } else {
+                    setUpcomingQueue([]);
+                }
             }
         } catch (e) {
             console.error(e);
@@ -159,9 +174,14 @@ export default function InteractiveTabletPage() {
         setLcdLine2(`TAG: ${tag}`);
         setRfidInput('');
 
-        // FASE 1: BATER PONTO SE AINDA NÃO CLOCKED IN
-        if (!isClockedIn) {
+        // FASE 1: BATER PONTO SE AINDA NÃO CLOCKED IN (ou forçado via MENU_TURNO)
+        if (!isAnyoneClockedIn || mode === 'MENU_TURNO') {
             try {
+                let shiftIntent = undefined;
+                if (mode === 'MENU_TURNO') {
+                    shiftIntent = turnoOptions[turnoIndex] === 'PONTO ENTRADA' ? 'ENTRADA' : 'SAIDA';
+                }
+
                 const res = await fetch('/api/mes/iot', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -169,7 +189,8 @@ export default function InteractiveTabletPage() {
                         device_id: "00:00:TABLET:HMI",
                         action: 'PONTO',
                         operador_rfid: tag,
-                        estacao_id: selectedEstacaoId || undefined
+                        estacao_id: selectedEstacaoId || undefined,
+                        shift_action: shiftIntent
                     })
                 });
 
@@ -178,7 +199,6 @@ export default function InteractiveTabletPage() {
                 catch (e) { data = { success: false, display: 'ERRO JSON' }; }
 
                 if (res.ok && data.success) {
-                    setIsClockedIn(true);
                     setLcdLine1(data.display?.substring(0, 16) || 'SUCESSO');
                     setLcdLine2(data.display_2?.substring(0, 16) || '');
 
@@ -187,21 +207,22 @@ export default function InteractiveTabletPage() {
 
                     setTimeout(() => {
                         buscarTurnoAtualOP();
+                        setMode('IDLE'); // Clear Turno mode
                     }, 3000);
                 } else {
                     setLcdLine1(data.display?.substring(0, 16) || '! ACESSO NEGADO');
                     setLcdLine2(data.display_2?.substring(0, 16) || data.error?.substring(0, 16) || '');
                     setTimeout(() => {
-                        setLcdLine1('PONTO ENTRADA');
-                        setLcdLine2('Pique o Cracha');
+                        setLcdLine1(!isAnyoneClockedIn ? 'PONTO ENTRADA' : 'SISTEMA ONLINE');
+                        setLcdLine2(!isAnyoneClockedIn ? 'Pique o Cracha' : 'AGUARDAR OP');
                     }, 3000);
                 }
             } catch (error: any) {
                 setLcdLine1('ERRO DE API');
                 setLcdLine2(error.message?.substring(0, 16) || 'Timeout');
                 setTimeout(() => {
-                    setLcdLine1('PONTO ENTRADA');
-                    setLcdLine2('Pique o Cracha');
+                    setLcdLine1(!isAnyoneClockedIn ? 'PONTO ENTRADA' : 'SISTEMA ONLINE');
+                    setLcdLine2(!isAnyoneClockedIn ? 'Pique o Cracha' : 'AGUARDAR OP');
                 }, 3000);
             }
             return;
@@ -279,7 +300,7 @@ export default function InteractiveTabletPage() {
 
     // --- HARDWARE BUTTON EMULATON ---
     const handleHardwareButton = (btnLabel: string) => {
-        if (!selectedEstacaoId || !isClockedIn) return;
+        if (!selectedEstacaoId) return; // Allow interaction with station even if 0 clocked in
 
         if (btnLabel === 'DOWN') {
             if (mode !== 'MENU_PAUSA') {
@@ -293,13 +314,20 @@ export default function InteractiveTabletPage() {
                 setLcdLine2(`[${pausaOptions[nextIdx]}]`);
             }
         } else if (btnLabel === 'UP') {
-            setMode('MENU_FIM');
-            setLcdLine1('-> ENCERRAR <-');
-            setLcdLine2('FECHAR ESTACAO?');
+            if (mode !== 'MENU_TURNO') {
+                setMode('MENU_TURNO');
+                setTurnoIndex(0);
+                setLcdLine1('-> MODO TURNO <-');
+                setLcdLine2(`[${turnoOptions[0]}]`);
+            } else {
+                const nextIdx = (turnoIndex + 1) % turnoOptions.length;
+                setTurnoIndex(nextIdx);
+                setLcdLine2(`[${turnoOptions[nextIdx]}]`);
+            }
         } else if (btnLabel === 'CANCEL') {
             setMode('IDLE');
-            setLcdLine1('SISTEMA ONLINE');
-            setLcdLine2(currentOpId ? 'BARCO PRONTO' : 'AGUARDAR OP');
+            setLcdLine1(isAnyoneClockedIn ? 'SISTEMA ONLINE' : 'PONTO ENTRADA');
+            setLcdLine2(isAnyoneClockedIn ? (currentOpId ? 'BARCO PRONTO' : 'AGUARDAR OP') : 'Pique o Cracha');
         }
     };
 
@@ -529,10 +557,36 @@ export default function InteractiveTabletPage() {
                     </div>
 
                     {!currentOpId ? (
-                        <div className="h-64 border-2 border-dashed border-slate-800 rounded-2xl flex flex-col items-center justify-center text-slate-500 p-8 text-center">
-                            <ListTodo className="w-16 h-16 mb-4 opacity-50" />
-                            <p className="font-bold text-lg mb-2">Aguardando Início de Tarefa</p>
-                            <p className="text-sm">Por favor, passe o cartão na Área Central para reclamar ou iniciar um barco e as suas instruções aparecerão aqui.</p>
+                        <div className="flex flex-col h-full">
+                            <h3 className="text-xl font-bold text-slate-100 flex items-center gap-2 mb-4 border-b border-slate-800 pb-2">
+                                <ListTodo className="text-blue-500" /> Próximos na Fila...
+                            </h3>
+                            {upcomingQueue.length === 0 ? (
+                                <div className="h-48 border-2 border-dashed border-slate-800 rounded-2xl flex flex-col items-center justify-center text-slate-500 p-8 text-center mt-4">
+                                    <ListTodo className="w-12 h-12 mb-4 opacity-50" />
+                                    <p className="font-bold text-lg mb-2">Sem OPs Planeadas</p>
+                                    <p className="text-sm">Esta estação esgotou a sua fila de produção (ou não há barcos agendados para si hoje).</p>
+                                </div>
+                            ) : (
+                                <div className="flex flex-col gap-3 overflow-y-auto pr-2 pb-4">
+                                    {upcomingQueue.map((op, idx) => (
+                                        <div key={op.id} className="bg-slate-800/50 border border-slate-700/50 p-4 rounded-xl flex items-center gap-4 hover:bg-slate-800 transition-colors shadow-sm">
+                                            <div className="w-10 h-10 rounded-full bg-slate-900 border border-slate-700 flex items-center justify-center font-black text-slate-400 shrink-0">
+                                                {idx + 1}
+                                            </div>
+                                            <div className="flex-1">
+                                                <h4 className="text-slate-200 font-bold text-lg">OP {op.numero}</h4>
+                                                <p className="text-slate-400 text-sm font-medium">{op.modelo}</p>
+                                            </div>
+                                            <div className="text-right shrink-0 flex flex-col items-end gap-1">
+                                                <span className="text-[10px] uppercase tracking-widest font-bold bg-slate-900 px-2 py-1 rounded text-slate-500 border border-slate-800">
+                                                    {op.status === 'Planeada' ? 'Aguarda' : op.status}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     ) : (
                         <div className="flex flex-col gap-3">
