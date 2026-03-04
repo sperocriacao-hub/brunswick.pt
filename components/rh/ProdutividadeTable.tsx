@@ -9,10 +9,10 @@ import { ExportRHButton } from './ExportRHButton';
 
 interface ProdutividadeTableProps {
     statsOperador: any[];
-    hojeIso: string;
+    mesIso: string;
 }
 
-export function ProdutividadeTable({ statsOperador, hojeIso }: ProdutividadeTableProps) {
+export function ProdutividadeTable({ statsOperador, mesIso }: ProdutividadeTableProps) {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedOperador, setSelectedOperador] = useState<any | null>(null);
 
@@ -31,7 +31,7 @@ export function ProdutividadeTable({ statsOperador, hojeIso }: ProdutividadeTabl
             <CardHeader className="bg-slate-50 border-b border-slate-100 py-5">
                 <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                     <CardTitle className="text-slate-800 flex items-center gap-2">
-                        <Activity size={20} className="text-blue-600" /> Rendimento Humano Diário ({hojeIso})
+                        <Activity size={20} className="text-blue-600" /> Rendimento Humano Mensal ({mesIso})
                     </CardTitle>
                     <div className="flex items-center gap-4 w-full md:w-auto">
                         <div className="relative w-full md:w-72">
@@ -43,7 +43,7 @@ export function ProdutividadeTable({ statsOperador, hojeIso }: ProdutividadeTabl
                                 className="pl-9 bg-white border-slate-300 w-full"
                             />
                         </div>
-                        <ExportRHButton data={statsOperador} filename={`Relatorio_Assiduidade_${hojeIso}.csv`} />
+                        <ExportRHButton data={statsOperador} filename={`Relatorio_Assiduidade_${mesIso}.csv`} />
                     </div>
                 </div>
             </CardHeader>
@@ -78,13 +78,13 @@ export function ProdutividadeTable({ statsOperador, hojeIso }: ProdutividadeTabl
                                 </td>
 
                                 <td className="px-6 py-4 text-center">
-                                    {worker.picouHoje ? (
+                                    {worker.diasPresentes > 0 ? (
                                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 uppercase tracking-widest shadow-sm">
-                                            In-Loco
+                                            {worker.diasPresentes} Dia(s) In-Loco
                                         </span>
                                     ) : (
                                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-500 border border-slate-200 uppercase tracking-widest shadow-sm">
-                                            Ausente
+                                            0 Dias Ausente
                                         </span>
                                     )}
                                 </td>
@@ -92,7 +92,7 @@ export function ProdutividadeTable({ statsOperador, hojeIso }: ProdutividadeTabl
                                 <td className="px-6 py-4 text-center">
                                     <div className="font-bold text-slate-800 flex items-center justify-center gap-2">
                                         <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden hidden sm:block">
-                                            <div className="h-full bg-emerald-500" style={{ width: `${Math.min(100, (worker.totalTrabalhoEfetivo / 480) * 100)}%` }}></div>
+                                            <div className="h-full bg-emerald-500" style={{ width: `${Math.min(100, (worker.totalTrabalhoEfetivo / (worker.diasPresentes > 0 ? worker.diasPresentes * 480 : 480)) * 100)}%` }}></div>
                                         </div>
                                         {worker.totalTrabalhoEfetivo}m
                                     </div>

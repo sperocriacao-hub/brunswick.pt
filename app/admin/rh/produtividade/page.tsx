@@ -54,28 +54,30 @@ export default async function ProdutividadeRH({ searchParams }: { searchParams: 
         .gte('data_avaliacao', firstDayStr)
         .lte('data_avaliacao', lastDayStr);
 
-    // 4. Fetch Tarefas (Value Added Time) de hoje
-    const hojeIso = new Date().toISOString().split('T')[0];
+    // 4. Fetch Tarefas (Value Added Time) do mês
     const { data: rawTarefas } = await supabase
         .from('registos_rfid_realtime')
         .select(`
             id, operador_rfid, timestamp_inicio, timestamp_fim, estacoes(nome_estacao)
         `)
-        .gte('timestamp_inicio', `${hojeIso}T00:00:00Z`);
+        .gte('timestamp_inicio', `${firstDayStr}T00:00:00Z`)
+        .lte('timestamp_inicio', `${lastDayStr}T23:59:59Z`);
 
-    // 5. Fetch Pausas (Non-Value Added Time) de hoje
+    // 5. Fetch Pausas (Non-Value Added Time) do mês
     const { data: rawPausas } = await supabase
         .from('log_pausas_operador')
         .select(`
             id, operador_rfid, motivo, timestamp_inicio, timestamp_fim
         `)
-        .gte('timestamp_inicio', `${hojeIso}T00:00:00Z`);
+        .gte('timestamp_inicio', `${firstDayStr}T00:00:00Z`)
+        .lte('timestamp_inicio', `${lastDayStr}T23:59:59Z`);
 
-    // 6. Fetch Pontos (Assiduidade Bruta)
+    // 6. Fetch Pontos (Assiduidade Bruta) do mês
     const { data: rawPontos } = await supabase
         .from('log_ponto_diario')
         .select('*')
-        .gte('timestamp', `${hojeIso}T00:00:00Z`);
+        .gte('timestamp', `${firstDayStr}T00:00:00Z`)
+        .lte('timestamp', `${lastDayStr}T23:59:59Z`);
 
     // Helper: Calc Minutes
     const diffMinutes = (inicio: string, fim: string | null) => {
@@ -91,7 +93,7 @@ export default async function ProdutividadeRH({ searchParams }: { searchParams: 
         const suasPausas = rawPausas?.filter(p => p.operador_rfid === op.tag_rfid_operador) || [];
 
         const myStarts = rawPontos?.filter(p => p.operador_rfid === op.tag_rfid_operador && p.tipo_registo === 'ENTRADA') || [];
-        const picouHoje = myStarts.length > 0;
+        const diasPresentes = new Set(myStarts.map(p => p.timestamp.substring(0, 10))).size;
 
         let totalTrabalhoEfetivo = 0; // OEE Value Added (Minutos Tarefas)
         suasTarefas.forEach(t => {
@@ -112,7 +114,7 @@ export default async function ProdutividadeRH({ searchParams }: { searchParams: 
 
         return {
             ...op,
-            picouHoje,
+            diasPresentes,
             totalTrabalhoEfetivo,
             totalPausas,
             numEstacoesDiferentes,
@@ -127,8 +129,8 @@ export default async function ProdutividadeRH({ searchParams }: { searchParams: 
 
     // Totais Globais Assiduidade (Contados sob os trabalhadores do Scope "selectedArea" (se filtrado))
     const expectedWorkers = statsOperador.length;
-    const presentWorkers = statsOperador.filter(w => w.picouHoje).length;
-    // Heurística de Falso-Positivo (Fase 24): Se os Operadores Cadastrados > 0 mas o PresentWorkers = 0 E NINGUÉM FEZ NVA/VA na FABRICA... turno não arrancou!
+    const presentWorkers = statsOperador.reduce((sum, w) => sum + (w.diasPresentes > 0 ? 1 : 0), 0);
+    // Heurística de Falso-Positivo: Se os Operadores Cadastrados > 0 mas o PresentWorkers = 0 E NINGUÉM FEZ NVA/VA na FABRICA... turno não arrancou!
     const turnoverFabricaHoje = kpiVABruto + kpiNVABruto;
     const absenteismRate = (expectedWorkers > 0 && (presentWorkers > 0 || turnoverFabricaHoje > 0))
         ? ((expectedWorkers - presentWorkers) / expectedWorkers) * 100
@@ -272,7 +274,7 @@ export default async function ProdutividadeRH({ searchParams }: { searchParams: 
             </div>
 
             {/* Painel Central das Tabelas OEE RH (Agora Extrído para Client Component para suportar Search) */}
-            <ProdutividadeTable statsOperador={statsOperador} hojeIso={hojeIso} />
+            <ProdutividadeTable statsOperador={statsOperador} mesIso={currentMonthStr} />
         </div>
     );
 }

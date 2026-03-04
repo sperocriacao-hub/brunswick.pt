@@ -42,7 +42,7 @@ export function ColaboradorRaioXModal({ isOpen, onClose, operadorId, operadorRfi
             const trintaDiasStr = dataLimiar.toISOString().split('T')[0];
 
             // 1. Fetch Médias dos 7 Pilares (Radar)
-            const { data: radarMedias } = await supabase.rpc('get_medias_operador_v2', { target_rfid: operadorRfid });
+            const { data: radarMedias } = await supabase.rpc('get_medias_operador_v2', { target_id: operadorId });
 
             const formattedRadar = [
                 { subject: 'EPI & Fardamento', A: radarMedias?.[0]?.med_epi || 0 },
@@ -57,14 +57,14 @@ export function ColaboradorRaioXModal({ isOpen, onClose, operadorId, operadorRfi
 
             // 2. Fetch OEE Timeline (Linha de Progressão) Últimos 30 Dias
             const { data: linhasRaw } = await supabase.from('avaliacoes_diarias')
-                .select('data_avaliacao, pilar_rendimento_oee')
-                .eq('operador_rfid', operadorRfid)
+                .select('data_avaliacao, nota_eficiencia')
+                .eq('funcionario_id', operadorId)
                 .gte('data_avaliacao', trintaDiasStr)
                 .order('data_avaliacao', { ascending: true });
 
             const formattedLinha = linhasRaw?.map(row => ({
                 date: new Date(row.data_avaliacao).toLocaleDateString('pt-PT', { day: 'numeric', month: 'short' }),
-                score: row.pilar_rendimento_oee
+                score: row.nota_eficiencia
             })) || [];
             if (formattedLinha.length === 0) {
                 formattedLinha.push({ date: new Date().toLocaleDateString('pt-PT'), score: 0 });
@@ -73,9 +73,9 @@ export function ColaboradorRaioXModal({ isOpen, onClose, operadorId, operadorRfi
 
             // 3. Fetch Apontamentos Negativos Recentes (Abaixo de 2)
             const { data: anotacoesRaw } = await supabase.from('apontamentos_negativos')
-                .select('data_registo, pilar_afetado, nota_atribuida, justificacao, avaliador_nome')
-                .eq('operador_id', operadorId)
-                .order('data_registo', { ascending: false })
+                .select('data_apontamento, topico_falhado, nota_atribuida, justificacao, supervisor_nome')
+                .eq('funcionario_id', operadorId)
+                .order('data_apontamento', { ascending: false })
                 .limit(10);
 
             setApontamentosNegativos(anotacoesRaw || []);
@@ -154,7 +154,7 @@ export function ColaboradorRaioXModal({ isOpen, onClose, operadorId, operadorRfi
                                                     <div className="flex justify-between items-start mb-2">
                                                         <div className="flex items-center gap-2">
                                                             <XCircle size={14} className="text-rose-500" />
-                                                            <span className="font-bold text-slate-800 text-sm">Problema de {incidente.pilar_afetado}</span>
+                                                            <span className="font-bold text-slate-800 text-sm">Problema de {incidente.topico_falhado}</span>
                                                         </div>
                                                         <span className="text-[10px] font-bold tracking-wider text-rose-500 bg-rose-50 px-2 py-1 rounded">Nota: {incidente.nota_atribuida}</span>
                                                     </div>
@@ -162,8 +162,8 @@ export function ColaboradorRaioXModal({ isOpen, onClose, operadorId, operadorRfi
                                                         "{incidente.justificacao}"
                                                     </p>
                                                     <div className="flex justify-between items-center text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-                                                        <span>Registado a {new Date(incidente.data_registo).toLocaleDateString('pt-PT')}</span>
-                                                        <span>Auditor: {incidente.avaliador_nome}</span>
+                                                        <span>Registado a {new Date(incidente.data_apontamento).toLocaleDateString('pt-PT')}</span>
+                                                        <span>Auditor: {incidente.supervisor_nome}</span>
                                                     </div>
                                                 </li>
                                             ))}
