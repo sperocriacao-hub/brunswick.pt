@@ -23,7 +23,6 @@ export default function TVConfiguracoesPage() {
     const [layout, setLayout] = useState('KPIS_HINT');
     const [currentHost, setCurrentHost] = useState('brunswick-pt.vercel.app'); // fallback
 
-    // Layout Modular Toggles
     const [opcoesLayout, setOpcoesLayout] = useState({
         showOeeDay: true,
         showOeeMonth: true,
@@ -31,6 +30,9 @@ export default function TVConfiguracoesPage() {
         showSafeArea: true,
         showBottlenecks: true,
         showEfficiency: true,
+        showAbsentismo: true,
+        showSafetyCross: true,
+        showHstKpis: true,
         minimiseAndon: true
     });
 
@@ -84,6 +86,9 @@ export default function TVConfiguracoesPage() {
                 showSafeArea: true,
                 showBottlenecks: true,
                 showEfficiency: true,
+                showAbsentismo: true,
+                showSafetyCross: true,
+                showHstKpis: true,
                 minimiseAndon: true
             });
             await loadData();
@@ -258,7 +263,7 @@ export default function TVConfiguracoesPage() {
                             <Label className="text-blue-700 font-bold flex items-center gap-2">
                                 <Settings size={16} /> Widgets NASA-Level (Configuração do Layout)
                             </Label>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-100">
                                 {Object.entries({
                                     showOeeDay: "OEE Global do Dia (Real vs Objetivo)",
                                     showOeeMonth: "KPI Mensal (Mês Atual)",
@@ -266,6 +271,9 @@ export default function TVConfiguracoesPage() {
                                     showSafeArea: "Ranking: Área Mais Segura (HST)",
                                     showBottlenecks: "Alerta em Tempo Real: Gargalos Atuais",
                                     showEfficiency: "Painel de Atrasos e Média Atual",
+                                    showAbsentismo: "Taxa de Absentismo em Tempo Real",
+                                    showSafetyCross: "Cruz de Segurança (Safety Cross)",
+                                    showHstKpis: "Conformidade Fabril e Segurança Diária",
                                     minimiseAndon: "Minimizar Alertas Andon (Poupar Espaço Tela)"
                                 }).map(([key, label]) => (
                                     <label key={key} className="flex flex-row items-start gap-3 cursor-pointer p-3 hover:bg-white rounded-lg border border-transparent hover:border-slate-200 hover:shadow-sm transition-all">

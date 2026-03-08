@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
-import { AlertTriangle, Clock, Factory, MonitorPlay, ShieldCheck, Trophy, Target, TrendingUp, Zap, Clock4, CheckCircle2 } from 'lucide-react';
+import { AlertTriangle, Clock, Factory, MonitorPlay, ShieldCheck, Trophy, Target, TrendingUp, Zap, Clock4, CheckCircle2, UserX, Activity, HeartPulse } from 'lucide-react';
 import { buscarDashboardsTV } from '../../actions';
 
 // Supabase Anon Client for Websockets Listeners ONLY
@@ -162,21 +162,30 @@ export default function CustomTVDashboardPage() {
                             <h2 className="text-xl font-bold uppercase tracking-widest text-slate-400 flex items-center gap-2">
                                 <Target size={24} className="text-blue-400" /> Rendimento (OEE) Global
                             </h2>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                 <div className="bg-slate-950/50 rounded-2xl p-4 border border-slate-800/80 flex flex-col items-center justify-center">
-                                    <span className="text-slate-500 text-sm font-bold uppercase tracking-widest mb-1">Dia Atual</span>
-                                    <span className={`text-6xl font-black ${metrics.kpiOee?.diarioRealizado >= metrics.kpiOee?.diarioObjetivo ? 'text-emerald-400' : 'text-amber-400'}`}>
+                                    <span className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-1">Dia Atual</span>
+                                    <span className={`text-4xl lg:text-5xl font-black ${metrics.kpiOee?.diarioRealizado >= metrics.kpiOee?.diarioObjetivo ? 'text-emerald-400' : 'text-amber-400'}`}>
                                         {metrics.kpiOee?.diarioRealizado || 0}%
                                     </span>
-                                    <span className="text-slate-600 text-xs mt-1">OBJETIVO: {metrics.kpiOee?.diarioObjetivo || 85}%</span>
+                                    <span className="text-slate-600 text-[10px] mt-1 font-bold">OBJETIVO: {metrics.kpiOee?.diarioObjetivo || 85}%</span>
                                 </div>
                                 {opcoesLayout.showOeeMonth && (
                                     <div className="bg-slate-950/50 rounded-2xl p-4 border border-slate-800/80 flex flex-col items-center justify-center">
-                                        <span className="text-slate-500 text-sm font-bold uppercase tracking-widest mb-1">Mês Atual</span>
-                                        <span className={`text-6xl font-black ${metrics.kpiOee?.mensalRealizado >= metrics.kpiOee?.mensalObjetivo ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                        <span className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-1">Mês Atual</span>
+                                        <span className={`text-4xl lg:text-5xl font-black ${metrics.kpiOee?.mensalRealizado >= metrics.kpiOee?.mensalObjetivo ? 'text-emerald-400' : 'text-rose-400'}`}>
                                             {metrics.kpiOee?.mensalRealizado || 0}%
                                         </span>
-                                        <span className="text-slate-600 text-xs mt-1">OBJETIVO: {metrics.kpiOee?.mensalObjetivo || 85}%</span>
+                                        <span className="text-slate-600 text-[10px] mt-1 font-bold">OBJETIVO: {metrics.kpiOee?.mensalObjetivo || 85}%</span>
+                                    </div>
+                                )}
+                                {opcoesLayout.showEfficiency && (
+                                    <div className="bg-rose-950/20 rounded-2xl p-4 border border-rose-900/50 flex flex-col items-center justify-center">
+                                        <span className="text-rose-500/80 text-xs font-bold uppercase tracking-widest mb-1">Atraso vs Plano</span>
+                                        <span className="text-4xl lg:text-5xl font-black text-rose-500 drop-shadow-[0_0_10px_rgba(244,63,94,0.3)]">
+                                            {metrics.kpiOee?.percentagemAtraso || 0}%
+                                        </span>
+                                        <span className="text-rose-900 text-[10px] mt-1 font-bold">BACKLOG: {metrics.kpiOee?.atrasoMinutos || 0} MIN</span>
                                     </div>
                                 )}
                             </div>
@@ -185,32 +194,40 @@ export default function CustomTVDashboardPage() {
 
                     <div className="grid grid-cols-2 gap-6 w-full">
                         {opcoesLayout.showWorkerOfMonth && metrics.heroiTurno && (
-                            <div className="bg-slate-900/80 border border-slate-700/50 rounded-3xl p-6 shadow-2xl relative flex flex-col justify-between">
-                                <h2 className="text-sm font-bold uppercase tracking-widest text-amber-500 mb-4 flex items-center gap-2">
+                            <div className="bg-gradient-to-br from-amber-500/20 to-orange-600/10 border border-amber-500/50 rounded-3xl p-6 shadow-[0_0_30px_rgba(245,158,11,0.15)] relative flex flex-col justify-between overflow-hidden">
+                                <div className="absolute -right-6 -top-6 text-amber-500/10 rotate-12">
+                                    <Trophy size={140} />
+                                </div>
+                                <h2 className="text-sm font-black uppercase tracking-widest text-amber-500 mb-4 flex items-center gap-2 relative z-10">
                                     <Trophy size={18} /> Herói de Alta-Performance
                                 </h2>
-                                <div>
-                                    <p className="text-3xl font-black text-white leading-none mb-2">{metrics.heroiTurno.nome}</p>
-                                    <p className="text-slate-400 text-sm font-mono tracking-widest">ID: {metrics.heroiTurno.numero_operador}</p>
-                                </div>
-                                <div className="mt-4 inline-block bg-amber-500/20 border border-amber-500/30 rounded-full px-4 py-1 self-start">
-                                    <span className="text-amber-400 font-black tracking-widest text-sm text-center block">RATE: {metrics.heroiTurno.nota_eficiencia || 95}%</span>
+                                <div className="relative z-10">
+                                    <p className="text-4xl font-black text-white leading-tight mb-2 drop-shadow-md">{metrics.heroiTurno.nome_operador}</p>
+                                    <div className="mt-4 inline-flex items-center gap-3 bg-amber-500/20 border border-amber-500/50 rounded-full px-5 py-2">
+                                        <Zap size={18} className="text-amber-400 fill-amber-400" />
+                                        <span className="text-amber-400 font-black tracking-widest text-lg text-center block">
+                                            {metrics.heroiTurno.nota_eficiencia || 0} SCORE
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
                         )}
 
                         {opcoesLayout.showSafeArea && metrics.melhorArea && (
-                            <div className="bg-slate-900/80 border border-slate-700/50 rounded-3xl p-6 shadow-2xl relative flex flex-col justify-between">
-                                <h2 className="text-sm font-bold uppercase tracking-widest text-emerald-500 mb-4 flex items-center gap-2">
-                                    <ShieldCheck size={18} /> Foco de Segurança Zero Acidentes
-                                </h2>
-                                <div>
-                                    <p className="text-slate-400 text-sm font-bold tracking-widest uppercase mb-1">Área Segura (Destaque)</p>
-                                    <p className="text-3xl font-black text-white leading-tight">{metrics.melhorArea.nome}</p>
+                            <div className="bg-gradient-to-bl from-emerald-500/10 to-slate-900/80 border border-emerald-500/30 rounded-3xl p-6 shadow-2xl relative flex flex-col justify-between overflow-hidden">
+                                <div className="absolute -right-4 -bottom-4 text-emerald-500/5 rotate-[-15deg]">
+                                    <ShieldCheck size={120} />
                                 </div>
-                                <div className="mt-4 flex items-center gap-2">
-                                    <span className="text-emerald-400 text-2xl font-black">{metrics.melhorArea.score}%</span>
-                                    <span className="text-slate-600 text-xs uppercase font-bold max-w-[100px] leading-tight">Score HST Mensal</span>
+                                <h2 className="text-sm font-black uppercase tracking-widest text-emerald-500 mb-4 flex items-center gap-2 relative z-10">
+                                    <ShieldCheck size={18} /> Distintivo Zero Acidentes
+                                </h2>
+                                <div className="relative z-10">
+                                    <p className="text-slate-400 text-xs font-bold tracking-widest uppercase mb-1 drop-shadow-sm">Liderança em Segurança HSE</p>
+                                    <p className="text-3xl font-black text-white leading-tight break-words">{metrics.melhorArea.nome}</p>
+                                </div>
+                                <div className="mt-4 flex items-center gap-3 relative z-10 bg-black/40 rounded-xl p-3 border border-slate-800 self-start">
+                                    <span className="text-emerald-400 text-2xl font-black ml-1">{metrics.melhorArea.score}%</span>
+                                    <span className="text-slate-500 text-[10px] uppercase font-bold w-[70px] leading-tight text-center">Score HSE Mensal</span>
                                 </div>
                             </div>
                         )}
@@ -230,6 +247,84 @@ export default function CustomTVDashboardPage() {
                                         </span>
                                     </div>
                                 ))}
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 w-full">
+                        {opcoesLayout.showAbsentismo && metrics.absentismo && (
+                            <div className="bg-slate-900/80 border border-slate-700/50 rounded-3xl p-6 shadow-2xl relative flex flex-col justify-between">
+                                <h2 className="text-sm font-black uppercase tracking-widest text-rose-400 mb-4 flex items-center gap-2">
+                                    <UserX size={18} /> Taxa de Absentismo
+                                </h2>
+                                <div className="flex items-end justify-between">
+                                    <div>
+                                        <p className={`text-6xl font-black leading-none ${metrics.absentismo.taxa > 10 ? 'text-rose-500 drop-shadow-[0_0_15px_rgba(244,63,94,0.5)] animate-pulse' : 'text-slate-300'}`}>
+                                            {metrics.absentismo.taxa}%
+                                        </p>
+                                        <p className="text-slate-500 text-sm font-bold tracking-widest mt-2 uppercase">Faltas Hoje</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-4xl font-black text-white leading-none mb-1">{metrics.absentismo.faltosos}</p>
+                                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Ausentes em {metrics.absentismo.cadastrados} T.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {opcoesLayout.showHstKpis && metrics.hstKpis && (
+                            <div className="bg-slate-900/80 border border-slate-700/50 rounded-3xl p-6 shadow-2xl relative flex flex-col justify-center">
+                                <h2 className="text-sm font-black uppercase tracking-widest text-blue-400 mb-4 flex items-center gap-2">
+                                    <Activity size={18} /> Auditorias & HST Diário
+                                </h2>
+                                <div className="space-y-4">
+                                    <div>
+                                        <div className="flex justify-between text-xs font-bold uppercase tracking-widest mb-1 text-slate-400">
+                                            <span>Conformidade Qualidade</span>
+                                            <span className={metrics.hstKpis.conformidadeFabril < 90 ? 'text-rose-400' : 'text-emerald-400'}>{metrics.hstKpis.conformidadeFabril}%</span>
+                                        </div>
+                                        <div className="w-full bg-slate-800 rounded-full h-2">
+                                            <div className={`h-2 rounded-full ${metrics.hstKpis.conformidadeFabril < 90 ? 'bg-rose-500' : 'bg-emerald-500'}`} style={{ width: `${metrics.hstKpis.conformidadeFabril}%` }}></div>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div className="flex justify-between text-xs font-bold uppercase tracking-widest mb-1 text-slate-400">
+                                            <span>Mapeamento Segurança</span>
+                                            <span className={metrics.hstKpis.segurancaDiaria < 95 ? 'text-amber-400' : 'text-emerald-400'}>{metrics.hstKpis.segurancaDiaria}%</span>
+                                        </div>
+                                        <div className="w-full bg-slate-800 rounded-full h-2">
+                                            <div className={`h-2 rounded-full ${metrics.hstKpis.segurancaDiaria < 95 ? 'bg-amber-500' : 'bg-emerald-500'}`} style={{ width: `${metrics.hstKpis.segurancaDiaria}%` }}></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {opcoesLayout.showSafetyCross && (
+                        <div className="bg-slate-900/80 border border-slate-700/50 rounded-3xl p-6 shadow-2xl relative flex flex-col justify-between items-center bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]">
+                            <h2 className="text-sm font-black uppercase tracking-widest text-emerald-500 mb-6 flex items-center gap-2 self-start w-full border-b border-slate-800 pb-4">
+                                <HeartPulse size={18} /> Segurança do Trabalho
+                            </h2>
+                            {/* Cruz de Segurança em CSS Grid minimalista */}
+                            <div className="grid grid-cols-5 grid-rows-5 gap-1 w-[180px] h-[180px] rotate-0 scale-100">
+                                {Array.from({ length: 25 }).map((_, i) => {
+                                    const x = i % 5;
+                                    const y = Math.floor(i / 5);
+                                    const isCross = (x === 2) || (y === 2);
+                                    const isTodayStr = x === 2 && y === 2; // Simulated center highlight
+
+                                    if (!isCross) return <div key={i} className="bg-transparent" />;
+                                    return (
+                                        <div key={i} className={`flex items-center justify-center rounded-sm transition-all duration-1000 ${isTodayStr ? 'bg-amber-400 text-black border-2 border-amber-600 shadow-[0_0_15px_rgba(251,191,36,0.6)] animate-pulse'
+                                                : 'bg-emerald-500/80 border border-emerald-400/50 shadow-[inset_0_2px_4px_rgba(255,255,255,0.2)]'
+                                            }`}></div>
+                                    );
+                                })}
+                            </div>
+                            <div className="flex justify-center gap-6 mt-6 w-full pt-4 border-t border-slate-800">
+                                <div className="flex items-center gap-2"><div className="w-3 h-3 bg-emerald-500/80 border border-emerald-400 rounded-sm"></div><span className="text-[10px] text-slate-400 uppercase font-black tracking-widest">Sem Ocorrências</span></div>
+                                <div className="flex items-center gap-2"><div className="w-3 h-3 bg-rose-500 rounded-sm shadow-[0_0_8px_rgba(244,63,94,0.8)]"></div><span className="text-[10px] text-slate-400 uppercase font-black tracking-widest">Acidente s/ Baixa</span></div>
                             </div>
                         </div>
                     )}

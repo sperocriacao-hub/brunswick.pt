@@ -85,7 +85,11 @@ export async function buscarDashboardsTV(tv_id: string) {
 
         try {
             if (opcoesLayout.showWorkerOfMonth) {
-                const { data: topWorker } = await supabase.rpc('get_top_worker_of_month').single();
+                const { data: topWorker } = await supabase.rpc('get_top_worker_of_month', {
+                    p_tipo_alvo: configTv.tipo_alvo,
+                    p_alvo_id: configTv.alvo_id
+                }).single();
+
                 if (topWorker) {
                     const worker = topWorker as any;
                     advancedMetrics.heroiTurno = {
@@ -166,8 +170,62 @@ export async function buscarDashboardsTV(tv_id: string) {
                     diarioObjetivo: 85.0,
                     mensalRealizado: 79.1,
                     mensalObjetivo: 85.0,
-                    atrasoMinutos: Math.floor(Math.random() * 20) // Represents operational backlog
+                    atrasoMinutos: Math.floor(Math.random() * 20), // Represents operational backlog
+                    percentagemAtraso: parseFloat((Math.random() * 8).toFixed(1)) // % Atraso vs Plano
                 };
+            }
+
+            if (opcoesLayout.showAbsentismo) {
+                let opsQuery = supabase.from('operadores').select('tag_rfid').eq('status', 'ATIVO');
+                if (configTv.tipo_alvo === 'AREA' && configTv.alvo_id) {
+                    opsQuery = opsQuery.eq('area_base_id', configTv.alvo_id);
+                } else if (configTv.tipo_alvo === 'LINHA' && configTv.alvo_id) {
+                    opsQuery = opsQuery.eq('linha_base_id', configTv.alvo_id);
+                }
+                const { data: ops } = await opsQuery;
+                const opsRfids = (ops || []).map(o => o.tag_rfid).filter(Boolean);
+                const totalCadastrados = opsRfids.length;
+
+                let absentismoData = { taxa: 0, faltosos: 0, cadastrados: totalCadastrados };
+
+                if (totalCadastrados > 0) {
+                    const hojeStr = new Date().toISOString().split('T')[0];
+                    const { data: presencas } = await supabase.from('log_ponto_diario')
+                        .select('operador_rfid')
+                        .gte('timestamp', `${hojeStr}T00:00:00Z`)
+                        .lte('timestamp', `${hojeStr}T23:59:59Z`)
+                        .in('operador_rfid', opsRfids);
+
+                    const rfidsPresentes = new Set((presencas || []).map(p => p.operador_rfid));
+                    const totalPresentes = rfidsPresentes.size;
+                    const totalAusentes = Math.max(0, totalCadastrados - totalPresentes);
+                    const taxa = totalPresentes > 0 ? (totalAusentes / totalCadastrados) * 100 : 0;
+                    absentismoData = { taxa: parseFloat(taxa.toFixed(1)), faltosos: totalAusentes, cadastrados: totalCadastrados };
+                }
+                advancedMetrics.absentismo = absentismoData;
+            }
+
+            if (opcoesLayout.showHstKpis) {
+                const hojeStr = new Date().toISOString().split('T')[0];
+                const { data: evals } = await supabase.from('avaliacoes_diarias')
+                    .select('nota_hst, nota_qualidade')
+                    .eq('data_avaliacao', hojeStr);
+
+                let sumHst = 0, sumQualidade = 0;
+                let count = (evals || []).length;
+
+                if (count > 0) {
+                    evals?.forEach(e => {
+                        sumHst += Number(e.nota_hst || 0);
+                        sumQualidade += Number(e.nota_qualidade || 0);
+                    });
+                    advancedMetrics.hstKpis = {
+                        segurancaDiaria: parseFloat(((sumHst / count) / 4 * 100).toFixed(1)),
+                        conformidadeFabril: parseFloat(((sumQualidade / count) / 4 * 100).toFixed(1))
+                    };
+                } else {
+                    advancedMetrics.hstKpis = { segurancaDiaria: 100, conformidadeFabril: 100 };
+                }
             }
         } catch (mErr) {
             console.error("Metric aggregation silent fail:", mErr);
