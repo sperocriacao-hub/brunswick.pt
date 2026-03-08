@@ -23,6 +23,13 @@ export async function getTVConfigs() {
 
 export async function addTVConfig(payload: any) {
     try {
+        // Generate a random 5-character alphanumeric string
+        const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        let codigoCurto = '';
+        for (let i = 0; i < 5; i++) {
+            codigoCurto += characters.charAt(Math.floor(Math.random() * characters.length));
+        }
+
         const { data, error } = await supabase
             .from('configuracoes_tv')
             .insert({
@@ -30,7 +37,8 @@ export async function addTVConfig(payload: any) {
                 tipo_alvo: payload.tipo_alvo,
                 alvo_id: payload.alvo_id || null,
                 layout_preferencial: payload.layout_preferencial,
-                opcoes_layout: payload.opcoes_layout || {}
+                opcoes_layout: payload.opcoes_layout || {},
+                codigo_curto: codigoCurto
             })
             .select()
             .single();
