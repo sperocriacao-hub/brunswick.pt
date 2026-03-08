@@ -64,6 +64,28 @@ export async function deleteTVConfig(id: string) {
     }
 }
 
+export async function updateTVConfig(id: string, payload: any) {
+    try {
+        const { data, error } = await supabase
+            .from('configuracoes_tv')
+            .update({
+                nome_tv: payload.nome_tv,
+                tipo_alvo: payload.tipo_alvo,
+                alvo_id: payload.alvo_id || null,
+                layout_preferencial: payload.layout_preferencial,
+                opcoes_layout: payload.opcoes_layout || {}
+            })
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (error) throw error;
+        return { success: true, data };
+    } catch (err: any) {
+        return { success: false, error: err.message };
+    }
+}
+
 export async function getLinhasForSelect() {
     try {
         const { data, error } = await supabase.from('linhas_producao').select('id, descricao_linha').order('descricao_linha');

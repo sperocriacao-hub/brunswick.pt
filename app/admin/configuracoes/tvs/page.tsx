@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { getTVConfigs, addTVConfig, deleteTVConfig, getLinhasForSelect } from './actions';
+import { getTVConfigs, addTVConfig, updateTVConfig, deleteTVConfig, getLinhasForSelect } from './actions';
 import { getAreasTVLinks } from '../../producao/andon/actions';
-import { Tv, MonitorPlay, Settings, Plus, Trash2, ShieldAlert } from 'lucide-react';
+import { Tv, MonitorPlay, Settings, Plus, Trash2, ShieldAlert, Edit } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,6 +15,8 @@ export default function TVConfiguracoesPage() {
     const [tvs, setTvs] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [isEditMode, setIsEditMode] = useState(false);
+    const [editId, setEditId] = useState<string | null>(null);
 
     // Form State
     const [nomeTv, setNomeTv] = useState('');
@@ -62,6 +64,42 @@ export default function TVConfiguracoesPage() {
         setIsLoading(false);
     }
 
+    function openAddModal() {
+        setIsEditMode(false);
+        setEditId(null);
+        setNomeTv('');
+        setAlvoId('');
+        setOpcoesLayout({
+            showOeeDay: true,
+            showOeeMonth: true,
+            showWorkerOfMonth: true,
+            showSafeArea: true,
+            showBottlenecks: true,
+            showEfficiency: true,
+            showAbsentismo: true,
+            showSafetyCross: true,
+            showHstKpis: true,
+            minimiseAndon: true
+        });
+        setIsAddModalOpen(true);
+    }
+
+    function openEditModal(tv: any) {
+        setIsEditMode(true);
+        setEditId(tv.id);
+        setNomeTv(tv.nome_tv);
+        setTipoAlvo(tv.tipo_alvo);
+        setAlvoId(tv.alvo_id || '');
+        setLayout(tv.layout_preferencial || 'KPIS_HINT');
+        setOpcoesLayout(tv.opcoes_layout || {
+            showOeeDay: true, showOeeMonth: true, showWorkerOfMonth: true,
+            showSafeArea: true, showBottlenecks: true, showEfficiency: true,
+            showAbsentismo: true, showSafetyCross: true, showHstKpis: true,
+            minimiseAndon: true
+        });
+        setIsAddModalOpen(true);
+    }
+
     async function handleAddSubmit(e: React.FormEvent) {
         e.preventDefault();
         setIsLoading(true);
@@ -74,26 +112,22 @@ export default function TVConfiguracoesPage() {
             opcoes_layout: opcoesLayout
         };
 
-        const res = await addTVConfig(payload);
-        if (res.success) {
-            setIsAddModalOpen(false);
-            setNomeTv('');
-            setAlvoId('');
-            setOpcoesLayout({
-                showOeeDay: true,
-                showOeeMonth: true,
-                showWorkerOfMonth: true,
-                showSafeArea: true,
-                showBottlenecks: true,
-                showEfficiency: true,
-                showAbsentismo: true,
-                showSafetyCross: true,
-                showHstKpis: true,
-                minimiseAndon: true
-            });
-            await loadData();
+        if (isEditMode && editId) {
+            const res = await updateTVConfig(editId, payload);
+            if (res.success) {
+                setIsAddModalOpen(false);
+                await loadData();
+            } else {
+                alert("Erro ao editar TV: " + res.error);
+            }
         } else {
-            alert("Erro ao adicionar TV: " + res.error);
+            const res = await addTVConfig(payload);
+            if (res.success) {
+                setIsAddModalOpen(false);
+                await loadData();
+            } else {
+                alert("Erro ao adicionar TV: " + res.error);
+            }
         }
         setIsLoading(false);
     }
@@ -123,7 +157,7 @@ export default function TVConfiguracoesPage() {
                     </p>
                 </div>
                 <Button
-                    onClick={() => setIsAddModalOpen(true)}
+                    onClick={openAddModal}
                     className="bg-blue-600 hover:bg-blue-700 text-white font-bold h-12 px-6 shadow-lg hover:shadow-xl transition-all"
                 >
                     <Plus size={20} className="mr-2" />
@@ -147,14 +181,26 @@ export default function TVConfiguracoesPage() {
                                 <CardTitle className="text-lg font-bold text-slate-800 flex items-center gap-2 truncate">
                                     <Tv size={18} className="text-slate-500 shrink-0" /> {tv.nome_tv}
                                 </CardTitle>
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => handleDelete(tv.id, tv.nome_tv)}
-                                    className="text-slate-400 hover:text-red-500 hover:bg-red-50"
-                                >
-                                    <Trash2 size={18} />
-                                </Button>
+                                <div className="flex gap-1">
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => openEditModal(tv)}
+                                        className="text-slate-400 hover:text-blue-600 hover:bg-blue-50"
+                                        title="Editar Configurações"
+                                    >
+                                        <Edit size={18} />
+                                    </Button>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => handleDelete(tv.id, tv.nome_tv)}
+                                        className="text-slate-400 hover:text-red-500 hover:bg-red-50"
+                                        title="Eliminar Ecrã"
+                                    >
+                                        <Trash2 size={18} />
+                                    </Button>
+                                </div>
                             </CardHeader>
                             <CardContent className="p-5 space-y-4 text-sm">
 
@@ -200,14 +246,14 @@ export default function TVConfiguracoesPage() {
 
             {/* Modal de Criação */}
             <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
-                <DialogContent className="sm:max-w-[550px]">
+                <DialogContent className="max-w-2xl bg-white border-slate-200">
                     <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2 text-xl font-bold">
-                            <MonitorPlay className="text-blue-500" />
-                            Registar Novo Ecrã TV
+                        <DialogTitle className="text-2xl font-black text-slate-800 flex items-center gap-2">
+                            <MonitorPlay className="text-blue-600" />
+                            {isEditMode ? 'Editar Configuração de TV' : 'Registar Novo Ecrã TV'}
                         </DialogTitle>
-                        <DialogDescription>
-                            Gere uma ligação fixa e perpétua para um monitor físico operando na linha de montagem.
+                        <DialogDescription className="text-slate-500">
+                            Preencha os dados técnicos da televisão e o tipo de Dashboard (M.E.S. Target) que pretende que corra nativamente no browser do ecrã.
                         </DialogDescription>
                     </DialogHeader>
 
@@ -294,7 +340,7 @@ export default function TVConfiguracoesPage() {
                                 Cancelar
                             </Button>
                             <Button type="submit" disabled={isLoading} className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-8">
-                                {isLoading ? "A Salvar..." : "Registar TV (Gerar URL Livre)"}
+                                {isLoading ? "A Salvar..." : isEditMode ? "Atualizar TV" : "Registar TV (Gerar URL Livre)"}
                             </Button>
                         </DialogFooter>
                     </form>
