@@ -85,17 +85,24 @@ export async function buscarDashboardsTV(tv_id: string) {
 
         try {
             if (opcoesLayout.showWorkerOfMonth) {
-                const { data: topWorker } = await supabase.rpc('get_top_worker_of_month', {
-                    p_tipo_alvo: configTv.tipo_alvo,
-                    p_alvo_id: configTv.alvo_id
-                }).single();
+                try {
+                    const { data: topWorker } = await supabase.rpc('get_top_worker_of_month', {
+                        p_tipo_alvo: configTv.tipo_alvo,
+                        p_alvo_id: configTv.alvo_id
+                    }).single();
 
-                if (topWorker) {
-                    const worker = topWorker as any;
-                    advancedMetrics.heroiTurno = {
-                        nome_operador: worker.nome_operador || 'Desconhecido',
-                        nota_eficiencia: worker.media_eficiencia || 0
-                    };
+                    if (topWorker) {
+                        const worker = topWorker as any;
+                        advancedMetrics.heroiTurno = {
+                            nome_operador: worker.nome_operador || 'Sem Avaliações Recentes',
+                            nota_eficiencia: worker.media_eficiencia || 0
+                        };
+                    } else {
+                        // Fallback: If no evaluations found for this Area/Linha this month
+                        advancedMetrics.heroiTurno = { nome_operador: 'A Aguardar Avaliações M.E.S.', nota_eficiencia: 0 };
+                    }
+                } catch (err) {
+                    advancedMetrics.heroiTurno = { nome_operador: 'Erro a Carregar', nota_eficiencia: 0 };
                 }
             }
 
@@ -136,6 +143,9 @@ export async function buscarDashboardsTV(tv_id: string) {
                     // Score is perfectly 100% minus 5% for every active alert in that area
                     const calcScore = Math.max(0, 100 - (minAlerts * 5));
                     advancedMetrics.melhorArea = { nome: safestArea.nome_area, score: calcScore };
+                } else {
+                    // Fallback
+                    advancedMetrics.melhorArea = { nome: configTv.nome_alvo_resolvido, score: 100 };
                 }
             }
 
@@ -202,6 +212,7 @@ export async function buscarDashboardsTV(tv_id: string) {
                     const taxa = totalPresentes > 0 ? (totalAusentes / totalCadastrados) * 100 : 0;
                     absentismoData = { taxa: parseFloat(taxa.toFixed(1)), faltosos: totalAusentes, cadastrados: totalCadastrados };
                 }
+                // Even if 0 cadres, we ensure the object exists so the widget renders
                 advancedMetrics.absentismo = absentismoData;
             }
 
