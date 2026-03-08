@@ -2,6 +2,8 @@
 
 import { createClient } from '@supabase/supabase-js';
 
+import { getSafetyCross } from '../admin/hst/dashboard/actions';
+
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
@@ -236,6 +238,20 @@ export async function buscarDashboardsTV(tv_id: string) {
                     };
                 } else {
                     advancedMetrics.hstKpis = { segurancaDiaria: 100, conformidadeFabril: 100 };
+                }
+            }
+
+            if (opcoesLayout.showSafetyCross) {
+                try {
+                    const now = new Date();
+                    const scRes = await getSafetyCross(now.getFullYear(), now.getMonth() + 1);
+                    if (scRes.success && scRes.data) {
+                        advancedMetrics.safetyCrossDays = scRes.data;
+                    } else {
+                        advancedMetrics.safetyCrossDays = [];
+                    }
+                } catch (e) {
+                    advancedMetrics.safetyCrossDays = [];
                 }
             }
         } catch (mErr) {

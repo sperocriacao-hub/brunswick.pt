@@ -304,27 +304,70 @@ export default function CustomTVDashboardPage() {
                     {opcoesLayout.showSafetyCross && (
                         <div className="bg-slate-900/80 border border-slate-700/50 rounded-3xl p-6 shadow-2xl relative flex flex-col justify-between items-center bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]">
                             <h2 className="text-sm font-black uppercase tracking-widest text-emerald-500 mb-6 flex items-center gap-2 self-start w-full border-b border-slate-800 pb-4">
-                                <HeartPulse size={18} /> Segurança do Trabalho
+                                <HeartPulse size={18} /> Cruz de Segurança do Trabalho
                             </h2>
-                            {/* Cruz de Segurança em CSS Grid minimalista */}
-                            <div className="grid grid-cols-5 grid-rows-5 gap-1 w-[180px] h-[180px] rotate-0 scale-100">
-                                {Array.from({ length: 25 }).map((_, i) => {
-                                    const x = i % 5;
-                                    const y = Math.floor(i / 5);
-                                    const isCross = (x === 2) || (y === 2);
-                                    const isTodayStr = x === 2 && y === 2; // Simulated center highlight
+                            {/* Cruz de Segurança Oficial 31-Dias */}
+                            <div className="grid grid-cols-7 gap-1 w-full max-w-[280px]">
+                                {[
+                                    null, null, 1, 2, 3, null, null,
+                                    null, null, 4, 5, 6, null, null,
+                                    7, 8, 9, 10, 11, 12, 13,
+                                    14, 15, 16, 17, 18, 19, 20,
+                                    21, 22, 23, 24, 25, 26, 27,
+                                    null, null, 28, 29, 30, null, null,
+                                    null, null, 31, null, null, null, null
+                                ].map((dayNum, i) => {
+                                    if (dayNum === null) {
+                                        return <div key={`empty-${i}`} className="w-full aspect-square"></div>;
+                                    }
 
-                                    if (!isCross) return <div key={i} className="bg-transparent" />;
+                                    // Base do M.E.S. se existir
+                                    const dayInfo = metrics.safetyCrossDays?.find((d: any) => d.day === dayNum);
+                                    if (!dayInfo) {
+                                        return <div key={`hide-${dayNum}`} className="w-full aspect-square"></div>; // Mês não chegou a este dia
+                                    }
+
+                                    const isToday = dayInfo.day === new Date().getDate();
+
+                                    // Cores Oficiais M.E.S. HST
+                                    let bgClass = 'bg-slate-800/50 border border-slate-700 text-slate-600'; // Nível 4 (Futuro)
+                                    let pulse = false;
+                                    let shadow = '';
+
+                                    if (dayInfo.level === 0) {
+                                        // Dia OK (Verde)
+                                        bgClass = 'bg-emerald-500/80 border border-emerald-400/50 text-emerald-900';
+                                        if (isToday) {
+                                            bgClass = 'bg-emerald-400 border-2 border-emerald-300 text-black';
+                                            pulse = true;
+                                            shadow = 'shadow-[0_0_15px_rgba(52,211,153,0.6)]';
+                                        }
+                                    } else if (dayInfo.level === 1) {
+                                        // Incidente (Amarelo)
+                                        bgClass = 'bg-yellow-400 text-black border-2 border-yellow-500';
+                                        if (isToday) pulse = true;
+                                    } else if (dayInfo.level === 2) {
+                                        // Acidente Sem Baixa (Laranja)
+                                        bgClass = 'bg-orange-500 text-black border-2 border-orange-600';
+                                        if (isToday) pulse = true;
+                                    } else if (dayInfo.level === 3) {
+                                        // Acidente Com Baixa (Vermelho A piscar sempre!)
+                                        bgClass = 'bg-red-600 text-white border-2 border-red-400';
+                                        pulse = true; // Acidentes graves piscam sempre na TV
+                                        shadow = 'shadow-[0_0_15px_rgba(220,38,38,0.8)]';
+                                    }
+
                                     return (
-                                        <div key={i} className={`flex items-center justify-center rounded-sm transition-all duration-1000 ${isTodayStr ? 'bg-amber-400 text-black border-2 border-amber-600 shadow-[0_0_15px_rgba(251,191,36,0.6)] animate-pulse'
-                                                : 'bg-emerald-500/80 border border-emerald-400/50 shadow-[inset_0_2px_4px_rgba(255,255,255,0.2)]'
-                                            }`}></div>
+                                        <div key={dayNum} className={`flex items-center justify-center rounded-sm font-black text-xs transition-all duration-1000 aspect-square ${bgClass} ${pulse ? 'animate-pulse' : ''} ${shadow}`}>
+                                            {dayNum}
+                                        </div>
                                     );
                                 })}
                             </div>
-                            <div className="flex justify-center gap-6 mt-6 w-full pt-4 border-t border-slate-800">
-                                <div className="flex items-center gap-2"><div className="w-3 h-3 bg-emerald-500/80 border border-emerald-400 rounded-sm"></div><span className="text-[10px] text-slate-400 uppercase font-black tracking-widest">Sem Ocorrências</span></div>
-                                <div className="flex items-center gap-2"><div className="w-3 h-3 bg-rose-500 rounded-sm shadow-[0_0_8px_rgba(244,63,94,0.8)]"></div><span className="text-[10px] text-slate-400 uppercase font-black tracking-widest">Acidente s/ Baixa</span></div>
+                            <div className="flex justify-center gap-4 mt-6 w-full pt-4 border-t border-slate-800">
+                                <div className="flex items-center gap-1.5"><div className="w-3 h-3 bg-emerald-500/80 border border-emerald-400 rounded-sm"></div><span className="text-[9px] text-slate-400 uppercase font-black tracking-widest">Seguro</span></div>
+                                <div className="flex items-center gap-1.5"><div className="w-3 h-3 bg-yellow-400 rounded-sm"></div><span className="text-[9px] text-slate-400 uppercase font-black tracking-widest">Incidente</span></div>
+                                <div className="flex items-center gap-1.5"><div className="w-3 h-3 bg-red-600 rounded-sm shadow-[0_0_8px_rgba(244,63,94,0.8)]"></div><span className="text-[9px] text-slate-400 uppercase font-black tracking-widest">Acidente</span></div>
                             </div>
                         </div>
                     )}
