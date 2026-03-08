@@ -22,6 +22,17 @@ export default function TVConfiguracoesPage() {
     const [alvoId, setAlvoId] = useState('');
     const [layout, setLayout] = useState('KPIS_HINT');
 
+    // Layout Modular Toggles
+    const [opcoesLayout, setOpcoesLayout] = useState({
+        showOeeDay: true,
+        showOeeMonth: true,
+        showWorkerOfMonth: true,
+        showSafeArea: true,
+        showBottlenecks: true,
+        showEfficiency: true,
+        minimiseAndon: true
+    });
+
     // Select Data Options
     const [linhas, setLinhas] = useState<any[]>([]);
     const [areas, setAreas] = useState<any[]>([]);
@@ -53,7 +64,8 @@ export default function TVConfiguracoesPage() {
             nome_tv: nomeTv,
             tipo_alvo: tipoAlvo,
             alvo_id: tipoAlvo === 'GERAL' ? null : alvoId,
-            layout_preferencial: layout
+            layout_preferencial: layout,
+            opcoes_layout: opcoesLayout
         };
 
         const res = await addTVConfig(payload);
@@ -61,6 +73,15 @@ export default function TVConfiguracoesPage() {
             setIsAddModalOpen(false);
             setNomeTv('');
             setAlvoId('');
+            setOpcoesLayout({
+                showOeeDay: true,
+                showOeeMonth: true,
+                showWorkerOfMonth: true,
+                showSafeArea: true,
+                showBottlenecks: true,
+                showEfficiency: true,
+                minimiseAndon: true
+            });
             await loadData();
         } else {
             alert("Erro ao adicionar TV: " + res.error);
@@ -224,6 +245,33 @@ export default function TVConfiguracoesPage() {
                                 </select>
                             </div>
                         )}
+
+                        <div className="space-y-3 pt-4 border-t border-slate-200">
+                            <Label className="text-blue-700 font-bold flex items-center gap-2">
+                                <Settings size={16} /> Widgets NASA-Level (Configuração do Layout)
+                            </Label>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                {Object.entries({
+                                    showOeeDay: "OEE Global do Dia (Real vs Objetivo)",
+                                    showOeeMonth: "KPI Mensal (Mês Atual)",
+                                    showWorkerOfMonth: "Herói do Mês (Destaque Colaborador)",
+                                    showSafeArea: "Ranking: Área Mais Segura (HST)",
+                                    showBottlenecks: "Alerta em Tempo Real: Gargalos Atuais",
+                                    showEfficiency: "Painel de Atrasos e Média Atual",
+                                    minimiseAndon: "Minimizar Alertas Andon (Poupar Espaço Tela)"
+                                }).map(([key, label]) => (
+                                    <label key={key} className="flex flex-row items-start gap-3 cursor-pointer p-3 hover:bg-white rounded-lg border border-transparent hover:border-slate-200 hover:shadow-sm transition-all">
+                                        <input
+                                            type="checkbox"
+                                            checked={opcoesLayout[key as keyof typeof opcoesLayout]}
+                                            onChange={() => setOpcoesLayout(prev => ({ ...prev, [key]: !prev[key as keyof typeof prev] }))}
+                                            className="w-5 h-5 mt-0.5 text-blue-600 rounded border-slate-300 focus:ring-blue-500 shrink-0"
+                                        />
+                                        <span className="text-sm font-semibold text-slate-700 select-none leading-tight">{label}</span>
+                                    </label>
+                                ))}
+                            </div>
+                        </div>
 
                         <DialogFooter className="mt-6 gap-2 sm:justify-between">
                             <Button type="button" variant="ghost" onClick={() => setIsAddModalOpen(false)}>

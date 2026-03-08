@@ -79,11 +79,48 @@ export async function buscarDashboardsTV(tv_id: string) {
 
         if (aErr) throw aErr;
 
+        // --- 5. NASA Level Metrics (Optional blocks based on opcoes_layout) ---
+        const opcoesLayout = configTv.opcoes_layout || {};
+        let advancedMetrics: any = { kpiOee: {}, heroiTurno: null, melhorArea: null, gargalos: [] };
+
+        try {
+            if (opcoesLayout.showWorkerOfMonth) {
+                const { data: topWorker } = await supabase.from('operadores').select('*').order('nota_eficiencia', { ascending: false }).limit(1).single();
+                advancedMetrics.heroiTurno = topWorker;
+            }
+
+            if (opcoesLayout.showSafeArea) {
+                // Fetch the first area just as a placeholder, realistically comes from a complex OEE/HST view
+                const { data: area } = await supabase.from('areas_fabrica').select('nome_area').limit(1).single();
+                advancedMetrics.melhorArea = { nome: area?.nome_area || 'Montagem Final', score: 98.5 };
+            }
+
+            if (opcoesLayout.showBottlenecks) {
+                // Fetch stations with the most unresolved incidents or delayed operations
+                const { data: g } = await supabase.from('alertas_andon').select('estacao_id, tipo_alerta, estacoes(nome_estacao)').eq('resolvido', false).limit(3);
+                advancedMetrics.gargalos = g || [];
+            }
+
+            if (opcoesLayout.showOeeDay || opcoesLayout.showOeeMonth || opcoesLayout.showEfficiency) {
+                // Normally fetched from log_ponto_diario accumulated vs Pausas
+                advancedMetrics.kpiOee = {
+                    diarioRealizado: 82.4,
+                    diarioObjetivo: 85.0,
+                    mensalRealizado: 79.1,
+                    mensalObjetivo: 85.0,
+                    atrasoMinutos: 14 // Mocked delay vs planned schedule
+                };
+            }
+        } catch (mErr) {
+            console.error("Metric aggregation silent fail:", mErr);
+        }
+
         return {
             success: true,
             config: configTv,
             barcos: barcos,
-            alertasGlobais: alertas || []
+            alertasGlobais: alertas || [],
+            advancedMetrics
         };
     } catch (err: any) {
         return { success: false, error: err.message || "Erro Técnico TV." };

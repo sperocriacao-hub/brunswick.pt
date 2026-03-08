@@ -29,7 +29,8 @@ export async function addTVConfig(payload: any) {
                 nome_tv: payload.nome_tv,
                 tipo_alvo: payload.tipo_alvo,
                 alvo_id: payload.alvo_id || null,
-                layout_preferencial: payload.layout_preferencial
+                layout_preferencial: payload.layout_preferencial,
+                opcoes_layout: payload.opcoes_layout || {}
             })
             .select()
             .single();
