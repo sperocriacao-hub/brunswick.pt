@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Calendar, Tag, Info, Save, Anchor, PlusCircle, CheckSquare } from 'lucide-react';
+import { Calendar, Tag, Info, Save, Anchor, PlusCircle, CheckSquare, ArrowLeft } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -180,7 +180,7 @@ export default function NovaOrdermProducaoPage() {
 
         if (res.success) {
             alert('Ordem de Produção Emitida com Sucesso!');
-            router.push('/admin/producao/planeamento');
+            router.push('/admin/producao/ordens');
         } else {
             alert('Erro ao emitir OP: ' + res.error);
         }
@@ -189,14 +189,24 @@ export default function NovaOrdermProducaoPage() {
 
     return (
         <div className="container mx-auto mt-4 animate-fade-in max-w-7xl pb-20">
-            <header className="flex justify-between items-center mb-8">
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight text-blue-900">Planeamento de Produção (MES)</h1>
-                    <p className="text-muted-foreground mt-1">Emissão e escalonamento de novas Ordens de Produção.</p>
+            <header className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-8">
+                <div className="flex items-start gap-4">
+                    <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => router.push('/admin/producao/ordens')}
+                        className="mt-1 shrink-0"
+                    >
+                        <ArrowLeft size={18} className="text-slate-600" />
+                    </Button>
+                    <div>
+                        <h1 className="text-3xl font-bold tracking-tight text-blue-900">Nova Ordem de Produção</h1>
+                        <p className="text-muted-foreground mt-1">Emissão manual e escalonamento de OPs para o Shopfloor.</p>
+                    </div>
                 </div>
-                <Button className="bg-blue-600 hover:bg-blue-700 text-white shadow-md" onClick={handleSubmit} disabled={isSubmitting || isLoading}>
+                <Button className="bg-blue-600 hover:bg-blue-700 text-white shadow-md sm:w-auto w-full" onClick={handleSubmit} disabled={isSubmitting || isLoading}>
                     <Save size={18} className="mr-2" />
-                    {isSubmitting ? 'A emitir...' : 'Emitir Ordem (OP)'}
+                    {isSubmitting ? 'A emitir...' : 'Guardar e Emitir (OP)'}
                 </Button>
             </header>
 
