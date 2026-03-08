@@ -21,6 +21,7 @@ export default function TVConfiguracoesPage() {
     const [tipoAlvo, setTipoAlvo] = useState('AREA');
     const [alvoId, setAlvoId] = useState('');
     const [layout, setLayout] = useState('KPIS_HINT');
+    const [currentHost, setCurrentHost] = useState('brunswick-pt.vercel.app'); // fallback
 
     // Layout Modular Toggles
     const [opcoesLayout, setOpcoesLayout] = useState({
@@ -38,6 +39,9 @@ export default function TVConfiguracoesPage() {
     const [areas, setAreas] = useState<any[]>([]);
 
     useEffect(() => {
+        if (typeof window !== 'undefined') {
+            setCurrentHost(window.location.host);
+        }
         loadData();
     }, []);
 
@@ -173,7 +177,7 @@ export default function TVConfiguracoesPage() {
                                         </div>
                                         <div className="flex-1 flex flex-col items-start justify-center">
                                             <span className="text-xs text-slate-500 font-medium">No Browser da TV abra:</span>
-                                            <span className="text-sm font-bold text-blue-600">brunswick.pt/tv/{tv.codigo_curto || 'XXXXX'}</span>
+                                            <span className="text-sm font-bold text-blue-600">{currentHost}/tv/{tv.codigo_curto || 'XXXXX'}</span>
                                         </div>
                                         <Link href={`/tv/live/${tv.id}`} target="_blank">
                                             <Button size="icon" variant="outline" className="h-10 w-10 border-blue-200 text-blue-600 hover:bg-blue-50" title="Abrir Dashboard (Teste Rápido)">
