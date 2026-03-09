@@ -13,9 +13,9 @@ type Area = {
 
 type Modelo = {
     id: string;
-    nome: string;
+    nome_modelo: string;
     versao: string;
-    imagem_url: string | null;
+    model_year: string | null;
 };
 
 type TimingRule = {
@@ -48,8 +48,8 @@ export default function RegrasSequenciamentoPage() {
             // Fetch Modelos
             const { data: modelosData } = await supabase
                 .from('modelos')
-                .select('id, nome, versao, imagem_url')
-                .order('nome', { ascending: true });
+                .select('id, nome_modelo, versao, model_year')
+                .order('nome_modelo', { ascending: true });
 
             if (modelosData) setModelos(modelosData);
 
@@ -180,16 +180,12 @@ export default function RegrasSequenciamentoPage() {
                                 <tr key={modelo.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                                     <td style={{ padding: '1rem', position: 'sticky', left: 0, zIndex: 8, background: 'var(--background-panel)', borderRight: '1px solid rgba(255,255,255,0.1)' }}>
                                         <div className="flex items-center gap-3">
-                                            <div style={{ width: 40, height: 40, borderRadius: '8px', overflow: 'hidden', background: '#1e293b', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                {modelo.imagem_url ? (
-                                                    <Image src={modelo.imagem_url} alt={modelo.nome} width={40} height={40} style={{ objectFit: 'cover' }} />
-                                                ) : (
-                                                    <span style={{ fontSize: '0.6rem', opacity: 0.5 }}>S/ img</span>
-                                                )}
+                                            <div style={{ width: 40, height: 40, borderRadius: '8px', overflow: 'hidden', background: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                <span style={{ fontSize: '0.6rem', opacity: 0.5, fontWeight: 700 }}>N.D</span>
                                             </div>
                                             <div>
-                                                <div style={{ fontWeight: 600, fontSize: '0.95rem' }}>{modelo.nome}</div>
-                                                <div style={{ fontSize: '0.75rem', opacity: 0.6 }}>v{modelo.versao}</div>
+                                                <div style={{ fontWeight: 600, fontSize: '0.95rem' }}>{modelo.nome_modelo}</div>
+                                                <div style={{ fontSize: '0.75rem', opacity: 0.6 }}>Ano: {modelo.model_year}</div>
                                             </div>
                                         </div>
                                     </td>
