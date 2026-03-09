@@ -22,7 +22,7 @@ const severityLevels: Record<string, number> = {
     'Incidente/Quase-Acidente': 1,
 };
 
-export async function getSafetyCross(year: number, month: number) {
+export async function getSafetyCross(year: number, month: number, tipo_alvo?: string, alvo_id?: string, estacoes_alvo?: string[]) {
     try {
         const startDate = startOfMonth(new Date(year, month - 1)); // Date-fns is 0-indexed for months
         const endDate = endOfMonth(new Date(year, month - 1));
@@ -30,7 +30,7 @@ export async function getSafetyCross(year: number, month: number) {
         // Ensure accurate filtering capturing the full last day
         const endFilterDate = endOfDay(endDate);
 
-        const { data: ocorrencias, error } = await supabase
+        let query = supabase
             .from('hst_ocorrencias')
             .select(`
                 id,
@@ -42,6 +42,15 @@ export async function getSafetyCross(year: number, month: number) {
             .gte('data_hora_ocorrencia', startDate.toISOString())
             .lte('data_hora_ocorrencia', endFilterDate.toISOString())
             .order('data_hora_ocorrencia', { ascending: true });
+
+        // Aplica filtros de escopo se providenciados (TV)
+        if (tipo_alvo === 'AREA' && alvo_id) {
+            query = query.eq('area_id', alvo_id);
+        } else if (tipo_alvo === 'LINHA' && estacoes_alvo && estacoes_alvo.length > 0) {
+            query = query.in('estacao_id', estacoes_alvo);
+        }
+
+        const { data: ocorrencias, error } = await query;
 
         if (error) throw error;
 

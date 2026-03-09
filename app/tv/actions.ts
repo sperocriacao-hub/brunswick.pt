@@ -152,99 +152,140 @@ export async function buscarDashboardsTV(tv_id: string) {
             }
 
             if (opcoesLayout.showBottlenecks) {
-                // Fetch stations with the most recent unresolved incidents
-                const { data: gargalosData } = await supabase
+                // Fetch stations with the most recent unresolved incidents, constrained to this TV's scope
+                let gargalosQuery = supabase
                     .from('alertas_andon')
                     .select('criado_em, tipo_alerta, estacoes(nome_estacao)')
                     .eq('resolvido', false)
                     .order('criado_em', { ascending: false })
                     .limit(3);
 
+                if (dictEstacoes.length > 0 && configTv.tipo_alvo !== 'GERAL') {
+                    gargalosQuery = gargalosQuery.in('estacao_id', dictEstacoes);
+                }
+
+                const { data: gargalosData } = await gargalosQuery;
                 advancedMetrics.gargalos = gargalosData || [];
             }
 
             if (opcoesLayout.showOeeDay || opcoesLayout.showOeeMonth || opcoesLayout.showEfficiency) {
-                // To display live telemetry without building a massive data warehouse query inline,
-                // we aggregate simply from the realtime operations logged today
-                const startOfDay = new Date();
-                startOfDay.setHours(0, 0, 0, 0);
+                // Cálculo de Rendimento baseado na Atividade Física Real:
+                // Qual a proporção de Barcos na linha que já passaram do Planeado?
+                let opsInTimeList: any[] = [];
+                let opsDelayedList: any[] = [];
 
-                const { count: completedOps } = await supabase
-                    .from('registos_rfid_realtime')
-                    .select('*', { count: 'exact', head: true })
-                    .gte('timestamp_inicio', startOfDay.toISOString())
-                    .not('timestamp_fim', 'is', null);
+                if (dictEstacoes.length > 0) {
+                    const { data: estacoesOps } = await supabase
+                        .from('registos_rfid_realtime')
+                        .select('id, timestamp_inicio, ordem:op_id(semana_planeada)')
+                        .is('timestamp_fim', null)
+                        .in('estacao_id', dictEstacoes);
 
-                const baseRealizado = 70 + (completedOps ? completedOps * 2 : Math.random() * 15); // Dynamic calculation based on DB activity
+                    if (estacoesOps) {
+                        const currentWeek = 10; // Simple mockup logic for current week until calendar utils are invoked
+                        estacoesOps.forEach((op: any) => {
+                            if (op.ordem?.semana_planeada >= currentWeek) opsInTimeList.push(op);
+                            else opsDelayedList.push(op);
+                        });
+                    }
+                }
+
+                const totalAtivas = opsInTimeList.length + opsDelayedList.length;
+                let kpiRealizado = 0;
+                let percentAtraso = 0;
+
+                if (totalAtivas > 0) {
+                    const pctEmDia = (opsInTimeList.length / totalAtivas) * 100;
+                    kpiRealizado = pctEmDia; // Ex: se todos estiverem na semana certa, 100%
+                    percentAtraso = 100 - pctEmDia;
+                }
 
                 advancedMetrics.kpiOee = {
-                    diarioRealizado: Math.min(100, parseFloat(baseRealizado.toFixed(1))),
+                    diarioRealizado: parseFloat(kpiRealizado.toFixed(1)),
                     diarioObjetivo: 85.0,
-                    mensalRealizado: 79.1,
+                    mensalRealizado: parseFloat(Math.max(0, kpiRealizado - 4).toFixed(1)), // Mockup variation
                     mensalObjetivo: 85.0,
-                    atrasoMinutos: Math.floor(Math.random() * 20), // Represents operational backlog
-                    percentagemAtraso: parseFloat((Math.random() * 8).toFixed(1)) // % Atraso vs Plano
+                    atrasoMinutos: opsDelayedList.length * 45, // Ex: 45 min penalty per delayed boat
+                    percentagemAtraso: parseFloat(percentAtraso.toFixed(1))
                 };
             }
 
-            if (opcoesLayout.showAbsentismo) {
-                let opsQuery = supabase.from('operadores').select('tag_rfid').eq('status', 'ATIVO');
+            let opsRfidsForKpis: string[] = [];
+            if (opcoesLayout.showAbsentismo || opcoesLayout.showHstKpis) {
+                let opsQuery = supabase.from('operadores').select('id, tag_rfid').eq('status', 'ATIVO');
                 if (configTv.tipo_alvo === 'AREA' && configTv.alvo_id) {
                     opsQuery = opsQuery.eq('area_base_id', configTv.alvo_id);
                 } else if (configTv.tipo_alvo === 'LINHA' && configTv.alvo_id) {
                     opsQuery = opsQuery.eq('linha_base_id', configTv.alvo_id);
                 }
                 const { data: ops } = await opsQuery;
-                const opsRfids = (ops || []).map(o => o.tag_rfid).filter(Boolean);
-                const totalCadastrados = opsRfids.length;
+                const activeOps = ops || [];
+                const opsRfids = activeOps.map(o => o.tag_rfid).filter(Boolean);
+                opsRfidsForKpis = opsRfids;
 
-                let absentismoData = { taxa: 0, faltosos: 0, cadastrados: totalCadastrados };
+                if (opcoesLayout.showAbsentismo) {
+                    const totalCadastrados = opsRfids.length;
+                    let absentismoData = { taxa: 0, faltosos: 0, cadastrados: totalCadastrados };
 
-                if (totalCadastrados > 0) {
-                    const hojeStr = new Date().toISOString().split('T')[0];
-                    const { data: presencas } = await supabase.from('log_ponto_diario')
-                        .select('operador_rfid')
-                        .gte('timestamp', `${hojeStr}T00:00:00Z`)
-                        .lte('timestamp', `${hojeStr}T23:59:59Z`)
-                        .in('operador_rfid', opsRfids);
+                    if (totalCadastrados > 0) {
+                        const hojeStr = new Date().toISOString().split('T')[0];
+                        const { data: presencas } = await supabase.from('log_ponto_diario')
+                            .select('operador_rfid')
+                            .gte('timestamp', `${hojeStr}T00:00:00Z`)
+                            .lte('timestamp', `${hojeStr}T23:59:59Z`)
+                            .in('operador_rfid', opsRfids);
 
-                    const rfidsPresentes = new Set((presencas || []).map(p => p.operador_rfid));
-                    const totalPresentes = rfidsPresentes.size;
-                    const totalAusentes = Math.max(0, totalCadastrados - totalPresentes);
-                    const taxa = totalPresentes > 0 ? (totalAusentes / totalCadastrados) * 100 : 0;
-                    absentismoData = { taxa: parseFloat(taxa.toFixed(1)), faltosos: totalAusentes, cadastrados: totalCadastrados };
+                        const rfidsPresentes = new Set((presencas || []).map(p => p.operador_rfid));
+                        const totalPresentes = rfidsPresentes.size;
+                        const totalAusentes = Math.max(0, totalCadastrados - totalPresentes);
+                        const taxa = totalPresentes > 0 ? (totalAusentes / totalCadastrados) * 100 : 0;
+                        absentismoData = { taxa: parseFloat(taxa.toFixed(1)), faltosos: totalAusentes, cadastrados: totalCadastrados };
+                    }
+                    advancedMetrics.absentismo = absentismoData;
                 }
-                // Even if 0 cadres, we ensure the object exists so the widget renders
-                advancedMetrics.absentismo = absentismoData;
-            }
 
-            if (opcoesLayout.showHstKpis) {
-                const hojeStr = new Date().toISOString().split('T')[0];
-                const { data: evals } = await supabase.from('avaliacoes_diarias')
-                    .select('nota_hst, nota_qualidade')
-                    .eq('data_avaliacao', hojeStr);
+                if (opcoesLayout.showHstKpis) {
+                    const hojeStr = new Date().toISOString().split('T')[0];
+                    let evalsQuery = supabase.from('avaliacoes_diarias')
+                        .select('nota_hst, nota_qualidade')
+                        .eq('data_avaliacao', hojeStr);
 
-                let sumHst = 0, sumQualidade = 0;
-                let count = (evals || []).length;
+                    // Re-utilizar os UUIDs dos operadores ativos no Escopo (Não Rfids, UUIDS)
+                    const opsUuids = activeOps.map(o => o.id).filter(Boolean);
+                    if (opsUuids.length > 0 && configTv.tipo_alvo !== 'GERAL') {
+                        evalsQuery = evalsQuery.in('funcionario_id', opsUuids);
+                    }
 
-                if (count > 0) {
-                    evals?.forEach(e => {
-                        sumHst += Number(e.nota_hst || 0);
-                        sumQualidade += Number(e.nota_qualidade || 0);
-                    });
-                    advancedMetrics.hstKpis = {
-                        segurancaDiaria: parseFloat(((sumHst / count) / 4 * 100).toFixed(1)),
-                        conformidadeFabril: parseFloat(((sumQualidade / count) / 4 * 100).toFixed(1))
-                    };
-                } else {
-                    advancedMetrics.hstKpis = { segurancaDiaria: 100, conformidadeFabril: 100 };
+                    const { data: evals } = await evalsQuery;
+
+                    let sumHst = 0, sumQualidade = 0;
+                    let count = (evals || []).length;
+
+                    if (count > 0) {
+                        evals?.forEach(e => {
+                            sumHst += Number(e.nota_hst || 0);
+                            sumQualidade += Number(e.nota_qualidade || 0);
+                        });
+                        advancedMetrics.hstKpis = {
+                            segurancaDiaria: parseFloat(((sumHst / count) / 4 * 100).toFixed(1)),
+                            conformidadeFabril: parseFloat(((sumQualidade / count) / 4 * 100).toFixed(1))
+                        };
+                    } else {
+                        advancedMetrics.hstKpis = { segurancaDiaria: 100, conformidadeFabril: 100 };
+                    }
                 }
             }
 
             if (opcoesLayout.showSafetyCross) {
                 try {
                     const now = new Date();
-                    const scRes = await getSafetyCross(now.getFullYear(), now.getMonth() + 1);
+                    const scRes = await getSafetyCross(
+                        now.getFullYear(),
+                        now.getMonth() + 1,
+                        configTv.tipo_alvo,
+                        configTv.alvo_id,
+                        dictEstacoes
+                    );
                     if (scRes.success && scRes.data) {
                         advancedMetrics.safetyCrossDays = scRes.data;
                     } else {
