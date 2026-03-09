@@ -48,8 +48,8 @@ interface LinhaProducao {
 // Representa a Extensão DB da Ligação (Edge)
 interface SequenciaDb {
     id: string;
-    predecessora_id: string;
-    sucessora_id: string;
+    estacao_predecessora_id: string;
+    estacao_sucessora_id: string;
     requer_kitting: boolean;
     kitting_offset_horas: number;
 }
@@ -128,8 +128,8 @@ export default function GrafoEstacoes({ estacoes, areas, linhas }: GrafoProps) {
             if (data) {
                 const initialEdges: Edge[] = data.map((link) => ({
                     id: link.id,
-                    source: link.predecessora_id,
-                    target: link.sucessora_id,
+                    source: link.estacao_predecessora_id,
+                    target: link.estacao_sucessora_id,
                     animated: true,
                     style: { stroke: link.requer_kitting ? '#f59e0b' : 'var(--primary)', strokeWidth: link.requer_kitting ? 3 : 2 },
                     markerEnd: {
@@ -161,8 +161,8 @@ export default function GrafoEstacoes({ estacoes, areas, linhas }: GrafoProps) {
             const { data, error } = await supabase
                 .from('estacoes_sequencia')
                 .insert([{
-                    predecessora_id: params.source,
-                    sucessora_id: params.target,
+                    estacao_predecessora_id: params.source,
+                    estacao_sucessora_id: params.target,
                     requer_kitting: false,
                     kitting_offset_horas: 0
                 }])
@@ -181,8 +181,8 @@ export default function GrafoEstacoes({ estacoes, areas, linhas }: GrafoProps) {
             // Atualiza o Ecrã aclamando visualmente o Edge validado pela BD
             const newEdge: Edge = {
                 id: data.id,
-                source: data.predecessora_id,
-                target: data.sucessora_id,
+                source: data.estacao_predecessora_id,
+                target: data.estacao_sucessora_id,
                 animated: true,
                 style: { stroke: 'var(--primary)', strokeWidth: 2 },
                 markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--primary)' },
