@@ -48,8 +48,8 @@ interface LinhaProducao {
 // Representa a Extensão DB da Ligação (Edge)
 interface SequenciaDb {
     id: string;
-    estacao_predecessora_id: string;
-    estacao_sucessora_id: string;
+    predecessora_id: string;
+    sucessora_id: string;
     requer_kitting: boolean;
     kitting_offset_horas: number;
 }
@@ -128,13 +128,13 @@ export default function GrafoEstacoes({ estacoes, areas, linhas }: GrafoProps) {
             if (data) {
                 const initialEdges: Edge[] = data.map((link) => ({
                     id: link.id,
-                    source: link.estacao_predecessora_id,
-                    target: link.estacao_sucessora_id,
+                    source: link.predecessora_id,
+                    target: link.sucessora_id,
                     animated: true,
-                    style: { stroke: link.requer_kitting ? '#f59e0b' : 'var(--primary)', strokeWidth: link.requer_kitting ? 3 : 2 },
+                    style: { stroke: link.requer_kitting ? '#f59e0b' : '#3b82f6', strokeWidth: link.requer_kitting ? 3 : 2 },
                     markerEnd: {
                         type: MarkerType.ArrowClosed,
-                        color: link.requer_kitting ? '#f59e0b' : 'var(--primary)',
+                        color: link.requer_kitting ? '#f59e0b' : '#3b82f6',
                     },
                     data: {
                         dbData: link
@@ -161,8 +161,8 @@ export default function GrafoEstacoes({ estacoes, areas, linhas }: GrafoProps) {
             const { data, error } = await supabase
                 .from('estacoes_sequencia')
                 .insert([{
-                    estacao_predecessora_id: params.source,
-                    estacao_sucessora_id: params.target,
+                    predecessora_id: params.source,
+                    sucessora_id: params.target,
                     requer_kitting: false,
                     kitting_offset_horas: 0
                 }])
@@ -181,11 +181,11 @@ export default function GrafoEstacoes({ estacoes, areas, linhas }: GrafoProps) {
             // Atualiza o Ecrã aclamando visualmente o Edge validado pela BD
             const newEdge: Edge = {
                 id: data.id,
-                source: data.estacao_predecessora_id,
-                target: data.estacao_sucessora_id,
+                source: data.predecessora_id,
+                target: data.sucessora_id,
                 animated: true,
-                style: { stroke: 'var(--primary)', strokeWidth: 2 },
-                markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--primary)' },
+                style: { stroke: '#3b82f6', strokeWidth: 2 },
+                markerEnd: { type: MarkerType.ArrowClosed, color: '#3b82f6' },
                 data: { dbData: data }
             };
             setEdges((eds) => addEdge(newEdge, eds));
@@ -242,8 +242,8 @@ export default function GrafoEstacoes({ estacoes, areas, linhas }: GrafoProps) {
                 if (edge.id === selectedEdgeId) {
                     return {
                         ...edge,
-                        style: { stroke: edgeConfig.requer_kitting ? '#f59e0b' : 'var(--primary)', strokeWidth: edgeConfig.requer_kitting ? 3 : 2 },
-                        markerEnd: { type: MarkerType.ArrowClosed, color: edgeConfig.requer_kitting ? '#f59e0b' : 'var(--primary)' },
+                        style: { stroke: edgeConfig.requer_kitting ? '#f59e0b' : '#3b82f6', strokeWidth: edgeConfig.requer_kitting ? 3 : 2 },
+                        markerEnd: { type: MarkerType.ArrowClosed, color: edgeConfig.requer_kitting ? '#f59e0b' : '#3b82f6' },
                         data: { ...edge.data, dbData: edgeConfig }
                     };
                 }
