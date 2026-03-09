@@ -7,17 +7,15 @@ import Image from 'next/image';
 
 type Modelo = {
     id: string;
-    nome: string;
-    versao: string;
-    imagem_url: string | null;
+    nome_modelo: string;
+    model_year: string;
 };
 
 type Parte = {
     id: string;
     nome_parte: string;
-    descricao: string | null;
+    num_molde: string | null;
     categoria: string;
-    parent_id: string | null;
 };
 
 type Estacao = {
@@ -30,7 +28,7 @@ type RoteiroPasso = {
     id?: string;
     modelo_id: string;
     sequencia_num: number;
-    parte_id: string;
+    composicao_molde_id: string;
     estacao_destino_id: string;
     tempo_ciclo_especifico: number;
     instrucoes_tecnicas: string | null;
@@ -52,7 +50,7 @@ export default function RoteirosPage() {
         setIsLoading(true);
         try {
             const [modRes, estRes] = await Promise.all([
-                supabase.from('modelos').select('id, nome, versao, imagem_url').order('nome'),
+                supabase.from('modelos').select('id, nome_modelo, model_year').order('nome_modelo'),
                 supabase.from('estacoes').select('id, nome_estacao, area:areas_fabrica(nome_area)').order('nome_estacao')
             ]);
 
@@ -80,7 +78,7 @@ export default function RoteirosPage() {
             setIsLoading(true);
             try {
                 const [bomRes, rotRes] = await Promise.all([
-                    supabase.from('modelo_partes').select('id, nome_parte, descricao, categoria, parent_id').eq('modelo_id', modeloAtivoId).order('created_at'),
+                    supabase.from('composicao_modelo').select('id, nome_parte, num_molde, categoria').eq('modelo_id', modeloAtivoId).order('created_at'),
                     supabase.from('roteiros_sequencia').select('*').eq('modelo_id', modeloAtivoId).order('sequencia_num', { ascending: true })
                 ]);
 
@@ -106,7 +104,7 @@ export default function RoteirosPage() {
         const newPasso: RoteiroPasso = {
             modelo_id: modeloAtivoId,
             sequencia_num: maxSeq + 10, // Incrementamos 10 em 10 para dar espaco a intercalar
-            parte_id: partes[0].id,
+            composicao_molde_id: partes[0].id,
             estacao_destino_id: estacoes[0].id,
             tempo_ciclo_especifico: 60,
             instrucoes_tecnicas: ''
@@ -130,26 +128,7 @@ export default function RoteirosPage() {
     const handleSaveRoteiro = async () => {
         if (!modeloAtivoId) return;
 
-        // VALIDAÇÃO B.O.M: Uma peça (parte_id) nunca pode entrar (sequencia_num) ANTES de uma peça que seja a sua parent_id.
-        for (const passo of roteiro) {
-            const parteAssociada = partes.find(p => p.id === passo.parte_id);
-            if (parteAssociada && parteAssociada.parent_id) {
-                // Existe uma parent_id. Temos de garantir que esta parent já foi montada num passo ANTERIOR ou no MESMO passo.
-                // Se a Parent não existe de todo no Roteiro atual, ou se ela for executada apenas no futuro, dá erro.
-                const passoDoPai = roteiro.find(r => r.parte_id === parteAssociada.parent_id);
-
-                if (!passoDoPai) {
-                    alert(`Validação B.O.M Falhou:\n\nA peça "${parteAssociada.nome_parte}" depende da peça Pai, mas a peça Pai não foi inserida no Roteiro Produtivo.`);
-                    return;
-                }
-
-                if (passoDoPai.sequencia_num > passo.sequencia_num) {
-                    const paiLocal = partes.find(p => p.id === parteAssociada.parent_id);
-                    alert(`Validação B.O.M Falhou:\n\nA peça "${parteAssociada.nome_parte}" (Agendada: Passo ${passo.sequencia_num}) tenta ser montada ANTES da sua peça predecessora obrigatória "${paiLocal?.nome_parte || 'Pai'}" (Agendada: Passo ${passoDoPai.sequencia_num}).`);
-                    return;
-                }
-            }
-        }
+        // O Validation do Parent node da BOM é removido por enquanto (composicao nao tem hierarquia profunda configurada)
 
         setIsSaving(true);
         try {
@@ -162,7 +141,7 @@ export default function RoteirosPage() {
                 const payload = roteiro.map(r => ({
                     modelo_id: r.modelo_id,
                     sequencia_num: r.sequencia_num,
-                    parte_id: r.parte_id,
+                    composicao_molde_id: r.composicao_molde_id,
                     estacao_destino_id: r.estacao_destino_id,
                     tempo_ciclo_especifico: r.tempo_ciclo_especifico,
                     instrucoes_tecnicas: r.instrucoes_tecnicas || null
@@ -238,12 +217,12 @@ export default function RoteirosPage() {
                                             display: 'flex', alignItems: 'center', gap: '12px'
                                         }}
                                     >
-                                        <div style={{ width: 36, height: 36, borderRadius: '6px', background: '#000', overflow: 'hidden', flexShrink: 0 }}>
-                                            {m.imagem_url && <Image src={m.imagem_url} alt={m.nome} width={36} height={36} style={{ objectFit: 'cover' }} />}
+                                        <div style={{ width: 36, height: 36, borderRadius: '6px', background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                            <Box size={16} className="text-slate-400" />
                                         </div>
                                         <div>
-                                            <div style={{ fontWeight: 600, fontSize: '0.9rem', lineHeight: 1.2 }}>{m.nome}</div>
-                                            <div style={{ fontSize: '0.7rem', opacity: 0.6 }}>Versão: {m.versao}</div>
+                                            <div style={{ fontWeight: 600, fontSize: '0.9rem', lineHeight: 1.2 }}>{m.nome_modelo}</div>
+                                            <div style={{ fontSize: '0.7rem', opacity: 0.6 }}>Year: {m.model_year}</div>
                                         </div>
                                     </div>
                                 ))}
@@ -288,8 +267,8 @@ export default function RoteirosPage() {
                                                 <div style={{ flex: 1 }}>
                                                     <label style={{ display: 'block', fontSize: '0.65rem', opacity: 0.5, marginBottom: '2px' }}>Peça / Categoria (BOM)</label>
                                                     <select
-                                                        value={passo.parte_id}
-                                                        onChange={e => handlePassoChange(idx, 'parte_id', e.target.value)}
+                                                        value={passo.composicao_molde_id}
+                                                        onChange={e => handlePassoChange(idx, 'composicao_molde_id', e.target.value)}
                                                         style={{ width: '100%', padding: '0.5rem', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', color: '#fff' }}
                                                     >
                                                         {partes.map(p => (
