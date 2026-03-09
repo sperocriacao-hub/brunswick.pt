@@ -9,8 +9,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 
 const PILLARS = [
@@ -191,52 +189,23 @@ export default function LoteAvaliacoesDiariasLayout() {
 
                 <div className="flex items-center gap-3 w-full md:w-auto">
                     <span className="text-xs font-semibold text-slate-700 uppercase tracking-wider hidden md:block">Filtrar por Área:</span>
-                    <Popover open={openCombobox} onOpenChange={setOpenCombobox}>
-                        <PopoverTrigger asChild>
-                            <Button
-                                variant="outline"
-                                role="combobox"
-                                aria-expanded={openCombobox}
-                                className="w-full md:w-[300px] justify-between bg-white text-slate-900 border-slate-300 hover:bg-slate-50 hover:text-slate-900 shadow-sm"
-                            >
-                                {selectedArea ? (
-                                    <span className="font-semibold">{selectedArea}</span>
-                                ) : (
-                                    <span className="text-slate-400">Selecione uma área...</span>
-                                )}
-                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[300px] p-0 bg-white border-slate-200 shadow-lg">
-                            <Command className="bg-white">
-                                <CommandInput placeholder="Buscar área..." className="h-9" />
-                                <CommandList className="max-h-[300px] overflow-y-auto">
-                                    <CommandEmpty>Nenhuma área encontrada.</CommandEmpty>
-                                    <CommandGroup>
-                                        {areas.map((area) => (
-                                            <CommandItem
-                                                key={area}
-                                                value={area}
-                                                onSelect={() => {
-                                                    setSelectedArea(area);
-                                                    setOpenCombobox(false);
-                                                }}
-                                                className="cursor-pointer hover:bg-slate-100"
-                                            >
-                                                <Check
-                                                    className={cn(
-                                                        "mr-2 h-4 w-4 text-blue-600",
-                                                        selectedArea === area ? "opacity-100" : "opacity-0"
-                                                    )}
-                                                />
-                                                {area}
-                                            </CommandItem>
-                                        ))}
-                                    </CommandGroup>
-                                </CommandList>
-                            </Command>
-                        </PopoverContent>
-                    </Popover>
+                    <div className="relative w-full md:w-[300px]">
+                        <select
+                            className="w-full appearance-none bg-white text-slate-900 border border-slate-300 hover:bg-slate-50 shadow-sm rounded-md h-10 px-3 pr-8 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            value={selectedArea || ""}
+                            onChange={(e) => setSelectedArea(e.target.value || null)}
+                        >
+                            <option value="">Selecione uma área...</option>
+                            {areas.map((area) => (
+                                <option key={area} value={area}>
+                                    {area}
+                                </option>
+                            ))}
+                        </select>
+                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-500">
+                            <ChevronsUpDown className="h-4 w-4 opacity-50" />
+                        </div>
+                    </div>
                 </div>
             </div>
 
