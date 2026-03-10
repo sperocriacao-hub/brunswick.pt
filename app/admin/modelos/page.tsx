@@ -113,7 +113,7 @@ export default function ModelosListPage() {
             <Loader2 size={48} className="animate-spin text-blue-400" />
           </div>
         ) : modelos.length === 0 ? (
-          <div className="bg-slate-900/40 border border-slate-700/50 backdrop-blur-sm shadow-xl rounded-2xl p-16 text-center flex flex-col items-center gap-4 relative overflow-hidden">
+          <div className="bg-blue-900/30 border border-blue-800/50 backdrop-blur-sm shadow-xl rounded-2xl p-16 text-center flex flex-col items-center gap-4 relative overflow-hidden">
             {/* Glow orb */}
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl pointer-events-none"></div>
 
@@ -141,13 +141,13 @@ export default function ModelosListPage() {
               <Link
                 href={`/admin/modelos/${modelo.id}`}
                 key={modelo.id}
-                className="group relative bg-slate-900/50 border border-slate-700/50 backdrop-blur-md rounded-2xl p-6 flex flex-col gap-4 transition-all duration-300 hover:-translate-y-1 hover:bg-slate-800/60 hover:border-blue-500/30 hover:shadow-[0_10px_40px_-10px_rgba(59,130,246,0.15)] cursor-pointer overflow-hidden"
+                className="group relative bg-blue-900/40 border border-blue-800/50 backdrop-blur-md rounded-2xl p-6 flex flex-col gap-4 transition-all duration-300 hover:-translate-y-1 hover:bg-blue-800/50 hover:border-blue-500/50 hover:shadow-[0_10px_40px_-10px_rgba(59,130,246,0.25)] cursor-pointer overflow-hidden"
               >
                 {/* Card Glow Effect on Hover */}
                 <div className="absolute inset-0 bg-gradient-to-br from-blue-500/0 via-transparent to-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
 
                 <div className="flex justify-between items-start relative z-10">
-                  <div className="w-12 h-12 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-300 flex-shrink-0 group-hover:text-blue-400 group-hover:border-blue-500/30 transition-colors">
+                  <div className="w-12 h-12 rounded-xl bg-blue-950 border border-blue-800/60 flex items-center justify-center text-blue-300 flex-shrink-0 group-hover:text-blue-400 group-hover:border-blue-500/50 transition-colors">
                     <Package size={24} />
                   </div>
                   <span
