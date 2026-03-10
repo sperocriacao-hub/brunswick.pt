@@ -138,8 +138,8 @@ export function Sidebar({
                     href={link.href}
                     onClick={() => setIsOpen(false)}
                     className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${isActive
-                        ? "bg-blue-800 text-white shadow-sm border border-transparent"
-                        : "text-blue-100 hover:bg-blue-800/50 hover:text-white"
+                      ? "bg-blue-800 text-white shadow-sm border border-transparent"
+                      : "text-blue-100 hover:bg-blue-800/50 hover:text-white"
                       }`}
                   >
                     <span
@@ -780,8 +780,8 @@ export function Sidebar({
 
         {/* Bottom Section - User Profile / Auth */}
         <div className="p-4 border-t border-[rgba(255,255,255,0.05)] bg-[rgba(15,23,42,0.6)] mt-auto">
-          <div className="flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-blue-800/50 rounded-lg transition-colors border border-transparent hover:border-[rgba(255,255,255,0.1)]">
-            <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold shadow-sm">
+          <Link href="/admin/perfil" className="flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-blue-800/50 rounded-lg transition-colors border border-transparent hover:border-[rgba(255,255,255,0.1)] w-full">
+            <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold shadow-sm shrink-0">
               {userEmail?.charAt(0).toUpperCase() || "A"}
             </div>
             <div className="flex flex-col overflow-hidden">
@@ -789,10 +789,10 @@ export function Sidebar({
                 {userEmail}
               </span>
               <span className="text-[10px] font-extrabold text-blue-400 uppercase tracking-wider mt-0.5">
-                Administrador
+                {nivelPermissao || "Utilizador"}
               </span>
             </div>
-          </div>
+          </Link>
         </div>
       </aside>
     </>

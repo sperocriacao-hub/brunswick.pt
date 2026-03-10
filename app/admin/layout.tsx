@@ -22,9 +22,34 @@ export default async function AdminLayout({
         redirect('/login');
     }
 
+    let permissoesModulos: string[] = [];
+    let nivelPermissao = '';
+
+    if (user?.email) {
+        if (user.email === 'master@brunswick.pt') {
+            nivelPermissao = 'Admin';
+        } else {
+            // Fetch Admin/Operador row to get granular permissions
+            const { data: opData } = await supabase
+                .from('operadores')
+                .select('nivel_permissao, permissoes_modulos')
+                .eq('email_acesso', user.email)
+                .single();
+
+            if (opData) {
+                nivelPermissao = opData.nivel_permissao || '';
+                permissoesModulos = opData.permissoes_modulos || [];
+            }
+        }
+    }
+
     return (
         <div className="flex flex-col md:flex-row h-screen w-full bg-background text-foreground overflow-hidden">
-            <Sidebar userEmail={user?.email} />
+            <Sidebar
+                userEmail={user?.email}
+                nivelPermissao={nivelPermissao}
+                permissoesModulos={permissoesModulos}
+            />
 
             <main className="flex-1 overflow-y-auto bg-slate-100 p-4 md:p-8">
                 {children}
