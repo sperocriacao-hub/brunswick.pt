@@ -16,7 +16,7 @@ function FuncionarioFormCore() {
     const [isLoading, setIsLoading] = useState(false);
     const [isFetchingData, setIsFetchingData] = useState(!!id);
     const [estacoesDisponiveis, setEstacoesDisponiveis] = useState<{ id: string, nome_estacao: string }[]>([]);
-    const [areasDisponiveis, setAreasDisponiveis] = useState<{ id: string, nome_area: string, sigla_area: string }[]>([]);
+    const [areasDisponiveis, setAreasDisponiveis] = useState<{ id: string, nome_area: string }[]>([]);
 
     // State Unificado do Formulário (Os 5 Blocos)
     const [formData, setFormData] = useState({
@@ -56,7 +56,7 @@ function FuncionarioFormCore() {
             .then(({ data }) => setEstacoesDisponiveis(data || []));
 
         // Carregar Áreas de Fábrica (Para Equipa / Grupo)
-        supabase.from('areas_fabrica').select('id, nome_area, sigla_area').order('nome_area')
+        supabase.from('areas_fabrica').select('id, nome_area').order('nome_area')
             .then(({ data }) => setAreasDisponiveis(data || []));
 
         // Carregar Dados se Modo Edição
@@ -204,7 +204,7 @@ function FuncionarioFormCore() {
                             <select value={formData.grupo_equipa} onChange={e => setFormData({ ...formData, grupo_equipa: e.target.value })} className={`${inputClass} appearance-none`}>
                                 <option value="">Não Alocada...</option>
                                 {areasDisponiveis.map(a => (
-                                    <option key={a.id} value={a.nome_area}>{a.nome_area} ({a.sigla_area})</option>
+                                    <option key={a.id} value={a.nome_area}>{a.nome_area}</option>
                                 ))}
                             </select>
                         </div>
