@@ -11,9 +11,8 @@ export interface CriarModeloInput {
     nome_modelo: string;
     model_year: string;
     linha_id: string;
-    categoria: string;
-    imagem_url: string;
 
+    tarefasGerais: InTarefa[];
     opcionais: InOpcional[];
 }
 
@@ -29,8 +28,6 @@ export async function criarModeloCompleto(input: CriarModeloInput): Promise<{ su
                 nome_modelo: input.nome_modelo,
                 model_year: input.model_year,
                 linha_id: input.linha_id || null,
-                categoria: input.categoria || null,
-                imagem_url: input.imagem_url || null,
                 status: 'Em Desenvolvimento',
                 versao: '1.0'
             })
@@ -40,7 +37,21 @@ export async function criarModeloCompleto(input: CriarModeloInput): Promise<{ su
         if (errModelo) throw errModelo;
         const modeloId = modeloCriado.id;
 
-        // Roteiros (Tarefas Básicas) were removed from here because they are now managed in the "Engenharia > Roteiros (B.O.M)" module.
+        // 3. Inserir Roteiros de Produção Gerais (Tarefas Básicas)
+        if (input.tarefasGerais.length > 0) {
+            const roteirosPayload = input.tarefasGerais.map(t => ({
+                modelo_id: modeloId,
+                sequencia: parseInt(t.ordem) || 1,
+                descricao_tarefa: t.descricao,
+                estacao_id: t.estacao_id || null,
+                imagem_instrucao_url: t.imagem_url || null,
+                tempo_ciclo: 0,
+                offset_dias: 0,
+                duracao_dias: 1
+            }));
+            const { error: errRoteiro } = await supabase.from('roteiros_producao').insert(roteirosPayload);
+            if (errRoteiro) throw errRoteiro;
+        }
 
         // 4 & 5. Inserir Opcionais e suas Tarefas
         if (input.opcionais.length > 0) {

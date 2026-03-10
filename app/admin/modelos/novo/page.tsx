@@ -40,8 +40,7 @@ export default function NovoModeloPage() {
     const [nomeModelo, setNomeModelo] = useState('');
     const [modelYear, setModelYear] = useState('');
     const [linhaId, setLinhaId] = useState('');
-    const [categoria, setCategoria] = useState('Cruiser');
-    const [imagemUrl, setImagemUrl] = useState('');
+    const [tarefasGerais, setTarefasGerais] = useState<Tarefa[]>([]);
 
     const [linhasProducao, setLinhasProducao] = useState<{ id: string, descricao_linha: string }[]>([]);
 
@@ -57,6 +56,15 @@ export default function NovoModeloPage() {
     // Estado do Modal de Opcional
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [currentOpcional, setCurrentOpcional] = useState<Opcional | null>(null);
+
+    // Handlers Tarefas Gerais
+    const addTarefaGeral = () => {
+        setTarefasGerais([...tarefasGerais, { id: crypto.randomUUID(), ordem: '', descricao: '', estacao_id: '', imagem_url: '' }]);
+    };
+    const updateTarefaGeral = (id: string, field: keyof Tarefa, value: string) => {
+        setTarefasGerais(tarefasGerais.map(t => t.id === id ? { ...t, [field]: value } : t));
+    };
+    const removeTarefaGeral = (id: string) => setTarefasGerais(tarefasGerais.filter(t => t.id !== id));
 
     // Handlers Opcional (Modal)
     const openNewOpcionalModal = () => {
@@ -118,7 +126,7 @@ export default function NovoModeloPage() {
         setIsUploading(true);
         // Colocar visual provisório para animar o user
         if (contextoId === 'geral') {
-            setImagemUrl('A carregar... ⏳');
+            updateTarefaGeral(tarefaId, 'imagem_url', 'A carregar... ⏳');
         } else {
             updateTarefaOpcional(tarefaId, 'imagem_url', 'A carregar... ⏳');
         }
@@ -141,7 +149,7 @@ export default function NovoModeloPage() {
 
             // Só lidamos com imagem de modelo base ou de opcional
             if (contextoId === 'geral') {
-                setImagemUrl(data.url);
+                updateTarefaGeral(tarefaId, 'imagem_url', data.url);
             } else {
                 updateTarefaOpcional(tarefaId, 'imagem_url', data.url);
             }
@@ -150,7 +158,7 @@ export default function NovoModeloPage() {
         } catch (error) {
             console.error('Upload Error:', error);
             alert((error as Error).message || "Falha a comunicar com servidor. Verifique se o Bucket existe no Supabase.");
-            if (contextoId === 'geral') setImagemUrl('');
+            if (contextoId === 'geral') updateTarefaGeral(tarefaId, 'imagem_url', 'Erro ❌');
             else updateTarefaOpcional(tarefaId, 'imagem_url', 'Erro ❌');
         } finally {
             setIsUploading(false);
@@ -172,8 +180,7 @@ export default function NovoModeloPage() {
                 nome_modelo: nomeModelo,
                 model_year: modelYear,
                 linha_id: linhaId,
-                imagem_url: imagemUrl,
-                categoria: categoria,
+                tarefasGerais: tarefasGerais,
                 opcionais: opcionais
             };
 
@@ -233,56 +240,76 @@ export default function NovoModeloPage() {
                         </div>
                     </div>
 
-                    <div className="form-group flex flex-col gap-4">
-                        <div>
-                            <label className="form-label">Linha de Produção Mestre</label>
-                            <select className="form-control" value={linhaId} onChange={(e) => setLinhaId(e.target.value)}>
-                                <option value="">-- Selecione a Linha --</option>
-                                {linhasProducao.map(l => (
-                                    <option key={l.id} value={l.id}>{l.descricao_linha}</option>
-                                ))}
-                            </select>
-                        </div>
-                        <div>
-                            <label className="form-label">Categoria / Tipo de Navegação</label>
-                            <select className="form-control" value={categoria} onChange={(e) => setCategoria(e.target.value)}>
-                                <option value="Cruiser">Day Cruiser</option>
-                                <option value="Bowrider">Bowrider</option>
-                                <option value="Pilothouse">Pilothouse</option>
-                                <option value="Center Console">Center Console</option>
-                                <option value="Yacht">Yacht Deluxe</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    {/* FOTO DO BARCO */}
-                    <div className="col-span-2 form-group border border-white/10 p-4 rounded-xl flex items-center justify-between mt-2">
-                        <div className="flex items-center gap-4">
-                            <div className="w-16 h-16 rounded-lg bg-slate-900 flex items-center justify-center overflow-hidden border border-white/10">
-                                {imagemUrl ? (
-                                    <img src={imagemUrl} alt="Barco" className="w-full h-full object-cover" />
-                                ) : (
-                                    <ImageIcon size={24} className="text-white/20" />
-                                )}
-                            </div>
-                            <div>
-                                <h3 className="font-semibold text-sm">Imagem do Barco</h3>
-                                <p className="text-xs text-white/50">Carregue a foto oficial de catálogo deste modelo.</p>
-                            </div>
-                        </div>
-                        <label className="btn btn-outline cursor-pointer" style={{ margin: 0 }}>
-                            <input type="file" className="hidden" accept="image/*" disabled={isUploading} onChange={(e) => handleFileUpload(e, 'modelo-base', 'geral')} />
-                            {isUploading && imagemUrl === 'A carregar... ⏳' ? <Loader2 size={16} className="animate-spin mr-2" /> : <Upload size={16} className="mr-2" />}
-                            Upload Foto
-                        </label>
+                    <div className="form-group flex flex-col justify-end">
+                        <label className="form-label">Linha de Produção Mestre</label>
+                        <select className="form-control" value={linhaId} onChange={(e) => setLinhaId(e.target.value)}>
+                            <option value="">-- Selecione a Linha --</option>
+                            {linhasProducao.map(l => (
+                                <option key={l.id} value={l.id}>{l.descricao_linha}</option>
+                            ))}
+                        </select>
                     </div>
                 </div>
             </section >
 
+            {/* SECCTAO 3: TAREFAS GERAIS (Roteiro) */}
+            < section className="glass-panel p-6 mb-8 animate-delay-2" >
+                <div className="flex justify-between items-center mb-6">
+                    <h2 style={{ fontSize: '1.25rem', color: 'var(--primary)' }}>Tarefas de Produção Comuns (Geral)</h2>
+                    <button className="btn btn-outline" onClick={addTarefaGeral}>
+                        <Plus size={18} style={{ marginRight: '8px' }} /> Nova Tarefa
+                    </button>
+                </div>
 
-
-
-
+                <div className="table-container">
+                    <table className="table-premium">
+                        <thead>
+                            <tr>
+                                <th style={{ width: '80px' }}>Ordem</th>
+                                <th>Descrição da Tarefa</th>
+                                <th>Estação Alvo</th>
+                                <th style={{ textAlign: 'center' }}>Imagem Instrução</th>
+                                <th style={{ textAlign: 'right' }}>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {tarefasGerais.length === 0 && (
+                                <tr>
+                                    <td colSpan={5} style={{ textAlign: 'center', opacity: 0.5, padding: '2rem' }}>As tarefas gerais base darão corpo ao Roteiro por defeito do Barco.</td>
+                                </tr>
+                            )}
+                            {tarefasGerais.map(tarefa => (
+                                <tr key={tarefa.id}>
+                                    <td>
+                                        <input type="number" className="form-control" placeholder="Nº" value={tarefa.ordem} onChange={e => updateTarefaGeral(tarefa.id, 'ordem', e.target.value)} />
+                                    </td>
+                                    <td>
+                                        <input type="text" className="form-control" placeholder="Instrução exata para o operador..." value={tarefa.descricao} onChange={e => updateTarefaGeral(tarefa.id, 'descricao', e.target.value)} />
+                                    </td>
+                                    <td>
+                                        <select className="form-control" value={tarefa.estacao_id} onChange={e => updateTarefaGeral(tarefa.id, 'estacao_id', e.target.value)}>
+                                            <option value="">-- Estação --</option>
+                                            {ESTACOES.map(est => (
+                                                <option key={est.id} value={est.id}>{est.nome}</option>
+                                            ))}
+                                        </select>
+                                    </td>
+                                    <td style={{ textAlign: 'center' }}>
+                                        <label className="btn-icon" style={{ cursor: isUploading ? 'wait' : 'pointer', display: 'inline-flex', flexDirection: 'column', alignItems: 'center' }} title="Anexar Imagem ou PDF">
+                                            <input type="file" style={{ display: 'none' }} accept="image/*,.pdf" disabled={isUploading} onChange={(e) => handleFileUpload(e, tarefa.id, 'geral')} />
+                                            <Upload size={18} color={tarefa.imagem_url ? 'var(--secondary)' : 'currentColor'} />
+                                            {tarefa.imagem_url && <span style={{ fontSize: '0.65rem', color: tarefa.imagem_url.includes('Erro') ? 'var(--danger)' : 'var(--secondary)', marginTop: '4px', maxWidth: '80px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={tarefa.imagem_url}>{tarefa.imagem_url.startsWith('http') ? 'Anexado ✅' : tarefa.imagem_url}</span>}
+                                        </label>
+                                    </td>
+                                    <td style={{ textAlign: 'right' }}>
+                                        <button className="btn-icon danger" onClick={() => removeTarefaGeral(tarefa.id)}><Trash2 size={18} /></button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </section >
             {/* SECCTAO 4: OPCIONAIS (EXTRAS) */}
             < section className="glass-panel p-6 mb-8 animate-delay-3" >
                 <div className="flex justify-between items-center mb-6">
@@ -316,9 +343,9 @@ export default function NovoModeloPage() {
             </section >
 
 
-            {/* // ========================================== */}
-            {/* // MODAL OPCIONAL */}
-            {/* // ========================================== */}
+            {/* ========================================== */}
+            {/* MODAL OPCIONAL */}
+            {/* ========================================== */}
             {
                 isModalOpen && currentOpcional && (
                     <div className="modal-overlay">
