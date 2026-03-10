@@ -161,17 +161,17 @@ export default function ModelosListPage() {
                   <h3 className="text-lg font-bold m-0 text-white tracking-tight group-hover:text-blue-100 transition-colors">
                     {modelo.nome_modelo}
                   </h3>
-                  <p className="text-xs text-slate-400 m-0 mt-1 uppercase tracking-wider font-semibold">
-                    Model Year:{" "}
-                    <span className="text-slate-200">{modelo.model_year}</span>
-                  </p>
+                  <div className="mt-2 flex">
+                    <span className="bg-slate-100 text-black text-[10px] px-2 py-1 rounded-md uppercase tracking-wider font-bold shadow-sm">
+                      Model Year: {modelo.model_year}
+                    </span>
+                  </div>
                 </div>
 
                 <div className="flex-1"></div>
 
                 <div className="flex justify-between items-center border-t border-slate-700/50 pt-4 mt-2 relative z-10">
-                  <span className="text-[10px] text-slate-500 uppercase tracking-widest font-semibold flex items-center gap-1.5">
-                    <div className="w-1.5 h-1.5 rounded-full bg-slate-500/50"></div>
+                  <span className="bg-slate-100 text-black text-[10px] uppercase font-bold px-2 py-1 rounded-md shadow-sm">
                     {new Date(modelo.created_at).toLocaleDateString("pt-PT")}
                   </span>
                   <div className="flex gap-2">
