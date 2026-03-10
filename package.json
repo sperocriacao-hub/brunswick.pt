@@ -49,6 +49,7 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@types/pg": "^8.18.0",
     "@types/react": "19.2.14",
     "autoprefixer": "^10.4.19",
     "eslint": "^8",
