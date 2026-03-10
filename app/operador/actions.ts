@@ -156,30 +156,118 @@ export async function getStationChecklist(opId: string, estacaoId: string) {
     if (!opId || !estacaoId) return { success: false, data: [] };
 
     try {
-        // 1. Identificar qual é o modelo deste Barco
+        // 1. Identificar modelo e opcionais da OP
         const { data: opData, error: opError } = await supabase
             .from("ordens_producao")
-            .select("modelo_id")
+            .select(`
+                modelo_id,
+                ordens_producao_opcionais ( opcional_id )
+            `)
             .eq("id", opId)
             .single();
 
         if (opError) throw opError;
         if (!opData) throw new Error("O.P. não encontrada.");
 
-        // 2. Buscar o Roteiro para este Modelo nesta Estação
+        const opcaoIds = (opData.ordens_producao_opcionais || []).map((o: any) => o.opcional_id);
+
+        // 2. Buscar Roteiro Base (Tarefas Gerais)
         const { data: roteiro, error: roteiroError } = await supabase
             .from("roteiros_producao")
             .select("id, sequencia, tempo_ciclo, descricao_tarefa, imagem_instrucao_url, partes:composicao_modelo (nome_parte)")
             .eq("modelo_id", opData.modelo_id)
-            .eq("estacao_id", estacaoId)
-            .order("sequencia", { ascending: true });
+            .eq("estacao_id", estacaoId);
 
         if (roteiroError) throw roteiroError;
 
-        return { success: true, data: roteiro || [] };
+        // 3. Buscar Tarefas Opcionais (Se existirem opcionais vinculados ao barco)
+        let tarefasExtra: any[] = [];
+        if (opcaoIds.length > 0) {
+            const { data: extras, error: extraError } = await supabase
+                .from("tarefas_opcionais")
+                .select("id, ordem_tarefa, descricao_tarefa, imagem_instrucao_url, opcionais (nome_opcao)")
+                .in("opcao_id", opcaoIds)
+                .eq("estacao_destino_id", estacaoId);
+
+            if (extraError) throw extraError;
+            tarefasExtra = extras || [];
+        }
+
+        // 4. Buscar Estado de Execução (O que já está picado)
+        const { data: executadas, error: execError } = await supabase
+            .from("tarefas_executadas")
+            .select("roteiro_id, tarefa_opcional_id")
+            .eq("op_id", opId)
+            .eq("estacao_id", estacaoId);
+
+        if (execError) throw execError;
+
+        const feitasIds = new Set((executadas || []).map((e: any) => e.roteiro_id || e.tarefa_opcional_id));
+
+        // 5. Fundir e Formatar
+        const listaFormatada = [
+            ...(roteiro || []).map((r: any) => ({
+                id: r.id, // is roteiro_id
+                tipo: 'base',
+                sequencia: r.sequencia,
+                descricao_tarefa: r.descricao_tarefa || `Operação Standard ${r.sequencia}`,
+                tempo_ciclo: r.tempo_ciclo,
+                imagem_instrucao_url: r.imagem_instrucao_url,
+                nome_origem: 'Base Model',
+                is_checked: feitasIds.has(r.id)
+            })),
+            ...(tarefasExtra).map((e: any) => ({
+                id: e.id, // is tarefa_opcional_id
+                tipo: 'opcional',
+                sequencia: 900 + e.ordem_tarefa, // Force to bottom
+                descricao_tarefa: `[EXTRA: ${e.opcionais?.nome_opcao}] ${e.descricao_tarefa}`,
+                tempo_ciclo: '--',
+                imagem_instrucao_url: e.imagem_instrucao_url,
+                nome_origem: e.opcionais?.nome_opcao,
+                is_checked: feitasIds.has(e.id)
+            }))
+        ].sort((a, b) => a.sequencia - b.sequencia);
+
+        return { success: true, data: listaFormatada };
 
     } catch (error: any) {
-        console.error("Erro ao buscar checklist:", error);
+        console.error("Erro ao buscar checklist integrada:", error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Picagem Manual de Tarefa pelo Operador
+ */
+export async function toggleTarefaExecution(opId: string, estacaoId: string, id: string, tipo: 'base' | 'opcional', isCurrentlyChecked: boolean, rfidOperador: string) {
+    try {
+        if (!opId || !estacaoId || !id || !rfidOperador) throw new Error("Parâmetros em falta.");
+
+        if (isCurrentlyChecked) {
+            // Remove the check
+            let query = supabase.from("tarefas_executadas").delete().eq("op_id", opId).eq("estacao_id", estacaoId);
+            if (tipo === 'base') query = query.eq("roteiro_id", id);
+            else query = query.eq("tarefa_opcional_id", id);
+
+            const { error } = await query;
+            if (error) throw error;
+        } else {
+            // Add the check
+            const payload: any = {
+                op_id: opId,
+                estacao_id: estacaoId,
+                operador_rfid: rfidOperador
+            };
+            if (tipo === 'base') payload.roteiro_id = id;
+            else payload.tarefa_opcional_id = id;
+
+            const { error } = await supabase.from("tarefas_executadas").insert([payload]);
+            if (error) throw error;
+        }
+
+        return { success: true };
+    } catch (error: any) {
+        console.error("Erro ao fazer toggle de tarefa:", error);
         return { success: false, error: error.message };
     }
 }

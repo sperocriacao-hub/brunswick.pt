@@ -106,6 +106,20 @@ export async function emitirOrdemProducao(payload: any) {
 
         if (error) throw error;
 
+        // 2. Gravar os Opcionais na OP (Novo Phase 25)
+        if (payload.opcionais_selecionados && payload.opcionais_selecionados.length > 0) {
+            const opcionaisLinks = payload.opcionais_selecionados.map((opcId: string) => ({
+                op_id: data.id,
+                opcional_id: opcId
+            }));
+
+            const { error: opcError } = await supabase
+                .from('ordens_producao_opcionais')
+                .insert(opcionaisLinks);
+
+            if (opcError) console.error("Falha a linkar Opcionais à OP", opcError);
+        }
+
         // TPM Moldes Poka-yoke: Incrementar os ciclos dos moldes selecionados
         const moldesToIncrement = [
             payload.molde_casco_id,

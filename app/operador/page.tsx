@@ -5,7 +5,7 @@ import { MonitorSmartphone, AlertTriangle, Lightbulb, QrCode, FileText, UserChec
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
-import { getStationOperators, getStationChecklist, buscarEstacoes, dispararAlertaAndon, getUpcomingQueue } from './actions';
+import { getStationOperators, getStationChecklist, buscarEstacoes, dispararAlertaAndon, getUpcomingQueue, toggleTarefaExecution } from './actions';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -115,6 +115,35 @@ export default function InteractiveTabletPage() {
         const res = await getStationChecklist(op_id, est_id);
         if (res.success && res.data) {
             setChecklist(res.data);
+        }
+    };
+
+    const handleToggleCheck = async (task: any) => {
+        if (!isAnyoneClockedIn) {
+            alert("Atenção: Ninguém picou o ponto nesta estação ainda. Por favor, pique o crachá primeiro.");
+            return;
+        }
+
+        // Use the first clocked in operator as the actor for this check
+        const primaryOperator = clockedInOperators[0];
+
+        // Optimistic UI update
+        const newVal = !task.is_checked;
+        setChecklist(prev => prev.map(t => t.id === task.id ? { ...t, is_checked: newVal } : t));
+
+        const res = await toggleTarefaExecution(
+            currentOpId,
+            selectedEstacaoId,
+            task.id,
+            task.tipo,
+            task.is_checked,
+            primaryOperator.rfid
+        );
+
+        if (!res.success) {
+            alert("Erro ao guardar o passo: " + res.error);
+            // Revert optimistic update
+            setChecklist(prev => prev.map(t => t.id === task.id ? { ...t, is_checked: !newVal } : t));
         }
     };
 
@@ -594,15 +623,23 @@ export default function InteractiveTabletPage() {
                                 <p className="text-slate-500 text-sm">Sem roteiro definido para este modelo/estação.</p>
                             ) : (
                                 checklist.map((task, idx) => (
-                                    <div key={task.id} className="bg-slate-800 border border-slate-700 p-4 rounded-xl flex flex-col gap-3 shadow-sm hover:border-slate-600 transition-colors">
+                                    <div key={task.id} className={`p-4 rounded-xl flex flex-col gap-3 shadow-sm transition-all border ${task.is_checked ? 'bg-green-950/20 border-green-800/40 opacity-70' : 'bg-slate-800 border-slate-700 hover:border-slate-500'}`}>
                                         <div className="flex justify-between items-start">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-slate-400 font-bold text-sm">
-                                                    {task.sequencia}
+                                            <div className="flex items-start gap-4 cursor-pointer" onClick={() => handleToggleCheck(task)}>
+                                                <div className="mt-1">
+                                                    <div className={`w-8 h-8 rounded shrink-0 flex items-center justify-center border-2 transition-all ${task.is_checked ? 'bg-green-500 border-green-500 text-slate-900' : 'bg-slate-900 border-slate-600 shadow-inner'}`}>
+                                                        {task.is_checked && <CheckSquare className="w-5 h-5" />}
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <h3 className="font-bold text-slate-200">{task.descricao_tarefa || `Operação ${task.sequencia}`}</h3>
-                                                    <p className="text-xs text-slate-400">Tempo Alvo: {task.tempo_ciclo}m</p>
+                                                <div className="flex-1">
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <span className="bg-slate-700 text-slate-300 font-bold px-2 py-0.5 rounded text-[10px] uppercase">Seq. {task.sequencia}</span>
+                                                        {task.tipo === 'opcional' && <span className="bg-amber-600/20 text-amber-500 border border-amber-600/30 font-bold px-2 py-0.5 rounded text-[10px] uppercase">EXTRA: {task.nome_origem}</span>}
+                                                    </div>
+                                                    <h3 className={`font-bold transition-all ${task.is_checked ? 'text-green-400 line-through' : 'text-slate-200'}`}>
+                                                        {task.descricao_tarefa}
+                                                    </h3>
+                                                    <p className="text-xs text-slate-500 mt-1">Tempo Alvo: {task.tempo_ciclo !== '--' ? `${task.tempo_ciclo} min` : 'N/A'}</p>
                                                 </div>
                                             </div>
                                         </div>

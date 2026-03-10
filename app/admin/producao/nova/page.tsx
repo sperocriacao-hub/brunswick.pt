@@ -175,7 +175,8 @@ export default function NovaOrdermProducaoPage() {
             molde_casco_id: moldeCascoId || null,
             molde_coberta_id: moldeCobertaId || null,
             molde_small_parts_id: moldeSmallPartsId || null,
-            molde_liner_id: moldeLinerId || null
+            molde_liner_id: moldeLinerId || null,
+            opcionais_selecionados: opcionaisSelecionados
         });
 
         if (res.success) {
