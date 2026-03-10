@@ -46,6 +46,7 @@ function FuncionarioFormCore() {
         possui_acesso_sistema: false,
         email_acesso: '',
         nivel_permissao: '',
+        permissoes_modulos: [] as string[],
         // 6. Financeiro OEE
         salario_hora: '10.00'
     });
@@ -86,6 +87,7 @@ function FuncionarioFormCore() {
                             possui_acesso_sistema: data.possui_acesso_sistema || false,
                             email_acesso: data.email_acesso || '',
                             nivel_permissao: data.nivel_permissao || '',
+                            permissoes_modulos: data.permissoes_modulos || [],
                             salario_hora: data.salario_hora?.toString() || '10.00'
                         });
                     }
@@ -339,6 +341,88 @@ function FuncionarioFormCore() {
                                     <option value="Admin">Master Admin (Controlo Total RH/M.E.S)</option>
                                 </select>
                             </div>
+
+                            {/* Granular Permissions UI */}
+                            {formData.nivel_permissao !== "Admin" && (
+                                <div className="col-span-1 md:col-span-2 mt-4 pt-4 border-t border-blue-200/50">
+                                    <label className="block text-xs font-bold text-blue-900 mb-4">
+                                        Módulos e Acessos Diretos (Granular)
+                                    </label>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                        {[
+                                            { path: "/admin/producao/ordens", label: "Ordens de Produção", group: "Planeamento" },
+                                            { path: "/admin/producao/planeamento", label: "Planeamento Semanal", group: "Planeamento" },
+                                            { path: "/admin/producao/live", label: "Monitorização Live", group: "Planeamento" },
+
+                                            { path: "/operador", label: "Terminal HMI Central", group: "Produção" },
+                                            { path: "/admin/producao/andon", label: "Saúde OEE do Andon", group: "Produção" },
+
+                                            { path: "/admin/rh/produtividade", label: "Feedback Produtividade", group: "Equipa & Talento" },
+                                            { path: "/admin/rh", label: "Gerir Operadores", group: "Equipa & Talento" },
+                                            { path: "/admin/rh/avaliacoes", label: "Avaliações Diárias", group: "Equipa & Talento" },
+                                            { path: "/admin/rh/assiduidade", label: "Assiduidade Ativa", group: "Equipa & Talento" },
+
+                                            { path: "/logistica/picking", label: "Tablet Armazém (Picking)", group: "Warehouse" },
+                                            { path: "/admin/engenharia/genealogia", label: "Rastreabilidade B.O.M", group: "Warehouse" },
+
+                                            { path: "/admin/modelos", label: "Modelos & Produtos", group: "Engenharia" },
+                                            { path: "/admin/engenharia/regras", label: "Regras Sequenciais", group: "Engenharia" },
+                                            { path: "/admin/engenharia/roteiros", label: "Tempos Roteiro OEE", group: "Engenharia" },
+                                            { path: "/admin/engenharia/moldes", label: "Cadastro de Moldes", group: "Engenharia" },
+                                            { path: "/admin/fabrica", label: "Fábrica & Estações", group: "Engenharia" },
+
+                                            { path: "/admin/manutencao/moldes", label: "Preventiva Moldes TPM", group: "Manutenção" },
+
+                                            { path: "/admin/qualidade/rnc", label: "Gestão RNC (8D/A3)", group: "Qualidade" },
+                                            { path: "/admin/qualidade/templates", label: "Checklists Qualidade", group: "Qualidade" },
+
+                                            { path: "/admin/lean/kaizen", label: "Ideias Kaizen", group: "Lean" },
+                                            { path: "/admin/lean/gemba", label: "Gemba Walking", group: "Lean" },
+                                            { path: "/admin/lean/acoes", label: "Scrum Board de Ações", group: "Lean" },
+
+                                            { path: "/admin/hst/ocorrencias", label: "Registar Ocorrência", group: "HST" },
+                                            { path: "/admin/hst/epis", label: "Matriz Ocupacional", group: "HST" },
+                                            { path: "/admin/hst/certificacoes", label: "Cursos e EPI's", group: "HST" },
+                                            { path: "/admin/hst/auditorias", label: "Auditorias HST", group: "HST" },
+                                            { path: "/admin/hst/dashboard", label: "Cruz de Segurança", group: "HST" },
+                                            { path: "/admin/hst/8d/historico", label: "Investigações 8D", group: "HST" },
+                                            { path: "/admin/hst/acoes", label: "Ações HST", group: "HST" },
+
+                                            { path: "/admin/producao/logs", label: "Auditoria Telemetria", group: "Sistema" },
+                                            { path: "/admin/diagnostico", label: "Central Dispositivos", group: "Sistema" },
+                                            { path: "/admin/configuracoes", label: "Configurações Globais", group: "Sistema" },
+                                            { path: "/admin/display-tvs", label: "Hardware & Displays", group: "Sistema" },
+                                        ].map(module => {
+                                            const isChecked = formData.permissoes_modulos.includes(module.path);
+                                            return (
+                                                <label key={module.path} className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${isChecked ? 'bg-white border-blue-400 shadow-sm' : 'bg-transparent border-blue-100 hover:border-blue-300'}`}>
+                                                    <input
+                                                        type="checkbox"
+                                                        className="mt-1 accent-blue-600 w-4 h-4 rounded border-blue-300"
+                                                        checked={isChecked}
+                                                        onChange={(e) => {
+                                                            const arr = [...formData.permissoes_modulos];
+                                                            if (e.target.checked) arr.push(module.path);
+                                                            else {
+                                                                const idx = arr.indexOf(module.path);
+                                                                if (idx > -1) arr.splice(idx, 1);
+                                                            }
+                                                            setFormData({ ...formData, permissoes_modulos: arr });
+                                                        }}
+                                                    />
+                                                    <div className="flex flex-col">
+                                                        <span className={`text-xs font-bold ${isChecked ? 'text-blue-900' : 'text-slate-600'}`}>{module.label}</span>
+                                                        <span className="text-[10px] text-slate-400 mt-0.5">{module.group}</span>
+                                                    </div>
+                                                </label>
+                                            );
+                                        })}
+                                    </div>
+                                    <p className="text-[10px] text-blue-500/70 mt-3 italic flex items-center gap-1">
+                                        Selecione as áreas exatas que o utilizador pode aceder na barra principal.
+                                    </p>
+                                </div>
+                            )}
                         </div>
                     ) : (
                         <p className="text-sm text-slate-500 italic px-4">Ao não conceder acesso, o Colaborador será estritamente físico (apenas interage com hardware IoT via tag NFC/RFID nas linhas de montagem, mas não possui credenciais Web para fazer login nesta plataforma de Gestão).</p>

@@ -18,6 +18,7 @@ type OperadorInfo = {
     posto_base_id: string | null;
     estacao_alocada_temporaria: string | null;
     em_realocacao: boolean;
+    permissoes_modulos: string[];
 };
 
 type EstacaoInfo = {
@@ -43,7 +44,7 @@ export default function GestaoRHPage() {
         const [{ data: ops }, { data: ests }] = await Promise.all([
             supabase
                 .from('operadores')
-                .select('id, numero_operador, nome_operador, tag_rfid_operador, funcao, status, iluo_nivel, possui_acesso_sistema, posto_base_id, estacao_alocada_temporaria, em_realocacao')
+                .select('id, numero_operador, nome_operador, tag_rfid_operador, funcao, status, iluo_nivel, possui_acesso_sistema, posto_base_id, estacao_alocada_temporaria, em_realocacao, permissoes_modulos')
                 .order('nome_operador'),
             supabase
                 .from('estacoes')
@@ -170,9 +171,16 @@ export default function GestaoRHPage() {
                                     </td>
                                     <td className="p-4">
                                         {op.possui_acesso_sistema ? (
-                                            <span className="flex items-center gap-1 text-xs text-emerald-700 font-medium bg-emerald-50 px-2 flex-inline max-w-max py-1 rounded border border-emerald-200">
-                                                <Shield size={12} className="text-emerald-500" /> Acesso Concedido
-                                            </span>
+                                            <div className="flex flex-col gap-1 items-start">
+                                                <span className="flex items-center gap-1 text-xs text-emerald-700 font-medium bg-emerald-50 px-2 py-1 rounded border border-emerald-200">
+                                                    <Shield size={12} className="text-emerald-500" /> Web App
+                                                </span>
+                                                {op.permissoes_modulos?.length > 0 && (
+                                                    <span className="text-[10px] text-blue-600 font-bold bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200">
+                                                        {op.permissoes_modulos.length} Módulos
+                                                    </span>
+                                                )}
+                                            </div>
                                         ) : (
                                             <span className="text-xs text-slate-400 italic font-medium">Sem Acesso Sistémico</span>
                                         )}

@@ -23,9 +23,29 @@ import {
   Award,
 } from "lucide-react";
 
-export function Sidebar({ userEmail }: { userEmail: string | undefined }) {
+export function Sidebar({
+  userEmail,
+  nivelPermissao = "",
+  permissoesModulos = [],
+}: {
+  userEmail: string | undefined;
+  nivelPermissao?: string;
+  permissoesModulos?: string[];
+}) {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
+
+  // Core Access Control Logic
+  const hasAccess = (modulePath: string) => {
+    // 1. Master Admins bypass granular permissions, seeing everything.
+    if (nivelPermissao === "Admin") return true;
+
+    // 2. Dashboard is implicitly open to anyone who has access to the Backoffice.
+    if (modulePath === "/admin") return true;
+
+    // 3. Otherwise, check if the exact path exists in their permitted modules array.
+    return permissoesModulos.includes(modulePath);
+  };
 
   const navLinks = [
     {
@@ -108,673 +128,653 @@ export function Sidebar({ userEmail }: { userEmail: string | undefined }) {
             <Layers className="text-white" /> Brunswick.pt
           </div>
           <div className="flex flex-col gap-1">
-            {navLinks.map((link) => {
-              const isActive = pathname === link.href;
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  onClick={() => setIsOpen(false)}
-                  className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${isActive
-                      ? "bg-blue-800 text-white shadow-sm border border-transparent"
-                      : "text-blue-100 hover:bg-blue-800/50 hover:text-white"
-                    }`}
-                >
-                  <span
-                    className={`${isActive ? "text-white" : "text-blue-300"} w-5 h-5 flex items-center justify-center`}
+            {navLinks
+              .filter((link) => hasAccess(link.href))
+              .map((link) => {
+                const isActive = pathname === link.href;
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    onClick={() => setIsOpen(false)}
+                    className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${isActive
+                        ? "bg-blue-800 text-white shadow-sm border border-transparent"
+                        : "text-blue-100 hover:bg-blue-800/50 hover:text-white"
+                      }`}
                   >
-                    {link.icon}
-                  </span>
-                  <span className="text-sm">{link.name}</span>
-                </Link>
-              );
-            })}
+                    <span
+                      className={`${isActive ? "text-white" : "text-blue-300"} w-5 h-5 flex items-center justify-center`}
+                    >
+                      {link.icon}
+                    </span>
+                    <span className="text-sm">{link.name}</span>
+                  </Link>
+                );
+              })}
 
-            <div className="mt-8">
-              <p className="px-3 text-[10px] font-extrabold text-blue-400 uppercase tracking-widest mb-2">
-                Planeamento
-              </p>
-              <nav className="flex flex-col gap-1 mb-6">
-                <Link
-                  onClick={() => setIsOpen(false)}
-                  href="/admin/producao/ordens"
-                  className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes("/admin/producao/ordens") ? "bg-blue-800 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
-                >
-                  <svg
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className={
-                      pathname.includes("/admin/producao/ordens")
-                        ? "text-white"
-                        : "text-blue-300"
-                    }
+            {(hasAccess("/admin/producao/ordens") ||
+              hasAccess("/admin/producao/planeamento") ||
+              hasAccess("/admin/producao/live")) && (
+                <div className="mt-8">
+                  <p className="px-3 text-[10px] font-extrabold text-blue-400 uppercase tracking-widest mb-2">
+                    Planeamento
+                  </p>
+                  <nav className="flex flex-col gap-1 mb-6">
+                    {hasAccess("/admin/producao/ordens") && (
+                      <Link
+                        onClick={() => setIsOpen(false)}
+                        href="/admin/producao/ordens"
+                        className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes("/admin/producao/ordens") ? "bg-blue-800 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
+                      >
+                        <svg
+                          width="18"
+                          height="18"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className={
+                            pathname.includes("/admin/producao/ordens")
+                              ? "text-white"
+                              : "text-blue-300"
+                          }
+                        >
+                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                          <polyline points="14 2 14 8 20 8"></polyline>
+                          <line x1="16" y1="13" x2="8" y2="13"></line>
+                          <line x1="16" y1="17" x2="8" y2="17"></line>
+                          <polyline points="10 9 9 9 8 9"></polyline>
+                        </svg>
+                        <span className="text-sm border-transparent">
+                          Ordens de Produção
+                        </span>
+                      </Link>
+                    )}
+                    {hasAccess("/admin/producao/planeamento") && (
+                      <Link
+                        onClick={() => setIsOpen(false)}
+                        href="/admin/producao/planeamento"
+                        className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes("/admin/producao/planeamento") ? "bg-blue-800 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
+                      >
+                        <CalendarDays
+                          size={18}
+                          className={
+                            pathname.includes("/admin/producao/planeamento")
+                              ? "text-white"
+                              : "text-blue-300"
+                          }
+                        />
+                        <span className="text-sm border-transparent">
+                          Planeamento Semanal
+                        </span>
+                      </Link>
+                    )}
+                    {hasAccess("/admin/producao/live") && (
+                      <Link
+                        onClick={() => setIsOpen(false)}
+                        href="/admin/producao/live"
+                        className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes("/admin/producao/live") ? "bg-blue-800 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
+                      >
+                        <Box
+                          size={18}
+                          className={
+                            pathname.includes("/admin/producao/live")
+                              ? "text-white"
+                              : "text-blue-300"
+                          }
+                        />
+                        <span className="text-sm border-transparent">
+                          Monitorização Live
+                        </span>
+                      </Link>
+                    )}
+                  </nav>
+                </div>
+              )}
+
+            {(hasAccess("/operador") || hasAccess("/admin/producao/andon")) && (
+              <>
+                <p className="px-3 text-[10px] font-extrabold text-blue-400 uppercase tracking-widest mb-2">
+                  Produção
+                </p>
+                <nav className="flex flex-col gap-1 mb-6">
+                  <Link
+                    onClick={() => setIsOpen(false)}
+                    href="/operador"
+                    className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes("/operador") ? "bg-blue-800 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
                   >
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                    <polyline points="14 2 14 8 20 8"></polyline>
-                    <line x1="16" y1="13" x2="8" y2="13"></line>
-                    <line x1="16" y1="17" x2="8" y2="17"></line>
-                    <polyline points="10 9 9 9 8 9"></polyline>
-                  </svg>
-                  <span className="text-sm border-transparent">
-                    Ordens de Produção
-                  </span>
-                </Link>
-                <Link
-                  onClick={() => setIsOpen(false)}
-                  href="/admin/producao/planeamento"
-                  className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes("/admin/producao/planeamento") ? "bg-blue-800 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
-                >
-                  <CalendarDays
-                    size={18}
-                    className={
-                      pathname.includes("/admin/producao/planeamento")
-                        ? "text-white"
-                        : "text-blue-300"
-                    }
-                  />
-                  <span className="text-sm border-transparent">
-                    Planeamento Semanal
-                  </span>
-                </Link>
-                <Link
-                  onClick={() => setIsOpen(false)}
-                  href="/admin/producao/live"
-                  className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes("/admin/producao/live") ? "bg-blue-800 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
-                >
-                  <Box
-                    size={18}
-                    className={
-                      pathname.includes("/admin/producao/live")
-                        ? "text-white"
-                        : "text-blue-300"
-                    }
-                  />
-                  <span className="text-sm border-transparent">
-                    Monitorização Live
-                  </span>
-                </Link>
-              </nav>
-
-              <p className="px-3 text-[10px] font-extrabold text-blue-400 uppercase tracking-widest mb-2">
-                Produção
-              </p>
-              <nav className="flex flex-col gap-1 mb-6">
-                <Link
-                  onClick={() => setIsOpen(false)}
-                  href="/operador"
-                  className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes("/operador") ? "bg-blue-800 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
-                >
-                  <svg
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className={
-                      pathname.includes("/operador")
-                        ? "text-white"
-                        : "text-blue-300"
-                    }
+                    <svg
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className={
+                        pathname.includes("/operador")
+                          ? "text-white"
+                          : "text-blue-300"
+                      }
+                    >
+                      <rect
+                        x="4"
+                        y="4"
+                        width="16"
+                        height="16"
+                        rx="2"
+                        ry="2"
+                      ></rect>
+                      <rect x="9" y="9" width="6" height="6"></rect>
+                      <line x1="9" y1="1" x2="9" y2="4"></line>
+                      <line x1="15" y1="1" x2="15" y2="4"></line>
+                      <line x1="9" y1="20" x2="9" y2="23"></line>
+                      <line x1="15" y1="20" x2="15" y2="23"></line>
+                      <line x1="20" y1="9" x2="23" y2="9"></line>
+                      <line x1="20" y1="14" x2="23" y2="14"></line>
+                      <line x1="1" y1="9" x2="4" y2="9"></line>
+                      <line x1="1" y1="14" x2="4" y2="14"></line>
+                    </svg>
+                    <span className="text-sm border-transparent">
+                      Terminal HMI (Operador)
+                    </span>
+                  </Link>
+                  <Link
+                    onClick={() => setIsOpen(false)}
+                    href="/admin/producao/andon"
+                    className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes("/admin/producao/andon") ? "bg-blue-800 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
                   >
-                    <rect
-                      x="4"
-                      y="4"
-                      width="16"
-                      height="16"
-                      rx="2"
-                      ry="2"
-                    ></rect>
-                    <rect x="9" y="9" width="6" height="6"></rect>
-                    <line x1="9" y1="1" x2="9" y2="4"></line>
-                    <line x1="15" y1="1" x2="15" y2="4"></line>
-                    <line x1="9" y1="20" x2="9" y2="23"></line>
-                    <line x1="15" y1="20" x2="15" y2="23"></line>
-                    <line x1="20" y1="9" x2="23" y2="9"></line>
-                    <line x1="20" y1="14" x2="23" y2="14"></line>
-                    <line x1="1" y1="9" x2="4" y2="9"></line>
-                    <line x1="1" y1="14" x2="4" y2="14"></line>
-                  </svg>
-                  <span className="text-sm border-transparent">
-                    Terminal HMI (Operador)
-                  </span>
-                </Link>
-                <Link
-                  onClick={() => setIsOpen(false)}
-                  href="/admin/producao/andon"
-                  className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes("/admin/producao/andon") ? "bg-blue-800 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
-                >
-                  <AlertTriangle
-                    size={18}
-                    className={
-                      pathname.includes("/admin/producao/andon")
-                        ? "text-white"
-                        : "text-blue-300"
-                    }
-                  />
-                  <span className="text-sm border-transparent">
-                    Saúde OEE do Andon
-                  </span>
-                </Link>
-              </nav>
+                    <AlertTriangle
+                      size={18}
+                      className={
+                        pathname.includes("/admin/producao/andon")
+                          ? "text-white"
+                          : "text-blue-300"
+                      }
+                    />
+                    <span className="text-sm border-transparent">
+                      Saúde OEE do Andon
+                    </span>
+                  </Link>
+                </nav>
 
-              <p className="px-3 text-[10px] font-extrabold text-blue-400 uppercase tracking-widest mb-2">
-                Equipa e Talento
-              </p>
-              <nav className="flex flex-col gap-1 mb-6">
-                <Link
-                  onClick={() => setIsOpen(false)}
-                  href="/admin/rh/produtividade"
-                  className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes("/admin/rh/produtividade") ? "bg-blue-800 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
-                >
-                  <Activity
-                    size={18}
-                    className={
-                      pathname.includes("/admin/rh/produtividade")
-                        ? "text-white"
-                        : "text-blue-300"
-                    }
-                  />
-                  <span className="text-sm border-transparent">
-                    Feedback Produtividade
-                  </span>
-                </Link>
-                <Link
-                  onClick={() => setIsOpen(false)}
-                  href="/admin/rh"
-                  className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname === "/admin/rh" || pathname.startsWith("/admin/rh/cadastro") ? "bg-blue-800 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
-                >
-                  <Settings
-                    size={18}
-                    className={
-                      pathname === "/admin/rh" ||
-                        pathname.startsWith("/admin/rh/cadastro")
-                        ? "text-white"
-                        : "text-blue-300"
-                    }
-                  />
-                  <span className="text-sm border-transparent">
-                    Gerir Operadores
-                  </span>
-                </Link>
-                <Link
-                  onClick={() => setIsOpen(false)}
-                  href="/admin/rh/avaliacoes"
-                  className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes("/admin/rh/avaliacoes") ? "bg-blue-800 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
-                >
-                  <CalendarDays
-                    size={18}
-                    className={
-                      pathname.includes("/admin/rh/avaliacoes")
-                        ? "text-white"
-                        : "text-blue-300"
-                    }
-                  />
-                  <span className="text-sm border-transparent">
-                    Avaliações Diárias
-                  </span>
-                </Link>
-                <Link
-                  onClick={() => setIsOpen(false)}
-                  href="/admin/rh/assiduidade"
-                  className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes("/admin/rh/assiduidade") ? "bg-blue-800 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
-                >
-                  <CalendarDays
-                    size={18}
-                    className={
-                      pathname.includes("/admin/rh/assiduidade")
-                        ? "text-white"
-                        : "text-blue-300"
-                    }
-                  />
-                  <span className="text-sm border-transparent">
-                    Assiduidade Ativa
-                  </span>
-                </Link>
-              </nav>
+                <p className="px-3 text-[10px] font-extrabold text-blue-400 uppercase tracking-widest mb-2">
+                  Equipa e Talento
+                </p>
+                <nav className="flex flex-col gap-1 mb-6">
+                  <Link
+                    onClick={() => setIsOpen(false)}
+                    href="/admin/rh/produtividade"
+                    className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes("/admin/rh/produtividade") ? "bg-blue-800 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
+                  >
+                    <Activity
+                      size={18}
+                      className={
+                        pathname.includes("/admin/rh/produtividade")
+                          ? "text-white"
+                          : "text-blue-300"
+                      }
+                    />
+                    <span className="text-sm border-transparent">
+                      Feedback Produtividade
+                    </span>
+                  </Link>
+                  <Link
+                    onClick={() => setIsOpen(false)}
+                    href="/admin/rh"
+                    className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname === "/admin/rh" || pathname.startsWith("/admin/rh/cadastro") ? "bg-blue-800 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
+                  >
+                    <Settings
+                      size={18}
+                      className={
+                        pathname === "/admin/rh" ||
+                          pathname.startsWith("/admin/rh/cadastro")
+                          ? "text-white"
+                          : "text-blue-300"
+                      }
+                    />
+                    <span className="text-sm border-transparent">
+                      Gerir Operadores
+                    </span>
+                  </Link>
+                  <Link
+                    onClick={() => setIsOpen(false)}
+                    href="/admin/rh/avaliacoes"
+                    className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes("/admin/rh/avaliacoes") ? "bg-blue-800 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
+                  >
+                    <CalendarDays
+                      size={18}
+                      className={
+                        pathname.includes("/admin/rh/avaliacoes")
+                          ? "text-white"
+                          : "text-blue-300"
+                      }
+                    />
+                    <span className="text-sm border-transparent">
+                      Avaliações Diárias
+                    </span>
+                  </Link>
+                  <Link
+                    onClick={() => setIsOpen(false)}
+                    href="/admin/rh/assiduidade"
+                    className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes("/admin/rh/assiduidade") ? "bg-blue-800 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
+                  >
+                    <CalendarDays
+                      size={18}
+                      className={
+                        pathname.includes("/admin/rh/assiduidade")
+                          ? "text-white"
+                          : "text-blue-300"
+                      }
+                    />
+                    <span className="text-sm border-transparent">
+                      Assiduidade Ativa
+                    </span>
+                  </Link>
+                </nav>
 
-              <p className="px-3 text-[10px] font-extrabold text-blue-400 uppercase tracking-widest mb-2">
-                Warehouse
-              </p>
-              <nav className="flex flex-col gap-1 mb-6">
-                <Link
-                  onClick={() => setIsOpen(false)}
-                  href="/logistica/picking"
-                  className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes("/logistica/picking") ? "bg-blue-800 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
-                >
-                  <Box
-                    size={18}
-                    className={
-                      pathname.includes("/logistica/picking")
-                        ? "text-white"
-                        : "text-blue-300"
-                    }
-                  />
-                  <span className="text-sm border-transparent">
-                    Tablet Armazém (picking)
-                  </span>
-                </Link>
-                <Link
-                  onClick={() => setIsOpen(false)}
-                  href="/admin/engenharia/genealogia"
-                  className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes("/admin/engenharia/genealogia") ? "bg-blue-800 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
-                >
-                  <Layers
-                    size={18}
-                    className={
-                      pathname.includes("/admin/engenharia/genealogia")
-                        ? "text-white"
-                        : "text-blue-300"
-                    }
-                  />
-                  <span className="text-sm border-transparent">
-                    Rastreabilidade B.O.M
-                  </span>
-                </Link>
-              </nav>
+                <p className="px-3 text-[10px] font-extrabold text-blue-400 uppercase tracking-widest mb-2">
+                  Warehouse
+                </p>
+                <nav className="flex flex-col gap-1 mb-6">
+                  <Link
+                    onClick={() => setIsOpen(false)}
+                    href="/logistica/picking"
+                    className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes("/logistica/picking") ? "bg-blue-800 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
+                  >
+                    <Box
+                      size={18}
+                      className={
+                        pathname.includes("/logistica/picking")
+                          ? "text-white"
+                          : "text-blue-300"
+                      }
+                    />
+                    <span className="text-sm border-transparent">
+                      Tablet Armazém (picking)
+                    </span>
+                  </Link>
+                  <Link
+                    onClick={() => setIsOpen(false)}
+                    href="/admin/engenharia/genealogia"
+                    className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes("/admin/engenharia/genealogia") ? "bg-blue-800 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
+                  >
+                    <Layers
+                      size={18}
+                      className={
+                        pathname.includes("/admin/engenharia/genealogia")
+                          ? "text-white"
+                          : "text-blue-300"
+                      }
+                    />
+                    <span className="text-sm border-transparent">
+                      Rastreabilidade B.O.M
+                    </span>
+                  </Link>
+                </nav>
 
-              <p className="px-3 text-[10px] font-extrabold text-blue-400 uppercase tracking-widest mb-2">
-                Engenharia
-              </p>
-              <nav className="flex flex-col gap-1 mb-6">
-                <Link
-                  onClick={() => setIsOpen(false)}
-                  href="/admin/modelos"
-                  className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes("/admin/modelos") ? "bg-blue-800 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
-                >
-                  <Box
-                    size={18}
-                    className={
-                      pathname.includes("/admin/modelos")
-                        ? "text-white"
-                        : "text-blue-300"
-                    }
-                  />
-                  <span className="text-sm border-transparent">
-                    Modelos & Produtos
-                  </span>
-                </Link>
-                <Link
-                  onClick={() => setIsOpen(false)}
-                  href="/admin/engenharia/regras"
-                  className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes("/admin/engenharia/regras") ? "bg-blue-800 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
-                >
-                  <GitBranch
-                    size={18}
-                    className={
-                      pathname.includes("/admin/engenharia/regras")
-                        ? "text-white"
-                        : "text-blue-300"
-                    }
-                  />
-                  <span className="text-sm border-transparent">
-                    Regras Sequenciais
-                  </span>
-                </Link>
-                <Link
-                  onClick={() => setIsOpen(false)}
-                  href="/admin/engenharia/roteiros"
-                  className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes("/admin/engenharia/roteiros") ? "bg-blue-800 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
-                >
-                  <Layers
-                    size={18}
-                    className={
-                      pathname.includes("/admin/engenharia/roteiros")
-                        ? "text-white"
-                        : "text-blue-300"
-                    }
-                  />
-                  <span className="text-sm border-transparent">
-                    Tempos Roteiro OEE
-                  </span>
-                </Link>
-                <Link
-                  onClick={() => setIsOpen(false)}
-                  href="/admin/engenharia/moldes"
-                  className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes("/admin/engenharia/moldes") ? "bg-blue-800 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
-                >
-                  <Box
-                    size={18}
-                    className={
-                      pathname.includes("/admin/engenharia/moldes")
-                        ? "text-white"
-                        : "text-blue-300"
-                    }
-                  />
-                  <span className="text-sm border-transparent">
-                    Cadastro de Moldes
-                  </span>
-                </Link>
-                <Link
-                  onClick={() => setIsOpen(false)}
-                  href="/admin/fabrica"
-                  className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes("/admin/fabrica") ? "bg-blue-800 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
-                >
-                  <Settings
-                    size={18}
-                    className={
-                      pathname.includes("/admin/fabrica")
-                        ? "text-white"
-                        : "text-blue-300"
-                    }
-                  />
-                  <span className="text-sm border-transparent">
-                    Fábrica & Estações
-                  </span>
-                </Link>
-              </nav>
+                {(hasAccess("/admin/modelos") ||
+                  hasAccess("/admin/engenharia/regras") ||
+                  hasAccess("/admin/engenharia/roteiros") ||
+                  hasAccess("/admin/engenharia/moldes") ||
+                  hasAccess("/admin/fabrica")) && (
+                    <>
+                      <p className="px-3 text-[10px] font-extrabold text-blue-400 uppercase tracking-widest mb-2">
+                        Engenharia
+                      </p>
+                      <nav className="flex flex-col gap-1 mb-6">
+                        {hasAccess("/admin/modelos") && (
+                          <Link
+                            onClick={() => setIsOpen(false)}
+                            href="/admin/modelos"
+                            className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes("/admin/modelos") ? "bg-blue-800 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
+                          >
+                            <Box
+                              size={18}
+                              className={
+                                pathname.includes("/admin/modelos")
+                                  ? "text-white"
+                                  : "text-blue-300"
+                              }
+                            />
+                            <span className="text-sm border-transparent">
+                              Modelos & Produtos
+                            </span>
+                          </Link>
+                        )}
+                        {hasAccess("/admin/engenharia/regras") && (
+                          <Link
+                            onClick={() => setIsOpen(false)}
+                            href="/admin/engenharia/regras"
+                            className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes("/admin/engenharia/regras") ? "bg-blue-800 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
+                          >
+                            <GitBranch
+                              size={18}
+                              className={
+                                pathname.includes("/admin/engenharia/regras")
+                                  ? "text-white"
+                                  : "text-blue-300"
+                              }
+                            />
+                            <span className="text-sm border-transparent">
+                              Regras Sequenciais
+                            </span>
+                          </Link>
+                        )}
+                        {hasAccess("/admin/engenharia/roteiros") && (
+                          <Link
+                            onClick={() => setIsOpen(false)}
+                            href="/admin/engenharia/roteiros"
+                            className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes("/admin/engenharia/roteiros") ? "bg-blue-800 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
+                          >
+                            <Layers
+                              size={18}
+                              className={
+                                pathname.includes("/admin/engenharia/roteiros")
+                                  ? "text-white"
+                                  : "text-blue-300"
+                              }
+                            />
+                            <span className="text-sm border-transparent">
+                              Tempos Roteiro OEE
+                            </span>
+                          </Link>
+                        )}
+                        {hasAccess("/admin/engenharia/moldes") && (
+                          <Link
+                            onClick={() => setIsOpen(false)}
+                            href="/admin/engenharia/moldes"
+                            className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes("/admin/engenharia/moldes") ? "bg-blue-800 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
+                          >
+                            <Box
+                              size={18}
+                              className={
+                                pathname.includes("/admin/engenharia/moldes")
+                                  ? "text-white"
+                                  : "text-blue-300"
+                              }
+                            />
+                            <span className="text-sm border-transparent">
+                              Cadastro de Moldes
+                            </span>
+                          </Link>
+                        )}
+                        {hasAccess("/admin/fabrica") && (
+                          <Link
+                            onClick={() => setIsOpen(false)}
+                            href="/admin/fabrica"
+                            className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes("/admin/fabrica") ? "bg-blue-800 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
+                          >
+                            <Settings
+                              size={18}
+                              className={
+                                pathname.includes("/admin/fabrica")
+                                  ? "text-white"
+                                  : "text-blue-300"
+                              }
+                            />
+                            <span className="text-sm border-transparent">
+                              Fábrica & Estações
+                            </span>
+                          </Link>
+                        )}
+                      </nav>
+                    </>
+                  )}
 
-              <p className="px-3 text-[10px] font-extrabold text-blue-400 uppercase tracking-widest mb-2">
-                Manutenção
-              </p>
-              <nav className="flex flex-col gap-1 mb-6">
-                <Link
-                  onClick={() => setIsOpen(false)}
-                  href="/admin/manutencao/moldes"
-                  className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes("/admin/manutencao/moldes") ? "bg-blue-800 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
-                >
-                  <Settings
-                    size={18}
-                    className={
-                      pathname.includes("/admin/manutencao/moldes")
-                        ? "text-white"
-                        : "text-blue-300"
-                    }
-                  />
-                  <span className="text-sm border-transparent">
-                    Preventiva Moldes (TPM)
-                  </span>
-                </Link>
-              </nav>
+                {hasAccess("/admin/manutencao/moldes") && (
+                  <>
+                    <p className="px-3 text-[10px] font-extrabold text-blue-400 uppercase tracking-widest mb-2">
+                      Manutenção
+                    </p>
+                    <nav className="flex flex-col gap-1 mb-6">
+                      <Link
+                        onClick={() => setIsOpen(false)}
+                        href="/admin/manutencao/moldes"
+                        className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes("/admin/manutencao/moldes") ? "bg-blue-800 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
+                      >
+                        <Settings
+                          size={18}
+                          className={
+                            pathname.includes("/admin/manutencao/moldes")
+                              ? "text-white"
+                              : "text-blue-300"
+                          }
+                        />
+                        <span className="text-sm border-transparent">
+                          Preventiva Moldes (TPM)
+                        </span>
+                      </Link>
+                    </nav>
+                  </>
+                )}
 
-              <p className="px-3 text-[10px] font-extrabold text-blue-400 uppercase tracking-widest mb-2">
-                Qualidade
-              </p>
-              <nav className="flex flex-col gap-1 mb-6">
-                <Link
-                  onClick={() => setIsOpen(false)}
-                  href="/admin/qualidade/rnc"
-                  className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes("/admin/qualidade/rnc") ? "bg-blue-800 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
-                >
-                  <AlertTriangle
-                    size={18}
-                    className={
-                      pathname.includes("/admin/qualidade/rnc")
-                        ? "text-white"
-                        : "text-blue-300"
-                    }
-                  />
-                  <span className="text-sm border-transparent">
-                    Gestão RNC (8D / A3)
-                  </span>
-                </Link>
-                <Link
-                  onClick={() => setIsOpen(false)}
-                  href="/admin/qualidade/templates"
-                  className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes("/admin/qualidade/templates") ? "bg-blue-800 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
-                >
-                  <Settings
-                    size={18}
-                    className={
-                      pathname.includes("/admin/qualidade/templates")
-                        ? "text-white"
-                        : "text-blue-300"
-                    }
-                  />
-                  <span className="text-sm border-transparent">
-                    Checklists Qualidade
-                  </span>
-                </Link>
-              </nav>
+                <p className="px-3 text-[10px] font-extrabold text-blue-400 uppercase tracking-widest mb-2">
+                  Qualidade
+                </p>
+                <nav className="flex flex-col gap-1 mb-6">
+                  <Link
+                    onClick={() => setIsOpen(false)}
+                    href="/admin/qualidade/rnc"
+                    className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes("/admin/qualidade/rnc") ? "bg-blue-800 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
+                  >
+                    <AlertTriangle
+                      size={18}
+                      className={
+                        pathname.includes("/admin/qualidade/rnc")
+                          ? "text-white"
+                          : "text-blue-300"
+                      }
+                    />
+                    <span className="text-sm border-transparent">
+                      Gestão RNC (8D / A3)
+                    </span>
+                  </Link>
+                  <Link
+                    onClick={() => setIsOpen(false)}
+                    href="/admin/qualidade/templates"
+                    className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes("/admin/qualidade/templates") ? "bg-blue-800 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
+                  >
+                    <Settings
+                      size={18}
+                      className={
+                        pathname.includes("/admin/qualidade/templates")
+                          ? "text-white"
+                          : "text-blue-300"
+                      }
+                    />
+                    <span className="text-sm border-transparent">
+                      Checklists Qualidade
+                    </span>
+                  </Link>
+                </nav>
 
-              <p className="px-3 text-[10px] font-extrabold text-[#f59e0b] uppercase tracking-widest mb-2">
-                Lean & Manufacture lean
-              </p>
-              <nav className="flex flex-col gap-1 mb-6">
-                <Link
-                  onClick={() => setIsOpen(false)}
-                  href="/admin/lean/kaizen"
-                  className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes("/admin/lean/kaizen") ? "bg-amber-600 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
-                >
-                  <Lightbulb
-                    size={18}
-                    className={
-                      pathname.includes("/admin/lean/kaizen")
-                        ? "text-white"
-                        : "text-amber-400"
-                    }
-                  />
-                  <span className="text-sm border-transparent">
-                    Ideias Kaizen
-                  </span>
-                </Link>
-                <Link
-                  onClick={() => setIsOpen(false)}
-                  href="/admin/lean/gemba"
-                  className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes("/admin/lean/gemba") ? "bg-amber-600 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
-                >
-                  <Footprints
-                    size={18}
-                    className={
-                      pathname.includes("/admin/lean/gemba")
-                        ? "text-white"
-                        : "text-amber-400"
-                    }
-                  />
-                  <span className="text-sm border-transparent">
-                    Gemba Walking
-                  </span>
-                </Link>
-                <Link
-                  onClick={() => setIsOpen(false)}
-                  href="/admin/lean/acoes"
-                  className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes("/admin/lean/acoes") ? "bg-amber-600 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
-                >
-                  <ListTodo
-                    size={18}
-                    className={
-                      pathname.includes("/admin/lean/acoes")
-                        ? "text-white"
-                        : "text-amber-400"
-                    }
-                  />
-                  <span className="text-sm border-transparent">
-                    Scrum Board (Ações)
-                  </span>
-                </Link>
-              </nav>
+                <p className="px-3 text-[10px] font-extrabold text-[#f59e0b] uppercase tracking-widest mb-2">
+                  Lean & Manufacture lean
+                </p>
+                <nav className="flex flex-col gap-1 mb-6">
+                  <Link
+                    onClick={() => setIsOpen(false)}
+                    href="/admin/lean/kaizen"
+                    className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes("/admin/lean/kaizen") ? "bg-amber-600 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
+                  >
+                    <Lightbulb
+                      size={18}
+                      className={
+                        pathname.includes("/admin/lean/kaizen")
+                          ? "text-white"
+                          : "text-amber-400"
+                      }
+                    />
+                    <span className="text-sm border-transparent">
+                      Ideias Kaizen
+                    </span>
+                  </Link>
+                  <Link
+                    onClick={() => setIsOpen(false)}
+                    href="/admin/lean/gemba"
+                    className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes("/admin/lean/gemba") ? "bg-amber-600 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
+                  >
+                    <Footprints
+                      size={18}
+                      className={
+                        pathname.includes("/admin/lean/gemba")
+                          ? "text-white"
+                          : "text-amber-400"
+                      }
+                    />
+                    <span className="text-sm border-transparent">
+                      Gemba Walking
+                    </span>
+                  </Link>
+                  <Link
+                    onClick={() => setIsOpen(false)}
+                    href="/admin/lean/acoes"
+                    className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes("/admin/lean/acoes") ? "bg-amber-600 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
+                  >
+                    <ListTodo
+                      size={18}
+                      className={
+                        pathname.includes("/admin/lean/acoes")
+                          ? "text-white"
+                          : "text-amber-400"
+                      }
+                    />
+                    <span className="text-sm border-transparent">
+                      Scrum Board (Ações)
+                    </span>
+                  </Link>
+                </nav>
 
-              <p className="px-3 text-[10px] font-extrabold text-[#f43f5e] uppercase tracking-widest mb-2">
-                Saúde, Seg e Ambiente
-              </p>
-              <nav className="flex flex-col gap-1 mb-6">
-                <Link
-                  onClick={() => setIsOpen(false)}
-                  href="/admin/hst/ocorrencias"
-                  className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes("/admin/hst/ocorrencias") ? "bg-rose-600 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
-                >
-                  <Crosshair
-                    size={18}
-                    className={
-                      pathname.includes("/admin/hst/ocorrencias")
-                        ? "text-white"
-                        : "text-rose-400"
-                    }
-                  />
-                  <span className="text-sm border-transparent">
-                    Registrar Ocorrência
-                  </span>
-                </Link>
-                <Link
-                  onClick={() => setIsOpen(false)}
-                  href="/admin/hst/epis"
-                  className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes("/admin/hst/epis") ? "bg-rose-600 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
-                >
-                  <ShieldCheck
-                    size={18}
-                    className={
-                      pathname.includes("/admin/hst/epis")
-                        ? "text-white"
-                        : "text-rose-400"
-                    }
-                  />
-                  <span className="text-sm border-transparent">
-                    Matriz Ocupacional
-                  </span>
-                </Link>
-                <Link
-                  onClick={() => setIsOpen(false)}
-                  href="/admin/hst/certificacoes"
-                  className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes("/admin/hst/certificacoes") ? "bg-rose-600 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
-                >
-                  <Award
-                    size={18}
-                    className={
-                      pathname.includes("/admin/hst/certificacoes")
-                        ? "text-white"
-                        : "text-rose-400"
-                    }
-                  />
-                  <span className="text-sm border-transparent">
-                    Certificações
-                  </span>
-                </Link>
-                <Link
-                  onClick={() => setIsOpen(false)}
-                  href="/admin/hst/auditorias"
-                  className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes("/admin/hst/auditorias") ? "bg-rose-600 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
-                >
-                  <ShieldCheck
-                    size={18}
-                    className={
-                      pathname.includes("/admin/hst/auditorias")
-                        ? "text-white"
-                        : "text-rose-400"
-                    }
-                  />
-                  <span className="text-sm border-transparent">
-                    Auditorias Seg.
-                  </span>
-                </Link>
-                <Link
-                  onClick={() => setIsOpen(false)}
-                  href="/admin/hst/dashboard"
-                  className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname === "/admin/hst/dashboard" ? "bg-rose-600 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
-                >
-                  <ShieldAlert
-                    size={18}
-                    className={
-                      pathname === "/admin/hst/dashboard"
-                        ? "text-white"
-                        : "text-rose-400"
-                    }
-                  />
-                  <span className="text-sm border-transparent">
-                    Cruz de Segurança
-                  </span>
-                </Link>
-                <Link
-                  onClick={() => setIsOpen(false)}
-                  href="/admin/hst/8d/historico"
-                  className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes("/admin/hst/8d") ? "bg-rose-600 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
-                >
-                  <History
-                    size={18}
-                    className={
-                      pathname.includes("/admin/hst/8d")
-                        ? "text-white"
-                        : "text-rose-400"
-                    }
-                  />
-                  <span className="text-sm border-transparent">
-                    Investigações 8D
-                  </span>
-                </Link>
-                <Link
-                  onClick={() => setIsOpen(false)}
-                  href="/admin/hst/acoes"
-                  className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname === "/admin/hst/acoes" ? "bg-rose-600 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
-                >
-                  <ListTodo
-                    size={18}
-                    className={
-                      pathname === "/admin/hst/acoes"
-                        ? "text-white"
-                        : "text-rose-400"
-                    }
-                  />
-                  <span className="text-sm border-transparent">
-                    Scrum Board (Ações)
-                  </span>
-                </Link>
-              </nav>
-
-              <p className="px-3 text-[10px] font-extrabold text-blue-400 uppercase tracking-widest mb-2">
-                Sistema
-              </p>
-              <nav className="flex flex-col gap-1">
-                <Link
-                  onClick={() => setIsOpen(false)}
-                  href="/admin/producao/logs"
-                  className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname === "/admin/producao/logs" ? "bg-blue-800 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
-                >
-                  <History
-                    size={18}
-                    className={
-                      pathname === "/admin/producao/logs"
-                        ? "text-white"
-                        : "text-blue-300"
-                    }
-                  />
-                  <span className="text-sm border-transparent">
-                    Auditoria Telemetria
-                  </span>
-                </Link>
-                <Link
-                  onClick={() => setIsOpen(false)}
-                  href="/admin/diagnostico"
-                  className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname === "/admin/diagnostico" ? "bg-blue-800 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
-                >
-                  <Settings
-                    size={18}
-                    className={
-                      pathname === "/admin/diagnostico"
-                        ? "text-white"
-                        : "text-blue-300"
-                    }
-                  />
-                  <span className="text-sm border-transparent">
-                    Central Dispositivos
-                  </span>
-                </Link>
-                <Link
-                  onClick={() => setIsOpen(false)}
-                  href="/admin/configuracoes"
-                  className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname === "/admin/configuracoes" || pathname.startsWith("/admin/configuracoes") ? "bg-blue-800 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
-                >
-                  <Settings
-                    size={18}
-                    className={
-                      pathname === "/admin/configuracoes" ||
-                        pathname.startsWith("/admin/configuracoes")
-                        ? "text-white"
-                        : "text-blue-300"
-                    }
-                  />
-                  <span className="text-sm border-transparent">
-                    Configurações Globais
-                  </span>
-                </Link>
-              </nav>
-            </div>
+                <p className="px-3 text-[10px] font-extrabold text-[#f43f5e] uppercase tracking-widest mb-2">
+                  Saúde, Seg e Ambiente
+                </p>
+                <nav className="flex flex-col gap-1 mb-6">
+                  <Link
+                    onClick={() => setIsOpen(false)}
+                    href="/admin/hst/ocorrencias"
+                    className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes("/admin/hst/ocorrencias") ? "bg-rose-600 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
+                  >
+                    <Crosshair
+                      size={18}
+                      className={
+                        pathname.includes("/admin/hst/ocorrencias")
+                          ? "text-white"
+                          : "text-rose-400"
+                      }
+                    />
+                    <span className="text-sm border-transparent">
+                      Registrar Ocorrência
+                    </span>
+                  </Link>
+                  <Link
+                    onClick={() => setIsOpen(false)}
+                    href="/admin/hst/epis"
+                    className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes("/admin/hst/epis") ? "bg-rose-600 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
+                  >
+                    <ShieldCheck
+                      size={18}
+                      className={
+                        pathname.includes("/admin/hst/epis")
+                          ? "text-white"
+                          : "text-rose-400"
+                      }
+                    />
+                    <span className="text-sm border-transparent">
+                      Matriz Ocupacional
+                    </span>
+                  </Link>
+                  <Link
+                    onClick={() => setIsOpen(false)}
+                    href="/admin/hst/certificacoes"
+                    className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes("/admin/hst/certificacoes") ? "bg-rose-600 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
+                  >
+                    <Award
+                      size={18}
+                      className={
+                        pathname.includes("/admin/hst/certificacoes")
+                          ? "text-white"
+                          : "text-rose-400"
+                      }
+                    />
+                    <span className="text-sm border-transparent">
+                      Certificações
+                    </span>
+                  </Link>
+                  <Link
+                    onClick={() => setIsOpen(false)}
+                    href="/admin/hst/auditorias"
+                    className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes("/admin/hst/auditorias") ? "bg-rose-600 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
+                  >
+                    <ShieldCheck
+                      size={18}
+                      className={
+                        pathname.includes("/admin/hst/auditorias")
+                          ? "text-white"
+                          : "text-rose-400"
+                      }
+                    />
+                    <span className="text-sm border-transparent">
+                      Auditorias Seg.
+                    </span>
+                  </Link>
+                  <Link
+                    onClick={() => setIsOpen(false)}
+                    href="/admin/hst/dashboard"
+                    className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname === "/admin/hst/dashboard" ? "bg-rose-600 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
+                  >
+                    <ShieldAlert
+                      size={18}
+                      className={
+                        pathname === "/admin/hst/dashboard"
+                          ? "text-white"
+                          : "text-rose-400"
+                      }
+                    />
+                    <span className="text-sm border-transparent">
+                      Cruz de Segurança
+                    </span>
+                  </Link>
+                  <Link
+                    onClick={() => setIsOpen(false)}
+                    href="/admin/hst/8d/historico"
+                    className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes("/admin/hst/8d") ? "bg-rose-600 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
+                  >
+                    <History
+                      size={18}
+                      className={
+                        pathname.includes("/admin/hst/8d")
+                          ? "text-white"
+                          : "text-rose-400"
+                      }
+                    />
+                    <span className="text-sm border-transparent">
+                      Investigações 8D
+                    </span>
+                  </Link>
+                  <Link
+                    onClick={() => setIsOpen(false)}
+                    href="/admin/hst/acoes"
+                    className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname === "/admin/hst/acoes" ? "bg-rose-600 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
+                  >
+                    <ListTodo
+                      size={18}
+                      className={
+                        pathname === "/admin/hst/acoes"
+                          ? "text-white"
+                          : "text-rose-400"
+                      }
+                    />
+                    <span className="text-sm border-transparent">
+                      Scrum Board (Ações)
+                    </span>
+                  </Link>
+                </nav>
+              </>
+            )}
           </div>
         </div>
 
