@@ -100,7 +100,7 @@ export function Sidebar({ userEmail }: { userEmail: string | undefined }) {
 
       {/* A Barra Lateral do M.E.S */}
       <aside
-        className={`fixed md:relative top-0 left-0 w-64 bg-blue-900 text-white flex flex-col justify-between h-full overflow-y-auto shadow-xl z-50 transform transition-transform duration-300 md:translate-x-0 ${isOpen ? "translate-x-0" : "-translate-x-full"}`}
+        className={`fixed md:relative top-0 left-0 w-64 bg-blue-900 text-white flex flex-col justify-between h-full overflow-y-auto nasa-scrollbar shadow-xl z-50 transform transition-transform duration-300 md:translate-x-0 ${isOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
         <div className="p-6 flex flex-col flex-1 whitespace-nowrap">
           {/* O Logo é Oculto no Mobile Side (Porque já está no Mobile Header Supremo) */}
@@ -115,11 +115,10 @@ export function Sidebar({ userEmail }: { userEmail: string | undefined }) {
                   key={link.href}
                   href={link.href}
                   onClick={() => setIsOpen(false)}
-                  className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${
-                    isActive
+                  className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${isActive
                       ? "bg-blue-800 text-white shadow-sm border border-transparent"
                       : "text-blue-100 hover:bg-blue-800/50 hover:text-white"
-                  }`}
+                    }`}
                 >
                   <span
                     className={`${isActive ? "text-white" : "text-blue-300"} w-5 h-5 flex items-center justify-center`}
@@ -297,7 +296,7 @@ export function Sidebar({ userEmail }: { userEmail: string | undefined }) {
                     size={18}
                     className={
                       pathname === "/admin/rh" ||
-                      pathname.startsWith("/admin/rh/cadastro")
+                        pathname.startsWith("/admin/rh/cadastro")
                         ? "text-white"
                         : "text-blue-300"
                     }
@@ -765,7 +764,7 @@ export function Sidebar({ userEmail }: { userEmail: string | undefined }) {
                     size={18}
                     className={
                       pathname === "/admin/configuracoes" ||
-                      pathname.startsWith("/admin/configuracoes")
+                        pathname.startsWith("/admin/configuracoes")
                         ? "text-white"
                         : "text-blue-300"
                     }

@@ -131,4 +131,21 @@
   .animate-fade-in {
     animation: fade-in 0.3s ease-in-out forwards;
   }
+
+  /* Sleek, Harmonics NASA-level Webkit Scrollbar */
+  .nasa-scrollbar::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+  .nasa-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .nasa-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(59, 130, 246, 0.2); /* Faint neon blue */
+    border-radius: 10px;
+    transition: background 0.3s ease;
+  }
+  .nasa-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(59, 130, 246, 0.8); /* Bright neon blue on hover */
+  }
 }
