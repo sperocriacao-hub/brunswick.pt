@@ -133,7 +133,7 @@ export function Sidebar({ userEmail }: { userEmail: string | undefined }) {
 
             <div className="mt-8">
               <p className="px-3 text-[10px] font-extrabold text-blue-400 uppercase tracking-widest mb-2">
-                Grupo 1. Planeamento
+                Planeamento
               </p>
               <nav className="flex flex-col gap-1 mb-6">
                 <Link
@@ -203,7 +203,7 @@ export function Sidebar({ userEmail }: { userEmail: string | undefined }) {
               </nav>
 
               <p className="px-3 text-[10px] font-extrabold text-blue-400 uppercase tracking-widest mb-2">
-                Grupo 2. Produção
+                Produção
               </p>
               <nav className="flex flex-col gap-1 mb-6">
                 <Link
@@ -268,7 +268,7 @@ export function Sidebar({ userEmail }: { userEmail: string | undefined }) {
               </nav>
 
               <p className="px-3 text-[10px] font-extrabold text-blue-400 uppercase tracking-widest mb-2">
-                Grupo 3. Equipa e Talento
+                Equipa e Talento
               </p>
               <nav className="flex flex-col gap-1 mb-6">
                 <Link
@@ -343,7 +343,7 @@ export function Sidebar({ userEmail }: { userEmail: string | undefined }) {
               </nav>
 
               <p className="px-3 text-[10px] font-extrabold text-blue-400 uppercase tracking-widest mb-2">
-                Grupo 4. Warehouse
+                Warehouse
               </p>
               <nav className="flex flex-col gap-1 mb-6">
                 <Link
@@ -383,7 +383,7 @@ export function Sidebar({ userEmail }: { userEmail: string | undefined }) {
               </nav>
 
               <p className="px-3 text-[10px] font-extrabold text-blue-400 uppercase tracking-widest mb-2">
-                Grupo 5. Engenharia
+                Engenharia
               </p>
               <nav className="flex flex-col gap-1 mb-6">
                 <Link
@@ -474,7 +474,7 @@ export function Sidebar({ userEmail }: { userEmail: string | undefined }) {
               </nav>
 
               <p className="px-3 text-[10px] font-extrabold text-blue-400 uppercase tracking-widest mb-2">
-                Grupo 6. Manutenção
+                Manutenção
               </p>
               <nav className="flex flex-col gap-1 mb-6">
                 <Link
@@ -497,7 +497,7 @@ export function Sidebar({ userEmail }: { userEmail: string | undefined }) {
               </nav>
 
               <p className="px-3 text-[10px] font-extrabold text-blue-400 uppercase tracking-widest mb-2">
-                Grupo 7. Qualidade
+                Qualidade
               </p>
               <nav className="flex flex-col gap-1 mb-6">
                 <Link
@@ -537,7 +537,7 @@ export function Sidebar({ userEmail }: { userEmail: string | undefined }) {
               </nav>
 
               <p className="px-3 text-[10px] font-extrabold text-[#f59e0b] uppercase tracking-widest mb-2">
-                Grupo 8. Lean & Manufacture lean
+                Lean & Manufacture lean
               </p>
               <nav className="flex flex-col gap-1 mb-6">
                 <Link
@@ -594,7 +594,7 @@ export function Sidebar({ userEmail }: { userEmail: string | undefined }) {
               </nav>
 
               <p className="px-3 text-[10px] font-extrabold text-[#f43f5e] uppercase tracking-widest mb-2">
-                Grupo 9. Saúde, Seg e Ambiente
+                Saúde, Seg e Ambiente
               </p>
               <nav className="flex flex-col gap-1 mb-6">
                 <Link
