@@ -16,6 +16,7 @@ function FuncionarioFormCore() {
     const [isLoading, setIsLoading] = useState(false);
     const [isFetchingData, setIsFetchingData] = useState(!!id);
     const [estacoesDisponiveis, setEstacoesDisponiveis] = useState<{ id: string, nome_estacao: string }[]>([]);
+    const [areasDisponiveis, setAreasDisponiveis] = useState<{ id: string, nome_area: string, sigla_area: string }[]>([]);
 
     // State Unificado do Formulário (Os 5 Blocos)
     const [formData, setFormData] = useState({
@@ -53,6 +54,10 @@ function FuncionarioFormCore() {
         // Carregar Estações (Para Alocação do Posto de Trabalho M.E.S)
         supabase.from('estacoes').select('id, nome_estacao').order('nome_estacao')
             .then(({ data }) => setEstacoesDisponiveis(data || []));
+
+        // Carregar Áreas de Fábrica (Para Equipa / Grupo)
+        supabase.from('areas_fabrica').select('id, nome_area, sigla_area').order('nome_area')
+            .then(({ data }) => setAreasDisponiveis(data || []));
 
         // Carregar Dados se Modo Edição
         if (id) {
@@ -195,8 +200,13 @@ function FuncionarioFormCore() {
                     </div>
                     <div className="grid grid-cols-2 gap-4 mb-4">
                         <div>
-                            <label className="block text-xs font-semibold text-slate-600 mb-1">Equipa / Grupo</label>
-                            <input type="text" value={formData.grupo_equipa} onChange={e => setFormData({ ...formData, grupo_equipa: e.target.value })} className={inputClass} placeholder="Ex: Equipa Alfa" />
+                            <label className="block text-xs font-semibold text-slate-600 mb-1">Equipa / Grupo (Área)</label>
+                            <select value={formData.grupo_equipa} onChange={e => setFormData({ ...formData, grupo_equipa: e.target.value })} className={`${inputClass} appearance-none`}>
+                                <option value="">Não Alocada...</option>
+                                {areasDisponiveis.map(a => (
+                                    <option key={a.id} value={a.nome_area}>{a.nome_area} ({a.sigla_area})</option>
+                                ))}
+                            </select>
                         </div>
                         <div>
                             <label className="block text-xs font-semibold text-slate-600 mb-1">Turno</label>
