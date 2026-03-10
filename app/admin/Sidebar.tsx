@@ -775,6 +775,95 @@ export function Sidebar({
                 </nav>
               </>
             )}
+
+            {(hasAccess("/admin/producao/logs") ||
+              hasAccess("/admin/diagnostico") ||
+              hasAccess("/admin/configuracoes") ||
+              hasAccess("/admin/display-tvs")) && (
+                <>
+                  <p className="px-3 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-2 mt-6">
+                    Sistema
+                  </p>
+                  <nav className="flex flex-col gap-1 mb-6">
+                    {hasAccess("/admin/producao/logs") && (
+                      <Link
+                        onClick={() => setIsOpen(false)}
+                        href="/admin/producao/logs"
+                        className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes("/admin/producao/logs") ? "bg-blue-800 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
+                      >
+                        <History
+                          size={18}
+                          className={
+                            pathname.includes("/admin/producao/logs")
+                              ? "text-white"
+                              : "text-slate-400"
+                          }
+                        />
+                        <span className="text-sm border-transparent">
+                          Auditoria Telemetria
+                        </span>
+                      </Link>
+                    )}
+                    {hasAccess("/admin/diagnostico") && (
+                      <Link
+                        onClick={() => setIsOpen(false)}
+                        href="/admin/diagnostico"
+                        className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes("/admin/diagnostico") ? "bg-blue-800 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
+                      >
+                        <Activity
+                          size={18}
+                          className={
+                            pathname.includes("/admin/diagnostico")
+                              ? "text-white"
+                              : "text-slate-400"
+                          }
+                        />
+                        <span className="text-sm border-transparent">
+                          Central Dispositivos
+                        </span>
+                      </Link>
+                    )}
+                    {hasAccess("/admin/configuracoes") && (
+                      <Link
+                        onClick={() => setIsOpen(false)}
+                        href="/admin/configuracoes"
+                        className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes("/admin/configuracoes") ? "bg-blue-800 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
+                      >
+                        <Settings
+                          size={18}
+                          className={
+                            pathname.includes("/admin/configuracoes")
+                              ? "text-white"
+                              : "text-slate-400"
+                          }
+                        />
+                        <span className="text-sm border-transparent">
+                          Configurações Globais
+                        </span>
+                      </Link>
+                    )}
+                    {hasAccess("/admin/display-tvs") && (
+                      <Link
+                        onClick={() => setIsOpen(false)}
+                        href="/admin/display-tvs"
+                        className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes("/admin/display-tvs") ? "bg-blue-800 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
+                      >
+                        <Monitor
+                          size={18}
+                          className={
+                            pathname.includes("/admin/display-tvs")
+                              ? "text-white"
+                              : "text-slate-400"
+                          }
+                        />
+                        <span className="text-sm border-transparent">
+                          Hardware & Displays
+                        </span>
+                      </Link>
+                    )}
+                  </nav>
+                </>
+              )}
           </div>
         </div>
 
