@@ -21,6 +21,7 @@ import {
   ShieldAlert,
   History,
   Award,
+  Monitor,
 } from "lucide-react";
 
 export function Sidebar({
