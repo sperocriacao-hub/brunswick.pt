@@ -389,31 +389,50 @@ export default function CustomTVDashboardPage() {
                         </div>
                     ) : (
                         <div className="flex-1 flex flex-col relative animate-pulse-slow">
-                            {/* Glowing Background Header for Sidebar */}
-                            <div className="bg-red-600 p-6 shadow-[0_5px_30px_rgba(220,38,38,0.4)] relative z-10 flex flex-col items-center justify-center text-center">
-                                <AlertTriangle size={48} className="text-white animate-bounce mb-3" />
-                                <h2 className="text-3xl lg:text-4xl font-black text-white uppercase tracking-tighter leading-none mb-1">ANDON ALARME</h2>
-                                <p className="text-red-200 font-bold text-sm tracking-widest uppercase">Ações Necessárias</p>
+                            {/* Compact Glowing Background Header for Sidebar */}
+                            <div className="bg-red-600 p-3 shadow-[0_5px_30px_rgba(220,38,38,0.4)] relative z-10 flex flex-row items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <AlertTriangle size={32} className="text-white animate-bounce" />
+                                    <div className="flex flex-col text-left">
+                                        <h2 className="text-2xl font-black text-white uppercase tracking-tighter leading-none mb-0.5">ANDON ALARME</h2>
+                                        <p className="text-red-200 font-bold text-[10px] tracking-widest uppercase leading-none">Ações Intervenção</p>
+                                    </div>
+                                </div>
+                                <div className="bg-white/20 px-3 py-1 rounded-full text-white font-black text-lg shadow-inner">
+                                    {alertas.length}
+                                </div>
                             </div>
 
-                            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-red-950/20">
+                            <div className="flex-1 overflow-y-auto p-2 space-y-2 bg-red-950/20">
                                 {alertas.map(al => (
-                                    <div key={al.id} className="bg-black/60 border border-red-500/30 rounded-2xl p-6 shadow-xl relative overflow-hidden">
-                                        <div className="absolute top-0 left-0 w-2 h-full bg-red-500"></div>
-                                        <span className="text-red-400 font-bold uppercase tracking-widest text-sm mb-1 block truncate">
-                                            EST. {al.estacoes?.nome_estacao || "DESCONHECIDA"}
-                                        </span>
-                                        <span className="text-white font-black text-2xl uppercase block leading-tight mb-2">
-                                            {al.tipo_alerta}
-                                        </span>
-                                        {al.descricao_alerta && (
-                                            <span className="text-slate-300 text-sm mb-4 line-clamp-2 leading-snug block">
-                                                "{al.descricao_alerta}"
+                                    <div key={al.id} className="bg-black/60 border border-red-500/30 rounded-xl p-3 shadow-md relative overflow-hidden flex flex-col gap-1.5">
+                                        <div className="absolute top-0 left-0 w-1.5 h-full bg-red-500"></div>
+
+                                        <div className="flex justify-between items-start pl-2">
+                                            <div className="flex flex-col">
+                                                <div className="flex items-center gap-2 mb-0.5">
+                                                    <span className="bg-red-500/20 text-red-400 px-1.5 py-[2px] rounded text-[10px] font-black uppercase tracking-widest flex-shrink-0">
+                                                        EST. {al.estacoes?.nome_estacao || "..."}
+                                                    </span>
+                                                    <span className="text-white font-black text-base uppercase leading-tight truncate">
+                                                        {al.tipo_alerta}
+                                                    </span>
+                                                </div>
+                                                {al.descricao_alerta && (
+                                                    <span className="text-slate-300 text-xs line-clamp-1 leading-snug">
+                                                        {al.descricao_alerta}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        <div className="pl-2 pt-1.5 border-t border-red-900/50 flex justify-between items-center mt-0.5">
+                                            <span className="text-slate-500 font-mono text-[10px] tracking-widest flex items-center gap-1.5">
+                                                <UserX size={10} className="text-slate-600" /> ID: {al.operador_rfid}
                                             </span>
-                                        )}
-                                        <div className="pt-4 border-t border-red-900/50 flex justify-between items-center">
-                                            <span className="text-slate-500 font-mono text-xs tracking-widest">FUNC: {al.operador_rfid}</span>
-                                            <span className="bg-red-500 text-white px-3 py-1 rounded-md text-xs font-black uppercase shadow-lg">Espera</span>
+                                            <span className="bg-red-500/80 text-white px-2 py-0.5 rounded text-[9px] font-black uppercase shadow-sm">
+                                                Aguardando
+                                            </span>
                                         </div>
                                     </div>
                                 ))}
