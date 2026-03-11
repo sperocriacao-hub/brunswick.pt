@@ -2,9 +2,6 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
 import { createClient } from '@supabase/supabase-js';
 import { AlertTriangle, Clock, Factory, MonitorPlay, ShieldCheck, Trophy, Target, TrendingUp, Zap, Clock4, CheckCircle2, UserX, Activity, HeartPulse } from 'lucide-react';
 import { buscarDashboardsTV } from '../../actions';
