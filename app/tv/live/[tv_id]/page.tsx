@@ -101,9 +101,9 @@ export default function CustomTVDashboardPage() {
 
             {/* --- NASA HUD TOP HEADER --- */}
             <header className="flex items-center justify-between border-b-[4px] border-slate-800 bg-slate-900/50 p-6 shadow-md z-10 shrink-0">
-                <div className="flex items-center gap-6">
+                <div className="flex items-center gap-8">
                     <div className="flex items-center justify-center pr-2">
-                        <img src="/logo.png" alt="Logo" className="w-[120px] h-auto object-contain drop-shadow-xl" />
+                        <img src="/logo.png" alt="Logo" className="w-[240px] h-auto object-contain drop-shadow-xl" />
                     </div>
                     <div>
                         <h1 className="text-5xl font-black tracking-tighter uppercase text-white truncate max-w-4xl">{alvoNome}</h1>
