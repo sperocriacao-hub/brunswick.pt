@@ -39,6 +39,68 @@ export async function buscarEstacoes() {
     }
 }
 
+/**
+ * Busca o estado (Farol Andon) de todas as estações vizinhas (mesma Área)
+ */
+export async function getAreaAndonStatus(currentEstacaoId: string) {
+    if (!currentEstacaoId) return { success: false, data: [] };
+
+    try {
+        // 1. Descobrir a Área da Estação Atual
+        const { data: currentEst, error: estErr } = await supabase
+            .from('estacoes')
+            .select('area_id')
+            .eq('id', currentEstacaoId)
+            .single();
+
+        if (estErr || !currentEst?.area_id) {
+            return { success: false, data: [] };
+            // Podia ser uma estação sem área definida
+        }
+
+        const areaId = currentEst.area_id;
+
+        // 2. Buscar todas as estações dessa Área
+        const { data: stationsInArea, error: areaErr } = await supabase
+            .from('estacoes')
+            .select('id, nome_estacao')
+            .eq('area_id', areaId)
+            .order('nome_estacao', { ascending: true });
+
+        if (areaErr || !stationsInArea) throw areaErr;
+
+        const estacaoIds = stationsInArea.map(e => e.id);
+
+        // 3. Buscar Alertas Andon Ativos (Não Resolvidos) para estas estações
+        const { data: activeAlerts, error: alertErr } = await supabase
+            .from('alertas_andon')
+            .select('estacao_id, tipo_alerta')
+            .eq('resolvido', false)
+            .in('estacao_id', estacaoIds);
+
+        if (alertErr) throw alertErr;
+
+        // 4. Mapear as estações com o seu estado de Andon
+        const areaStatus = stationsInArea.map(station => {
+            // Pode haver múltiplos alertas para a mesma estação, pegamos o primeiro por simplicidade de UI
+            const andon = activeAlerts?.find(a => a.estacao_id === station.id);
+            return {
+                id: station.id,
+                nome_estacao: station.nome_estacao,
+                hasAndon: !!andon,
+                andonType: andon ? andon.tipo_alerta : null,
+                isCurrent: station.id === currentEstacaoId
+            };
+        });
+
+        return { success: true, data: areaStatus };
+
+    } catch (err: any) {
+        console.error("Erro ao buscar Area Andon Status:", err);
+        return { success: false, error: err.message };
+    }
+}
+
 // (Removed duplicate/legacy Session and Boat listing queries from Operator dashboard.
 // These actions are now routed entirely via the Hardware Emulator hitting `/api/mes/iot` REST endpoint.)
 

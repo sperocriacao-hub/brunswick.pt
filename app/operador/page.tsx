@@ -5,7 +5,7 @@ import { MonitorSmartphone, AlertTriangle, Lightbulb, QrCode, FileText, UserChec
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
-import { getStationOperators, getStationChecklist, buscarEstacoes, dispararAlertaAndon, getUpcomingQueue, toggleTarefaExecution } from './actions';
+import { getStationOperators, getStationChecklist, buscarEstacoes, dispararAlertaAndon, getUpcomingQueue, toggleTarefaExecution, getAreaAndonStatus } from './actions';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -49,6 +49,9 @@ export default function InteractiveTabletPage() {
     const [andonType, setAndonType] = useState('Falta de peça');
     const [andonDesc, setAndonDesc] = useState('');
     const [causadoraEstacaoId, setCausadoraEstacaoId] = useState('');
+
+    // Area Andon Status
+    const [areaAndonStatus, setAreaAndonStatus] = useState<any[]>([]);
 
     // --- BOOT SEQUENCE ---
     useEffect(() => {
@@ -110,6 +113,24 @@ export default function InteractiveTabletPage() {
             setOperadores(res.data);
         }
     };
+
+    const refreshAreaAndon = async () => {
+        if (!selectedEstacaoId) return;
+        const res = await getAreaAndonStatus(selectedEstacaoId);
+        if (res.success && res.data) {
+            setAreaAndonStatus(res.data);
+        }
+    };
+
+    useEffect(() => {
+        if (selectedEstacaoId) {
+            refreshAreaAndon();
+            const interval = setInterval(refreshAreaAndon, 10000); // 10s poll for Area Events
+            return () => clearInterval(interval);
+        } else {
+            setAreaAndonStatus([]);
+        }
+    }, [selectedEstacaoId]);
 
     const fetchChecklist = async (op_id: string, est_id: string) => {
         const res = await getStationChecklist(op_id, est_id);
@@ -456,6 +477,39 @@ export default function InteractiveTabletPage() {
                     </div>
                 </div>
             </header>
+
+            {/* 1.5. AREA ANDON NOTIFICATION BAR (FAROL) */}
+            {selectedEstacaoId && areaAndonStatus.length > 0 && (
+                <div className={`w-full py-2.5 px-6 shadow-[inset_0_4px_10px_rgba(0,0,0,0.5)] flex items-center overflow-x-auto gap-4 border-b border-slate-800 transition-colors duration-1000 z-10 shrink-0 select-none ${areaAndonStatus.some(a => a.hasAndon) ? 'bg-gradient-to-r from-slate-900 via-red-950/40 to-slate-900 border-red-900/50' : 'bg-slate-950/80'}`}>
+                    <div className="flex items-center gap-2 mr-2 shrink-0 border-r border-slate-700/50 pr-4">
+                        <div className={`w-2 h-2 rounded-full ${areaAndonStatus.some(a => a.hasAndon) ? 'bg-red-500 animate-pulse' : 'bg-emerald-500'}`}></div>
+                        <span className="text-[10px] font-black tracking-widest uppercase text-slate-500">Radar de Área</span>
+                    </div>
+                    {areaAndonStatus.map(station => (
+                        <div key={station.id} className={`flex items-center gap-2.5 px-4 py-1.5 rounded-full border shrink-0 transition-all duration-500 ${station.hasAndon ? 'bg-red-950/80 border-red-500/60 shadow-[0_0_15px_rgba(220,38,38,0.2)] min-w-[140px]' : (station.isCurrent ? 'bg-blue-900/40 border-blue-500/40' : 'bg-slate-900/60 border-slate-800/60 opacity-60 hover:opacity-100')}`}>
+                            {station.hasAndon ? (
+                                <div className="relative flex h-3.5 w-3.5 shrink-0">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-red-600 border border-red-400 shadow-[0_0_10px_rgba(239,68,68,0.8)]"></span>
+                                </div>
+                            ) : (
+                                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/80 border border-emerald-400 shadow-[0_0_5px_rgba(34,197,94,0.3)] shrink-0 opacity-50"></div>
+                            )}
+
+                            <div className="flex flex-col justify-center">
+                                <span className={`text-[11px] font-black uppercase tracking-wider leading-none ${station.hasAndon ? 'text-red-400' : (station.isCurrent ? 'text-blue-300' : 'text-slate-400')}`}>
+                                    {station.nome_estacao.split('-').pop()?.trim() || station.nome_estacao}
+                                </span>
+                                {station.hasAndon && (
+                                    <span className="text-[9px] text-red-200 font-bold uppercase truncate max-w-[120px] leading-tight mt-0.5 opacity-90">
+                                        {station.andonType || 'Alarme Fabril'}
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
 
             {/* 2. THREE-PANE LAYOUT */}
             <main className="flex-1 flex flex-col lg:flex-row overflow-hidden">
