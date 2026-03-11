@@ -28,23 +28,29 @@ export async function buscarDashboardsTV(tv_id: string) {
 
         // 2. Dependendo do Tipo de Alvo, recolher quais Estações pertencem a esse escopo
         let dictEstacoes: string[] = [];
+        let stationsList: any[] = [];
 
         if (tipoAlvo === 'LINHA') {
             const { data: estacoesDaLinha } = await supabase
                 .from('estacoes')
-                .select('id')
-                .eq('linha_id', alvoId);
-            dictEstacoes = estacoesDaLinha ? estacoesDaLinha.map(e => e.id) : [];
+                .select('id, nome_estacao')
+                .eq('linha_id', alvoId)
+                .order('nome_estacao');
+            stationsList = estacoesDaLinha || [];
+            dictEstacoes = stationsList.map(e => e.id);
         } else if (tipoAlvo === 'AREA') {
             const { data: estacoesDaArea } = await supabase
                 .from('estacoes')
-                .select('id')
-                .eq('area_id', alvoId);
-            dictEstacoes = estacoesDaArea ? estacoesDaArea.map(e => e.id) : [];
+                .select('id, nome_estacao')
+                .eq('area_id', alvoId)
+                .order('nome_estacao');
+            stationsList = estacoesDaArea || [];
+            dictEstacoes = stationsList.map(e => e.id);
         } else {
             // GERAL: Todas as estações da fábrica
-            const { data: todasEstacoes } = await supabase.from('estacoes').select('id');
-            dictEstacoes = todasEstacoes ? todasEstacoes.map(e => e.id) : [];
+            const { data: todasEstacoes } = await supabase.from('estacoes').select('id, nome_estacao').order('nome_estacao');
+            stationsList = todasEstacoes || [];
+            dictEstacoes = stationsList.map(e => e.id);
         }
 
         // 3. Buscar Barcos (OPs) In_Progress nas Estações deste escopo
@@ -299,11 +305,23 @@ export async function buscarDashboardsTV(tv_id: string) {
             console.error("Metric aggregation silent fail:", mErr);
         }
 
+        // 6. Build Radar Estacoes Array
+        const radarEstacoes = stationsList.map(station => {
+            const andon = alertas?.find(a => a.estacao_id === station.id);
+            return {
+                id: station.id,
+                nome_estacao: station.nome_estacao,
+                hasAndon: !!andon,
+                andonType: andon ? andon.tipo_alerta : null
+            };
+        });
+
         return {
             success: true,
             config: configTv,
             barcos: barcos,
             alertasGlobais: alertas || [],
+            radarEstacoes,
             advancedMetrics
         };
     } catch (err: any) {

@@ -21,6 +21,7 @@ export default function CustomTVDashboardPage() {
     // Core Data
     const [barcosAtivos, setBarcosAtivos] = useState<any[]>([]);
     const [alertas, setAlertas] = useState<any[]>([]);
+    const [radarEstacoes, setRadarEstacoes] = useState<any[]>([]);
     const [opcoesLayout, setOpcoesLayout] = useState<any>({});
     const [metrics, setMetrics] = useState<any>({ kpiOee: {}, heroiTurno: null, melhorArea: null, gargalos: [] });
 
@@ -42,6 +43,7 @@ export default function CustomTVDashboardPage() {
                 setAlvoNome(res.config.nome_alvo_resolvido);
                 setBarcosAtivos(res.barcos || []);
                 setAlertas(res.alertasGlobais || []);
+                setRadarEstacoes(res.radarEstacoes || []);
                 setOpcoesLayout(res.config.opcoes_layout || {});
                 setMetrics(res.advancedMetrics || {});
             } else {
@@ -116,6 +118,39 @@ export default function CustomTVDashboardPage() {
                     </span>
                 </div>
             </header>
+
+            {/* --- AREA ANDON NOTIFICATION BAR (RADAR NASA) --- */}
+            {radarEstacoes.length > 0 && (
+                <div className={`w-full py-2 px-6 shadow-[inset_0_4px_10px_rgba(0,0,0,0.5)] flex items-center overflow-x-auto gap-4 border-b border-slate-800 transition-colors duration-1000 z-10 shrink-0 select-none ${radarEstacoes.some(a => a.hasAndon) ? 'bg-gradient-to-r from-slate-900 via-red-950/40 to-slate-900 border-red-900/50' : 'bg-slate-950/80'}`}>
+                    <div className="flex items-center gap-2 mr-2 shrink-0 border-r border-slate-700/50 pr-4">
+                        <div className={`w-2.5 h-2.5 rounded-full ${radarEstacoes.some(a => a.hasAndon) ? 'bg-red-500 animate-pulse' : 'bg-emerald-500'}`}></div>
+                        <span className="text-xs font-black tracking-widest uppercase text-slate-500">Radar Hub</span>
+                    </div>
+                    {radarEstacoes.map(station => (
+                        <div key={station.id} className={`flex items-center gap-2.5 px-4 py-1.5 rounded-full border shrink-0 transition-all duration-500 ${station.hasAndon ? 'bg-red-950/80 border-red-500/60 shadow-[0_0_15px_rgba(220,38,38,0.2)] min-w-[150px]' : 'bg-slate-900/60 border-slate-800/60 opacity-60'}`}>
+                            {station.hasAndon ? (
+                                <div className="relative flex h-4 w-4 shrink-0">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-4 w-4 bg-red-600 border border-red-400 shadow-[0_0_10px_rgba(239,68,68,0.8)]"></span>
+                                </div>
+                            ) : (
+                                <div className="w-3 h-3 rounded-full bg-emerald-500/80 border border-emerald-400 shadow-[0_0_5px_rgba(34,197,94,0.3)] shrink-0 opacity-50"></div>
+                            )}
+                            
+                            <div className="flex flex-col justify-center">
+                                <span className={`text-xs font-black uppercase tracking-wider leading-none ${station.hasAndon ? 'text-red-400' : 'text-slate-400'}`}>
+                                    {station.nome_estacao.split('-').pop()?.trim() || station.nome_estacao}
+                                </span>
+                                {station.hasAndon && (
+                                    <span className="text-[10px] text-red-200 font-bold uppercase truncate max-w-[130px] leading-tight mt-0.5 opacity-90">
+                                        {station.andonType || 'Alarme Fabril'}
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
 
             {/* --- MASTER GRID CONTENT --- */}
             <main className="flex-1 overflow-hidden grid grid-cols-12 gap-6 p-6">
