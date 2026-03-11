@@ -435,23 +435,30 @@ export default function CustomTVDashboardPage() {
                             </div>
 
                             <div className="flex-1 overflow-y-auto p-2 space-y-2 bg-red-950/20">
-                                {alertas.map(al => (
+                                {alertas.map(al => {
+                                    const minutesPassed = Math.max(0, Math.floor((time.getTime() - new Date(al.created_at).getTime()) / 60000));
+                                    return (
                                     <div key={al.id} className="bg-black/60 border border-red-500/30 rounded-xl p-3 shadow-md relative overflow-hidden flex flex-col gap-1.5">
                                         <div className="absolute top-0 left-0 w-1.5 h-full bg-red-500"></div>
 
                                         <div className="flex justify-between items-start pl-2">
-                                            <div className="flex flex-col">
-                                                <div className="flex items-center gap-2 mb-0.5">
-                                                    <span className="bg-red-500/20 text-red-400 px-1.5 py-[2px] rounded text-[10px] font-black uppercase tracking-widest flex-shrink-0">
-                                                        EST. {al.estacoes?.nome_estacao || "..."}
-                                                    </span>
-                                                    <span className="text-white font-black text-base uppercase leading-tight truncate">
+                                            <div className="flex flex-col w-full">
+                                                <div className="flex justify-between items-center mb-1">
+                                                    <span className="text-white font-black text-sm uppercase leading-tight truncate">
                                                         {al.tipo_alerta}
+                                                    </span>
+                                                    <span className="bg-red-500/20 text-red-500 px-1.5 py-[2px] rounded text-[9px] font-black uppercase tracking-widest flex-shrink-0 border border-red-900/50">
+                                                        CAUSADOR: {al.causadora?.nome_estacao || al.estacao_id}
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center gap-2 mb-1 border-b border-red-900/30 pb-1">
+                                                    <span className="text-slate-300 font-bold text-[10px] tracking-widest uppercase">
+                                                        📍 LOCAL: <span className="text-white relative top-[0.5px]">{al.estacoes?.nome_estacao || "..."}</span>
                                                     </span>
                                                 </div>
                                                 {al.descricao_alerta && (
-                                                    <span className="text-slate-300 text-xs line-clamp-1 leading-snug">
-                                                        {al.descricao_alerta}
+                                                    <span className="text-slate-400 text-xs line-clamp-1 leading-snug mt-1 italic">
+                                                        "{al.descricao_alerta}"
                                                     </span>
                                                 )}
                                             </div>
@@ -461,12 +468,12 @@ export default function CustomTVDashboardPage() {
                                             <span className="text-slate-500 font-mono text-[10px] tracking-widest flex items-center gap-1.5">
                                                 <UserX size={10} className="text-slate-600" /> ID: {al.operador_rfid}
                                             </span>
-                                            <span className="bg-red-500/80 text-white px-2 py-0.5 rounded text-[9px] font-black uppercase shadow-sm">
-                                                Aguardando
+                                            <span className="bg-red-500/80 text-white px-2 py-0.5 rounded text-[10px] font-black uppercase shadow-sm flex items-center gap-1">
+                                                Aguardando ({minutesPassed}m)
                                             </span>
                                         </div>
                                     </div>
-                                ))}
+                                )})}
                             </div>
                         </div>
                     )}

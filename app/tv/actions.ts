@@ -79,14 +79,30 @@ export async function buscarDashboardsTV(tv_id: string) {
         }
 
         // 4. Detetar de todas as Estações deste escopo, se existe ALERTA ANDON a disparar
-        const { data: alertas, error: aErr } = await supabase
+        let alertasQuery = supabase
             .from('alertas_andon')
             .select(`
-                id, situacao, estacao_id, created_at, operador_rfid, op_id, tipo_alerta, descricao_alerta,
-                estacoes:estacao_id ( nome_estacao, area_id, linha_id )
+                id, situacao, estacao_id, local_ocorrencia_id, created_at, operador_rfid, op_id, tipo_alerta, descricao_alerta,
+                causadora:estacao_id ( nome_estacao, area_id, linha_id ),
+                estacoes:local_ocorrencia_id ( nome_estacao, area_id, linha_id )
             `)
-            .eq('resolvido', false)
-            .in('estacao_id', dictEstacoes); // <- Filtro direto pelas estações alvo da TV
+            .eq('resolvido', false);
+
+        if (tipoAlvo !== 'GERAL') {
+            if (dictEstacoes.length > 0) {
+                alertasQuery = alertasQuery.or(`estacao_id.in.(${dictEstacoes.join(',')}),local_ocorrencia_id.in.(${dictEstacoes.join(',')})`);
+            } else {
+                alertasQuery = alertasQuery.in('estacao_id', ['00000000-0000-0000-0000-000000000000']);
+            }
+        }
+
+        const { data: alertasRaw, error: aErr } = await alertasQuery;
+        
+        // Fallback robusto se migração não tiver percorrido todos (fallback `estacoes` object)
+        const alertas = alertasRaw?.map(al => ({
+            ...al,
+            estacoes: al.estacoes || al.causadora
+        }));
 
         if (aErr) throw aErr;
 
@@ -314,7 +330,8 @@ export async function buscarDashboardsTV(tv_id: string) {
         if (tipoAlvo === 'GERAL') {
             radarEstacoes = radarAreasList.map(area => {
                 const alertasNaArea = alertas?.filter(a => {
-                    const estacao = stationsList.find(s => s.id === a.estacao_id);
+                    const estacaoId = a.local_ocorrencia_id || a.estacao_id;
+                    const estacao = stationsList.find(s => s.id === estacaoId);
                     return estacao && estacao.area_id === area.id;
                 });
                 const qtdAlertas = alertasNaArea ? alertasNaArea.length : 0;
@@ -327,7 +344,7 @@ export async function buscarDashboardsTV(tv_id: string) {
             });
         } else {
             radarEstacoes = stationsList.map(station => {
-                const andon = alertas?.find(a => a.estacao_id === station.id);
+                const andon = alertas?.find(a => (a.local_ocorrencia_id || a.estacao_id) === station.id);
                 return {
                     id: station.id,
                     nome_estacao: station.nome_estacao,

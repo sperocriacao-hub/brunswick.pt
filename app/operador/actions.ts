@@ -72,18 +72,23 @@ export async function getAreaAndonStatus(currentEstacaoId: string) {
         const estacaoIds = stationsInArea.map(e => e.id);
 
         // 3. Buscar Alertas Andon Ativos (Não Resolvidos) para estas estações
-        const { data: activeAlerts, error: alertErr } = await supabase
+        let alertasQuery = supabase
             .from('alertas_andon')
-            .select('estacao_id, tipo_alerta')
-            .eq('resolvido', false)
-            .in('estacao_id', estacaoIds);
+            .select('estacao_id, local_ocorrencia_id, tipo_alerta')
+            .eq('resolvido', false);
+
+        if (estacaoIds.length > 0) {
+            alertasQuery = alertasQuery.or(`estacao_id.in.(${estacaoIds.join(',')}),local_ocorrencia_id.in.(${estacaoIds.join(',')})`);
+        }
+
+        const { data: activeAlerts, error: alertErr } = await alertasQuery;
 
         if (alertErr) throw alertErr;
 
         // 4. Mapear as estações com o seu estado de Andon
         const areaStatus = stationsInArea.map(station => {
             // Pode haver múltiplos alertas para a mesma estação, pegamos o primeiro por simplicidade de UI
-            const andon = activeAlerts?.find(a => a.estacao_id === station.id);
+            const andon = activeAlerts?.find(a => (a.local_ocorrencia_id || a.estacao_id) === station.id);
             return {
                 id: station.id,
                 nome_estacao: station.nome_estacao,
@@ -104,7 +109,7 @@ export async function getAreaAndonStatus(currentEstacaoId: string) {
 // (Removed duplicate/legacy Session and Boat listing queries from Operator dashboard.
 // These actions are now routed entirely via the Hardware Emulator hitting `/api/mes/iot` REST endpoint.)
 
-export async function dispararAlertaAndon(estacao_id: string, rf_tag_operador: string, rf_tag_barco?: string, tipo_alerta: string = 'Outros', descricao_alerta: string = '') {
+export async function dispararAlertaAndon(estacao_id: string, rf_tag_operador: string, rf_tag_barco?: string, tipo_alerta: string = 'Outros', descricao_alerta: string = '', local_ocorrencia_id?: string) {
     try {
         if (!estacao_id) throw new Error("Terminal/Estação não definida.");
 
@@ -127,6 +132,7 @@ export async function dispararAlertaAndon(estacao_id: string, rf_tag_operador: s
             .from('alertas_andon')
             .insert({
                 estacao_id: estacao_id,
+                local_ocorrencia_id: local_ocorrencia_id || estacao_id, // Fallback to causal station if local is missing
                 op_id: opTargetId,
                 operador_rfid: rf_tag_operador || 'DESCONHECIDO',
                 tipo_alerta: tipo_alerta,

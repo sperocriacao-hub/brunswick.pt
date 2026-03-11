@@ -396,7 +396,7 @@ export default function InteractiveTabletPage() {
         // Usa o input atual ou uma marcação anónima de emergência
         const opRfid = rfidInput || 'EMERGENCIA_MANUAL';
         const targetStation = causadoraEstacaoId || selectedEstacaoId;
-        const res = await dispararAlertaAndon(targetStation, opRfid, undefined, andonType, andonDesc);
+        const res = await dispararAlertaAndon(targetStation, opRfid, undefined, andonType, andonDesc, selectedEstacaoId);
 
         if (res.success) {
             setLcdLine1('🚨 ANDON ATIVO 🚨');
