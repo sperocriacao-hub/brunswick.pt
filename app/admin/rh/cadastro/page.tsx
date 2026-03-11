@@ -391,7 +391,7 @@ function FuncionarioFormCore() {
                                             { path: "/admin/producao/logs", label: "Auditoria Telemetria", group: "Sistema" },
                                             { path: "/admin/diagnostico", label: "Central Dispositivos", group: "Sistema" },
                                             { path: "/admin/configuracoes", label: "Configurações Globais", group: "Sistema" },
-                                            { path: "/admin/display-tvs", label: "Hardware & Displays", group: "Sistema" },
+                                            { path: "/admin/configuracoes/tvs", label: "Hardware & Displays", group: "Sistema" },
                                         ].map(module => {
                                             const isChecked = formData.permissoes_modulos.includes(module.path);
                                             return (

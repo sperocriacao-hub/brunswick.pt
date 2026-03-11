@@ -780,7 +780,7 @@ export function Sidebar({
             {(hasAccess("/admin/producao/logs") ||
               hasAccess("/admin/diagnostico") ||
               hasAccess("/admin/configuracoes") ||
-              hasAccess("/admin/display-tvs")) && (
+              hasAccess("/admin/configuracoes/tvs")) && (
                 <>
                   <p className="px-3 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-2 mt-6">
                     Sistema
@@ -843,16 +843,16 @@ export function Sidebar({
                         </span>
                       </Link>
                     )}
-                    {hasAccess("/admin/display-tvs") && (
+                    {hasAccess("/admin/configuracoes/tvs") && (
                       <Link
                         onClick={() => setIsOpen(false)}
-                        href="/admin/display-tvs"
-                        className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes("/admin/display-tvs") ? "bg-blue-800 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
+                        href="/admin/configuracoes/tvs"
+                        className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes("/admin/configuracoes/tvs") ? "bg-blue-800 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
                       >
                         <Monitor
                           size={18}
                           className={
-                            pathname.includes("/admin/display-tvs")
+                            pathname.includes("/admin/configuracoes/tvs")
                               ? "text-white"
                               : "text-slate-400"
                           }
