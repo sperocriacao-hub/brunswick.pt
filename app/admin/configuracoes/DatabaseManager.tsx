@@ -9,8 +9,10 @@ import {
   Database,
   FileSpreadsheet,
   AlertCircle,
+  CheckCircle2
 } from "lucide-react";
 import * as XLSX from "xlsx";
+import { importDataBulk } from "./actions";
 
 // Definição das tabelas centrais a expor no Gestor
 const TABLES = [
@@ -340,7 +342,7 @@ export function DatabaseManager() {
     }
   };
 
-  // 3. IMPORTAR EXCEL (UPSERT OTIMIZADO)
+  // 3. IMPORTAR EXCEL (USANDO SERVER ACTIONS PARA BYPASS RLS)
   const handleImportData = async (
     event: React.ChangeEvent<HTMLInputElement>,
     tableName: string,
@@ -349,14 +351,13 @@ export function DatabaseManager() {
     if (!file) return;
 
     setIsLoading(`import-${tableName}`);
-    setActionLog({ type: "info", msg: `A processar ficheiro ${file.name}...` });
+    setActionLog({ type: "info", msg: `A analisar o ficheiro ${file.name}...` });
 
     try {
       const buffer = await file.arrayBuffer();
       const wb = XLSX.read(buffer, { type: "buffer" });
 
-      if (!wb.SheetNames.length)
-        throw new Error("Ficheiro sem folhas (sheets).");
+      if (!wb.SheetNames.length) throw new Error("Ficheiro sem folhas (sheets).");
 
       const wsname = wb.SheetNames[0];
       const ws = wb.Sheets[wsname];
@@ -364,30 +365,31 @@ export function DatabaseManager() {
       // Parse Sheet as JSON of Objects
       const jsonData: any[] = XLSX.utils.sheet_to_json(ws);
 
-      if (jsonData.length === 0)
-        throw new Error("O Excel fornecido não tem linhas com dados.");
+      if (jsonData.length === 0) {
+        throw new Error("O Excel fornecido está completamente vazio.");
+      }
+      
+      setActionLog({ type: "info", msg: `A processar ${jsonData.length} linhas de forma massiva via Administração...` });
 
-      // Insert Supabase
-      // Em Supabase se ID vier, Upsert. Caso contrário, Insert!
-      const { error } = await supabase
-        .from(tableName)
-        .upsert(jsonData, { onConflict: "id", ignoreDuplicates: false });
+      // Action: ImportBulk bypasses RLS using SUPABASE_SERVICE_ROLE_KEY
+      const response = await importDataBulk(tableName, jsonData);
 
-      if (error) throw error;
+      if (!response.success) {
+        throw new Error(response.error);
+      }
 
       setActionLog({
         type: "success",
-        msg: `Sucesso brutal! Importadas com sucesso as entradas para a tabela "${tableName}". Atualize a interface.`,
+        msg: `Sincronização 100% Completa. Foram atualizados/inseridos ${response.recordsAffected} registos na tabela "${tableName}".`,
       });
     } catch (error: any) {
       console.error(error);
       setActionLog({
         type: "error",
-        msg: `Erro na validação do Ficheiro. Confirme os Cabeçalhos: ${error.message}`,
+        msg: `${error.message}`,
       });
     } finally {
       setIsLoading(null);
-      // Reset input form
       event.target.value = "";
     }
   };
@@ -411,16 +413,29 @@ export function DatabaseManager() {
 
       {actionLog && (
         <div
-          className={`p-4 mb-6 rounded-lg font-medium text-sm flex items-center gap-2 ${
+          className={`p-5 mb-6 rounded-xl font-medium text-sm flex items-start gap-3 shadow-md border-l-4 ${
             actionLog.type === "success"
-              ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+              ? "bg-emerald-50 text-emerald-800 border-l-emerald-500 border border-emerald-200"
               : actionLog.type === "error"
-                ? "bg-red-50 text-red-700 border border-red-200"
-                : "bg-blue-50 text-blue-700 border border-blue-200"
+                ? "bg-red-50 text-red-800 border-l-red-500 border border-red-200"
+                : "bg-blue-50 text-blue-800 border-l-blue-500 border border-blue-200"
           }`}
         >
-          <AlertCircle size={16} />
-          {actionLog.msg}
+          {actionLog.type === "success" ? (
+             <CheckCircle2 className="shrink-0 mt-0.5" size={20} />
+          ) : actionLog.type === "error" ? (
+             <AlertCircle className="shrink-0 mt-0.5" size={20} />
+          ) : (
+             <Loader2 className="shrink-0 mt-0.5 animate-spin" size={20} />
+          )}
+          <div className="flex flex-col">
+            <span className="font-bold uppercase tracking-wider text-[10px] opacity-70 mb-0.5">
+                {actionLog.type === "success" ? "STATUS DO GESTOR DE DADOS: SUCESSO" : actionLog.type === "error" ? "STATUS DO GESTOR DE DADOS: FALHA TÉCNICA" : "A PROCESSAR..."}
+            </span>
+            <span className="whitespace-pre-line text-[13px] leading-relaxed relative">
+                {actionLog.msg}
+            </span>
+          </div>
         </div>
       )}
 
