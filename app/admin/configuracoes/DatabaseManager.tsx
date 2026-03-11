@@ -353,9 +353,14 @@ export function DatabaseManager() {
     setIsLoading(`import-${tableName}`);
     setActionLog({ type: "info", msg: `A analisar o ficheiro ${file.name}...` });
 
+    // Permite ao React e ao Browser pintar a UI (Loader) antes do SheetJS bloquear a Thread principal a ler o Excel
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
     try {
       const buffer = await file.arrayBuffer();
-      const wb = XLSX.read(buffer, { type: "buffer" });
+      // O SheetJS no browser usa Uint8Array/ArrayBuffer, o tipo correto é 'array'. 
+      // 'buffer' crasava ou entrava em loop no frontend.
+      const wb = XLSX.read(buffer, { type: "array" });
 
       if (!wb.SheetNames.length) throw new Error("Ficheiro sem folhas (sheets).");
 
