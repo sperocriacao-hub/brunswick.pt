@@ -22,6 +22,7 @@ export default function CustomTVDashboardPage() {
     const [barcosAtivos, setBarcosAtivos] = useState<any[]>([]);
     const [alertas, setAlertas] = useState<any[]>([]);
     const [radarEstacoes, setRadarEstacoes] = useState<any[]>([]);
+    const [tipoAlvo, setTipoAlvo] = useState<string>('');
     const [opcoesLayout, setOpcoesLayout] = useState<any>({});
     const [metrics, setMetrics] = useState<any>({ kpiOee: {}, heroiTurno: null, melhorArea: null, gargalos: [] });
 
@@ -44,6 +45,7 @@ export default function CustomTVDashboardPage() {
                 setBarcosAtivos(res.barcos || []);
                 setAlertas(res.alertasGlobais || []);
                 setRadarEstacoes(res.radarEstacoes || []);
+                setTipoAlvo(res.config.tipo_alvo || '');
                 setOpcoesLayout(res.config.opcoes_layout || {});
                 setMetrics(res.advancedMetrics || {});
             } else {
@@ -100,13 +102,13 @@ export default function CustomTVDashboardPage() {
             {/* --- NASA HUD TOP HEADER --- */}
             <header className="flex items-center justify-between border-b-[4px] border-slate-800 bg-slate-900/50 p-6 shadow-md z-10 shrink-0">
                 <div className="flex items-center gap-6">
-                    <div className="bg-blue-600 p-4 rounded-2xl shadow-lg border border-blue-400">
-                        <Factory size={48} className="text-white" />
+                    <div className="flex items-center justify-center pr-2">
+                        <img src="/logo.png" alt="Logo" className="w-[120px] h-auto object-contain drop-shadow-xl" />
                     </div>
                     <div>
                         <h1 className="text-5xl font-black tracking-tighter uppercase text-white truncate max-w-4xl">{alvoNome}</h1>
                         <p className="text-xl text-blue-400 font-bold tracking-widest uppercase flex items-center gap-3">
-                            <MonitorPlay size={20} className="text-blue-500" /> M.E.S. DATALINK: {nomeTv}
+                            <MonitorPlay size={20} className="text-blue-500" /> DATALINK: {nomeTv}
                         </p>
                     </div>
                 </div>
@@ -121,23 +123,23 @@ export default function CustomTVDashboardPage() {
 
             {/* --- AREA ANDON NOTIFICATION BAR (RADAR NASA) --- */}
             {radarEstacoes.length > 0 && (
-                <div className={`w-full py-3 px-6 shadow-[inset_0_4px_10px_rgba(0,0,0,0.5)] flex items-center justify-center flex-wrap gap-4 border-b border-slate-800 transition-colors duration-1000 z-10 shrink-0 select-none ${radarEstacoes.some(a => a.hasAndon) ? 'bg-gradient-to-r from-slate-900 via-red-950/40 to-slate-900 border-red-900/50' : 'bg-slate-950/80'}`}>
+                <div className={`w-full shadow-[inset_0_4px_10px_rgba(0,0,0,0.5)] flex items-center border-b border-slate-800 transition-colors duration-1000 z-10 shrink-0 select-none ${radarEstacoes.some(a => a.hasAndon) ? 'bg-gradient-to-r from-slate-900 via-red-950/40 to-slate-900 border-red-900/50' : 'bg-slate-950/80'} ${tipoAlvo === 'GERAL' ? 'justify-between flex-nowrap gap-1 py-1.5 px-3 overflow-hidden' : 'justify-center flex-wrap gap-4 px-6 py-3'}`}>
                     {radarEstacoes.map(station => (
-                        <div key={station.id} className={`flex items-center gap-2.5 px-4 py-1.5 rounded-full border shrink-0 transition-all duration-500 ${station.hasAndon ? 'bg-red-950/80 border-red-500/60 shadow-[0_0_15px_rgba(220,38,38,0.2)] min-w-[150px]' : 'bg-slate-900/60 border-slate-800/60 opacity-60'}`}>
+                        <div key={station.id} className={`flex items-center gap-2 px-3 py-1 rounded-full border transition-all duration-500 ${tipoAlvo === 'GERAL' ? 'flex-1 min-w-0 justify-center max-w-[140px]' : 'shrink-0 min-w-[150px] px-4 py-1.5'} ${station.hasAndon ? 'bg-red-950/80 border-red-500/60 shadow-[0_0_15px_rgba(220,38,38,0.2)]' : 'bg-slate-900/60 border-slate-800/60 opacity-60'}`}>
                             {station.hasAndon ? (
-                                <div className="relative flex h-4 w-4 shrink-0">
+                                <div className={`relative flex shrink-0 ${tipoAlvo === 'GERAL' ? 'h-2 w-2' : 'h-4 w-4'}`}>
                                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                                    <span className="relative inline-flex rounded-full h-4 w-4 bg-red-600 border border-red-400 shadow-[0_0_10px_rgba(239,68,68,0.8)]"></span>
+                                    <span className={`relative inline-flex rounded-full bg-red-600 border border-red-400 shadow-[0_0_10px_rgba(239,68,68,0.8)] ${tipoAlvo === 'GERAL' ? 'h-2 w-2' : 'h-4 w-4'}`}></span>
                                 </div>
                             ) : (
-                                <div className="w-3 h-3 rounded-full bg-emerald-500/80 border border-emerald-400 shadow-[0_0_5px_rgba(34,197,94,0.3)] shrink-0 opacity-50"></div>
+                                <div className={`rounded-full bg-emerald-500/80 border border-emerald-400 shadow-[0_0_5px_rgba(34,197,94,0.3)] shrink-0 opacity-50 ${tipoAlvo === 'GERAL' ? 'h-2 w-2' : 'h-3 w-3'}`}></div>
                             )}
                             
-                            <div className="flex flex-col justify-center">
-                                <span className={`text-xs font-black uppercase tracking-wider leading-none ${station.hasAndon ? 'text-red-400' : 'text-slate-400'}`}>
+                            <div className="flex flex-col justify-center min-w-0">
+                                <span className={`font-black uppercase tracking-wider leading-none truncate ${tipoAlvo === 'GERAL' ? 'text-[9px]' : 'text-xs'} ${station.hasAndon ? 'text-red-400' : 'text-slate-400'}`}>
                                     {station.nome_estacao.split('-').pop()?.trim() || station.nome_estacao}
                                 </span>
-                                {station.hasAndon && (
+                                {station.hasAndon && tipoAlvo !== 'GERAL' && (
                                     <span className="text-[10px] text-red-200 font-bold uppercase truncate max-w-[130px] leading-tight mt-0.5 opacity-90">
                                         {station.andonType || 'Alarme Fabril'}
                                     </span>
@@ -198,7 +200,7 @@ export default function CustomTVDashboardPage() {
                         <div className="col-span-2 bg-slate-900/80 border border-slate-700/50 rounded-3xl p-4 shadow-2xl relative overflow-hidden flex flex-col gap-3">
                             <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 blur-3xl rounded-full"></div>
                             <h2 className="text-xl font-bold uppercase tracking-widest text-slate-400 flex items-center gap-2">
-                                <Target size={24} className="text-blue-400" /> Rendimento (OEE) Global
+                                <Target size={24} className="text-blue-400" /> Rendimento Global
                             </h2>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                 <div className="bg-slate-950/50 rounded-2xl p-4 border border-slate-800/80 flex flex-col items-center justify-center">
@@ -468,9 +470,14 @@ export default function CustomTVDashboardPage() {
                                             <span className="text-slate-500 font-mono text-[10px] tracking-widest flex items-center gap-1.5">
                                                 <UserX size={10} className="text-slate-600" /> ID: {al.operador_rfid}
                                             </span>
-                                            <span className="bg-red-500/80 text-white px-2 py-0.5 rounded text-[10px] font-black uppercase shadow-sm flex items-center gap-1">
-                                                Aguardando ({minutesPassed}m)
-                                            </span>
+                                            <div className="flex items-center gap-3">
+                                                <span className="bg-slate-800 text-white px-2 py-0.5 rounded text-[10px] font-black uppercase shadow-[inset_0_1px_3px_rgba(0,0,0,0.5)] flex items-center gap-1 border border-slate-700">
+                                                    <Clock size={10} className="text-slate-400" /> {minutesPassed}M
+                                                </span>
+                                                <span className="bg-red-500/80 text-white px-2 py-0.5 rounded text-[10px] font-black uppercase shadow-sm flex items-center gap-1">
+                                                    Aguardando
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
                                 )})}
