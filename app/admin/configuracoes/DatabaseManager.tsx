@@ -12,7 +12,8 @@ import {
   CheckCircle2
 } from "lucide-react";
 import * as XLSX from "xlsx";
-import { importDataBulkBase64 } from "./actions";
+import { toast, ToastContainer } from "react-toastify";
+import 'react-toastify/dist/ReactToastify.css';
 
 // Definição das tabelas centrais a expor no Gestor
 const TABLES = [
@@ -287,16 +288,14 @@ export function DatabaseManager() {
 
       // Gravar (Trigger download)
       XLSX.writeFile(wb, `Modelo_Importacao_${tableName.toUpperCase()}.xlsx`);
-      setActionLog({
-        type: "success",
-        msg: `Modelo transferido para a pasta de transferências.`,
-      });
+      const msg = `Modelo transferido para a pasta de transferências.`;
+      setActionLog({ type: "success", msg });
+      toast.success(msg);
     } catch (error: any) {
       console.error(error);
-      setActionLog({
-        type: "error",
-        msg: `Erro ao gerar modelo: ${error.message}`,
-      });
+      const msg = `Erro ao gerar modelo: ${error.message}`;
+      setActionLog({ type: "error", msg });
+      toast.error(msg);
     } finally {
       setIsLoading(null);
     }
@@ -327,16 +326,14 @@ export function DatabaseManager() {
         wb,
         `Export_BD_${tableName.toUpperCase()}_${new Date().toISOString().split("T")[0]}.xlsx`,
       );
-      setActionLog({
-        type: "success",
-        msg: `Exportação de ${data.length} registos concluída.`,
-      });
+      const msg = `Exportação de ${data.length} registos concluída.`;
+      setActionLog({ type: "success", msg });
+      toast.success(msg);
     } catch (error: any) {
       console.error(error);
-      setActionLog({
-        type: "error",
-        msg: `Erro ao exportar: ${error.message}`,
-      });
+      const msg = `Erro ao exportar: ${error.message}`;
+      setActionLog({ type: "error", msg });
+      toast.error(msg);
     } finally {
       setIsLoading(null);
     }
@@ -353,34 +350,37 @@ export function DatabaseManager() {
     if (!file) return;
 
     setIsLoading(`import-${tableName}`);
-    setActionLog({ type: "info", msg: `A enviar o ficheiro "${file.name}" de forma segura para os Servidores M.E.S para processamento...` });
+    const msgInfo = `A enviar o ficheiro "${file.name}" para os Servidores M.E.S...`;
+    setActionLog({ type: "info", msg: msgInfo });
+    toast.info(msgInfo, { autoClose: 2000 });
 
     try {
-      // 2. Usar o FileReader Nativo para ler como Base64 (DataURL)
-      const base64String = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = () => reject(new Error("Falha ao ler o ficheiro localmente."));
-        reader.readAsDataURL(file);
+      const formData = new FormData();
+      formData.append("tableName", tableName);
+      formData.append("file", file);
+
+      // Envia via REST API genuina (ignora os limites restritivos e falhas de proxy das Server Actions)
+      const res = await fetch("/api/upload-excel", {
+          method: "POST",
+          body: formData,
       });
 
-      // Toda a leitura pesada do Excel é agora feita no Backend (Node) e não no browser do utilizador.
-      const response = await importDataBulkBase64(tableName, base64String);
+      const response = await res.json();
 
-      if (!response?.success) {
-        throw new Error(response?.error || 'Erro desconhecido no Backend.');
+      if (!res.ok || !response?.success) {
+        throw new Error(response?.error || 'Erro Crítico no Servidor de Vercel/Supabase (Verifique o Ficheiro).');
       }
 
-      setActionLog({
-        type: "success",
-        msg: `Sincronização 100% Completa. Foram atualizados/inseridos ${response.recordsAffected} registos na tabela "${tableName}".`,
-      });
+      const msgSuccess = `Sincronização Completa. Foram atualizados/inseridos ${response.recordsAffected} registos na tabela "${tableName}".`;
+      setActionLog({ type: "success", msg: msgSuccess });
+      toast.success(msgSuccess, { autoClose: 6000 });
+      window.scrollTo({ top: 0, behavior: 'smooth' }); // Assegura que o user vêm o novo bloco verde
     } catch (error: any) {
       console.error("Erro no Import:", error);
-      setActionLog({
-        type: "error",
-        msg: error.message || "Falha técnica inesperada.",
-      });
+      const msgError = error.message || "Falha técnica inesperada.";
+      setActionLog({ type: "error", msg: msgError });
+      toast.error(msgError, { autoClose: 8000 });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } finally {
       setIsLoading(null);
       if (targetElement) {
@@ -502,6 +502,8 @@ export function DatabaseManager() {
           </div>
         ))}
       </div>
+
+      <ToastContainer position="bottom-right" />
     </div>
   );
 }
