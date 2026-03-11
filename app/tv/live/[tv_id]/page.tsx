@@ -121,11 +121,7 @@ export default function CustomTVDashboardPage() {
 
             {/* --- AREA ANDON NOTIFICATION BAR (RADAR NASA) --- */}
             {radarEstacoes.length > 0 && (
-                <div className={`w-full py-2 px-6 shadow-[inset_0_4px_10px_rgba(0,0,0,0.5)] flex items-center overflow-x-auto gap-4 border-b border-slate-800 transition-colors duration-1000 z-10 shrink-0 select-none ${radarEstacoes.some(a => a.hasAndon) ? 'bg-gradient-to-r from-slate-900 via-red-950/40 to-slate-900 border-red-900/50' : 'bg-slate-950/80'}`}>
-                    <div className="flex items-center gap-2 mr-2 shrink-0 border-r border-slate-700/50 pr-4">
-                        <div className={`w-2.5 h-2.5 rounded-full ${radarEstacoes.some(a => a.hasAndon) ? 'bg-red-500 animate-pulse' : 'bg-emerald-500'}`}></div>
-                        <span className="text-xs font-black tracking-widest uppercase text-slate-500">Radar Hub</span>
-                    </div>
+                <div className={`w-full py-3 px-6 shadow-[inset_0_4px_10px_rgba(0,0,0,0.5)] flex items-center justify-center flex-wrap gap-4 border-b border-slate-800 transition-colors duration-1000 z-10 shrink-0 select-none ${radarEstacoes.some(a => a.hasAndon) ? 'bg-gradient-to-r from-slate-900 via-red-950/40 to-slate-900 border-red-900/50' : 'bg-slate-950/80'}`}>
                     {radarEstacoes.map(station => (
                         <div key={station.id} className={`flex items-center gap-2.5 px-4 py-1.5 rounded-full border shrink-0 transition-all duration-500 ${station.hasAndon ? 'bg-red-950/80 border-red-500/60 shadow-[0_0_15px_rgba(220,38,38,0.2)] min-w-[150px]' : 'bg-slate-900/60 border-slate-800/60 opacity-60'}`}>
                             {station.hasAndon ? (
