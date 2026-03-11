@@ -3,11 +3,8 @@
 import { createClient } from '@supabase/supabase-js';
 import * as XLSX from 'xlsx';
 
-export async function importDataBulkFormData(formData: FormData) {
-    const tableName = formData.get('tableName') as string;
-    const file = formData.get('file') as File;
-
-    if (!tableName || !file) {
+export async function importDataBulkBase64(tableName: string, base64Data: string) {
+    if (!tableName || !base64Data) {
         return { success: false, error: "Parâmetros de importação em branco." };
     }
 
@@ -27,11 +24,13 @@ export async function importDataBulkFormData(formData: FormData) {
             },
         });
 
-        // 1. ArrayBuffer no Servidor Node.js
-        const arrayBuffer = await file.arrayBuffer();
+        // 1. Converter Base64 de volta para Buffer
+        // O base64Data pode vir com prefixo DataURL (ex: "data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,.....")
+        const base64Clean = base64Data.includes("base64,") ? base64Data.split("base64,")[1] : base64Data;
+        const buffer = Buffer.from(base64Clean, 'base64');
         
         // 2. O SheetJS processa melhor no backend com type: buffer em vez de array
-        const wb = XLSX.read(Buffer.from(arrayBuffer), { type: "buffer" });
+        const wb = XLSX.read(buffer, { type: "buffer" });
 
         if (!wb.SheetNames.length) {
             return { success: false, error: "Ficheiro sem folhas (sheets)." };

@@ -12,7 +12,7 @@ import {
   CheckCircle2
 } from "lucide-react";
 import * as XLSX from "xlsx";
-import { importDataBulkFormData } from "./actions";
+import { importDataBulkBase64 } from "./actions";
 
 // Definição das tabelas centrais a expor no Gestor
 const TABLES = [
@@ -347,22 +347,28 @@ export function DatabaseManager() {
     event: React.ChangeEvent<HTMLInputElement>,
     tableName: string,
   ) => {
-    const file = event.target.files?.[0];
+    // 1. Guardar a referência imediata ao DOM Target porque o evento desaparece e causa crash no "finally" do React Native/Web
+    const targetElement = event.target;
+    const file = targetElement?.files?.[0];
     if (!file) return;
 
     setIsLoading(`import-${tableName}`);
     setActionLog({ type: "info", msg: `A enviar o ficheiro "${file.name}" de forma segura para os Servidores M.E.S para processamento...` });
 
     try {
-      const formData = new FormData();
-      formData.append("tableName", tableName);
-      formData.append("file", file);
+      // 2. Usar o FileReader Nativo para ler como Base64 (DataURL)
+      const base64String = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = () => reject(new Error("Falha ao ler o ficheiro localmente."));
+        reader.readAsDataURL(file);
+      });
 
-      // Toda a leitura pesado do Excel é agora feita no Backend (Node) e não no browser do utilizador.
-      const response = await importDataBulkFormData(formData);
+      // Toda a leitura pesada do Excel é agora feita no Backend (Node) e não no browser do utilizador.
+      const response = await importDataBulkBase64(tableName, base64String);
 
-      if (!response.success) {
-        throw new Error(response.error);
+      if (!response?.success) {
+        throw new Error(response?.error || 'Erro desconhecido no Backend.');
       }
 
       setActionLog({
@@ -370,14 +376,16 @@ export function DatabaseManager() {
         msg: `Sincronização 100% Completa. Foram atualizados/inseridos ${response.recordsAffected} registos na tabela "${tableName}".`,
       });
     } catch (error: any) {
-      console.error(error);
+      console.error("Erro no Import:", error);
       setActionLog({
         type: "error",
-        msg: `${error.message}`,
+        msg: error.message || "Falha técnica inesperada.",
       });
     } finally {
       setIsLoading(null);
-      event.target.value = "";
+      if (targetElement) {
+         targetElement.value = ""; // Reseta o input de forma segura
+      }
     }
   };
 
