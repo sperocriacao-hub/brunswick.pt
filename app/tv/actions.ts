@@ -29,6 +29,7 @@ export async function buscarDashboardsTV(tv_id: string) {
         // 2. Dependendo do Tipo de Alvo, recolher quais Estações pertencem a esse escopo
         let dictEstacoes: string[] = [];
         let stationsList: any[] = [];
+        let radarAreasList: any[] = [];
 
         if (tipoAlvo === 'LINHA') {
             const { data: estacoesDaLinha } = await supabase
@@ -48,8 +49,10 @@ export async function buscarDashboardsTV(tv_id: string) {
             dictEstacoes = stationsList.map(e => e.id);
         } else {
             // GERAL: Todas as estações da fábrica
-            const { data: todasEstacoes } = await supabase.from('estacoes').select('id, nome_estacao').order('nome_estacao');
+            const { data: todasEstacoes } = await supabase.from('estacoes').select('id, nome_estacao, area_id').order('nome_estacao');
+            const { data: todasAreas } = await supabase.from('areas_fabrica').select('id, nome_area').order('nome_area');
             stationsList = todasEstacoes || [];
+            radarAreasList = todasAreas || [];
             dictEstacoes = stationsList.map(e => e.id);
         }
 
@@ -306,15 +309,33 @@ export async function buscarDashboardsTV(tv_id: string) {
         }
 
         // 6. Build Radar Estacoes Array
-        const radarEstacoes = stationsList.map(station => {
-            const andon = alertas?.find(a => a.estacao_id === station.id);
-            return {
-                id: station.id,
-                nome_estacao: station.nome_estacao,
-                hasAndon: !!andon,
-                andonType: andon ? andon.tipo_alerta : null
-            };
-        });
+        let radarEstacoes: any[] = [];
+
+        if (tipoAlvo === 'GERAL') {
+            radarEstacoes = radarAreasList.map(area => {
+                const alertasNaArea = alertas?.filter(a => {
+                    const estacao = stationsList.find(s => s.id === a.estacao_id);
+                    return estacao && estacao.area_id === area.id;
+                });
+                const qtdAlertas = alertasNaArea ? alertasNaArea.length : 0;
+                return {
+                    id: area.id,
+                    nome_estacao: area.nome_area, // Retain uniform key names for generic page UI
+                    hasAndon: qtdAlertas > 0,
+                    andonType: qtdAlertas > 0 ? `${qtdAlertas} ALERTA(S)` : null
+                };
+            });
+        } else {
+            radarEstacoes = stationsList.map(station => {
+                const andon = alertas?.find(a => a.estacao_id === station.id);
+                return {
+                    id: station.id,
+                    nome_estacao: station.nome_estacao,
+                    hasAndon: !!andon,
+                    andonType: andon ? andon.tipo_alerta : null
+                };
+            });
+        }
 
         return {
             success: true,
