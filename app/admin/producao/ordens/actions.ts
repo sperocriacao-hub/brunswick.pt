@@ -12,8 +12,8 @@ export async function getProductionOrders() {
         const { data, error } = await supabase
             .from('ordens_producao')
             .select(`
-                id, numero, modelo, status, data_inicio_prevista, data_conclusao_prevista, prioridade, turno_id,
-                configuracao_turnos(nome_turno)
+                id, op_numero, modelo_id, status, data_inicio_prevista, data_conclusao_prevista,
+                modelos(nome_modelo, model_year)
             `)
             .order('data_inicio_prevista', { ascending: false });
 

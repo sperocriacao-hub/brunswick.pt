@@ -49,9 +49,9 @@ export default function GeneralOrdersDashboard() {
         }
         const lower = searchTerm.toLowerCase();
         setFilteredOrders(orders.filter(o =>
-            o.numero.toLowerCase().includes(lower) ||
-            o.modelo.toLowerCase().includes(lower) ||
-            o.status.toLowerCase().includes(lower)
+            (o.op_numero || '').toLowerCase().includes(lower) ||
+            (o.modelos?.nome_modelo || '').toLowerCase().includes(lower) ||
+            (o.status || '').toLowerCase().includes(lower)
         ));
     }, [searchTerm, orders]);
 
@@ -179,12 +179,12 @@ export default function GeneralOrdersDashboard() {
                                 filteredOrders.map((order) => (
                                     <TableRow key={order.id} className="hover:bg-blue-50/30 transition-colors">
                                         <TableCell className="font-bold text-slate-900 border-l-2 border-transparent">
-                                            {order.numero}
+                                            {order.op_numero}
                                             {order.prioridade === 'Urgente' && (
                                                 <Badge variant="destructive" className="ml-2 text-[10px] px-1.5 py-0 h-4 uppercase translate-y-[-2px]">🔥 Hot</Badge>
                                             )}
                                         </TableCell>
-                                        <TableCell className="font-medium text-slate-600">{order.modelo}</TableCell>
+                                        <TableCell className="font-medium text-slate-600">{order.modelos?.nome_modelo || '--'}</TableCell>
                                         <TableCell>
                                             <Badge variant="secondary" className={getStatusStyle(order.status)}>
                                                 {order.status}
