@@ -97,43 +97,50 @@ export async function POST(req: NextRequest) {
       return newRow;
     });
 
-    // 4.5. DICIONÁRIO HUMANO-PARA-MAQUINA (Apenas para `operadores`)
-    // Utilizadores tentam importar "A - Auditoria Gate 6" em campos UUID 'posto_base_id'. Temos de converter.
-    if (tableName === 'operadores') {
-       const { data: areasData } = await supabaseAdmin.from('areas_fabrica').select('id, nome_area');
-       const { data: estacoesData } = await supabaseAdmin.from('estacoes').select('id, nome_estacao');
-       
-       // Normalized strict matching for human-names (ignora espaços, traços e underscores)
-       const normalizeName = (str: string) => {
-           if (!str) return '';
-           return str.toLowerCase().replace(/[\s\-\_]/g, '').trim();
-       };
+    // 4.5. DICIONÁRIO GERAL HUMANO-PARA-MAQUINA (Universal)
+    // Se os utilizadores importarem Nomes (ex: "P - Tampas", "Modelo X") em colunas UUID '_id', convertemos para UUID.
+    const foreignKeyMappings: Record<string, { table: string, refColumn: string }> = {
+      "area_base_id": { table: "areas_fabrica", refColumn: "nome_area" },
+      "posto_base_id": { table: "estacoes", refColumn: "nome_estacao" },
+      "estacao_destino_id": { table: "estacoes", refColumn: "nome_estacao" },
+      "estacao_id": { table: "estacoes", refColumn: "nome_estacao" },
+      "local_ocorrencia_id": { table: "estacoes", refColumn: "nome_estacao" },
+      "modelo_id": { table: "modelos", refColumn: "nome_modelo" },
+      "opcao_id": { table: "opcionais", refColumn: "nome_opcao" },
+      "linha_id": { table: "linhas_producao", refColumn: "letra_linha" }
+    };
 
-       dataArray = dataArray.map(row => {
-          // Tratar Area Base (Mapear Nome para UUID)
-          if (row.area_base_id && typeof row.area_base_id === 'string' && !row.area_base_id.match(/^[0-9a-f]{8}-[0-9a-f]{4}/i)) {
-              const srch = normalizeName(row.area_base_id);
-              const matchedArea = (areasData || []).find(a => normalizeName(a.nome_area) === srch);
-              if (matchedArea) {
-                  row.area_base_id = matchedArea.id;
-              } else {
-                 throw new Error(`Área "${row.area_base_id}" não encontrada no sistema. Registe a Área primeiro.`);
-              }
-          }
+    const normalizeName = (str: string) => {
+        if (!str) return '';
+        return str.toLowerCase().replace(/[\s\-\_]/g, '').trim();
+    };
 
-          // Tratar Posto Base (Mapear Nome para UUID)
-          if (row.posto_base_id && typeof row.posto_base_id === 'string' && !row.posto_base_id.match(/^[0-9a-f]{8}-[0-9a-f]{4}/i)) {
-              const srch = normalizeName(row.posto_base_id);
-              const matchedEstacao = (estacoesData || []).find(e => normalizeName(e.nome_estacao) === srch);
-              if (matchedEstacao) {
-                  row.posto_base_id = matchedEstacao.id;
-              } else {
-                 throw new Error(`Estação "${row.posto_base_id}" não encontrada no sistema. Registe a Estação primeiro.`);
-              }
-          }
-          
-          return row;
-       });
+    const firstRowKeys = dataArray.length > 0 ? Object.keys(dataArray[0]) : [];
+    const columnsToMap = Object.keys(foreignKeyMappings).filter(col => firstRowKeys.includes(col));
+
+    for (const col of columnsToMap) {
+        const mapping = foreignKeyMappings[col];
+        // Check if there are any NON-UUID strings in this column to justify mapping it
+        const needsMapping = dataArray.some(row => row[col] && typeof row[col] === 'string' && !row[col].match(/^[0-9a-f]{8}-[0-9a-f]{4}/i));
+        
+        if (needsMapping) {
+            const { data: dictData } = await supabaseAdmin.from(mapping.table).select(`id, ${mapping.refColumn}`);
+            const dict: any[] = dictData || [];
+            
+            dataArray = dataArray.map(row => {
+                if (row[col] && typeof row[col] === 'string' && !row[col].match(/^[0-9a-f]{8}-[0-9a-f]{4}/i)) {
+                    const srch = normalizeName(row[col]);
+                    const matchedRecord = dict.find((d: any) => normalizeName(String(d[mapping.refColumn])) === srch);
+                    
+                    if (matchedRecord) {
+                        row[col] = matchedRecord.id;
+                    } else {
+                        throw new Error(`Referência "${row[col]}" não encontrada na tabela ${mapping.table}. Registe-a primeiro.`);
+                    }
+                }
+                return row;
+            });
+        }
     }
 
     // 5. INSERIR NO SUPABASE
