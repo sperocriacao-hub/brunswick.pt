@@ -73,23 +73,24 @@ export async function POST(req: NextRequest) {
         const cleanKey = key.trim();
         const value = row[key];
         
+        // A SALVAÇÃO DO ERROR 22P02 e NOT-NULL PK:
+        // O SheetJS com defval: null já envia null para células vazias.
+        // Se a Chave Primária estiver vazia (null ou ""), impedimos a sua inclusão no objeto final.
+        // Assim, o upsert não envia "{id: null}" e o Postgres usa o uuid_generate_v4() default.
+        if (cleanKey === "id" && (value === null || value === "" || String(value).trim() === "")) {
+            continue;
+        }
+
         if (typeof value === "string") {
             const cleanVal = value.trim();
-            // A SALVAÇÃO DO ERROR 22P02 e NULL VARIÁVEL PK:
-            // "data_rescisao: ''" choca com o Postgres DATE. Transformamos de imediato em javascript puro 'null'.
-            // "area_base_id: ''" choca com UUID. Transformamos em 'null'.
+            // Para outras colunas ForeignKey ou DATE, transformamos "" vazios em null nativo para o Postgres não crashar com 22P02.
             if (cleanVal === "") {
-                if (cleanKey === "id") {
-                    // Para a Chave Primária, não podemos mandar 'null' se não o Postgres crasha com restrição Not-Null.
-                    // Temos de APAGAR a chave do objeto para a Base de Dados gerar automaticamente com uuid_generate_v4()
-                    delete newRow[cleanKey];
-                } else {
-                    newRow[cleanKey] = null;
-                }
+                newRow[cleanKey] = null;
             } else {
                 newRow[cleanKey] = cleanVal;
             }
         } else {
+            // Se já for numérico longo, boolean, ou null normal vindo do Excels.
             newRow[cleanKey] = value;
         }
       }
