@@ -56,25 +56,33 @@ export default function EditarModeloPage() {
         if (!modeloId) return;
         async function load() {
             setIsLoading(true);
-            const res = await fetchModeloParaEdicao(modeloId);
-            if (res.success && res.data) {
-                setNomeModelo(res.data.nome_modelo || '');
-                setModelYear(res.data.model_year || '');
-                setStatus(res.data.status || 'Em Desenvolvimento');
-                setLinhaPadraoId(res.data.linha_padrao_id || '');
-                setTarefasGerais(res.data.tarefasGerais as unknown as Tarefa[] || []);
-                setOpcionais(res.data.opcionais as unknown as Opcional[] || []);
-                
-                // Buscar Linhas de Produção Disponíveis
+            try {
+                // Fetch Linhas Available First (so the dropdown mounts its options)
                 const { createClient } = await import('@/utils/supabase/client');
                 const supabase = createClient();
                 const { data: linhas } = await supabase.from('linhas_producao').select('id, letra_linha').order('letra_linha');
                 setLinhasProducao(linhas || []);
 
-            } else {
-                alert("Erro ao carregar dados do Molde.");
+                // Now Fetch the Model Data
+                const res = await fetchModeloParaEdicao(modeloId);
+                if (res.success && res.data) {
+                    setNomeModelo(res.data.nome_modelo || '');
+                    setModelYear(res.data.model_year || '');
+                    setStatus(res.data.status || 'Em Desenvolvimento');
+                    // Force state update to attach the ID to the select now that options exist
+                    setTimeout(() => setLinhaPadraoId(res.data.linha_padrao_id || ''), 50);
+                    
+                    setTarefasGerais(res.data.tarefasGerais as unknown as Tarefa[] || []);
+                    setOpcionais(res.data.opcionais as unknown as Opcional[] || []);
+                } else {
+                    alert("Erro ao carregar dados do Molde.");
+                }
+            } catch (err) {
+                console.error(err);
+                alert("Erro catastrófico ao carregar o modelo.");
+            } finally {
+                setIsLoading(false);
             }
-            setIsLoading(false);
         }
         load();
     }, [modeloId]);
