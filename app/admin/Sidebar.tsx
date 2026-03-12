@@ -605,7 +605,7 @@ export function Sidebar({
                       }
                     />
                     <span className="text-sm border-transparent">
-                      QCIS Analytics (NASA)
+                      QCIS Analytics
                     </span>
                   </Link>
                 </nav>
