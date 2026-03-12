@@ -96,10 +96,17 @@ export async function POST(req: NextRequest) {
        const { data: areasData } = await supabaseAdmin.from('areas_fabrica').select('id, nome_area');
        const { data: estacoesData } = await supabaseAdmin.from('estacoes').select('id, nome_estacao');
        
+       // Normalized strict matching for human-names (ignora espaços, traços e underscores)
+       const normalizeName = (str: string) => {
+           if (!str) return '';
+           return str.toLowerCase().replace(/[\s\-\_]/g, '').trim();
+       };
+
        dataArray = dataArray.map(row => {
           // Tratar Area Base (Mapear Nome para UUID)
           if (row.area_base_id && typeof row.area_base_id === 'string' && !row.area_base_id.match(/^[0-9a-f]{8}-[0-9a-f]{4}/i)) {
-              const matchedArea = (areasData || []).find(a => a.nome_area.toLowerCase() === row.area_base_id.toLowerCase());
+              const srch = normalizeName(row.area_base_id);
+              const matchedArea = (areasData || []).find(a => normalizeName(a.nome_area) === srch);
               if (matchedArea) {
                   row.area_base_id = matchedArea.id;
               } else {
@@ -109,7 +116,8 @@ export async function POST(req: NextRequest) {
 
           // Tratar Posto Base (Mapear Nome para UUID)
           if (row.posto_base_id && typeof row.posto_base_id === 'string' && !row.posto_base_id.match(/^[0-9a-f]{8}-[0-9a-f]{4}/i)) {
-              const matchedEstacao = (estacoesData || []).find(e => e.nome_estacao.toLowerCase() === row.posto_base_id.toLowerCase());
+              const srch = normalizeName(row.posto_base_id);
+              const matchedEstacao = (estacoesData || []).find(e => normalizeName(e.nome_estacao) === srch);
               if (matchedEstacao) {
                   row.posto_base_id = matchedEstacao.id;
               } else {
