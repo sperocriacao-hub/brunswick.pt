@@ -191,13 +191,13 @@ export default function GeneralOrdersDashboard() {
                                             </Badge>
                                         </TableCell>
                                         <TableCell className="text-slate-500 font-mono text-sm">
-                                            {order.data_inicio_prevista ? new Date(order.data_inicio_prevista).toLocaleDateString() : '--'}
+                                            {order.data_inicio ? new Date(order.data_inicio).toLocaleDateString() : '--'}
                                         </TableCell>
                                         <TableCell className="text-slate-500 font-mono text-sm">
-                                            {order.data_conclusao_prevista ? new Date(order.data_conclusao_prevista).toLocaleDateString() : '--'}
+                                            {order.data_fim ? new Date(order.data_fim).toLocaleDateString() : '--'}
                                         </TableCell>
                                         <TableCell className="text-slate-500 text-sm italic">
-                                            {order.configuracao_turnos?.nome_turno || 'Geral'}
+                                            --
                                         </TableCell>
                                         <TableCell className="text-right">
                                             <DropdownMenu>
