@@ -42,12 +42,14 @@ export default function QcisAnalyticsDashboard() {
     const [filterLinha, setFilterLinha] = useState('');
     const [filterGate, setFilterGate] = useState('');
     const [filterCategoria, setFilterCategoria] = useState('');
+    const [filterArea, setFilterArea] = useState('');
+    const [filterSubstation, setFilterSubstation] = useState('');
 
-    // Default: Last Month
+    // Default: Last 30 Days
     const [startDate, setStartDate] = useState(() => {
-        const now = new Date();
-        const firstDayLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-        return firstDayLastMonth.toISOString().split('T')[0];
+        const d = new Date();
+        d.setDate(d.getDate() - 30);
+        return d.toISOString().split('T')[0];
     });
     
     const [endDate, setEndDate] = useState(() => {
@@ -71,25 +73,39 @@ export default function QcisAnalyticsDashboard() {
         loadData();
     }, [startDate, endDate]);
 
-    // Extrair opções únicas para os dropdowns de filtro
-    const modelosUnicos = Array.from(new Set(audits.map(a => a.model_ref).filter(Boolean)));
-    const linhasUnicas = Array.from(new Set(audits.map(a => a.linha_linha).filter(Boolean)));
-    const gatesUnicos = Array.from(new Set(audits.map(a => a.lista_gate).filter(Boolean)));
-    const categoriasUnicas = Array.from(new Set(audits.map(a => a.lista_categoria).filter(Boolean)));
-
     // Aplicar Filtros ao Dataset Principal
     const filteredAudits = useMemo(() => {
         return audits.filter(a => {
-            const matchSearch = a.boat_id?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                                a.defect_comment?.toLowerCase().includes(searchTerm.toLowerCase());
+            const ls = searchTerm.toLowerCase();
+            const matchSearch = !ls || 
+                                a.boat_id?.toLowerCase().includes(ls) || 
+                                a.defect_comment?.toLowerCase().includes(ls) ||
+                                a.defect_description?.toLowerCase().includes(ls) ||
+                                a.substation_name?.toLowerCase().includes(ls) ||
+                                a.lista_categoria?.toLowerCase().includes(ls) ||
+                                a.lista_sub?.toLowerCase().includes(ls) ||
+                                a.responsible_area?.toLowerCase().includes(ls) ||
+                                a.linha_linha?.toLowerCase().includes(ls) ||
+                                a.lista_gate?.toLowerCase().includes(ls) ||
+                                a.fail_date?.includes(ls);
             const matchModelo = filterModelo ? a.model_ref === filterModelo : true;
             const matchLinha = filterLinha ? a.linha_linha === filterLinha : true;
             const matchGate = filterGate ? a.lista_gate === filterGate : true;
             const matchCategoria = filterCategoria ? a.lista_categoria === filterCategoria : true;
+            const matchArea = filterArea ? a.responsible_area === filterArea : true;
+            const matchSubstation = filterSubstation ? a.substation_name === filterSubstation : true;
             
-            return matchSearch && matchModelo && matchLinha && matchGate && matchCategoria;
+            return matchSearch && matchModelo && matchLinha && matchGate && matchCategoria && matchArea && matchSubstation;
         });
-    }, [audits, searchTerm, filterModelo, filterLinha, filterGate, filterCategoria]);
+    }, [audits, searchTerm, filterModelo, filterLinha, filterGate, filterCategoria, filterArea, filterSubstation]);
+
+    // Extrair opções únicas para os dropdowns de filtro (After Global Filter to allow drill-down or raw from Audits)
+    const modelosUnicos = Array.from(new Set(audits.map(a => a.model_ref).filter(Boolean)));
+    const linhasUnicas = Array.from(new Set(audits.map(a => a.linha_linha).filter(Boolean)));
+    const gatesUnicos = Array.from(new Set(audits.map(a => a.lista_gate).filter(Boolean)));
+    const categoriasUnicas = Array.from(new Set(audits.map(a => a.lista_categoria).filter(Boolean)));
+    const areasUnicas = Array.from(new Set(audits.map(a => a.responsible_area).filter(Boolean)));
+    const substationUnicas = Array.from(new Set(audits.map(a => a.substation_name).filter(Boolean))).sort();
 
     // KPI 1: Total Defeitos
     const totalDefeitos = filteredAudits.reduce((acc, curr) => acc + (curr.count_of_defects || 0), 0);
@@ -105,11 +121,11 @@ export default function QcisAnalyticsDashboard() {
     }, {} as Record<string, number>);
     const topModelo = Object.entries(conteioPorModelo).sort((a,b) => b[1] - a[1])[0] || ['-', 0];
 
-    // Gráfico 1: Pareto por Categoria (All Categories)
-    const chartDataCategorias = useMemo(() => {
+    // Gráfico 1: Pareto por Descrição de Defeito (defect_description)
+    const chartDataDefeitos = useMemo(() => {
         const agp = filteredAudits.reduce((acc, curr) => {
-            const cat = curr.lista_categoria || 'Não Categorizado';
-            acc[cat] = (acc[cat] || 0) + (curr.count_of_defects || 0);
+            const def = curr.defect_description || 'Não Descrito';
+            acc[def] = (acc[def] || 0) + (curr.count_of_defects || 0);
             return acc;
         }, {} as Record<string, number>);
         
@@ -126,8 +142,9 @@ export default function QcisAnalyticsDashboard() {
             if(!a.fail_date || !a.lista_gate) return;
             const gate = a.lista_gate;
             
-            // 0=Sun, 1=Mon, ..., 5=Fri, 6=Sat
-            const diaDaSemanaIdx = new Date(a.fail_date).getDay();
+            // Fix: parse explicit Local Date from YYYY-MM-DD strings avoiding UTC browser shift
+            const [y, m, d] = a.fail_date.split('-');
+            const diaDaSemanaIdx = new Date(Number(y), Number(m)-1, Number(d)).getDay();
             let diaLinguagem = '';
             if (diaDaSemanaIdx === 1) diaLinguagem = 'seg';
             else if (diaDaSemanaIdx === 2) diaLinguagem = 'ter';
@@ -199,6 +216,29 @@ export default function QcisAnalyticsDashboard() {
         };
     }, [filteredAudits]);
 
+    // Trend Graph: Daily Substation separated by Line 
+    const chartDataDailySubstation = useMemo(() => {
+        const lineMap: Record<string, Record<string, number>> = {};
+        const linhasSet = new Set<string>();
+
+        filteredAudits.forEach(a => {
+            if(!a.fail_date) return;
+            const dateStr = a.fail_date.split('T')[0];
+            const linha = a.linha_linha || 'Outra Linha';
+            linhasSet.add(linha);
+
+            if(!lineMap[dateStr]) lineMap[dateStr] = {};
+            lineMap[dateStr][linha] = (lineMap[dateStr][linha] || 0) + (a.count_of_defects || 0);
+        });
+
+        return {
+            data: Object.entries(lineMap)
+                .sort((a, b) => a[0].localeCompare(b[0]))
+                .map(([name, linhas]) => ({ name, ...linhas })),
+            linhas: Array.from(linhasSet)
+        };
+    }, [filteredAudits]);
+
     return (
         <div className="p-6 md:p-8 space-y-8 animate-in fade-in duration-500 max-w-[1600px] mx-auto">
             {/* Header Mestre NASA Style */}
@@ -221,6 +261,20 @@ export default function QcisAnalyticsDashboard() {
                     </div>
                     
                     <input 
+                        type="month"
+                        onChange={e => {
+                            if(!e.target.value) return;
+                            const [y, m] = e.target.value.split('-');
+                            const firstDay = new Date(Number(y), Number(m)-1, 1).toISOString().split('T')[0];
+                            const lastDay = new Date(Number(y), Number(m), 0).toISOString().split('T')[0];
+                            setStartDate(firstDay);
+                            setEndDate(lastDay);
+                        }}
+                        className="bg-slate-900 text-white border-slate-700 rounded-lg text-sm px-3 py-2 cursor-pointer focus:ring-1 focus:ring-cyan-500"
+                        title="Isolar Mês Específico"
+                    />
+
+                    <input 
                         type="date" 
                         value={startDate} 
                         onChange={e => setStartDate(e.target.value)}
@@ -240,6 +294,24 @@ export default function QcisAnalyticsDashboard() {
                     >
                         <option value="">Todas Categorias</option>
                         {categoriasUnicas.map(m => <option key={m} value={m}>{m}</option>)}
+                    </select>
+                    
+                    <select 
+                        value={filterArea} 
+                        onChange={e => setFilterArea(e.target.value)}
+                        className="bg-slate-900 text-white border-slate-700 rounded-lg text-sm px-3 py-2 cursor-pointer focus:ring-1 focus:ring-cyan-500"
+                    >
+                        <option value="">Todas Áreas</option>
+                        {areasUnicas.map(m => <option key={m} value={m}>{m}</option>)}
+                    </select>
+
+                    <select 
+                        value={filterSubstation} 
+                        onChange={e => setFilterSubstation(e.target.value)}
+                        className="bg-slate-900 text-white border-slate-700 rounded-lg text-sm px-3 py-2 cursor-pointer focus:ring-1 focus:ring-cyan-500 max-w-xs truncate"
+                    >
+                        <option value="">Todas Substations</option>
+                        {substationUnicas.map(m => <option key={m} value={m}>{m}</option>)}
                     </select>
 
                     <select 
@@ -331,22 +403,22 @@ export default function QcisAnalyticsDashboard() {
                 <Card className="bg-slate-900 border-slate-800 shadow-xl">
                     <CardHeader>
                         <CardTitle className="text-white text-lg font-bold flex items-center gap-2">
-                            <BarChart3 className="text-cyan-400" /> Pareto: Detratores por Categoria
+                            <BarChart3 className="text-cyan-400" /> Pareto: Detratores por Descrição de Defeito
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="overflow-y-auto max-h-[600px] pr-2">
-                        {chartDataCategorias.length > 0 ? (
-                            <div style={{ height: Math.max(320, chartDataCategorias.length * 40), width: '100%' }}>
+                        {chartDataDefeitos.length > 0 ? (
+                            <div style={{ height: Math.max(320, chartDataDefeitos.length * 40), width: '100%' }}>
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={chartDataCategorias} layout="vertical" margin={{ top: 5, right: 30, left: 80, bottom: 5 }}>
+                                    <BarChart data={chartDataDefeitos} layout="vertical" margin={{ top: 5, right: 30, left: 160, bottom: 5 }}>
                                         <XAxis type="number" stroke="#475569" />
-                                        <YAxis dataKey="name" type="category" stroke="#94a3b8" fontSize={11} width={120} />
+                                        <YAxis dataKey="name" type="category" stroke="#94a3b8" fontSize={11} width={180} />
                                         <Tooltip 
                                             cursor={{fill: '#1e293b'}} 
                                             contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', color: '#fff', borderRadius: '8px' }}
                                         />
                                         <Bar dataKey="value" fill="#06b6d4" radius={[0, 4, 4, 0]}>
-                                            {chartDataCategorias.map((entry, index) => (
+                                            {chartDataDefeitos.map((entry, index) => (
                                                 <Cell key={`cell-${index}`} fill={index === 0 ? '#f43f5e' : index === 1 ? '#f59e0b' : '#0ea5e9'} />
                                             ))}
                                         </Bar>
@@ -434,6 +506,43 @@ export default function QcisAnalyticsDashboard() {
                                             dataKey={cat} 
                                             name={cat}
                                             stroke={`hsl(${idx * (360 / chartDataTrend.categories.length)}, 70%, 50%)`} 
+                                            strokeWidth={3}
+                                            dot={{ r: 3, fill: '#0f172a', strokeWidth: 2 }}
+                                            activeDot={{ r: 6 }}
+                                        />
+                                    ))}
+                                </LineChart>
+                            </ResponsiveContainer>
+                        ) : (
+                            <div className="h-full flex items-center justify-center text-slate-600">Sem dados cronológicos suficientes</div>
+                        )}
+                    </CardContent>
+                </Card>
+
+                <Card className="bg-slate-900 border-slate-800 shadow-xl col-span-1 lg:col-span-2">
+                    <CardHeader>
+                        <CardTitle className="text-white text-lg font-bold flex items-center gap-2">
+                            <Activity className="text-blue-400" /> Acompanhamento Diário Substation (por Linha)
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="h-96">
+                        {chartDataDailySubstation.data.length > 0 ? (
+                            <ResponsiveContainer width="100%" height="100%">
+                                <LineChart data={chartDataDailySubstation.data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                                    <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} />
+                                    <YAxis stroke="#94a3b8" fontSize={11} />
+                                    <Tooltip 
+                                        contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', color: '#fff', borderRadius: '8px' }}
+                                    />
+                                    <Legend wrapperStyle={{ paddingTop: '20px' }} />
+                                    {chartDataDailySubstation.linhas.map((l, idx) => (
+                                        <Line 
+                                            key={l}
+                                            type="monotone" 
+                                            dataKey={l} 
+                                            name={`Linha ${l}`}
+                                            stroke={`hsl(${idx * (360 / Math.max(chartDataDailySubstation.linhas.length, 1))}, 70%, 60%)`} 
                                             strokeWidth={3}
                                             dot={{ r: 3, fill: '#0f172a', strokeWidth: 2 }}
                                             activeDot={{ r: 6 }}
