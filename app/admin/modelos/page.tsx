@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { Loader2, Plus, Package, Edit, Ban, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 type ModeloInfo = {
   id: string;
@@ -11,9 +12,11 @@ type ModeloInfo = {
   model_year: string;
   created_at: string;
   status: string;
+  linha_padrao_id?: any;
 };
 
 export default function ModelosListPage() {
+  const router = useRouter();
   const supabase = createClient();
   const [isLoading, setIsLoading] = useState(true);
   const [modelos, setModelos] = useState<ModeloInfo[]>([]);
@@ -23,7 +26,7 @@ export default function ModelosListPage() {
     try {
       const { data, error } = await supabase
         .from("modelos")
-        .select("id, nome_modelo, model_year, created_at, status")
+        .select("id, nome_modelo, model_year, created_at, status, linha_padrao_id(letra_linha)")
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -136,79 +139,121 @@ export default function ModelosListPage() {
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {modelos.map((modelo) => (
-              <Link
-                href={`/admin/modelos/${modelo.id}`}
-                key={modelo.id}
-                className="group relative bg-blue-900/40 border border-blue-800/50 backdrop-blur-md rounded-2xl p-6 flex flex-col gap-4 transition-all duration-300 hover:-translate-y-1 hover:bg-blue-800/50 hover:border-blue-500/50 hover:shadow-[0_10px_40px_-10px_rgba(59,130,246,0.25)] cursor-pointer overflow-hidden"
-              >
-                {/* Card Glow Effect on Hover */}
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/0 via-transparent to-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
-
-                <div className="flex justify-between items-start relative z-10">
-                  <div className="w-12 h-12 rounded-xl bg-blue-950 border border-blue-800/60 flex items-center justify-center text-blue-300 flex-shrink-0 group-hover:text-blue-400 group-hover:border-blue-500/50 transition-colors">
-                    <Package size={24} />
-                  </div>
-                  <span
-                    className={`px-2.5 py-1 rounded-md text-[10px] uppercase font-bold tracking-wider border ${getStatusColor(modelo.status || "Ativo")}`}
-                  >
-                    {modelo.status || "Ativo"}
-                  </span>
-                </div>
-
-                <div className="relative z-10 mt-2">
-                  <h3 className="text-lg font-bold m-0 text-white tracking-tight group-hover:text-blue-100 transition-colors">
-                    {modelo.nome_modelo}
-                  </h3>
-                  <div className="mt-2 flex">
-                    <span className="bg-slate-100 text-black text-[10px] px-2 py-1 rounded-md uppercase tracking-wider font-bold shadow-sm">
-                      Model Year: {modelo.model_year}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex-1"></div>
-
-                <div className="flex justify-between items-center border-t border-slate-700/50 pt-4 mt-2 relative z-10">
-                  <span className="bg-slate-100 text-black text-[10px] uppercase font-bold px-2 py-1 rounded-md shadow-sm">
-                    {new Date(modelo.created_at).toLocaleDateString("pt-PT")}
-                  </span>
-                  <div className="flex gap-2">
-                    {/* Ações de Gestão de Produto */}
-                    <button
-                      className="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-700 transition-colors z-20"
-                      title={
-                        modelo.status === "Obsoleto"
-                          ? "Reativar Modelo"
-                          : "Marcar como Obsoleto"
-                      }
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        toggleStatus(modelo.id, modelo.status);
-                      }}
+          <div className="bg-slate-900/40 border border-slate-700/50 backdrop-blur-xl rounded-2xl shadow-2xl overflow-hidden relative">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-800/80 border-b border-slate-700/80 text-xs uppercase tracking-wider text-slate-400 font-semibold shadow-sm">
+                    <th className="px-6 py-4 whitespace-nowrap">Embarcação</th>
+                    <th className="px-6 py-4 whitespace-nowrap text-center">Ano (MY)</th>
+                    <th className="px-6 py-4 whitespace-nowrap">Linha de Produção</th>
+                    <th className="px-6 py-4 whitespace-nowrap text-center">Estado Catálogo</th>
+                    <th className="px-6 py-4 whitespace-nowrap text-right text-slate-500">Registo DB</th>
+                    <th className="px-6 py-4 whitespace-nowrap text-right">Controlo Operacional</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/50">
+                  {modelos.map((modelo) => (
+                    <tr 
+                      key={modelo.id}
+                      className="group bg-transparent hover:bg-blue-900/20 transition-all duration-300 relative cursor-pointer"
+                      onClick={() => router.push(`/admin/modelos/${modelo.id}`)}
                     >
-                      {modelo.status === "Obsoleto" ||
-                      modelo.status === "Descontinuado" ? (
-                        <CheckCircle2 size={14} className="text-emerald-400" />
-                      ) : (
-                        <Ban
-                          size={14}
-                          className="text-rose-400 hover:text-rose-300"
-                        />
-                      )}
-                    </button>
-                    <div
-                      className="w-8 h-8 rounded-full bg-blue-900/30 border border-blue-500/20 flex items-center justify-center text-blue-400 group-hover:bg-blue-600 group-hover:text-white group-hover:border-blue-500 transition-colors z-20"
-                      title="Aceder Modelo"
-                    >
-                      <Edit size={14} />
-                    </div>
-                  </div>
-                </div>
-              </Link>
-            ))}
+                      {/* Left border accent on hover */}
+                      <td className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500 opacity-0 group-hover:opacity-100 transition-opacity"></td>
+                      
+                      {/* 1. Nome do Modelo */}
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center gap-4">
+                          <div className="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700/60 flex items-center justify-center text-slate-300 group-hover:bg-blue-900/60 group-hover:border-blue-500/40 group-hover:text-blue-400 transition-all shadow-sm">
+                            <Package size={20} />
+                          </div>
+                          <div>
+                            <div className="text-sm font-bold text-white group-hover:text-blue-200 transition-colors drop-shadow-sm">
+                              {modelo.nome_modelo}
+                            </div>
+                            <div className="text-[10px] text-slate-500 font-mono tracking-widest mt-0.5 opacity-50">
+                              UUID: {modelo.id.split('-')[0]}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* 2. Model Year */}
+                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                        <span className="inline-flex items-center justify-center px-2.5 py-1 rounded bg-slate-800 border border-slate-700 text-slate-300 text-xs font-bold font-mono shadow-inner">
+                          {modelo.model_year}
+                        </span>
+                      </td>
+
+                      {/* 3. Linha de Produção (NOVIDADE) */}
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {modelo.linha_padrao_id && (modelo.linha_padrao_id as any).letra_linha ? (
+                           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-900/30 border border-indigo-500/30 text-indigo-300 text-xs font-bold shadow-sm group-hover:border-indigo-400/50 transition-colors">
+                              <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse"></span>
+                               Linha {(modelo.linha_padrao_id as any).letra_linha}
+                           </div>
+                        ) : (
+                          <span className="text-xs text-slate-500 italic opacity-60 px-2">Sem Alocação</span>
+                        )}
+                      </td>
+
+                      {/* 4. Status */}
+                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                        <span className={`inline-flex px-3 py-1.5 rounded-full text-[10px] uppercase font-extrabold tracking-widest border shadow-sm ${getStatusColor(modelo.status || "Ativo")}`}>
+                          {modelo.status || "Ativo"}
+                        </span>
+                      </td>
+
+                      {/* 5. Data Tstamp */}
+                      <td className="px-6 py-4 whitespace-nowrap text-right">
+                        <span className="text-xs text-slate-400 font-mono opacity-80">
+                           {new Date(modelo.created_at).toLocaleDateString("pt-PT")}
+                        </span>
+                      </td>
+
+                      {/* 6. Ações Directas */}
+                      <td className="px-6 py-4 whitespace-nowrap text-right">
+                        <div className="flex justify-end items-center gap-3">
+                            <button
+                                className={`w-8 h-8 rounded-full flex items-center justify-center transition-all z-20 ${
+                                    modelo.status === "Obsoleto" || modelo.status === "Descontinuado" 
+                                    ? "bg-emerald-900/20 text-emerald-500 border border-emerald-500/30 hover:bg-emerald-500 hover:text-white"
+                                    : "bg-rose-900/20 text-rose-500 border border-rose-500/30 hover:bg-rose-500 hover:text-white"
+                                }`}
+                                title={modelo.status === "Obsoleto" ? "Reativar Modelo" : "Marcar como Obsoleto"}
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    toggleStatus(modelo.id, modelo.status);
+                                }}
+                            >
+                                {modelo.status === "Obsoleto" || modelo.status === "Descontinuado" ? (
+                                    <CheckCircle2 size={16} />
+                                ) : (
+                                    <Ban size={16} />
+                                )}
+                            </button>
+                            <button
+                                className="w-8 h-8 rounded-full bg-blue-900/30 border border-blue-500/20 flex items-center justify-center text-blue-400 hover:bg-blue-500 hover:text-white hover:border-blue-400 transition-all shadow-sm z-20"
+                                title="Editar Engenharia / BOM"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    router.push(`/admin/modelos/${modelo.id}`);
+                                }}
+                            >
+                                <Edit size={16} />
+                            </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {/* NASA Ambient Base Glow */}
+            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-3/4 h-1 bg-gradient-to-r from-transparent via-blue-500/30 to-transparent blur-sm pointer-events-none"></div>
           </div>
         )}
       </div>

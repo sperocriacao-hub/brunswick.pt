@@ -11,6 +11,7 @@ export interface EditarModeloInput {
     nome_modelo: string;
     model_year: string;
     status: string;
+    linha_padrao_id?: string;
     tarefasGerais: InTarefa[];
     opcionais: InOpcional[];
 }
@@ -86,6 +87,7 @@ export async function fetchModeloParaEdicao(modeloId: string) {
                 nome_modelo: modelo.nome_modelo,
                 model_year: modelo.model_year,
                 status: modelo.status,
+                linha_padrao_id: modelo.linha_padrao_id,
                 tarefasGerais,
                 opcionais
             }
@@ -108,7 +110,8 @@ export async function atualizarModeloCompleto(input: EditarModeloInput): Promise
             .update({
                 nome_modelo: input.nome_modelo,
                 model_year: input.model_year,
-                status: input.status
+                status: input.status,
+                linha_padrao_id: input.linha_padrao_id || null
             })
             .eq('id', input.id);
 

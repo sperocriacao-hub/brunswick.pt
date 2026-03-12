@@ -3,14 +3,15 @@ import { createClient } from "@supabase/supabase-js";
 import fs from "fs";
 import path from "path";
 
-// Initialize the Supabase client with the Service Role Key to bypass RLS
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-const supabaseAdmin = createClient(supabaseUrl, supabaseKey);
-
 export async function GET() {
   try {
+    // Initialize the Supabase client with the Service Role Key to bypass RLS
+    // Moved inside the handler to prevent Next.js build-time errors on global scope
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+
+    const supabaseAdmin = createClient(supabaseUrl, supabaseKey);
+
     // Read the SQL file
     const sqlFilePath = path.join(process.cwd(), "supabase", "migrations", "0059_modelos_linha_padrao.sql");
     const sqlContent = fs.readFileSync(sqlFilePath, "utf8");

@@ -44,9 +44,13 @@ export default function EditarModeloPage() {
     const [nomeModelo, setNomeModelo] = useState('');
     const [modelYear, setModelYear] = useState('');
     const [status, setStatus] = useState('Em Desenvolvimento');
+    const [linhaPadraoId, setLinhaPadraoId] = useState('');
     const [partes, setPartes] = useState<any[]>([]); // Keep it defined to avoid errors on addParte although it's removed from UI
     const [tarefasGerais, setTarefasGerais] = useState<Tarefa[]>([]);
     const [opcionais, setOpcionais] = useState<Opcional[]>([]);
+    
+    // Lista de Linhas Ativas para Dropdown
+    const [linhasProducao, setLinhasProducao] = useState<{id: string, letra_linha: string}[]>([]);
 
     useEffect(() => {
         if (!modeloId) return;
@@ -57,8 +61,16 @@ export default function EditarModeloPage() {
                 setNomeModelo(res.data.nome_modelo || '');
                 setModelYear(res.data.model_year || '');
                 setStatus(res.data.status || 'Em Desenvolvimento');
+                setLinhaPadraoId(res.data.linha_padrao_id || '');
                 setTarefasGerais(res.data.tarefasGerais as unknown as Tarefa[] || []);
                 setOpcionais(res.data.opcionais as unknown as Opcional[] || []);
+                
+                // Buscar Linhas de Produção Disponíveis
+                const { createClient } = await import('@/utils/supabase/client');
+                const supabase = createClient();
+                const { data: linhas } = await supabase.from('linhas_producao').select('id, letra_linha').order('letra_linha');
+                setLinhasProducao(linhas || []);
+
             } else {
                 alert("Erro ao carregar dados do Molde.");
             }
@@ -197,6 +209,7 @@ export default function EditarModeloPage() {
                 nome_modelo: nomeModelo,
                 model_year: modelYear,
                 status: status,
+                linha_padrao_id: linhaPadraoId || undefined,
                 tarefasGerais: tarefasGerais,
                 opcionais: opcionais
             };
@@ -368,8 +381,8 @@ export default function EditarModeloPage() {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 gap-6 mt-6">
-                    <div className="form-group" style={{ maxWidth: '300px' }}>
+                <div className="grid grid-cols-2 gap-6 mt-6">
+                    <div className="form-group">
                         <label className="form-label">Estado do Catálogo</label>
                         <select
                             className="form-control"
@@ -380,6 +393,20 @@ export default function EditarModeloPage() {
                             <option value="Ativo">Ativo (Produção)</option>
                             <option value="Obsoleto">Obsoleto / Inativo</option>
                             <option value="Descontinuado">Descontinuado</option>
+                        </select>
+                    </div>
+
+                    <div className="form-group">
+                        <label className="form-label text-blue-300">Linha de Produção a Alocar (Opcional)</label>
+                        <select
+                            className="form-control border-blue-500/30 focus:border-blue-400 bg-slate-800/50"
+                            value={linhaPadraoId}
+                            onChange={(e) => setLinhaPadraoId(e.target.value)}
+                        >
+                            <option value="">Sem Linha Atribuída</option>
+                            {linhasProducao.map(linha => (
+                                <option key={linha.id} value={linha.id}>Linha {linha.letra_linha}</option>
+                            ))}
                         </select>
                     </div>
                 </div>
