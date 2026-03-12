@@ -64,6 +64,57 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // --- INTERCETOR ESPECIAL: QCIS AUDITS (SAP EXPORT) ---
+    // O ficheiro SAP "QCIS Excel.xlsx" tem nomenclaturas próprias e datas em formato Serial.
+    if (tableName === "qcis_audits") {
+      const qcisData = rawData.map((row) => {
+        // Função utilitária para converter Data Serial do Excel em YYYY-MM-DD
+        const parseExcelDate = (serial: any) => {
+           if (!serial) return null;
+           if (typeof serial === 'number') {
+              const utc_days  = Math.floor(serial - 25569);
+              const utc_value = utc_days * 86400;                                        
+              const date_info = new Date(utc_value * 1000);
+              return date_info.toISOString().split('T')[0];
+           }
+           return String(serial);
+        };
+
+        return {
+           fail_date: parseExcelDate(row["Failed Date"] || row["Fail Date"] || row["Data"]),
+           boat_id: row["Boat ID"] ? String(row["Boat ID"]) : null,
+           model_ref: row["Model"] ? String(row["Model"]) : null,
+           peca: row["Peça"] ? String(row["Peça"]) : null,
+           responsible_area: row["Dtl Responsible Area"] ? String(row["Dtl Responsible Area"]) : null,
+           hull_number: row["Hull Number"] ? Number(row["Hull Number"]) : null,
+           component_name: row["Component Name"] ? String(row["Component Name"]) : null,
+           substation_name: row["Substation Name"] || row["Principal Auditoria"] ? String(row["Substation Name"] || row["Principal Auditoria"]) : null,
+           defect_description: row["Defect Description"] ? String(row["Defect Description"]) : null,
+           seccao: row["Secção"] ? String(row["Secção"]) : null,
+           count_of_defects: row["Count of Defects"] ? Number(row["Count of Defects"]) : 0,
+           defect_comment: row["Defect Comment"] ? String(row["Defect Comment"]) : null,
+           linha_linha: row["Linha.Linha"] ? String(row["Linha.Linha"]) : null,
+           lista_categoria: row["Lista.Categoria"] || row["Lista Categoria"] ? String(row["Lista.Categoria"] || row["Lista Categoria"]) : null,
+           lista_sub: row["Lista.Sub"] || row["Lista Sub"] ? String(row["Lista.Sub"] || row["Lista Sub"]) : null,
+           lista_gate: row["Lista.Gate"] || row["Lista Gate"] ? String(row["Lista.Gate"] || row["Lista Gate"]) : null
+        };
+      });
+      
+      // Upsert QCIS directly bypassing standard generic string normalizations
+      const { error } = await supabaseAdmin.from(tableName).upsert(qcisData);
+      
+      if (error) {
+         return NextResponse.json({ success: false, error: `Erro no parser QCIS: ${error.message}` }, { status: 400 });
+      }
+
+      return NextResponse.json({
+        success: true,
+        recordsAffected: qcisData.length,
+        message: `Processadas ${qcisData.length} auditorias de Qualidade (QCIS).`,
+      });
+    }
+    // --- FIM INTERCETOR QCIS ---
+
     // 4. LIMPAR DADOS (REMOVER COLUNAS VAZIAS E ASSEGURAR NULOS EM STRING VAZIAS PARA EVITAR CRASH DE DATAS/UUIDs)
     let dataArray = rawData.map((row) => {
       const newRow: any = {};
