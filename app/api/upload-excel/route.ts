@@ -75,11 +75,17 @@ export async function POST(req: NextRequest) {
         
         if (typeof value === "string") {
             const cleanVal = value.trim();
-            // A SALVAÇÃO DO ERROR 22P02:
+            // A SALVAÇÃO DO ERROR 22P02 e NULL VARIÁVEL PK:
             // "data_rescisao: ''" choca com o Postgres DATE. Transformamos de imediato em javascript puro 'null'.
             // "area_base_id: ''" choca com UUID. Transformamos em 'null'.
             if (cleanVal === "") {
-                newRow[cleanKey] = null;
+                if (cleanKey === "id") {
+                    // Para a Chave Primária, não podemos mandar 'null' se não o Postgres crasha com restrição Not-Null.
+                    // Temos de APAGAR a chave do objeto para a Base de Dados gerar automaticamente com uuid_generate_v4()
+                    delete newRow[cleanKey];
+                } else {
+                    newRow[cleanKey] = null;
+                }
             } else {
                 newRow[cleanKey] = cleanVal;
             }
