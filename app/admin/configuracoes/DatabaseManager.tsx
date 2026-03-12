@@ -149,6 +149,11 @@ const TABLES = [
 
   // 6. QUALIDADE E LEAN
   {
+    key: "qcis_audits",
+    label: "Auditorias Qualidade (QCIS)",
+    desc: "Exportação analítica diária do sistema de inspeção SAP.",
+  },
+  {
     key: "rastreabilidade_pecas",
     label: "Rastreabilidade B.O.M.",
     desc: "Histórico de peças serializadas coladas.",
