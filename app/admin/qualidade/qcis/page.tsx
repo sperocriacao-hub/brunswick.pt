@@ -9,7 +9,7 @@ import {
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, Sector } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, Sector, LineChart, Line, Legend, CartesianGrid } from 'recharts';
 
 // Tipagem baseada no schema do PostgreSQL 'qcis_audits'
 type QcisAudit = {
@@ -41,10 +41,24 @@ export default function QcisAnalyticsDashboard() {
     const [filterModelo, setFilterModelo] = useState('');
     const [filterLinha, setFilterLinha] = useState('');
     const [filterGate, setFilterGate] = useState('');
+    const [filterCategoria, setFilterCategoria] = useState('');
+
+    // Default: Last Month
+    const [startDate, setStartDate] = useState(() => {
+        const now = new Date();
+        const firstDayLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        return firstDayLastMonth.toISOString().split('T')[0];
+    });
+    
+    const [endDate, setEndDate] = useState(() => {
+        const now = new Date();
+        const lastDayLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+        return lastDayLastMonth.toISOString().split('T')[0];
+    });
 
     const loadData = async () => {
         setIsLoading(true);
-        const res = await fetchQcisData();
+        const res = await fetchQcisData({ startDate, endDate });
         if (res.success && res.data) {
             setAudits(res.data as QcisAudit[]);
         } else {
@@ -55,12 +69,13 @@ export default function QcisAnalyticsDashboard() {
 
     useEffect(() => {
         loadData();
-    }, []);
+    }, [startDate, endDate]);
 
     // Extrair opções únicas para os dropdowns de filtro
     const modelosUnicos = Array.from(new Set(audits.map(a => a.model_ref).filter(Boolean)));
     const linhasUnicas = Array.from(new Set(audits.map(a => a.linha_linha).filter(Boolean)));
     const gatesUnicos = Array.from(new Set(audits.map(a => a.lista_gate).filter(Boolean)));
+    const categoriasUnicas = Array.from(new Set(audits.map(a => a.lista_categoria).filter(Boolean)));
 
     // Aplicar Filtros ao Dataset Principal
     const filteredAudits = useMemo(() => {
@@ -70,13 +85,18 @@ export default function QcisAnalyticsDashboard() {
             const matchModelo = filterModelo ? a.model_ref === filterModelo : true;
             const matchLinha = filterLinha ? a.linha_linha === filterLinha : true;
             const matchGate = filterGate ? a.lista_gate === filterGate : true;
+            const matchCategoria = filterCategoria ? a.lista_categoria === filterCategoria : true;
             
-            return matchSearch && matchModelo && matchLinha && matchGate;
+            return matchSearch && matchModelo && matchLinha && matchGate && matchCategoria;
         });
-    }, [audits, searchTerm, filterModelo, filterLinha, filterGate]);
+    }, [audits, searchTerm, filterModelo, filterLinha, filterGate, filterCategoria]);
 
     // KPI 1: Total Defeitos
     const totalDefeitos = filteredAudits.reduce((acc, curr) => acc + (curr.count_of_defects || 0), 0);
+    
+    // KPI 1.5: DPU (Defects Per Unit)
+    const totalBarcosUnicos = new Set(filteredAudits.map(a => a.boat_id).filter(Boolean)).size;
+    const dpu = totalBarcosUnicos > 0 ? (totalDefeitos / totalBarcosUnicos).toFixed(2) : '0.00';
     
     // KPI 2: Top Model Offender
     const conteioPorModelo = filteredAudits.reduce((acc, curr) => {
@@ -85,7 +105,7 @@ export default function QcisAnalyticsDashboard() {
     }, {} as Record<string, number>);
     const topModelo = Object.entries(conteioPorModelo).sort((a,b) => b[1] - a[1])[0] || ['-', 0];
 
-    // Gráfico 1: Pareto por Categoria (Top 10)
+    // Gráfico 1: Pareto por Categoria (All Categories)
     const chartDataCategorias = useMemo(() => {
         const agp = filteredAudits.reduce((acc, curr) => {
             const cat = curr.lista_categoria || 'Não Categorizado';
@@ -95,22 +115,30 @@ export default function QcisAnalyticsDashboard() {
         
         return Object.entries(agp)
             .map(([name, value]) => ({ name, value }))
-            .sort((a, b) => b.value - a.value)
-            .slice(0, 10);
+            .sort((a, b) => b.value - a.value);
     }, [filteredAudits]);
 
-    // Heatmap Approximation (Cross: Gate vs Dia da Semana)
+    // Heatmap Approximation (Cross: Gate vs Dia da Semana robustizado por .getDay())
     const heatMapData = useMemo(() => {
         const map: Record<string, Record<string, number>> = {};
         
         filteredAudits.forEach(a => {
             if(!a.fail_date || !a.lista_gate) return;
             const gate = a.lista_gate;
-            const diaSemana = new Date(a.fail_date).toLocaleDateString('pt-PT', { weekday: 'short' });
+            
+            // 0=Sun, 1=Mon, ..., 5=Fri, 6=Sat
+            const diaDaSemanaIdx = new Date(a.fail_date).getDay();
+            let diaLinguagem = '';
+            if (diaDaSemanaIdx === 1) diaLinguagem = 'seg';
+            else if (diaDaSemanaIdx === 2) diaLinguagem = 'ter';
+            else if (diaDaSemanaIdx === 3) diaLinguagem = 'qua';
+            else if (diaDaSemanaIdx === 4) diaLinguagem = 'qui';
+            else if (diaDaSemanaIdx === 5) diaLinguagem = 'sex';
+            else return; // Ignore weekends or mapping to heat map structure
             
             if(!map[gate]) map[gate] = { 'seg': 0, 'ter': 0, 'qua': 0, 'qui': 0, 'sex': 0 };
-            if(map[gate][diaSemana] !== undefined) {
-                map[gate][diaSemana] += a.count_of_defects || 0;
+            if(map[gate][diaLinguagem] !== undefined) {
+                map[gate][diaLinguagem] += a.count_of_defects || 0;
             }
         });
         
@@ -122,6 +150,53 @@ export default function QcisAnalyticsDashboard() {
             qui: dias.qui, 
             sex: dias.sex 
         }));
+    }, [filteredAudits]);
+
+    // Chart: Substation Name
+    const chartDataSubstation = useMemo(() => {
+        const agp = filteredAudits.reduce((acc, curr) => {
+            const sub = curr.substation_name || curr.lista_categoria || 'N/A';
+            acc[sub] = (acc[sub] || 0) + (curr.count_of_defects || 0);
+            return acc;
+        }, {} as Record<string, number>);
+        return Object.entries(agp)
+            .map(([name, value]) => ({ name, value }))
+            .sort((a, b) => b.value - a.value);
+    }, [filteredAudits]);
+
+    // Chart: Lista Sub
+    const chartDataListaSub = useMemo(() => {
+        const agp = filteredAudits.reduce((acc, curr) => {
+            const sub = curr.lista_sub || 'N/A';
+            acc[sub] = (acc[sub] || 0) + (curr.count_of_defects || 0);
+            return acc;
+        }, {} as Record<string, number>);
+        return Object.entries(agp)
+            .map(([name, value]) => ({ name, value }))
+            .sort((a, b) => b.value - a.value);
+    }, [filteredAudits]);
+
+    // Trend Graph: Date vs Categoria (LineChart)
+    const chartDataTrend = useMemo(() => {
+        const lineMap: Record<string, Record<string, number>> = {};
+        const categories = new Set<string>();
+
+        filteredAudits.forEach(a => {
+            if(!a.fail_date) return;
+            const dateStr = new Date(a.fail_date).toISOString().split('T')[0];
+            const cat = a.lista_categoria || 'Outros';
+            categories.add(cat);
+
+            if(!lineMap[dateStr]) lineMap[dateStr] = {};
+            lineMap[dateStr][cat] = (lineMap[dateStr][cat] || 0) + (a.count_of_defects || 0);
+        });
+
+        return {
+            data: Object.entries(lineMap)
+                .sort((a, b) => a[0].localeCompare(b[0]))
+                .map(([name, cats]) => ({ name, ...cats })),
+            categories: Array.from(categories)
+        };
     }, [filteredAudits]);
 
     return (
@@ -144,6 +219,29 @@ export default function QcisAnalyticsDashboard() {
                     <div className="flex items-center gap-2 px-2 text-slate-300">
                         <Filter size={16} /> <span className="text-sm font-bold uppercase tracking-wider">Filtros</span>
                     </div>
+                    
+                    <input 
+                        type="date" 
+                        value={startDate} 
+                        onChange={e => setStartDate(e.target.value)}
+                        className="bg-slate-900 text-white border-slate-700 rounded-lg text-sm px-3 py-2 cursor-pointer focus:ring-1 focus:ring-cyan-500"
+                    />
+                    <input 
+                        type="date" 
+                        value={endDate} 
+                        onChange={e => setEndDate(e.target.value)}
+                        className="bg-slate-900 text-white border-slate-700 rounded-lg text-sm px-3 py-2 cursor-pointer focus:ring-1 focus:ring-cyan-500"
+                    />
+
+                    <select 
+                        value={filterCategoria} 
+                        onChange={e => setFilterCategoria(e.target.value)}
+                        className="bg-slate-900 text-white border-slate-700 rounded-lg text-sm px-3 py-2 cursor-pointer focus:ring-1 focus:ring-cyan-500"
+                    >
+                        <option value="">Todas Categorias</option>
+                        {categoriasUnicas.map(m => <option key={m} value={m}>{m}</option>)}
+                    </select>
+
                     <select 
                         value={filterLinha} 
                         onChange={e => setFilterLinha(e.target.value)}
@@ -174,7 +272,20 @@ export default function QcisAnalyticsDashboard() {
             </div>
 
             {/* KPIs */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <Card className="bg-slate-900 border-slate-800 shadow-xl relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl group-hover:bg-emerald-500/20 transition-all"></div>
+                    <CardHeader className="pb-2">
+                        <CardTitle className="text-slate-400 text-sm font-bold uppercase tracking-wider flex items-center gap-2">
+                            <Activity size={16} className="text-emerald-500"/> DPU Global
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-5xl font-black text-white">{dpu}</div>
+                        <p className="text-slate-500 text-xs mt-2">Defeitos por Unidade no período</p>
+                    </CardContent>
+                </Card>
+
                 <Card className="bg-slate-900 border-slate-800 shadow-xl relative overflow-hidden group">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/10 rounded-full blur-2xl group-hover:bg-rose-500/20 transition-all"></div>
                     <CardHeader className="pb-2">
@@ -223,25 +334,27 @@ export default function QcisAnalyticsDashboard() {
                             <BarChart3 className="text-cyan-400" /> Pareto: Detratores por Categoria
                         </CardTitle>
                     </CardHeader>
-                    <CardContent className="h-80">
+                    <CardContent className="overflow-y-auto max-h-[600px] pr-2">
                         {chartDataCategorias.length > 0 ? (
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={chartDataCategorias} layout="vertical" margin={{ top: 5, right: 30, left: 60, bottom: 5 }}>
-                                    <XAxis type="number" stroke="#475569" />
-                                    <YAxis dataKey="name" type="category" stroke="#94a3b8" fontSize={11} width={80} />
-                                    <Tooltip 
-                                        cursor={{fill: '#1e293b'}} 
-                                        contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', color: '#fff', borderRadius: '8px' }}
-                                    />
-                                    <Bar dataKey="value" fill="#06b6d4" radius={[0, 4, 4, 0]}>
-                                        {chartDataCategorias.map((entry, index) => (
-                                            <Cell key={`cell-${index}`} fill={index === 0 ? '#f43f5e' : index === 1 ? '#f59e0b' : '#0ea5e9'} />
-                                        ))}
-                                    </Bar>
-                                </BarChart>
-                            </ResponsiveContainer>
+                            <div style={{ height: Math.max(320, chartDataCategorias.length * 40), width: '100%' }}>
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={chartDataCategorias} layout="vertical" margin={{ top: 5, right: 30, left: 80, bottom: 5 }}>
+                                        <XAxis type="number" stroke="#475569" />
+                                        <YAxis dataKey="name" type="category" stroke="#94a3b8" fontSize={11} width={120} />
+                                        <Tooltip 
+                                            cursor={{fill: '#1e293b'}} 
+                                            contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', color: '#fff', borderRadius: '8px' }}
+                                        />
+                                        <Bar dataKey="value" fill="#06b6d4" radius={[0, 4, 4, 0]}>
+                                            {chartDataCategorias.map((entry, index) => (
+                                                <Cell key={`cell-${index}`} fill={index === 0 ? '#f43f5e' : index === 1 ? '#f59e0b' : '#0ea5e9'} />
+                                            ))}
+                                        </Bar>
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
                         ) : (
-                            <div className="h-full flex items-center justify-center text-slate-600">Sem dados para o filtro</div>
+                            <div className="h-40 flex items-center justify-center text-slate-600">Sem dados para o filtro</div>
                         )}
                     </CardContent>
                 </Card>
@@ -290,6 +403,100 @@ export default function QcisAnalyticsDashboard() {
                         </table>
                         {heatMapData.length === 0 && (
                             <div className="h-40 flex items-center justify-center text-slate-600">Sem dados sufucientes</div>
+                        )}
+                    </CardContent>
+                </Card>
+            </div>
+
+            {/* Graficos Adicionais (Trend, Substation, Lista Sub) */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <Card className="bg-slate-900 border-slate-800 shadow-xl col-span-1 lg:col-span-2">
+                    <CardHeader>
+                        <CardTitle className="text-white text-lg font-bold flex items-center gap-2">
+                            <Activity className="text-emerald-400" /> Trend Cronológico (Evolução por Categoria)
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="h-96">
+                        {chartDataTrend.data.length > 0 ? (
+                            <ResponsiveContainer width="100%" height="100%">
+                                <LineChart data={chartDataTrend.data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                                    <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} />
+                                    <YAxis stroke="#94a3b8" fontSize={11} />
+                                    <Tooltip 
+                                        contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', color: '#fff', borderRadius: '8px' }}
+                                    />
+                                    <Legend wrapperStyle={{ paddingTop: '20px' }} />
+                                    {chartDataTrend.categories.map((cat, idx) => (
+                                        <Line 
+                                            key={cat}
+                                            type="monotone" 
+                                            dataKey={cat} 
+                                            name={cat}
+                                            stroke={`hsl(${idx * (360 / chartDataTrend.categories.length)}, 70%, 50%)`} 
+                                            strokeWidth={3}
+                                            dot={{ r: 3, fill: '#0f172a', strokeWidth: 2 }}
+                                            activeDot={{ r: 6 }}
+                                        />
+                                    ))}
+                                </LineChart>
+                            </ResponsiveContainer>
+                        ) : (
+                            <div className="h-full flex items-center justify-center text-slate-600">Sem dados cronológicos suficientes</div>
+                        )}
+                    </CardContent>
+                </Card>
+
+                <Card className="bg-slate-900 border-slate-800 shadow-xl">
+                    <CardHeader>
+                        <CardTitle className="text-white text-lg font-bold flex items-center gap-2">
+                            <BarChart3 className="text-violet-400" /> Top Audit Substation
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="overflow-y-auto max-h-[500px] pr-2">
+                        {chartDataSubstation.length > 0 ? (
+                            <div style={{ height: Math.max(320, chartDataSubstation.length * 40), width: '100%' }}>
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={chartDataSubstation} layout="vertical" margin={{ top: 5, right: 30, left: 80, bottom: 5 }}>
+                                        <XAxis type="number" stroke="#475569" />
+                                        <YAxis dataKey="name" type="category" stroke="#94a3b8" fontSize={11} width={120} />
+                                        <Tooltip 
+                                            cursor={{fill: '#1e293b'}} 
+                                            contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', color: '#fff', borderRadius: '8px' }}
+                                        />
+                                        <Bar dataKey="value" fill="#8b5cf6" radius={[0, 4, 4, 0]} />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+                        ) : (
+                            <div className="h-40 flex items-center justify-center text-slate-600">Sem dados para a Substation</div>
+                        )}
+                    </CardContent>
+                </Card>
+
+                <Card className="bg-slate-900 border-slate-800 shadow-xl">
+                    <CardHeader>
+                        <CardTitle className="text-white text-lg font-bold flex items-center gap-2">
+                            <BarChart3 className="text-amber-400" /> Top Origem (Lista Sub)
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="overflow-y-auto max-h-[500px] pr-2">
+                        {chartDataListaSub.length > 0 ? (
+                            <div style={{ height: Math.max(320, chartDataListaSub.length * 40), width: '100%' }}>
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={chartDataListaSub} layout="vertical" margin={{ top: 5, right: 30, left: 80, bottom: 5 }}>
+                                        <XAxis type="number" stroke="#475569" />
+                                        <YAxis dataKey="name" type="category" stroke="#94a3b8" fontSize={11} width={120} />
+                                        <Tooltip 
+                                            cursor={{fill: '#1e293b'}} 
+                                            contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', color: '#fff', borderRadius: '8px' }}
+                                        />
+                                        <Bar dataKey="value" fill="#fbbf24" radius={[0, 4, 4, 0]} />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+                        ) : (
+                            <div className="h-40 flex items-center justify-center text-slate-600">Sem dados para a Lista Sub</div>
                         )}
                     </CardContent>
                 </Card>
