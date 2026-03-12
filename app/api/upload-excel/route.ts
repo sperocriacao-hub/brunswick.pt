@@ -64,8 +64,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 4. LIMPAR DADOS (REMOVER COLUNAS VAZIAS E ASSEGURAR NULOS EM IDs VAZIOS)
-    const dataArray = rawData.map((row) => {
+    // 4. LIMPAR DADOS (REMOVER COLUNAS VAZIAS E ASSEGURAR NULOS EM STRING VAZIAS PARA EVITAR CRASH DE DATAS/UUIDs)
+    let dataArray = rawData.map((row) => {
       const newRow: any = {};
       for (const key in row) {
         if (!key || key.includes("__EMPTY")) continue;
@@ -75,18 +75,51 @@ export async function POST(req: NextRequest) {
         
         if (typeof value === "string") {
             const cleanVal = value.trim();
-            // Evitar erro fatal de UUID: Se a coluna terminar em 'id' e for uma string vazia, anular para o Supabase gerar automaticamente.
-            if (cleanVal === "" && (cleanKey === "id" || cleanKey.endsWith("_id"))) {
-                // Do not include this key so postgres uses its default generation, or set to null
-                continue; 
+            // A SALVAÇÃO DO ERROR 22P02:
+            // "data_rescisao: ''" choca com o Postgres DATE. Transformamos de imediato em javascript puro 'null'.
+            // "area_base_id: ''" choca com UUID. Transformamos em 'null'.
+            if (cleanVal === "") {
+                newRow[cleanKey] = null;
+            } else {
+                newRow[cleanKey] = cleanVal;
             }
-            newRow[cleanKey] = cleanVal;
         } else {
             newRow[cleanKey] = value;
         }
       }
       return newRow;
     });
+
+    // 4.5. DICIONÁRIO HUMANO-PARA-MAQUINA (Apenas para `operadores`)
+    // Utilizadores tentam importar "A - Auditoria Gate 6" em campos UUID 'posto_base_id'. Temos de converter.
+    if (tableName === 'operadores') {
+       const { data: areasData } = await supabaseAdmin.from('areas_fabrica').select('id, nome_area');
+       const { data: estacoesData } = await supabaseAdmin.from('estacoes').select('id, nome_estacao');
+       
+       dataArray = dataArray.map(row => {
+          // Tratar Area Base (Mapear Nome para UUID)
+          if (row.area_base_id && typeof row.area_base_id === 'string' && !row.area_base_id.match(/^[0-9a-f]{8}-[0-9a-f]{4}/i)) {
+              const matchedArea = (areasData || []).find(a => a.nome_area.toLowerCase() === row.area_base_id.toLowerCase());
+              if (matchedArea) {
+                  row.area_base_id = matchedArea.id;
+              } else {
+                 throw new Error(`Área "${row.area_base_id}" não encontrada no sistema. Registe a Área primeiro.`);
+              }
+          }
+
+          // Tratar Posto Base (Mapear Nome para UUID)
+          if (row.posto_base_id && typeof row.posto_base_id === 'string' && !row.posto_base_id.match(/^[0-9a-f]{8}-[0-9a-f]{4}/i)) {
+              const matchedEstacao = (estacoesData || []).find(e => e.nome_estacao.toLowerCase() === row.posto_base_id.toLowerCase());
+              if (matchedEstacao) {
+                  row.posto_base_id = matchedEstacao.id;
+              } else {
+                 throw new Error(`Estação "${row.posto_base_id}" não encontrada no sistema. Registe a Estação primeiro.`);
+              }
+          }
+          
+          return row;
+       });
+    }
 
     // 5. INSERIR NO SUPABASE
     const { error } = await supabaseAdmin
@@ -124,6 +157,10 @@ export async function POST(req: NextRequest) {
       message: `Processados ${dataArray.length} registos.`,
     });
   } catch (e: any) {
+    if (e.message && e.message.includes("não encontrada no sistema")) {
+        return NextResponse.json({ success: false, error: e.message }, { status: 400 });
+    }
+    
     console.error("ERRO FATAL API UPLOAD EXCEL:", e);
     return NextResponse.json(
       { success: false, error: `Falha técnica no Backend: ${e.message}` },
