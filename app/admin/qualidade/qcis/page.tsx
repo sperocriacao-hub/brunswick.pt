@@ -456,13 +456,22 @@ export default function QcisAnalyticsDashboard() {
                             <BarChart3 className="text-cyan-400" /> Pareto: Detratores por Descrição de Defeito
                         </CardTitle>
                     </CardHeader>
-                    <CardContent className="overflow-y-auto max-h-[600px] pr-2">
+                    <CardContent className="overflow-y-auto max-h-[600px] pr-2 
+                        scrollbar-thin scrollbar-thumb-cyan-600 scrollbar-track-slate-800/50 
+                        hover:scrollbar-thumb-cyan-500 hover:scrollbar-track-slate-800 
+                        [&::-webkit-scrollbar]:w-2
+                        [&::-webkit-scrollbar-track]:bg-slate-900
+                        [&::-webkit-scrollbar-track]:rounded-full
+                        [&::-webkit-scrollbar-thumb]:bg-slate-700
+                        [&::-webkit-scrollbar-thumb]:rounded-full
+                        hover:[&::-webkit-scrollbar-thumb]:bg-cyan-600
+                    ">
                         {chartDataDefeitos.length > 0 ? (
                             <div style={{ height: Math.max(320, chartDataDefeitos.length * 40), width: '100%' }}>
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={chartDataDefeitos} layout="vertical" margin={{ top: 5, right: 30, left: 160, bottom: 5 }}>
+                                    <BarChart data={chartDataDefeitos} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
                                         <XAxis type="number" stroke="#475569" />
-                                        <YAxis dataKey="name" type="category" stroke="#94a3b8" fontSize={11} width={180} />
+                                        <YAxis dataKey="name" type="category" stroke="#94a3b8" fontSize={11} width={220} tick={{fill: '#cbd5e1'}} />
                                         <Tooltip 
                                             cursor={{fill: '#1e293b'}} 
                                             contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', color: '#fff', borderRadius: '8px' }}
