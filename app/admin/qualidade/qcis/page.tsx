@@ -114,12 +114,14 @@ export default function QcisAnalyticsDashboard() {
     const totalBarcosUnicos = new Set(filteredAudits.map(a => a.boat_id).filter(Boolean)).size;
     const dpu = totalBarcosUnicos > 0 ? (totalDefeitos / totalBarcosUnicos).toFixed(2) : '0.00';
     
-    // KPI 2: Top Model Offender
-    const conteioPorModelo = filteredAudits.reduce((acc, curr) => {
-        if(curr.model_ref) acc[curr.model_ref] = (acc[curr.model_ref] || 0) + (curr.count_of_defects || 0);
+    // KPI 2: Top Boat ID Offenders (Top 3)
+    const conteioPorBoat = filteredAudits.reduce((acc, curr) => {
+        if(curr.boat_id) acc[curr.boat_id] = (acc[curr.boat_id] || 0) + (curr.count_of_defects || 0);
         return acc;
     }, {} as Record<string, number>);
-    const topModelo = Object.entries(conteioPorModelo).sort((a,b) => b[1] - a[1])[0] || ['-', 0];
+    const top3Boats = Object.entries(conteioPorBoat)
+        .sort((a,b) => b[1] - a[1])
+        .slice(0, 3);
 
     // Gráfico 1: Pareto por Descrição de Defeito (defect_description)
     const chartDataDefeitos = useMemo(() => {
@@ -415,12 +417,20 @@ export default function QcisAnalyticsDashboard() {
                     <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 rounded-full blur-2xl group-hover:bg-amber-500/20 transition-all"></div>
                     <CardHeader className="pb-2">
                         <CardTitle className="text-slate-400 text-sm font-bold uppercase tracking-wider flex items-center gap-2">
-                            <AlertTriangle size={16} className="text-amber-500"/> Top Modelo Crítico
+                            <AlertTriangle size={16} className="text-amber-500"/> Top 3 Boat ID Crítico
                         </CardTitle>
                     </CardHeader>
-                    <CardContent>
-                        <div className="text-4xl font-black text-amber-400">{topModelo[0]}</div>
-                        <p className="text-slate-500 text-xs mt-2">Responsável por {topModelo[1]} defeitos registados</p>
+                    <CardContent className="space-y-2 relative z-10">
+                        {top3Boats.length > 0 ? (
+                            top3Boats.map((boat, idx) => (
+                                <div key={boat[0]} className="flex items-center justify-between border-b border-slate-800/50 pb-1 last:border-0">
+                                    <span className="text-sm font-bold text-amber-400">{idx + 1}. {boat[0]}</span>
+                                    <span className="text-xs text-slate-400 font-mono bg-slate-950 px-2 py-0.5 rounded">{boat[1]} defs</span>
+                                </div>
+                            ))
+                        ) : (
+                            <div className="text-sm text-slate-500">Nenhum registo</div>
+                        )}
                     </CardContent>
                 </Card>
 
