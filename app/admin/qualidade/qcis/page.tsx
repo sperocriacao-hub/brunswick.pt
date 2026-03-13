@@ -469,9 +469,9 @@ export default function QcisAnalyticsDashboard() {
                         {chartDataDefeitos.length > 0 ? (
                             <div style={{ height: Math.max(320, chartDataDefeitos.length * 40), width: '100%' }}>
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={chartDataDefeitos} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                                    <BarChart data={chartDataDefeitos} layout="vertical" margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
                                         <XAxis type="number" stroke="#475569" />
-                                        <YAxis dataKey="name" type="category" stroke="#94a3b8" fontSize={11} width={220} tick={{fill: '#cbd5e1'}} />
+                                        <YAxis dataKey="name" type="category" stroke="#94a3b8" fontSize={11} width={260} tick={{fill: '#cbd5e1'}} />
                                         <Tooltip 
                                             cursor={{fill: '#1e293b'}} 
                                             contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', color: '#fff', borderRadius: '8px' }}
