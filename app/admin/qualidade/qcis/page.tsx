@@ -144,12 +144,40 @@ export default function QcisAnalyticsDashboard() {
             if(!a.fail_date || !a.lista_gate) return;
             const gate = a.lista_gate;
             
-            // Fix: Use substring to strictly match the YYYY-MM-DD local component
-            const dateOnlyStr = a.fail_date.substring(0, 10);
+            // Fix: Heuristic parsing to handle multiple Excel generic string formats
+            const dateStr = a.fail_date.trim();
+            let y = 0, m = 0, d = 0;
+            
+            if (dateStr.includes('/')) {
+                const parts = dateStr.split('/');
+                if (parts[2].length >= 4) { // DD/MM/YYYY
+                    d = Number(parts[0]);
+                    m = Number(parts[1]);
+                    y = Number(parts[2].substring(0,4));
+                } else if (parts[0].length === 4) { // YYYY/MM/DD
+                    y = Number(parts[0]);
+                    m = Number(parts[1]);
+                    d = Number(parts[2].substring(0,2));
+                }
+            } else if (dateStr.includes('-')) {
+                const parts = dateStr.split('-');
+                if (parts[0].length === 4) { // YYYY-MM-DD
+                    y = Number(parts[0]);
+                    m = Number(parts[1]);
+                    d = Number(parts[2].substring(0,2));
+                } else { // DD-MM-YYYY
+                    d = Number(parts[0]);
+                    m = Number(parts[1]);
+                    y = Number(parts[2].substring(0,4));
+                }
+            } else {
+                // Fallback to JS primitive
+                const dt = new Date(dateStr);
+                y = dt.getFullYear(); m = dt.getMonth() + 1; d = dt.getDate();
+            }
             
             // Enforce explicit local midnight creation to prevent UTC roll-backs
-            const [y, m, d] = dateOnlyStr.split('-');
-            const checkDate = new Date(Number(y), Number(m)-1, Number(d), 12, 0, 0); // Force noon to bypass +/- offsets safely
+            const checkDate = new Date(y, m-1, d, 12, 0, 0); // Force noon 
             const diaDaSemanaIdx = checkDate.getDay();
             
             let diaLinguagem = '';
