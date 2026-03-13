@@ -127,74 +127,56 @@ export default function QcisAnalyticsDashboard() {
             .sort((a, b) => b.value - a.value);
     }, [filteredAudits]);
 
-    // Heatmap Approximation (Cross: Gate vs Dia da Semana)
-    const heatMapData = useMemo(() => {
+    // Heatmap Customizado: Gate vs Real Dates (Dynamic)
+    const { heatMapData, heatMapDates } = useMemo(() => {
         const map: Record<string, Record<string, number>> = {};
-        
+        const uniqueDates = new Set<string>();
+
+        // Extract dates and counts
         filteredAudits.forEach(a => {
-            if(!a.fail_date || !a.lista_gate) return;
-            const gate = a.lista_gate;
+            if (!a.fail_date || !a.lista_gate) return;
+            const gate = String(a.lista_gate).trim();
+
+            // Extract pure YYYY-MM-DD string robustly
+            const dateStr = String(a.fail_date).trim();
+            let dString = '';
             
-            // Fix: Heuristic parsing to handle multiple Excel generic string formats
-            const dateStr = a.fail_date.trim();
-            let y = 0, m = 0, d = 0;
-            
-            if (dateStr.includes('/')) {
+            if (dateStr.includes('T')) {
+                dString = dateStr.split('T')[0];
+            } else if (dateStr.includes('/')) {
                 const parts = dateStr.split('/');
-                if (parts[2].length >= 4) { // DD/MM/YYYY
-                    d = Number(parts[0]);
-                    m = Number(parts[1]);
-                    y = Number(parts[2].substring(0,4));
-                } else if (parts[0].length === 4) { // YYYY/MM/DD
-                    y = Number(parts[0]);
-                    m = Number(parts[1]);
-                    d = Number(parts[2].substring(0,2));
-                }
+                if (parts[2].length >= 4) { dString = `${parts[2].substring(0,4)}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`; } 
+                else if (parts[0].length === 4) { dString = `${parts[0]}-${parts[1].padStart(2,'0')}-${parts[2].substring(0,2).padStart(2,'0')}`; }
             } else if (dateStr.includes('-')) {
                 const parts = dateStr.split('-');
-                if (parts[0].length === 4) { // YYYY-MM-DD
-                    y = Number(parts[0]);
-                    m = Number(parts[1]);
-                    d = Number(parts[2].substring(0,2));
-                } else { // DD-MM-YYYY
-                    d = Number(parts[0]);
-                    m = Number(parts[1]);
-                    y = Number(parts[2].substring(0,4));
-                }
+                if (parts[0].length === 4) { dString = `${parts[0]}-${parts[1].padStart(2,'0')}-${parts[2].substring(0,2).padStart(2,'0')}`; } 
+                else { dString = `${parts[2].substring(0,4)}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`; }
             } else {
-                // Fallback to JS primitive
                 const dt = new Date(dateStr);
-                y = dt.getFullYear(); m = dt.getMonth() + 1; d = dt.getDate();
+                dString = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
             }
-            
-            // Enforce explicit local midnight creation to prevent UTC roll-backs
-            const checkDate = new Date(y, m-1, d, 12, 0, 0); // Force noon 
-            const diaDaSemanaIdx = checkDate.getDay();
-            
-            let diaLinguagem = '';
-            if (diaDaSemanaIdx === 1) diaLinguagem = 'seg';
-            else if (diaDaSemanaIdx === 2) diaLinguagem = 'ter';
-            else if (diaDaSemanaIdx === 3) diaLinguagem = 'qua';
-            else if (diaDaSemanaIdx === 4) diaLinguagem = 'qui';
-            else if (diaDaSemanaIdx === 5) diaLinguagem = 'sex';
-            else if (diaDaSemanaIdx === 6) diaLinguagem = 'sab';
-            else return; // Ignore Sundays
-            
-            if(!map[gate]) map[gate] = { 'seg': 0, 'ter': 0, 'qua': 0, 'qui': 0, 'sex': 0, 'sab': 0 };
-            if(map[gate][diaLinguagem] !== undefined) {
-                map[gate][diaLinguagem] += a.count_of_defects || 0;
+
+            if(dString) {
+                uniqueDates.add(dString);
+                if(!map[gate]) map[gate] = {};
+                if(!map[gate][dString]) map[gate][dString] = 0;
+                map[gate][dString] += (a.count_of_defects || 0);
             }
         });
-        
-        return Object.entries(map).map(([gate, dias]) => ({
-            gate, 
-            seg: dias.seg, 
-            ter: dias.ter, 
-            qua: dias.qua, 
-            qui: dias.qui, 
-            sex: dias.sex,
-            sab: dias.sab
-        })).sort((a, b) => a.gate.localeCompare(b.gate, undefined, { numeric: true, sensitivity: 'base' }));
+
+        // Sort dates chronologically
+        const sortedDates = Array.from(uniqueDates).sort();
+
+        // Sort gates alphanumerically
+        const dataArr = Object.entries(map).map(([gate, values]) => {
+            const row: any = { gate };
+            sortedDates.forEach(d => {
+                row[d] = values[d] || 0;
+            });
+            return row;
+        }).sort((a, b) => a.gate.localeCompare(b.gate, undefined, { numeric: true, sensitivity: 'base' }));
+
+        return { heatMapData: dataArr, heatMapDates: sortedDates };
     }, [filteredAudits]);
 
     // Chart: Substation Name
@@ -552,27 +534,44 @@ export default function QcisAnalyticsDashboard() {
                 <Card className="bg-slate-900 border-slate-800 shadow-xl flex flex-col">
                     <CardHeader>
                         <CardTitle className="text-white text-lg font-bold flex items-center gap-2">
-                            <Activity className="text-rose-400" /> Heatmap: Gate vs Dia da Semana
+                            <Activity className="text-rose-400" /> Heatmap: Quality Gate vs Datas de Ocorrência
                         </CardTitle>
                     </CardHeader>
-                    <CardContent className="flex-1 overflow-x-auto">
-                        <table className="w-full text-sm text-left text-slate-300">
+                    <CardContent className="flex-1 overflow-x-auto 
+                        [&::-webkit-scrollbar]:h-2
+                        [&::-webkit-scrollbar-track]:bg-slate-900/50
+                        [&::-webkit-scrollbar-track]:rounded-full
+                        [&::-webkit-scrollbar-thumb]:bg-gradient-to-r
+                        [&::-webkit-scrollbar-thumb]:from-rose-500
+                        [&::-webkit-scrollbar-thumb]:to-rose-800
+                        [&::-webkit-scrollbar-thumb]:rounded-full
+                        hover:[&::-webkit-scrollbar-thumb]:from-rose-400
+                        hover:[&::-webkit-scrollbar-thumb]:to-rose-600
+                    ">
+                        <table className="w-full text-sm text-center text-slate-300 min-w-max">
                             <thead className="text-xs uppercase bg-slate-800/50 text-slate-400">
                                 <tr>
-                                    <th className="px-4 py-3 border-b border-slate-700">Quality Gate</th>
-                                    <th className="px-4 py-3 border-b border-slate-700 text-center">Seg</th>
-                                    <th className="px-4 py-3 border-b border-slate-700 text-center">Ter</th>
-                                    <th className="px-4 py-3 border-b border-slate-700 text-center">Qua</th>
-                                    <th className="px-4 py-3 border-b border-slate-700 text-center">Qui</th>
-                                    <th className="px-4 py-3 border-b border-slate-700 text-center">Sex</th>
-                                    <th className="px-4 py-3 border-b border-slate-700 text-center text-rose-300">Sáb</th>
+                                    <th className="px-4 py-3 border-b border-r border-slate-700 text-left sticky left-0 bg-slate-900/90 backdrop-blur-sm z-20 shadow-[2px_0_5px_rgba(0,0,0,0.2)]">Quality Gate</th>
+                                    {heatMapDates.map(dStr => {
+                                        const [y, m, d] = dStr.split('-');
+                                        const dateObj = new Date(Number(y), Number(m)-1, Number(d), 12, 0, 0);
+                                        const diaSemanaStr = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'][dateObj.getDay()];
+                                        return (
+                                            <th key={dStr} className="px-3 py-3 border-b border-slate-700 whitespace-nowrap">
+                                                <div className="flex flex-col items-center">
+                                                    <span className="text-slate-500 text-[10px]">{diaSemanaStr}</span>
+                                                    <span>{d}/{m}</span>
+                                                </div>
+                                            </th>
+                                        )
+                                    })}
                                 </tr>
                             </thead>
                             <tbody>
                                 {heatMapData.map((row) => {
                                     // Helper function to color the cell bg based on value
                                     const getColor = (val: number) => {
-                                        if (val === 0) return 'bg-transparent text-slate-600';
+                                        if (!val || val === 0) return 'bg-transparent text-slate-600';
                                         if (val < 3) return 'bg-rose-500/20 text-rose-300 border border-rose-500/30 font-bold rounded-lg';
                                         if (val < 10) return 'bg-rose-500/50 text-white border border-rose-500/70 font-bold shadow-lg shadow-rose-500/20 rounded-lg';
                                         return 'bg-rose-600 text-white border border-rose-500 font-black shadow-xl shadow-rose-600/40 rounded-lg scale-110 z-10';
@@ -580,20 +579,26 @@ export default function QcisAnalyticsDashboard() {
 
                                     return (
                                         <tr key={row.gate} className="border-b border-slate-800/50 hover:bg-slate-800/30">
-                                            <td className="px-4 py-3 font-semibold text-slate-200">{row.gate}</td>
-                                            <td className="p-2 text-center"><div className={`py-2 px-1 transition-all ${getColor(row.seg)}`}>{row.seg}</div></td>
-                                            <td className="p-2 text-center"><div className={`py-2 px-1 transition-all ${getColor(row.ter)}`}>{row.ter}</div></td>
-                                            <td className="p-2 text-center"><div className={`py-2 px-1 transition-all ${getColor(row.qua)}`}>{row.qua}</div></td>
-                                            <td className="p-2 text-center"><div className={`py-2 px-1 transition-all ${getColor(row.qui)}`}>{row.qui}</div></td>
-                                            <td className="p-2 text-center"><div className={`py-2 px-1 transition-all ${getColor(row.sex)}`}>{row.sex}</div></td>
-                                            <td className="p-2 text-center border-l border-slate-800/60 bg-slate-800/10"><div className={`py-2 px-1 transition-all ${getColor(row.sab)}`}>{row.sab}</div></td>
+                                            <td className="px-4 py-3 font-semibold text-slate-200 text-left border-r border-slate-800/50 sticky left-0 bg-slate-900/90 backdrop-blur-sm z-20 shadow-[2px_0_5px_rgba(0,0,0,0.2)]">
+                                                {row.gate}
+                                            </td>
+                                            {heatMapDates.map(dStr => {
+                                                const val = row[dStr] || 0;
+                                                return (
+                                                    <td key={dStr} className="p-2">
+                                                        <div className={`py-2 px-1 transition-all ${getColor(val)}`}>
+                                                            {val === 0 ? '-' : val}
+                                                        </div>
+                                                    </td>
+                                                )
+                                            })}
                                         </tr>
                                     )
                                 })}
                             </tbody>
                         </table>
                         {heatMapData.length === 0 && (
-                            <div className="h-40 flex items-center justify-center text-slate-600">Sem dados sufucientes</div>
+                            <div className="h-40 flex items-center justify-center text-slate-600">Sem dados analíticos</div>
                         )}
                     </CardContent>
                 </Card>
