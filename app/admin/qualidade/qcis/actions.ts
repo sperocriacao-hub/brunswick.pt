@@ -25,8 +25,8 @@ export async function fetchQcisData(filters: {
         if (filters.gate) query = query.eq('lista_gate', filters.gate);
         if (filters.categoria) query = query.eq('lista_categoria', filters.categoria);
 
-        // Limiting to 5000 recent records for memory safety on the edge if no dates are passed.
-        query = query.order('fail_date', { ascending: false }).limit(5000);
+        // Limiting to 50000 recent records for memory safety on the edge if no dates are passed.
+        query = query.order('fail_date', { ascending: false }).limit(50000);
 
         const { data, error } = await query;
         if (error) throw error;

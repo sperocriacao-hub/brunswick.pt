@@ -339,7 +339,11 @@ export default function QcisAnalyticsDashboard() {
                         <input 
                             type="month"
                             onChange={e => {
-                                if(!e.target.value) return;
+                                if(!e.target.value) {
+                                    setStartDate('');
+                                    setEndDate('');
+                                    return;
+                                }
                                 const [y, m] = e.target.value.split('-');
                                 const firstDay = new Date(Number(y), Number(m)-1, 1).toISOString().split('T')[0];
                                 const lastDay = new Date(Number(y), Number(m), 0).toISOString().split('T')[0];
