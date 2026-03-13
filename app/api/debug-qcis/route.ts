@@ -10,18 +10,17 @@ export async function GET() {
         
         const supabase = createClient(sbUrl, sbKey);
         
-        // Grab top 200 records to inspect the distribution
+        // Grab top 5000 records
         const { data, error } = await supabase
             .from('qcis_audits')
             .select('fail_date')
             .not('fail_date', 'is', null)
-            .limit(200);
+            .limit(5000);
             
         if (error) {
             return NextResponse.json({ success: false, error: error.message });
         }
         
-        // Return raw data
         return NextResponse.json({ success: true, count: data?.length || 0, data });
     } catch (e: any) {
         return NextResponse.json({ success: false, error: e.message });
