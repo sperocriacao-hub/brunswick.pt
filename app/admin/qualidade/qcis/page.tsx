@@ -164,8 +164,8 @@ export default function QcisAnalyticsDashboard() {
             }
         });
 
-        // Sort dates chronologically
-        const sortedDates = Array.from(uniqueDates).sort();
+        // Sort dates chronologically and keep only the last 5 dates
+        const sortedDates = Array.from(uniqueDates).sort().slice(-5);
 
         // Sort gates alphanumerically
         const dataArr = Object.entries(map).map(([gate, values]) => {
