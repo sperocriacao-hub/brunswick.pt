@@ -33,7 +33,7 @@ export default function ModelosListPage() {
     try {
       const { data, error } = await supabase
         .from("modelos")
-        .select("id, nome_modelo, model_year, created_at, status, linha_padrao_id:linhas_producao(letra_linha)")
+        .select("id, nome_modelo, model_year, created_at, status, linha_padrao_id:linhas_producao!modelos_linha_padrao_id_fkey(letra_linha)")
         .order("created_at", { ascending: false });
 
       if (error) throw error;

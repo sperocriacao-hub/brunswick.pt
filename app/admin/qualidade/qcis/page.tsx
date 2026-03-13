@@ -213,16 +213,24 @@ export default function QcisAnalyticsDashboard() {
         const lineMap: Record<string, Record<string, number>> = {};
         const categories = new Set<string>();
 
-        getDaysArray(startDate, endDate).forEach(d => lineMap[d] = {});
+        // 1. Gather all unique categories
+        filteredAudits.forEach(a => categories.add(a.lista_categoria || 'Outros'));
 
+        // 2. Initialize the entire matrix with 0 to prevent Recharts from breaking the timeline
+        getDaysArray(startDate, endDate).forEach(d => {
+            lineMap[d] = {};
+            categories.forEach(c => lineMap[d][c] = 0);
+        });
+
+        // 3. Populate sums
         filteredAudits.forEach(a => {
             if(!a.fail_date) return;
             const dateStr = a.fail_date.split('T')[0];
             const cat = a.lista_categoria || 'Outros';
-            categories.add(cat);
 
             if(!lineMap[dateStr]) lineMap[dateStr] = {};
-            lineMap[dateStr][cat] = (lineMap[dateStr][cat] || 0) + (a.count_of_defects || 0);
+            if(lineMap[dateStr][cat] === undefined) lineMap[dateStr][cat] = 0;
+            lineMap[dateStr][cat] += (a.count_of_defects || 0);
         });
 
         return {
@@ -238,16 +246,24 @@ export default function QcisAnalyticsDashboard() {
         const lineMap: Record<string, Record<string, number>> = {};
         const linhasSet = new Set<string>();
 
-        getDaysArray(startDate, endDate).forEach(d => lineMap[d] = {});
+        // 1. Gather all unique linhas
+        filteredAudits.forEach(a => linhasSet.add(a.linha_linha || 'Outra Linha'));
 
+        // 2. Initialize matrix with 0
+        getDaysArray(startDate, endDate).forEach(d => {
+            lineMap[d] = {};
+            linhasSet.forEach(l => lineMap[d][l] = 0);
+        });
+
+        // 3. Populate sums
         filteredAudits.forEach(a => {
             if(!a.fail_date) return;
             const dateStr = a.fail_date.split('T')[0];
             const linha = a.linha_linha || 'Outra Linha';
-            linhasSet.add(linha);
 
             if(!lineMap[dateStr]) lineMap[dateStr] = {};
-            lineMap[dateStr][linha] = (lineMap[dateStr][linha] || 0) + (a.count_of_defects || 0);
+            if(lineMap[dateStr][linha] === undefined) lineMap[dateStr][linha] = 0;
+            lineMap[dateStr][linha] += (a.count_of_defects || 0);
         });
 
         return {
