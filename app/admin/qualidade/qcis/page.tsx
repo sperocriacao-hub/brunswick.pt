@@ -294,6 +294,38 @@ export default function QcisAnalyticsDashboard() {
                     <div className="flex items-center gap-2 px-2 text-slate-300">
                         <Filter size={16} /> <span className="text-sm font-bold uppercase tracking-wider">Filtros</span>
                     </div>
+
+                    <div className="flex items-center gap-2 bg-slate-900/50 p-1 rounded-lg border border-slate-700">
+                        <input 
+                            type="month"
+                            onChange={e => {
+                                if(!e.target.value) return;
+                                const [y, m] = e.target.value.split('-');
+                                const firstDay = new Date(Number(y), Number(m)-1, 1).toISOString().split('T')[0];
+                                const lastDay = new Date(Number(y), Number(m), 0).toISOString().split('T')[0];
+                                setStartDate(firstDay);
+                                setEndDate(lastDay);
+                            }}
+                            className="bg-transparent text-white text-sm px-2 py-1 cursor-pointer focus:outline-none"
+                            title="Mês Específico"
+                        />
+                        <div className="h-4 w-px bg-slate-700"></div>
+                        <input 
+                            type="date" 
+                            title="Data Inicial"
+                            value={startDate} 
+                            onChange={e => setStartDate(e.target.value)}
+                            className="bg-transparent text-white text-sm px-2 py-1 cursor-pointer focus:outline-none"
+                        />
+                        <span className="text-slate-500 text-xs">até</span>
+                        <input 
+                            type="date" 
+                            title="Data Final"
+                            value={endDate} 
+                            onChange={e => setEndDate(e.target.value)}
+                            className="bg-transparent text-white text-sm px-2 py-1 cursor-pointer focus:outline-none"
+                        />
+                    </div>
                     
                     <select 
                         value={filterCategoria} 
@@ -621,45 +653,13 @@ export default function QcisAnalyticsDashboard() {
 
             {/* Log Book Principal */}
             <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-2xl">
-                <div className="p-4 border-b border-slate-800 bg-slate-900/50 flex flex-wrap gap-4 items-center justify-between">
+                <div className="p-4 border-b border-slate-800 bg-slate-900/50">
                     <Input
                         placeholder="Pesquisar Boat ID ou sintoma exacto (ex: risco)..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="max-w-md bg-slate-950 border-slate-800 text-white placeholder:text-slate-500 focus:border-cyan-500"
                     />
-
-                    <div className="flex flex-wrap gap-2 items-center">
-                        <span className="text-sm text-slate-400 font-bold uppercase mr-2 flex items-center gap-1"><Filter size={14}/> Período de Extração DB:</span>
-                        <input 
-                            type="month"
-                            onChange={e => {
-                                if(!e.target.value) return;
-                                const [y, m] = e.target.value.split('-');
-                                const firstDay = new Date(Number(y), Number(m)-1, 1).toISOString().split('T')[0];
-                                const lastDay = new Date(Number(y), Number(m), 0).toISOString().split('T')[0];
-                                setStartDate(firstDay);
-                                setEndDate(lastDay);
-                            }}
-                            className="bg-slate-950 text-white border-slate-800 rounded-lg text-sm px-3 py-2 cursor-pointer focus:ring-1 focus:ring-cyan-500"
-                            title="Mês Específico"
-                        />
-                        <input 
-                            type="date" 
-                            title="Data Inicial"
-                            value={startDate} 
-                            onChange={e => setStartDate(e.target.value)}
-                            className="bg-slate-950 text-white border-slate-800 rounded-lg text-sm px-3 py-2 cursor-pointer focus:ring-1 focus:ring-cyan-500"
-                        />
-                        <span className="text-slate-500 text-xs">até</span>
-                        <input 
-                            type="date" 
-                            title="Data Final"
-                            value={endDate} 
-                            onChange={e => setEndDate(e.target.value)}
-                            className="bg-slate-950 text-white border-slate-800 rounded-lg text-sm px-3 py-2 cursor-pointer focus:ring-1 focus:ring-cyan-500"
-                        />
-                    </div>
                 </div>
                 <div className="overflow-x-auto max-h-[600px]">
                     <Table>
