@@ -136,7 +136,7 @@ export default function QcisAnalyticsDashboard() {
             .sort((a, b) => b.value - a.value);
     }, [filteredAudits]);
 
-    // Heatmap Approximation (Cross: Gate vs Dia da Semana robustizado por .getDay())
+    // Heatmap Approximation (Cross: Gate vs Dia da Semana)
     const heatMapData = useMemo(() => {
         const map: Record<string, Record<string, number>> = {};
         
@@ -144,20 +144,24 @@ export default function QcisAnalyticsDashboard() {
             if(!a.fail_date || !a.lista_gate) return;
             const gate = a.lista_gate;
             
-            // Fix: parse explicit Local Date from YYYY-MM-DD strings avoiding UTC browser shift
-            const [y, m, d] = a.fail_date.split('-');
-            const diaDaSemanaIdx = new Date(Number(y), Number(m)-1, Number(d)).getDay();
+            // Fix: Use substring to strictly match the YYYY-MM-DD local component
+            const dateOnlyStr = a.fail_date.substring(0, 10);
+            
+            // Enforce explicit local midnight creation to prevent UTC roll-backs
+            const [y, m, d] = dateOnlyStr.split('-');
+            const checkDate = new Date(Number(y), Number(m)-1, Number(d), 12, 0, 0); // Force noon to bypass +/- offsets safely
+            const diaDaSemanaIdx = checkDate.getDay();
+            
             let diaLinguagem = '';
-            if (diaDaSemanaIdx === 0) diaLinguagem = 'dom';
-            else if (diaDaSemanaIdx === 1) diaLinguagem = 'seg';
+            if (diaDaSemanaIdx === 1) diaLinguagem = 'seg';
             else if (diaDaSemanaIdx === 2) diaLinguagem = 'ter';
             else if (diaDaSemanaIdx === 3) diaLinguagem = 'qua';
             else if (diaDaSemanaIdx === 4) diaLinguagem = 'qui';
             else if (diaDaSemanaIdx === 5) diaLinguagem = 'sex';
             else if (diaDaSemanaIdx === 6) diaLinguagem = 'sab';
-            else return; // Ignore invalid dates
+            else return; // Ignore Sundays
             
-            if(!map[gate]) map[gate] = { 'seg': 0, 'ter': 0, 'qua': 0, 'qui': 0, 'sex': 0, 'sab': 0, 'dom': 0 };
+            if(!map[gate]) map[gate] = { 'seg': 0, 'ter': 0, 'qua': 0, 'qui': 0, 'sex': 0, 'sab': 0 };
             if(map[gate][diaLinguagem] !== undefined) {
                 map[gate][diaLinguagem] += a.count_of_defects || 0;
             }
@@ -170,9 +174,8 @@ export default function QcisAnalyticsDashboard() {
             qua: dias.qua, 
             qui: dias.qui, 
             sex: dias.sex,
-            sab: dias.sab,
-            dom: dias.dom
-        }));
+            sab: dias.sab
+        })).sort((a, b) => a.gate.localeCompare(b.gate));
     }, [filteredAudits]);
 
     // Chart: Substation Name
@@ -512,7 +515,6 @@ export default function QcisAnalyticsDashboard() {
                                     <th className="px-4 py-3 border-b border-slate-700 text-center">Qui</th>
                                     <th className="px-4 py-3 border-b border-slate-700 text-center">Sex</th>
                                     <th className="px-4 py-3 border-b border-slate-700 text-center text-rose-300">Sáb</th>
-                                    <th className="px-4 py-3 border-b border-slate-700 text-center text-rose-300">Dom</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -534,7 +536,6 @@ export default function QcisAnalyticsDashboard() {
                                             <td className="p-2 text-center"><div className={`py-2 px-1 transition-all ${getColor(row.qui)}`}>{row.qui}</div></td>
                                             <td className="p-2 text-center"><div className={`py-2 px-1 transition-all ${getColor(row.sex)}`}>{row.sex}</div></td>
                                             <td className="p-2 text-center border-l border-slate-800/60 bg-slate-800/10"><div className={`py-2 px-1 transition-all ${getColor(row.sab)}`}>{row.sab}</div></td>
-                                            <td className="p-2 text-center bg-slate-800/10"><div className={`py-2 px-1 transition-all ${getColor(row.dom)}`}>{row.dom}</div></td>
                                         </tr>
                                     )
                                 })}
