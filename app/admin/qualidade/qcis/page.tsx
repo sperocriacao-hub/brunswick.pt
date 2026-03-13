@@ -54,8 +54,7 @@ export default function QcisAnalyticsDashboard() {
     
     const [endDate, setEndDate] = useState(() => {
         const now = new Date();
-        const lastDayLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
-        return lastDayLastMonth.toISOString().split('T')[0];
+        return now.toISOString().split('T')[0];
     });
 
     const loadData = async () => {
