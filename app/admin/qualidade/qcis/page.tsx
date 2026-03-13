@@ -45,17 +45,9 @@ export default function QcisAnalyticsDashboard() {
     const [filterArea, setFilterArea] = useState('');
     const [filterSubstation, setFilterSubstation] = useState('');
 
-    // Default: Last 30 Days
-    const [startDate, setStartDate] = useState(() => {
-        const d = new Date();
-        d.setDate(d.getDate() - 30);
-        return d.toISOString().split('T')[0];
-    });
-    
-    const [endDate, setEndDate] = useState(() => {
-        const now = new Date();
-        return now.toISOString().split('T')[0];
-    });
+    // Default: Sem limites de data globais, busca tudo o que existe no DB.
+    const [startDate, setStartDate] = useState('');
+    const [endDate, setEndDate] = useState('');
 
     const loadData = async () => {
         setIsLoading(true);
@@ -249,14 +241,29 @@ export default function QcisAnalyticsDashboard() {
         const lineMap: Record<string, Record<string, number>> = {};
         const categories = new Set<string>();
 
-        // 1. Gather all unique categories
-        filteredAudits.forEach(a => categories.add(a.lista_categoria || 'Outros'));
+        // 1. Gather all unique categories and find date boundaries if global dates are empty
+        let minD = '9999-12-31';
+        let maxD = '0000-01-01';
+        
+        filteredAudits.forEach(a => {
+            categories.add(a.lista_categoria || 'Outros');
+            if(a.fail_date) {
+                const dStr = a.fail_date.split('T')[0];
+                if(dStr < minD) minD = dStr;
+                if(dStr > maxD) maxD = dStr;
+            }
+        });
+
+        const effectiveStart = startDate || (minD !== '9999-12-31' ? minD : '');
+        const effectiveEnd = endDate || (maxD !== '0000-01-01' ? maxD : '');
 
         // 2. Initialize the entire matrix with 0 to prevent Recharts from breaking the timeline
-        getDaysArray(startDate, endDate).forEach(d => {
-            lineMap[d] = {};
-            categories.forEach(c => lineMap[d][c] = 0);
-        });
+        if (effectiveStart && effectiveEnd) {
+            getDaysArray(effectiveStart, effectiveEnd).forEach(d => {
+                lineMap[d] = {};
+                categories.forEach(c => lineMap[d][c] = 0);
+            });
+        }
 
         // 3. Populate sums
         filteredAudits.forEach(a => {
@@ -282,14 +289,29 @@ export default function QcisAnalyticsDashboard() {
         const lineMap: Record<string, Record<string, number>> = {};
         const linhasSet = new Set<string>();
 
-        // 1. Gather all unique linhas
-        filteredAudits.forEach(a => linhasSet.add(a.linha_linha || 'Outra Linha'));
+        // 1. Gather all unique linhas and find boundaries
+        let minD = '9999-12-31';
+        let maxD = '0000-01-01';
+        
+        filteredAudits.forEach(a => {
+            linhasSet.add(a.linha_linha || 'Outra Linha');
+            if(a.fail_date) {
+                const dStr = a.fail_date.split('T')[0];
+                if(dStr < minD) minD = dStr;
+                if(dStr > maxD) maxD = dStr;
+            }
+        });
+
+        const effectiveStart = startDate || (minD !== '9999-12-31' ? minD : '');
+        const effectiveEnd = endDate || (maxD !== '0000-01-01' ? maxD : '');
 
         // 2. Initialize matrix with 0
-        getDaysArray(startDate, endDate).forEach(d => {
-            lineMap[d] = {};
-            linhasSet.forEach(l => lineMap[d][l] = 0);
-        });
+        if (effectiveStart && effectiveEnd) {
+            getDaysArray(effectiveStart, effectiveEnd).forEach(d => {
+                lineMap[d] = {};
+                linhasSet.forEach(l => lineMap[d][l] = 0);
+            });
+        }
 
         // 3. Populate sums
         filteredAudits.forEach(a => {

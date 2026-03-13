@@ -10,10 +10,9 @@ export async function GET() {
         
         const supabase = createClient(sbUrl, sbKey);
         
-        // Grab top 5000 records
         const { data, error } = await supabase
             .from('qcis_audits')
-            .select('fail_date')
+            .select('fail_date, lista_gate')
             .not('fail_date', 'is', null)
             .limit(5000);
             
