@@ -438,12 +438,12 @@ export default function QcisAnalyticsDashboard() {
                     <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 rounded-full blur-2xl group-hover:bg-cyan-500/20 transition-all"></div>
                     <CardHeader className="pb-2">
                         <CardTitle className="text-slate-400 text-sm font-bold uppercase tracking-wider flex items-center gap-2">
-                            <Layers size={16} className="text-cyan-500"/> Volume de Ocorrências (HINs)
+                            <Layers size={16} className="text-cyan-500"/> Total Barcos Únicos (HINs)
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-5xl font-black text-white">{filteredAudits.length}</div>
-                        <p className="text-slate-500 text-xs mt-2">Linhas individuais de auditoria</p>
+                        <div className="text-5xl font-black text-white">{totalBarcosUnicos}</div>
+                        <p className="text-slate-500 text-xs mt-2">Cascos isolados neste período</p>
                     </CardContent>
                 </Card>
             </div>
