@@ -513,21 +513,23 @@ export default function QcisAnalyticsDashboard() {
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="overflow-y-auto max-h-[600px] pr-2 
-                        scrollbar-thin scrollbar-thumb-cyan-600 scrollbar-track-slate-800/50 
-                        hover:scrollbar-thumb-cyan-500 hover:scrollbar-track-slate-800 
-                        [&::-webkit-scrollbar]:w-2
-                        [&::-webkit-scrollbar-track]:bg-slate-900
+                        [&::-webkit-scrollbar]:w-1.5
+                        [&::-webkit-scrollbar-track]:bg-slate-900/50
                         [&::-webkit-scrollbar-track]:rounded-full
-                        [&::-webkit-scrollbar-thumb]:bg-slate-700
+                        [&::-webkit-scrollbar-thumb]:bg-gradient-to-b
+                        [&::-webkit-scrollbar-thumb]:from-cyan-500
+                        [&::-webkit-scrollbar-thumb]:to-blue-600
                         [&::-webkit-scrollbar-thumb]:rounded-full
-                        hover:[&::-webkit-scrollbar-thumb]:bg-cyan-600
+                        hover:[&::-webkit-scrollbar-thumb]:from-cyan-400
+                        hover:[&::-webkit-scrollbar-thumb]:to-blue-500
+                        transition-all
                     ">
                         {chartDataDefeitos.length > 0 ? (
                             <div style={{ height: Math.max(320, chartDataDefeitos.length * 40), width: '100%' }}>
                                 <ResponsiveContainer width="100%" height="100%">
                                     <BarChart data={chartDataDefeitos} layout="vertical" margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
                                         <XAxis type="number" stroke="#475569" />
-                                        <YAxis dataKey="name" type="category" stroke="#94a3b8" fontSize={11} width={260} tick={{fill: '#cbd5e1'}} />
+                                        <YAxis dataKey="name" type="category" stroke="#94a3b8" fontSize={11} width={280} tick={{fill: '#cbd5e1', textAnchor: 'start', dx: -270}} />
                                         <Tooltip 
                                             cursor={{fill: '#1e293b'}} 
                                             contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', color: '#fff', borderRadius: '8px' }}
