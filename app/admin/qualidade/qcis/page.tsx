@@ -194,7 +194,7 @@ export default function QcisAnalyticsDashboard() {
             qui: dias.qui, 
             sex: dias.sex,
             sab: dias.sab
-        })).sort((a, b) => a.gate.localeCompare(b.gate));
+        })).sort((a, b) => a.gate.localeCompare(b.gate, undefined, { numeric: true, sensitivity: 'base' }));
     }, [filteredAudits]);
 
     // Chart: Substation Name
@@ -545,48 +545,6 @@ export default function QcisAnalyticsDashboard() {
                         ) : (
                             <div className="h-40 flex items-center justify-center text-slate-600">Sem dados para o filtro</div>
                         )}
-                    </CardContent>
-                </Card>
-
-                {/* Hotfix Diagnostic Box */}
-                <Card className="bg-amber-950/80 border-amber-900 shadow-xl col-span-1 lg:col-span-2">
-                    <CardHeader className="py-3">
-                        <CardTitle className="text-amber-500 text-sm font-bold flex items-center gap-2">
-                            <AlertCircle size={16} /> Diagnostic Viewer (Top 10 Datas Mais Recentes)
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="px-6 pb-4">
-                        <div className="text-amber-200/90 text-xs font-mono space-y-2">
-                        {filteredAudits
-                            .filter(a => a.fail_date)
-                            .sort((a,b) => b.fail_date.localeCompare(a.fail_date))
-                            .slice(0, 10).map((a, i) => (
-                                <div key={i} className="flex gap-4 border-b border-amber-900/50 pb-1">
-                                    <span className="w-32">Date: {a.fail_date}</span> 
-                                    <span className={`w-36 ${!a.lista_gate ? 'text-rose-400 font-bold' : ''}`}>Gate: {a.lista_gate || 'VAZIO (Ignorado)'}</span> 
-                                    <span className={`w-32 ${!a.count_of_defects ? 'text-rose-400 font-bold' : ''}`}>Qtd: {a.count_of_defects === null || a.count_of_defects === undefined ? 'VAZIO (Zero)' : a.count_of_defects}</span>
-                                    <span className="w-48 text-cyan-400">Dia Testado: {
-                                        (() => {
-                                            const dateStr = String(a.fail_date).trim();
-                                            let y = 0, m = 0, d = 0;
-                                            if (dateStr.includes('/')) {
-                                                const parts = dateStr.split('/');
-                                                if (parts[2].length >= 4) { d = Number(parts[0]); m = Number(parts[1]); y = Number(parts[2].substring(0,4)); } 
-                                                else if (parts[0].length === 4) { y = Number(parts[0]); m = Number(parts[1]); d = Number(parts[2].substring(0,2)); }
-                                            } else if (dateStr.includes('-')) {
-                                                const parts = dateStr.split('-');
-                                                if (parts[0].length === 4) { y = Number(parts[0]); m = Number(parts[1]); d = Number(parts[2].substring(0,2)); } 
-                                                else { d = Number(parts[0]); m = Number(parts[1]); y = Number(parts[2].substring(0,4)); }
-                                            } else {
-                                                const dt = new Date(dateStr); y = dt.getFullYear(); m = dt.getMonth() + 1; d = dt.getDate();
-                                            }
-                                            const checkDate = new Date(y, m-1, d, 12, 0, 0); 
-                                            return ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab'][checkDate.getDay()] + ` (y:${y} m:${m} d:${d})`;
-                                        })()
-                                    }</span>
-                                </div>
-                        ))}
-                        </div>
                     </CardContent>
                 </Card>
 
