@@ -91,12 +91,12 @@ export default function QcisAnalyticsDashboard() {
     }, [audits, searchTerm, filterModelo, filterLinha, filterGate, filterCategoria, filterArea, filterSubstation]);
 
     // Extrair opções únicas para os dropdowns de filtro (After Global Filter to allow drill-down or raw from Audits)
-    const modelosUnicos = Array.from(new Set(audits.map(a => a.model_ref).filter(Boolean)));
-    const linhasUnicas = Array.from(new Set(audits.map(a => a.linha_linha).filter(Boolean)));
-    const gatesUnicos = Array.from(new Set(audits.map(a => a.lista_gate).filter(Boolean)));
-    const categoriasUnicas = Array.from(new Set(audits.map(a => a.lista_categoria).filter(Boolean)));
-    const areasUnicas = Array.from(new Set(audits.map(a => a.responsible_area).filter(Boolean)));
-    const substationUnicas = Array.from(new Set(audits.map(a => a.substation_name).filter(Boolean))).sort();
+    const modelosUnicos = Array.from(new Set(filteredAudits.map(a => a.model_ref).filter(Boolean)));
+    const linhasUnicas = Array.from(new Set(filteredAudits.map(a => a.linha_linha).filter(Boolean)));
+    const gatesUnicos = Array.from(new Set(filteredAudits.map(a => a.lista_gate).filter(Boolean)));
+    const categoriasUnicas = Array.from(new Set(filteredAudits.map(a => a.lista_categoria).filter(Boolean)));
+    const areasUnicas = Array.from(new Set(filteredAudits.map(a => a.responsible_area).filter(Boolean)));
+    const substationUnicas = Array.from(new Set(filteredAudits.map(a => a.substation_name).filter(Boolean))).sort();
 
     // KPI 1: Total Defeitos
     const totalDefeitos = filteredAudits.reduce((acc, curr) => acc + (curr.count_of_defects || 0), 0);
