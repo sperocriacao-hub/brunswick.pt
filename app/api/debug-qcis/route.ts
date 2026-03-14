@@ -1,27 +1,22 @@
-import { createClient } from '@supabase/supabase-js';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 
-export const dynamic = 'force-dynamic';
+export async function GET(req: NextRequest) {
+  try {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+    const supabaseAdmin = createClient(supabaseUrl, supabaseKey);
 
-export async function GET() {
-    try {
-        const sbUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-        const sbKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-        
-        const supabase = createClient(sbUrl, sbKey);
-        
-        const { data, error } = await supabase
-            .from('qcis_audits')
-            .select('fail_date, lista_gate')
-            .not('fail_date', 'is', null)
-            .limit(5000);
-            
-        if (error) {
-            return NextResponse.json({ success: false, error: error.message });
-        }
-        
-        return NextResponse.json({ success: true, count: data?.length || 0, data });
-    } catch (e: any) {
-        return NextResponse.json({ success: false, error: e.message });
-    }
+    const { data: subsData, error } = await supabaseAdmin
+        .from('qcis_audits')
+        .select('substation_name');
+
+    if (error) return NextResponse.json({ error });
+
+    const subs = Array.from(new Set(subsData.map(d => String(d.substation_name).trim().toLowerCase())));
+
+    return NextResponse.json({ subs });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
 }
