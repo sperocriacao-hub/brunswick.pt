@@ -14,7 +14,8 @@ export async function fetchQcisData(filters: {
     linha?: string, 
     modelo?: string, 
     gate?: string, 
-    categoria?: string 
+    categoria?: string,
+    _cacheBuster?: string 
 } = {}) {
     noStore(); // Desativa ativamente a cache agressiva do Next.js para pedidos Server-Side do Supabase
     try {

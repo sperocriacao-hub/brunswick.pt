@@ -51,7 +51,7 @@ export default function QcisAnalyticsDashboard() {
 
     const loadData = async () => {
         setIsLoading(true);
-        const res = await fetchQcisData({ startDate, endDate });
+        const res = await fetchQcisData({ startDate, endDate, _cacheBuster: Date.now().toString() });
         if (res.success && res.data) {
             setAudits(res.data as QcisAudit[]);
         } else {
@@ -142,56 +142,56 @@ export default function QcisAnalyticsDashboard() {
             .sort((a, b) => b.value - a.value);
     }, [filteredAudits]);
 
-    // Heatmap Customizado: Gate vs Real Dates (Dynamic)
-    const { heatMapData, heatMapDates } = useMemo(() => {
+    // MATRIX 1: Quality Gate vs Modelos
+    const { matrixGateModeloData, uniqueModelos } = useMemo(() => {
         const map: Record<string, Record<string, number>> = {};
-        const uniqueDates = new Set<string>();
+        const modelosSet = new Set<string>();
 
-        // Extract dates and counts
         filteredAudits.forEach(a => {
-            if (!a.fail_date || !a.lista_gate) return;
+            if (!a.lista_gate) return;
             const gate = String(a.lista_gate).trim();
-
-            // Extract pure YYYY-MM-DD string robustly
-            const dateStr = String(a.fail_date).trim();
-            let dString = '';
+            const md = a.model_ref ? String(a.model_ref).trim() : 'N/A';
             
-            if (dateStr.includes('T')) {
-                dString = dateStr.split('T')[0];
-            } else if (dateStr.includes('/')) {
-                const parts = dateStr.split('/');
-                if (parts[2].length >= 4) { dString = `${parts[2].substring(0,4)}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`; } 
-                else if (parts[0].length === 4) { dString = `${parts[0]}-${parts[1].padStart(2,'0')}-${parts[2].substring(0,2).padStart(2,'0')}`; }
-            } else if (dateStr.includes('-')) {
-                const parts = dateStr.split('-');
-                if (parts[0].length === 4) { dString = `${parts[0]}-${parts[1].padStart(2,'0')}-${parts[2].substring(0,2).padStart(2,'0')}`; } 
-                else { dString = `${parts[2].substring(0,4)}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`; }
-            } else {
-                const dt = new Date(dateStr);
-                dString = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
-            }
-
-            if(dString) {
-                uniqueDates.add(dString);
-                if(!map[gate]) map[gate] = {};
-                if(!map[gate][dString]) map[gate][dString] = 0;
-                map[gate][dString] += (a.count_of_defects || 0);
-            }
+            modelosSet.add(md);
+            if(!map[gate]) map[gate] = {};
+            if(!map[gate][md]) map[gate][md] = 0;
+            map[gate][md] += (a.count_of_defects || 0);
         });
 
-        // Sort dates chronologically and keep only the last 5 dates
-        const sortedDates = Array.from(uniqueDates).sort().slice(-5);
-
-        // Sort gates alphanumerically
+        const sortedModelos = Array.from(modelosSet).sort();
         const dataArr = Object.entries(map).map(([gate, values]) => {
             const row: any = { gate };
-            sortedDates.forEach(d => {
-                row[d] = values[d] || 0;
-            });
+            sortedModelos.forEach(m => row[m] = values[m] || 0);
             return row;
         }).sort((a, b) => a.gate.localeCompare(b.gate, undefined, { numeric: true, sensitivity: 'base' }));
 
-        return { heatMapData: dataArr, heatMapDates: sortedDates };
+        return { matrixGateModeloData: dataArr, uniqueModelos: sortedModelos };
+    }, [filteredAudits]);
+
+    // MATRIX 2: Categoria vs Linha Produção
+    const { matrixCategoriaLinhaData, uniqueLinhas } = useMemo(() => {
+        const map: Record<string, Record<string, number>> = {};
+        const linhasSet = new Set<string>();
+
+        filteredAudits.forEach(a => {
+            if (!a.lista_categoria) return;
+            const cat = String(a.lista_categoria).trim();
+            const ln = a.linha_linha ? String(a.linha_linha).trim() : 'N/A';
+            
+            linhasSet.add(ln);
+            if(!map[cat]) map[cat] = {};
+            if(!map[cat][ln]) map[cat][ln] = 0;
+            map[cat][ln] += (a.count_of_defects || 0);
+        });
+
+        const sortedLinhas = Array.from(linhasSet).sort();
+        const dataArr = Object.entries(map).map(([categoria, values]) => {
+            const row: any = { categoria };
+            sortedLinhas.forEach(l => row[l] = values[l] || 0);
+            return row;
+        }).sort((a, b) => a.categoria.localeCompare(b.categoria, undefined, { numeric: true, sensitivity: 'base' }));
+
+        return { matrixCategoriaLinhaData: dataArr, uniqueLinhas: sortedLinhas };
     }, [filteredAudits]);
 
     // Chart: Substation Name
@@ -552,11 +552,11 @@ export default function QcisAnalyticsDashboard() {
                     </CardContent>
                 </Card>
 
-                {/* Heatmap Custom */}
+                {/* Matriz 1: Gate vs Modelo */}
                 <Card className="bg-slate-900 border-slate-800 shadow-xl flex flex-col">
                     <CardHeader>
                         <CardTitle className="text-white text-lg font-bold flex items-center gap-2">
-                            <Activity className="text-rose-400" /> Heatmap: Quality Gate vs Datas de Ocorrência
+                            <Activity className="text-rose-400" /> Matriz Operacional: Quality Gate vs Modelos
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="flex-1 overflow-x-auto 
@@ -574,24 +574,15 @@ export default function QcisAnalyticsDashboard() {
                             <thead className="text-xs uppercase bg-slate-800/50 text-slate-400">
                                 <tr>
                                     <th className="px-4 py-3 border-b border-r border-slate-700 text-left sticky left-0 bg-slate-900/90 backdrop-blur-sm z-20 shadow-[2px_0_5px_rgba(0,0,0,0.2)]">Quality Gate</th>
-                                    {heatMapDates.map(dStr => {
-                                        const [y, m, d] = dStr.split('-');
-                                        const dateObj = new Date(Number(y), Number(m)-1, Number(d), 12, 0, 0);
-                                        const diaSemanaStr = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'][dateObj.getDay()];
-                                        return (
-                                            <th key={dStr} className="px-3 py-3 border-b border-slate-700 whitespace-nowrap">
-                                                <div className="flex flex-col items-center">
-                                                    <span className="text-slate-500 text-[10px]">{diaSemanaStr}</span>
-                                                    <span>{d}/{m}</span>
-                                                </div>
-                                            </th>
-                                        )
-                                    })}
+                                    {uniqueModelos.map(m => (
+                                        <th key={m} className="px-3 py-3 border-b border-slate-700 whitespace-nowrap min-w-[70px]">
+                                            {m}
+                                        </th>
+                                    ))}
                                 </tr>
                             </thead>
                             <tbody>
-                                {heatMapData.map((row) => {
-                                    // Helper function to color the cell bg based on value
+                                {matrixGateModeloData.map((row) => {
                                     const getColor = (val: number) => {
                                         if (!val || val === 0) return 'bg-transparent text-slate-600';
                                         if (val < 3) return 'bg-rose-500/20 text-rose-300 border border-rose-500/30 font-bold rounded-lg';
@@ -604,10 +595,10 @@ export default function QcisAnalyticsDashboard() {
                                             <td className="px-4 py-3 font-semibold text-slate-200 text-left border-r border-slate-800/50 sticky left-0 bg-slate-900/90 backdrop-blur-sm z-20 shadow-[2px_0_5px_rgba(0,0,0,0.2)]">
                                                 {row.gate}
                                             </td>
-                                            {heatMapDates.map(dStr => {
-                                                const val = row[dStr] || 0;
+                                            {uniqueModelos.map(mStr => {
+                                                const val = row[mStr] || 0;
                                                 return (
-                                                    <td key={dStr} className="p-2">
+                                                    <td key={mStr} className="p-2">
                                                         <div className={`py-2 px-1 transition-all ${getColor(val)}`}>
                                                             {val === 0 ? '-' : val}
                                                         </div>
@@ -619,7 +610,71 @@ export default function QcisAnalyticsDashboard() {
                                 })}
                             </tbody>
                         </table>
-                        {heatMapData.length === 0 && (
+                        {matrixGateModeloData.length === 0 && (
+                            <div className="h-40 flex items-center justify-center text-slate-600">Sem dados analíticos</div>
+                        )}
+                    </CardContent>
+                </Card>
+
+                {/* Matriz 2: Categoria vs Linha */}
+                <Card className="bg-slate-900 border-slate-800 shadow-xl flex flex-col">
+                    <CardHeader>
+                        <CardTitle className="text-white text-lg font-bold flex items-center gap-2">
+                            <Activity className="text-cyan-400" /> Matriz Estratégica: Categoria vs Linha Produção
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="flex-1 overflow-x-auto 
+                        [&::-webkit-scrollbar]:h-2
+                        [&::-webkit-scrollbar-track]:bg-slate-900/50
+                        [&::-webkit-scrollbar-track]:rounded-full
+                        [&::-webkit-scrollbar-thumb]:bg-gradient-to-r
+                        [&::-webkit-scrollbar-thumb]:from-cyan-500
+                        [&::-webkit-scrollbar-thumb]:to-blue-800
+                        [&::-webkit-scrollbar-thumb]:rounded-full
+                        hover:[&::-webkit-scrollbar-thumb]:from-cyan-400
+                        hover:[&::-webkit-scrollbar-thumb]:to-blue-600
+                    ">
+                        <table className="w-full text-sm text-center text-slate-300 min-w-max">
+                            <thead className="text-xs uppercase bg-slate-800/50 text-slate-400">
+                                <tr>
+                                    <th className="px-4 py-3 border-b border-r border-slate-700 text-left sticky left-0 bg-slate-900/90 backdrop-blur-sm z-20 shadow-[2px_0_5px_rgba(0,0,0,0.2)]">Categoria Defeito</th>
+                                    {uniqueLinhas.map(l => (
+                                        <th key={l} className="px-3 py-3 border-b border-slate-700 whitespace-nowrap min-w-[70px]">
+                                            {l}
+                                        </th>
+                                    ))}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {matrixCategoriaLinhaData.map((row) => {
+                                    const getColor = (val: number) => {
+                                        if (!val || val === 0) return 'bg-transparent text-slate-600';
+                                        if (val < 3) return 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-bold rounded-lg';
+                                        if (val < 10) return 'bg-cyan-500/50 text-white border border-cyan-500/70 font-bold shadow-lg shadow-cyan-500/20 rounded-lg';
+                                        return 'bg-blue-600 text-white border border-blue-500 font-black shadow-xl shadow-blue-600/40 rounded-lg scale-110 z-10';
+                                    };
+
+                                    return (
+                                        <tr key={row.categoria} className="border-b border-slate-800/50 hover:bg-slate-800/30">
+                                            <td className="px-4 py-3 font-semibold text-slate-200 text-left border-r border-slate-800/50 sticky left-0 bg-slate-900/90 backdrop-blur-sm z-20 shadow-[2px_0_5px_rgba(0,0,0,0.2)]">
+                                                {row.categoria}
+                                            </td>
+                                            {uniqueLinhas.map(lStr => {
+                                                const val = row[lStr] || 0;
+                                                return (
+                                                    <td key={lStr} className="p-2">
+                                                        <div className={`py-2 px-1 transition-all ${getColor(val)}`}>
+                                                            {val === 0 ? '-' : val}
+                                                        </div>
+                                                    </td>
+                                                )
+                                            })}
+                                        </tr>
+                                    )
+                                })}
+                            </tbody>
+                        </table>
+                        {matrixCategoriaLinhaData.length === 0 && (
                             <div className="h-40 flex items-center justify-center text-slate-600">Sem dados analíticos</div>
                         )}
                     </CardContent>
