@@ -372,9 +372,16 @@ export async function buscarDashboardsTV(tv_id: string) {
 
                 // Se a TV for de LINHA, limitamos a qualidade apenas à Linha corrente.
                 if (tipoAlvo === 'LINHA' && alvoId) {
-                    const lName = configTv.nome_alvo_resolvido;
+                    const lName = opcoesLayout.qcisLinha?.trim() || configTv.nome_alvo_resolvido;
                     console.log(`[QCIS TV DEBUG] Filtro ativo para Linha: ${lName}`);
-                    if (lName) qcisQuery = qcisQuery.textSearch('linha_linha', lName);
+                    if (lName) {
+                        // Se o administrador escreveu explicitamente no qcisLinha, usamos igualdade absoluta
+                        if (opcoesLayout.qcisLinha?.trim()) {
+                            qcisQuery = qcisQuery.eq('linha_linha', lName);
+                        } else {
+                            qcisQuery = qcisQuery.textSearch('linha_linha', lName);
+                        }
+                    }
                 }
                 
                 const { data: qcisData, error: qcisError } = await qcisQuery;
@@ -386,7 +393,8 @@ export async function buscarDashboardsTV(tv_id: string) {
 
                 if (qcisData && qcisData.length > 0) {
                     // KPI: FTR (Testes Funcionais)
-                    const ftrAudits = qcisData.filter(a => (a.substation_name || '').toLowerCase().includes('testes funcionais'));
+                    const targetFTR = (opcoesLayout.qcisSubstationFTR || 'testes funcionais').toLowerCase();
+                    const ftrAudits = qcisData.filter(a => (a.substation_name || '').toLowerCase().includes(targetFTR));
                     if (ftrAudits.length > 0) {
                         const totalBoats = new Set(ftrAudits.map(a => a.boat_id).filter(Boolean)).size;
                         const zeroBoats = new Set(
@@ -399,7 +407,8 @@ export async function buscarDashboardsTV(tv_id: string) {
                     }
                     
                     // KPI: DPU (Inspecção Final Embalamento)
-                    const embAudits = qcisData.filter(a => (a.substation_name || '').toLowerCase().includes('inspecção final embalamento'));
+                    const targetDPU = (opcoesLayout.qcisSubstationDPU || 'inspecção final embalamento').toLowerCase();
+                    const embAudits = qcisData.filter(a => (a.substation_name || '').toLowerCase().includes(targetDPU));
                     if (embAudits.length > 0) {
                         const totalEmbBoats = new Set(embAudits.map(a => a.boat_id).filter(Boolean)).size;
                         const totalDefects = embAudits.reduce((acc, curr) => acc + (curr.count_of_defects || 0), 0);

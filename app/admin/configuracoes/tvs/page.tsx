@@ -81,7 +81,10 @@ export default function TVConfiguracoesPage() {
             showSafetyCross: true,
             showHstKpis: true,
             showQCISQuality: true,
-            minimiseAndon: true
+            minimiseAndon: true,
+            qcisLinha: '',
+            qcisSubstationFTR: 'Testes funcionais',
+            qcisSubstationDPU: 'Inspecção Final Embalamento'
         });
         setIsAddModalOpen(true);
     }
@@ -97,7 +100,10 @@ export default function TVConfiguracoesPage() {
             showOeeDay: true, showOeeMonth: true, showWorkerOfMonth: true,
             showSafeArea: true, showBottlenecks: true, showEfficiency: true,
             showAbsentismo: true, showSafetyCross: true, showHstKpis: true,
-            showQCISQuality: true, minimiseAndon: true
+            showQCISQuality: true, minimiseAndon: true,
+            qcisLinha: tv.opcoes_layout?.qcisLinha || '',
+            qcisSubstationFTR: tv.opcoes_layout?.qcisSubstationFTR || 'Testes funcionais',
+            qcisSubstationDPU: tv.opcoes_layout?.qcisSubstationDPU || 'Inspecção Final Embalamento'
         });
         setIsAddModalOpen(true);
     }
@@ -339,6 +345,44 @@ export default function TVConfiguracoesPage() {
                                     </label>
                                 ))}
                                 </div>
+
+                                {opcoesLayout.showQCISQuality && (
+                                    <div className="mt-4 p-4 border border-indigo-200 bg-indigo-50/50 rounded-xl space-y-4">
+                                        <Label className="text-indigo-700 font-bold flex items-center gap-2 mb-2">
+                                            Filtros Avançados QCIS (Opcional)
+                                        </Label>
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                            <div className="space-y-1.5">
+                                                <Label className="text-xs font-semibold text-slate-600">Alvo Exato (Linha SAP)</Label>
+                                                <Input
+                                                    value={opcoesLayout.qcisLinha || ''}
+                                                    onChange={(e) => setOpcoesLayout(prev => ({ ...prev, qcisLinha: e.target.value }))}
+                                                    placeholder="Ex: A"
+                                                    className="h-8 text-sm"
+                                                    title="Se preenchido, a TV ignora o seu próprio Nome e procura estritamente por esta string exata na coluna 'linha_linha' do SAP."
+                                                />
+                                            </div>
+                                            <div className="space-y-1.5">
+                                                <Label className="text-xs font-semibold text-slate-600">Subestação FTR</Label>
+                                                <Input
+                                                    value={opcoesLayout.qcisSubstationFTR || ''}
+                                                    onChange={(e) => setOpcoesLayout(prev => ({ ...prev, qcisSubstationFTR: e.target.value }))}
+                                                    placeholder="Default: Testes funcionais"
+                                                    className="h-8 text-sm"
+                                                />
+                                            </div>
+                                            <div className="space-y-1.5">
+                                                <Label className="text-xs font-semibold text-slate-600">Subestação DPU</Label>
+                                                <Input
+                                                    value={opcoesLayout.qcisSubstationDPU || ''}
+                                                    onChange={(e) => setOpcoesLayout(prev => ({ ...prev, qcisSubstationDPU: e.target.value }))}
+                                                    placeholder="Default: Inspecção Final Embalamento"
+                                                    className="h-8 text-sm"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
 
