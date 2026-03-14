@@ -46,6 +46,8 @@ export default function QcisAnalyticsDashboard() {
     const [filterLinha, setFilterLinha] = useState('');
     const [filterGate, setFilterGate] = useState('');
     const [filterCategoria, setFilterCategoria] = useState('');
+    const [filterSubstation, setFilterSubstation] = useState('');
+    const [filterListaSub, setFilterListaSub] = useState('');
 
     const loadData = async () => {
         setIsLoading(true);
@@ -93,9 +95,11 @@ export default function QcisAnalyticsDashboard() {
             const matchLinha = filterLinha ? a.linha_linha === filterLinha : true;
             const matchGate = filterGate ? a.lista_gate === filterGate : true;
             const matchCategoria = filterCategoria ? a.lista_categoria === filterCategoria : true;
-            return matchModelo && matchLinha && matchGate && matchCategoria;
+            const matchSubstation = filterSubstation ? a.substation_name === filterSubstation : true;
+            const matchListaSub = filterListaSub ? a.lista_sub === filterListaSub : true;
+            return matchModelo && matchLinha && matchGate && matchCategoria && matchSubstation && matchListaSub;
         });
-    }, [audits, filterModelo, filterLinha, filterGate, filterCategoria]);
+    }, [audits, filterModelo, filterLinha, filterGate, filterCategoria, filterSubstation, filterListaSub]);
 
     // 2. O CORAÇÃO V8.1: Extrair dias ativos cronológicos (6 pelo Mês, ou tudo se período Custom)
     const { activeDays, activeData } = useMemo(() => {
@@ -122,6 +126,8 @@ export default function QcisAnalyticsDashboard() {
     const linhasUnicas = Array.from(new Set(filteredBase.map(a => a.linha_linha).filter(Boolean))).sort();
     const gatesUnicos = Array.from(new Set(filteredBase.map(a => a.lista_gate).filter(Boolean))).sort();
     const categoriasUnicas = Array.from(new Set(filteredBase.map(a => a.lista_categoria).filter(Boolean))).sort();
+    const subsUnicas = Array.from(new Set(filteredBase.map(a => a.substation_name).filter(Boolean))).sort();
+    const listaSubUnicas = Array.from(new Set(filteredBase.map(a => a.lista_sub).filter(Boolean))).sort();
 
     // --- MÁQUINAS MATEMÁTICAS GLOBAIS (Sobre os dados ativos) ---
     
@@ -350,6 +356,12 @@ export default function QcisAnalyticsDashboard() {
                 </select>
                 <select value={filterCategoria} onChange={e => setFilterCategoria(e.target.value)} className="bg-slate-950 border border-slate-700 rounded px-3 py-1.5 text-sm font-medium text-slate-300 outline-none">
                     <option value="">Todas as Categorias</option>{categoriasUnicas.map(x => <option key={x} value={x}>{x}</option>)}
+                </select>
+                <select value={filterListaSub} onChange={e => setFilterListaSub(e.target.value)} className="bg-slate-950 border border-slate-700 rounded px-3 py-1.5 text-sm font-medium text-slate-300 outline-none">
+                    <option value="">Todas as Sub-Categorias</option>{listaSubUnicas.map(x => <option key={x} value={x}>{x}</option>)}
+                </select>
+                <select value={filterSubstation} onChange={e => setFilterSubstation(e.target.value)} className="bg-slate-950 border border-slate-700 rounded px-3 py-1.5 text-sm font-medium text-slate-300 outline-none">
+                    <option value="">Todas as Subestações</option>{subsUnicas.map(x => <option key={x} value={x}>{x}</option>)}
                 </select>
             </div>
 
