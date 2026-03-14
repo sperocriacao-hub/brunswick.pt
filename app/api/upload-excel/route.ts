@@ -85,17 +85,24 @@ export async function POST(req: NextRequest) {
                 let parts = dateStr.split('/');
                 let p0 = parts[0], p1 = parts[1], p2 = parts[2];
                 if (p2 && p2.length === 2) p2 = `20${p2}`; 
-                if (p0 && p0.length === 2 && !p2) { p2 = p0; p0 = parts[2]; } // Just in case it's YY/MM/DD
                 
-                if (p2 && p2.length >= 4) { return `${p2.substring(0,4)}-${p1.padStart(2,'0')}-${p0.padStart(2,'0')}`; } 
-                else if (p0 && p0.length === 4) { return `${p0}-${p1.padStart(2,'0')}-${p2.substring(0,2).padStart(2,'0')}`; }
+                let dd = p0, mm = p1;
+                if (Number(p1) > 12) { dd = p1; mm = p0; }
+                else if (Number(p0) > 12 && p0.length <= 2) { dd = p0; mm = p1; }
+                
+                if (p2 && p2.length >= 4) { return `${p2.substring(0,4)}-${mm.padStart(2,'0')}-${dd.padStart(2,'0')}`; } 
+                else if (p0 && p0.length === 4) { return `${p0}-${mm.padStart(2,'0')}-${p2.substring(0,2).padStart(2,'0')}`; }
             } else if (dateStr.includes('-')) {
                 let parts = dateStr.split('-');
                 let p0 = parts[0], p1 = parts[1], p2 = parts[2];
                 if (p2 && p2.length === 2) p2 = `20${p2}`;
                 
-                if (p0 && p0.length === 4) { return `${p0}-${p1.padStart(2,'0')}-${p2.substring(0,2).padStart(2,'0')}`; } 
-                else if (p2 && p2.length >= 4) { return `${p2.substring(0,4)}-${p1.padStart(2,'0')}-${p0.padStart(2,'0')}`; }
+                let dd = p0, mm = p1;
+                if (Number(p1) > 12) { dd = p1; mm = p0; }
+                else if (Number(p0) > 12 && p0.length <= 2) { dd = p0; mm = p1; }
+                
+                if (p0 && p0.length === 4) { return `${p0}-${mm.padStart(2,'0')}-${p2.substring(0,2).padStart(2,'0')}`; } 
+                else if (p2 && p2.length >= 4) { return `${p2.substring(0,4)}-${mm.padStart(2,'0')}-${dd.padStart(2,'0')}`; }
             }
            return dateStr;
         };
