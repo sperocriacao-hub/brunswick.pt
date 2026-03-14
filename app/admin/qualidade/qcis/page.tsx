@@ -238,13 +238,10 @@ export default function QcisAnalyticsDashboard() {
             linhasSet.add(linha);
 
             // Embalamento (Volume de Defeitos -> converted to PDU later)
-            if (sub.includes('embalamento')) {
+            if (sub.includes('final embalamento')) {
                 embalamentoMap[dStr][linha] = (embalamentoMap[dStr][linha] || 0) + (a.count_of_defects || 0);
                 if(!embalamentoBoatsMap[dStr][linha]) embalamentoBoatsMap[dStr][linha] = new Set();
                 embalamentoBoatsMap[dStr][linha].add(boatId);
-                
-                embGlobalDefectsMap[dStr] += (a.count_of_defects || 0);
-                embGlobalBoatsMap[dStr].add(boatId);
             }
 
             // Testes Funcionais (FTR - First Time Rate %)
@@ -269,27 +266,45 @@ export default function QcisAnalyticsDashboard() {
 
         // Compile FTR Percentages & Embalamento PDUs
         rolling6DaysList.forEach(d => {
+            let embSumPDU = 0;
+            let embActiveLines = 0;
+            
+            let ftrSumPct = 0;
+            let ftrActiveLines = 0;
+
             linhasSet.forEach(linha => {
                 // Testes Funcionais (FTR)
                 const totalBoats = ftrTotalMap[d][linha] ? ftrTotalMap[d][linha].size : 0;
-                const zeroBoats = ftrZeroMap[d][linha] ? ftrZeroMap[d][linha].size : 0;
-                testesMap[d][linha] = totalBoats > 0 ? Math.round((zeroBoats / totalBoats) * 100) : 0;
+                if (totalBoats > 0) {
+                    const zeroBoats = ftrZeroMap[d][linha] ? ftrZeroMap[d][linha].size : 0;
+                    const ftrVal = Math.round((zeroBoats / totalBoats) * 100);
+                    testesMap[d][linha] = ftrVal;
+                    ftrSumPct += ftrVal;
+                    ftrActiveLines++;
+                } else {
+                    delete testesMap[d][linha]; // Exclude line from day if no data
+                }
                 
                 // Embalamento (PDU: Per Defect Unit)
-                const embDefects = embalamentoMap[d][linha] || 0;
                 const embBoats = embalamentoBoatsMap[d][linha] ? embalamentoBoatsMap[d][linha].size : 0;
-                embalamentoMap[d][linha] = embBoats > 0 ? Number((embDefects / embBoats).toFixed(2)) : 0;
+                if (embBoats > 0) {
+                    const embDefects = embalamentoMap[d][linha] || 0;
+                    const pduVal = Number((embDefects / embBoats).toFixed(2));
+                    embalamentoMap[d][linha] = pduVal;
+                    embSumPDU += pduVal;
+                    embActiveLines++;
+                } else {
+                    delete embalamentoMap[d][linha]; // Exclude line from day if no data
+                }
             });
             
-            // Global Calcs (Tendência Global da Fábrica)
-            const globalEmbBoats = embGlobalBoatsMap[d].size;
-            embalamentoMap[d]['Tendência Global'] = globalEmbBoats > 0 ? Number((embGlobalDefectsMap[d] / globalEmbBoats).toFixed(2)) : 0;
-            
-            const globalFtrTotal = ftrGlobalTotalMap[d].size;
-            const globalFtrZero = ftrGlobalZeroMap[d].size;
-            testesMap[d]['Tendência Global'] = globalFtrTotal > 0 ? Math.round((globalFtrZero / globalFtrTotal) * 100) : 0;
-            
-            pdMap[d]['Tendência Global'] = pdGlobalMap[d];
+            // Global Calcs (Tendência Global da Fábrica exclui as Linhas inativas matematicamente)
+            if (embActiveLines > 0) {
+                embalamentoMap[d]['Tendência Global'] = Number((embSumPDU / embActiveLines).toFixed(2));
+            }
+            if (ftrActiveLines > 0) {
+                testesMap[d]['Tendência Global'] = Math.round(ftrSumPct / ftrActiveLines);
+            }
         });
 
         const formatLineData = (map: Record<string, Record<string, number>>) => {
@@ -810,7 +825,6 @@ export default function QcisAnalyticsDashboard() {
                                     {uniqueChartLinhas.map((linha, idx) => (
                                         <Line key={linha} type="monotone" dataKey={linha} name={linha} stroke={`hsl(${idx * (360 / uniqueChartLinhas.length)}, 70%, 50%)`} strokeWidth={2} strokeOpacity={0.6} dot={{ r: 3, fill: '#0f172a', strokeWidth: 1 }} activeDot={{ r: 5 }} />
                                     ))}
-                                    <Line type="monotone" dataKey="Tendência Global" name="Tendência Global" stroke="#fbbf24" strokeWidth={5} dot={{ r: 5, fill: '#0f172a', strokeWidth: 2 }} activeDot={{ r: 8 }} />
                                 </LineChart>
                             </ResponsiveContainer>
                         ) : (
