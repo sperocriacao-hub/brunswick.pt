@@ -12,7 +12,7 @@ export async function getProductionOrders() {
         const { data, error } = await supabase
             .from('ordens_producao')
             .select(`
-                id, op_numero, modelo_id, status, data_inicio, data_fim,
+                id, op_numero, modelo_id, status, data_inicio, data_fim, display_nome, rfid_token,
                 modelos(nome_modelo, model_year)
             `)
             .order('data_inicio', { ascending: false });
