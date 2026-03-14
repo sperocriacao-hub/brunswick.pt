@@ -101,8 +101,8 @@ export default function EditarModeloPage() {
     const addMetaHH = () => {
         setMetasHH([...metasHH, { id: crypto.randomUUID(), tipo_alvo: 'AREA', area_id: '', linha_id: '', estacao_id: '', horas_homem: 0 }]);
     };
-    const updateMetaHH = (id: string, field: keyof InMetaHH, value: any) => {
-        setMetasHH(metasHH.map(m => m.id === id ? { ...m, [field]: value } : m));
+    const updateMetaHH = (id: string, field: keyof InMetaHH, value: string | number) => {
+        setMetasHH(prev => prev.map(m => m.id === id ? { ...m, [field]: value } : m));
     };
     const removeMetaHH = (id: string) => setMetasHH(metasHH.filter(m => m.id !== id));
 
