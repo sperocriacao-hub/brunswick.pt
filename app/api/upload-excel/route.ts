@@ -82,13 +82,20 @@ export async function POST(req: NextRequest) {
            if (dateStr.includes('T')) dateStr = dateStr.split('T')[0];
            
            if (dateStr.includes('/')) {
-                const parts = dateStr.split('/');
-                if (parts[2].length >= 4) { return `${parts[2].substring(0,4)}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`; } 
-                else if (parts[0].length === 4) { return `${parts[0]}-${parts[1].padStart(2,'0')}-${parts[2].substring(0,2).padStart(2,'0')}`; }
+                let parts = dateStr.split('/');
+                let p0 = parts[0], p1 = parts[1], p2 = parts[2];
+                if (p2 && p2.length === 2) p2 = `20${p2}`; 
+                if (p0 && p0.length === 2 && !p2) { p2 = p0; p0 = parts[2]; } // Just in case it's YY/MM/DD
+                
+                if (p2 && p2.length >= 4) { return `${p2.substring(0,4)}-${p1.padStart(2,'0')}-${p0.padStart(2,'0')}`; } 
+                else if (p0 && p0.length === 4) { return `${p0}-${p1.padStart(2,'0')}-${p2.substring(0,2).padStart(2,'0')}`; }
             } else if (dateStr.includes('-')) {
-                const parts = dateStr.split('-');
-                if (parts[0].length === 4) { return `${parts[0]}-${parts[1].padStart(2,'0')}-${parts[2].substring(0,2).padStart(2,'0')}`; } 
-                else { return `${parts[2].substring(0,4)}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`; }
+                let parts = dateStr.split('-');
+                let p0 = parts[0], p1 = parts[1], p2 = parts[2];
+                if (p2 && p2.length === 2) p2 = `20${p2}`;
+                
+                if (p0 && p0.length === 4) { return `${p0}-${p1.padStart(2,'0')}-${p2.substring(0,2).padStart(2,'0')}`; } 
+                else if (p2 && p2.length >= 4) { return `${p2.substring(0,4)}-${p1.padStart(2,'0')}-${p0.padStart(2,'0')}`; }
             }
            return dateStr;
         };
@@ -109,6 +116,12 @@ export async function POST(req: NextRequest) {
                defect_description: row["Defect Description"] ? String(row["Defect Description"]) : null,
                substation_name: row["Substation Name"] || row["Principal Auditoria"] ? String(row["Substation Name"] || row["Principal Auditoria"]) : null,
                count: row["Count of Defects"] ? Number(row["Count of Defects"]) : 0,
+               comment: row["Defect Comment"] ? String(row["Defect Comment"]) : null,
+               seccao: row["Secção"] ? String(row["Secção"]) : null,
+               linha: row["Linha.Linha"] ? String(row["Linha.Linha"]) : null,
+               categoria: row["Lista.Categoria"] || row["Lista Categoria"] ? String(row["Lista.Categoria"] || row["Lista Categoria"]) : null,
+               gate: row["Lista.Gate"] || row["Lista Gate"] ? String(row["Lista.Gate"] || row["Lista Gate"]) : null,
+               area: row["Dtl Responsible Area"] ? String(row["Dtl Responsible Area"]) : null
            }),
            fail_date: parseExcelDate(row["Failed Date"] || row["Fail Date"] || row["Data"]),
            boat_id: row["Boat ID"] ? String(row["Boat ID"]) : null,
