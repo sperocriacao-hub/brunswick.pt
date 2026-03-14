@@ -237,9 +237,11 @@ export default function QcisAnalyticsDashboard() {
 
             linhasSet.add(linha);
 
+            const pecaNome = (a.peca || '').toLowerCase();
+
             // Embalamento (Volume de Defeitos -> converted to PDU later)
-            // Embalamento (Volume de Defeitos -> converted to PDU later)
-            if (sub.includes('embalam') && (sub.includes('final') || sub.includes('fim') || sub.includes('inspe'))) {
+            // Agora a ler da coluna "Peça" conforme o SAP envia "Inspecc?o Final de Embalam"
+            if (pecaNome.includes('embalam') && (pecaNome.includes('final') || pecaNome.includes('fim') || pecaNome.includes('inspe'))) {
                 embalamentoMap[dStr][linha] = (embalamentoMap[dStr][linha] || 0) + (a.count_of_defects || 0);
                 if(!embalamentoBoatsMap[dStr][linha]) embalamentoBoatsMap[dStr][linha] = new Set();
                 embalamentoBoatsMap[dStr][linha].add(boatId);
