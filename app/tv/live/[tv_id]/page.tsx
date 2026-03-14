@@ -228,10 +228,10 @@ export default function CustomTVDashboardPage() {
             )}
 
             {/* --- MASTER GRID CONTENT --- */}
-            <main className="flex-1 overflow-hidden grid grid-cols-12 gap-6 p-6">
+            <main className="flex-1 overflow-hidden flex gap-6 p-6">
 
-                {/* LEFT COL: ORDENS EM CURSO (Production Queue) - Takes 3 cols */}
-                <section className="col-span-3 flex flex-col gap-6 overflow-hidden">
+                {/* LEFT COL: ORDENS EM CURSO (Production Queue) - Takes 35% */}
+                <section className="w-[35%] flex flex-col gap-6 overflow-hidden">
                     <h2 className="text-2xl font-bold uppercase tracking-widest text-slate-500 flex items-center gap-2 border-b-2 border-slate-800 pb-2">
                         <Zap size={24} className="text-blue-500" /> Produção Ativa
                     </h2>
@@ -271,8 +271,8 @@ export default function CustomTVDashboardPage() {
                     )}
                 </section>
 
-                {/* CENTER COL: NASA WIDGETS (Takes 6 columns to fit more) */}
-                <section className="col-span-6 grid grid-cols-3 auto-rows-min gap-4 overflow-y-auto pr-2 pb-6 w-full relative">
+                {/* CENTER COL: NASA WIDGETS (Takes 45%) */}
+                <section className="w-[45%] grid grid-cols-3 auto-rows-min gap-4 overflow-y-auto pr-2 pb-6 relative">
                     {opcoesLayout.showOeeDay && (
                         <div className="col-span-3 bg-slate-900/80 border border-slate-700/50 rounded-3xl p-4 shadow-2xl relative overflow-hidden flex flex-col gap-3">
                             <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 blur-3xl rounded-full"></div>
@@ -511,8 +511,8 @@ export default function CustomTVDashboardPage() {
                     )}
                 </section>
 
-                {/* RIGHT COL: DEDICATED ANDON SIDEBAR (Increased to 3 columns) */}
-                <section className="col-span-3 flex flex-col h-full bg-slate-900 border-l border-slate-800 rounded-l-3xl overflow-hidden shadow-2xl relative">
+                {/* RIGHT COL: DEDICATED ANDON SIDEBAR (Takes 20%) */}
+                <section className="w-[20%] flex flex-col h-full bg-slate-900 border-l border-slate-800 rounded-l-3xl overflow-hidden shadow-2xl relative">
 
                     {!temAlertaCritico ? (
                         <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-black/40">
