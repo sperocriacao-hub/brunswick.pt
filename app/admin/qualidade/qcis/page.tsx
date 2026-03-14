@@ -238,7 +238,7 @@ export default function QcisAnalyticsDashboard() {
             linhasSet.add(linha);
 
             // Embalamento (Volume de Defeitos -> converted to PDU later)
-            if (sub.includes('final embalamento')) {
+            if (sub.includes('embalamento') && (sub.includes('final') || sub.includes('fim') || sub.includes('inspe'))) {
                 embalamentoMap[dStr][linha] = (embalamentoMap[dStr][linha] || 0) + (a.count_of_defects || 0);
                 if(!embalamentoBoatsMap[dStr][linha]) embalamentoBoatsMap[dStr][linha] = new Set();
                 embalamentoBoatsMap[dStr][linha].add(boatId);
