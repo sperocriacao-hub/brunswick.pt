@@ -95,7 +95,9 @@ export async function emitirOrdemProducao(payload: any) {
             molde_casco_id: payload.molde_casco_id,
             molde_coberta_id: payload.molde_coberta_id,
             molde_small_parts_id: payload.molde_small_parts_id,
-            molde_liner_id: payload.molde_liner_id
+            molde_liner_id: payload.molde_liner_id,
+            rfid_token: payload.rfid_token || null,
+            display_nome: payload.display_nome || null
         };
 
         const { data, error } = await supabase

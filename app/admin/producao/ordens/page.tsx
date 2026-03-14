@@ -50,6 +50,8 @@ export default function GeneralOrdersDashboard() {
         const lower = searchTerm.toLowerCase();
         setFilteredOrders(orders.filter(o =>
             (o.op_numero || '').toLowerCase().includes(lower) ||
+            (o.display_nome || '').toLowerCase().includes(lower) ||
+            (o.rfid_token || '').toLowerCase().includes(lower) ||
             (o.modelos?.nome_modelo || '').toLowerCase().includes(lower) ||
             (o.status || '').toLowerCase().includes(lower)
         ));
@@ -139,7 +141,7 @@ export default function GeneralOrdersDashboard() {
                     <div className="relative w-full sm:w-80">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                         <Input
-                            placeholder="Pesquisar por N. da OP, Modelo ou Estado..."
+                            placeholder="Pesquisar NOP, Barco ou RFID..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="pl-9 h-10 w-full bg-white border-slate-200 focus:border-blue-500"
@@ -151,12 +153,12 @@ export default function GeneralOrdersDashboard() {
                     <Table>
                         <TableHeader className="bg-slate-50">
                             <TableRow>
+                                <TableHead className="font-bold text-slate-600">Barco</TableHead>
                                 <TableHead className="font-bold text-slate-600">Nº Ordem</TableHead>
                                 <TableHead className="font-bold text-slate-600">Modelo</TableHead>
                                 <TableHead className="font-bold text-slate-600">Status M.E.S</TableHead>
                                 <TableHead className="font-bold text-slate-600">Início Mestre</TableHead>
                                 <TableHead className="font-bold text-slate-600">Fim Mestre</TableHead>
-                                <TableHead className="font-bold text-slate-600">Turno de Arranque</TableHead>
                                 <TableHead className="text-right font-bold text-slate-600">Ações</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -178,7 +180,15 @@ export default function GeneralOrdersDashboard() {
                             ) : (
                                 filteredOrders.map((order) => (
                                     <TableRow key={order.id} className="hover:bg-blue-50/30 transition-colors">
-                                        <TableCell className="font-bold text-slate-900 border-l-2 border-transparent">
+                                        <TableCell className="font-bold text-blue-900 border-l-2 border-transparent">
+                                            {order.display_nome || '--'}
+                                            {order.rfid_token && (
+                                                <Badge variant="outline" className="ml-2 bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] uppercase font-mono tracking-wider translate-y-[-1px]">
+                                                    <Activity className="inline w-3 h-3 mr-1" />{order.rfid_token}
+                                                </Badge>
+                                            )}
+                                        </TableCell>
+                                        <TableCell className="font-bold text-slate-700">
                                             {order.op_numero}
                                             {order.prioridade === 'Urgente' && (
                                                 <Badge variant="destructive" className="ml-2 text-[10px] px-1.5 py-0 h-4 uppercase translate-y-[-2px]">🔥 Hot</Badge>
@@ -195,9 +205,6 @@ export default function GeneralOrdersDashboard() {
                                         </TableCell>
                                         <TableCell className="text-slate-500 font-mono text-sm">
                                             {order.data_fim ? new Date(order.data_fim).toLocaleDateString() : '--'}
-                                        </TableCell>
-                                        <TableCell className="text-slate-500 text-sm italic">
-                                            --
                                         </TableCell>
                                         <TableCell className="text-right">
                                             <DropdownMenu>

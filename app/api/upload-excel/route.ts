@@ -266,6 +266,26 @@ export async function POST(req: NextRequest) {
         }
     }
 
+    // 4.6. INJETOR CUSTOMIZADO PARA ORDENS DE PRODUCAO (RFID & NOME DE DISPLAY)
+    if (tableName === "ordens_producao") {
+        // Para construir o display_nome legível precisamos dos nomes dos modelos
+        const { data: modelosDict } = await supabaseAdmin.from("modelos").select("id, nome_modelo");
+        const modMap = new Map((modelosDict || []).map(m => [m.id, m.nome_modelo]));
+
+        dataArray = dataArray.map(row => {
+            // Extrair token RFID se existir na folha Excel
+            if (row["RFID token"]) row.rfid_token = String(row["RFID token"]).trim();
+            if (row["rfid_token"]) row.rfid_token = String(row["rfid_token"]).trim();
+
+            // Construir Display Name: "Modelo X # 012"
+            if (row.modelo_id && row.hin_hull_id) {
+                const humanModel = modMap.get(row.modelo_id) || "Barco Desconhecido";
+                row.display_nome = `${humanModel} # ${row.hin_hull_id}`;
+            }
+            return row;
+        });
+    }
+
     // 5. INSERIR NO SUPABASE
     const { error } = await supabaseAdmin
       .from(tableName)

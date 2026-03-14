@@ -41,6 +41,15 @@ export default function NovaOrdermProducaoPage() {
     const [cliente, setCliente] = useState('');
     const [pais, setPais] = useState('');
     const [region, setRegion] = useState('');
+    const [rfidToken, setRfidToken] = useState('');
+
+    // Field that auto-generates the internal Display Name based on Model and HIN
+    const barcoDisplay = React.useMemo(() => {
+        if (!modeloSelecionado) return '';
+        const m = dbModelos.find(x => x.id === modeloSelecionado);
+        const modelName = m ? m.nome_modelo : 'Barco';
+        return `${modelName} # ${hin || '???'}`;
+    }, [modeloSelecionado, hin, dbModelos]);
 
     // 3. Cronograma Automático
     const [dataInicio, setDataInicio] = useState('');
@@ -166,6 +175,8 @@ export default function NovaOrdermProducaoPage() {
             cliente: cliente,
             pais: pais,
             region: region,
+            rfid_token: rfidToken || null,
+            display_nome: barcoDisplay || null,
             data_inicio: dataInicio || null,
             data_fim: dataFim || null,
             rfid_casco: rfidCasco || null,
@@ -331,13 +342,21 @@ export default function NovaOrdermProducaoPage() {
                                         <Label className="text-slate-700">HIN (Hull ID)</Label>
                                         <Input value={hin} onChange={e => setHin(e.target.value)} placeholder="US-BR..." className="bg-slate-50/50" />
                                     </div>
+                                    <div className="flex flex-col gap-2 lg:col-span-1 border border-blue-200 bg-blue-50/50 rounded-md p-1.5 shadow-inner">
+                                        <Label className="text-blue-900 font-bold text-xs uppercase pl-1">Barco (Smart Display)</Label>
+                                        <Input value={barcoDisplay} readOnly className="border-0 bg-transparent text-blue-800 font-bold focus-visible:ring-0 shadow-none cursor-default" />
+                                    </div>
                                     <div className="flex flex-col gap-2 lg:col-span-1">
                                         <Label className="text-slate-700">Nº de Série</Label>
                                         <Input value={ns} onChange={e => setNs(e.target.value)} placeholder="000" className="bg-slate-50/50" />
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                    <div className="flex flex-col gap-2">
+                                        <Label className="text-emerald-800 font-bold">IoT: RFID Token (Manual)</Label>
+                                        <Input value={rfidToken} onChange={e => setRfidToken(e.target.value)} placeholder="04:A2..." className="border-emerald-200 font-mono text-sm" />
+                                    </div>
                                     <div className="flex flex-col gap-2">
                                         <Label className="text-slate-700">Cliente Final / Dealer</Label>
                                         <Input value={cliente} onChange={e => setCliente(e.target.value)} className="bg-slate-50/50" />
