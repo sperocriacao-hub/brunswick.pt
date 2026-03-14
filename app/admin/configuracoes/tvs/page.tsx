@@ -36,7 +36,10 @@ export default function TVConfiguracoesPage() {
         showSafetyCross: true,
         showHstKpis: true,
         showQCISQuality: true,
-        minimiseAndon: true
+        minimiseAndon: true,
+        qcisLinha: '',
+        qcisSubstationFTR: 'Testes funcionais',
+        qcisSubstationDPU: 'Inspecção Final Embalamento'
     });
 
     // Select Data Options
