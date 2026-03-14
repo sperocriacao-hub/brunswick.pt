@@ -271,8 +271,8 @@ export default function CustomTVDashboardPage() {
                     )}
                 </section>
 
-                {/* CENTER COL: NASA WIDGETS (Takes 5 columns) */}
-                <section className="col-span-5 grid grid-cols-2 auto-rows-min gap-4 overflow-y-auto pr-2 pb-6 w-full relative">
+                {/* CENTER COL: NASA WIDGETS (Takes 6 columns to fit more) */}
+                <section className="col-span-6 grid grid-cols-2 auto-rows-min gap-4 overflow-y-auto pr-2 pb-6 w-full relative">
                     {opcoesLayout.showOeeDay && (
                         <div className="col-span-2 bg-slate-900/80 border border-slate-700/50 rounded-3xl p-4 shadow-2xl relative overflow-hidden flex flex-col gap-3">
                             <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 blur-3xl rounded-full"></div>
@@ -397,7 +397,7 @@ export default function CustomTVDashboardPage() {
                     )}
 
                     {opcoesLayout.showSafetyCross && (
-                        <div className="col-span-2 md:col-span-1 bg-slate-900/80 border border-slate-700/50 rounded-3xl p-5 shadow-2xl relative flex flex-col justify-between items-center bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]">
+                        <div className="col-span-1 bg-slate-900/80 border border-slate-700/50 rounded-3xl p-5 shadow-2xl relative flex flex-col justify-between items-center bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]">
                             <h2 className="text-xs font-black uppercase tracking-widest text-emerald-500 mb-4 flex items-center gap-2 self-start w-full border-b border-slate-800 pb-3">
                                 <HeartPulse size={16} /> Cruz Segurança
                             </h2>
@@ -468,7 +468,7 @@ export default function CustomTVDashboardPage() {
                     )}
 
                     {opcoesLayout.showBottlenecks && metrics.gargalos.length > 0 && (
-                        <div className="col-span-2 md:col-span-1 bg-slate-900/80 border border-slate-700/50 rounded-3xl p-5 shadow-2xl">
+                        <div className="col-span-1 bg-slate-900/80 border border-slate-700/50 rounded-3xl p-5 shadow-2xl">
                             <h2 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3 flex items-center gap-2">
                                 <TrendingUp size={16} className="text-rose-500" /> Radar de Gargalos
                             </h2>
@@ -486,8 +486,8 @@ export default function CustomTVDashboardPage() {
                     )}
                 </section>
 
-                {/* RIGHT COL: DEDICATED ANDON SIDEBAR (Takes 3 columns) */}
-                <section className="col-span-3 flex flex-col h-full bg-slate-900 border-l border-slate-800 rounded-l-3xl overflow-hidden shadow-2xl relative">
+                {/* RIGHT COL: DEDICATED ANDON SIDEBAR (Shrunk to 2 columns) */}
+                <section className="col-span-2 flex flex-col h-full bg-slate-900 border-l border-slate-800 rounded-l-3xl overflow-hidden shadow-2xl relative">
 
                     {!temAlertaCritico ? (
                         <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-black/40">
