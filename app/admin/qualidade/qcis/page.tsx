@@ -65,6 +65,9 @@ export default function QcisAnalyticsDashboard() {
         } else {
             setAudits([]);
         }
+        setIsLoading(false);
+    };
+
     useEffect(() => {
         loadData();
     }, [selectedMonth, customStartDate, customEndDate]);
