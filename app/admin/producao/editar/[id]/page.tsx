@@ -10,8 +10,9 @@ import { fetchFormularioNovaOPData } from '../../nova/actions';
 import { getOrdemProducaoById, atualizarOrdemProducao } from './actions';
 import { useRouter } from 'next/navigation';
 
-export default function EditarOrdemProducao({ params }: { params: { id: string } }) {
+export default function EditarOrdemProducao(props: { params: Promise<{ id: string }> }) {
     const router = useRouter();
+    const params = React.use(props.params);
     const opId = params.id;
 
     // DB Data
