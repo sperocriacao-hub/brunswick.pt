@@ -33,7 +33,15 @@ export default function CustomTVDashboardPage() {
 
     useEffect(() => {
         const timer = setInterval(() => setTime(new Date()), 1000);
-        return () => clearInterval(timer);
+        
+        // Aumentar a resolução base do ecrã da TV (aumenta o tamanho de todos os rems em 25%)
+        document.documentElement.style.fontSize = '20px';
+
+        return () => {
+            clearInterval(timer);
+            // Reverter se sair da página
+            document.documentElement.style.fontSize = '16px';
+        };
     }, []);
 
     useEffect(() => {
@@ -110,12 +118,12 @@ export default function CustomTVDashboardPage() {
                 <header className="flex items-center justify-between border-b-[4px] border-slate-800 bg-slate-900/50 p-6 shadow-md z-10 shrink-0">
                     <div className="flex items-center gap-8">
                         <div className="flex items-center justify-center pr-2">
-                            <img src="/logo.png" alt="Logo" className="w-[240px] h-auto object-contain drop-shadow-xl" />
+                            <img src="/logo.png" alt="Logo" className="h-[3rem] w-auto object-contain drop-shadow-xl" />
                         </div>
                         <div>
-                            <h1 className="text-5xl font-black tracking-tighter uppercase text-white truncate max-w-4xl">{alvoNome}</h1>
-                            <p className="text-xl text-blue-400 font-bold tracking-widest uppercase flex items-center gap-3">
-                                <MonitorPlay size={20} className="text-blue-500" /> DATALINK: {nomeTv}
+                            <h1 className="text-5xl font-black tracking-tighter uppercase text-white truncate max-w-4xl leading-none">{alvoNome}</h1>
+                            <p className="text-[0.625rem] text-blue-400 font-bold tracking-widest uppercase flex items-center gap-1.5 mt-1.5 opacity-80">
+                                <MonitorPlay size={12} className="text-blue-500" /> DATALINK: {nomeTv}
                             </p>
                         </div>
                     </div>
@@ -148,12 +156,12 @@ export default function CustomTVDashboardPage() {
             <header className="flex items-center justify-between border-b-[4px] border-slate-800 bg-slate-900/50 p-6 shadow-md z-10 shrink-0">
                 <div className="flex items-center gap-8">
                     <div className="flex items-center justify-center pr-2">
-                        <img src="/logo.png" alt="Logo" className="w-[240px] h-auto object-contain drop-shadow-xl" />
+                        <img src="/logo.png" alt="Logo" className="h-[3rem] w-auto object-contain drop-shadow-xl" />
                     </div>
                     <div>
-                        <h1 className="text-5xl font-black tracking-tighter uppercase text-white truncate max-w-4xl">{alvoNome}</h1>
-                        <p className="text-xl text-blue-400 font-bold tracking-widest uppercase flex items-center gap-3">
-                            <MonitorPlay size={20} className="text-blue-500" /> DATALINK: {nomeTv}
+                        <h1 className="text-5xl font-black tracking-tighter uppercase text-white truncate max-w-4xl leading-none">{alvoNome}</h1>
+                        <p className="text-[0.625rem] text-blue-400 font-bold tracking-widest uppercase flex items-center gap-1.5 mt-1.5 opacity-80">
+                            <MonitorPlay size={12} className="text-blue-500" /> DATALINK: {nomeTv}
                         </p>
                     </div>
                 </div>
