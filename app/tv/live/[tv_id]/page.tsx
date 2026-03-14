@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
-import { AlertTriangle, Clock, Factory, MonitorPlay, ShieldCheck, Trophy, Target, TrendingUp, Zap, Clock4, CheckCircle2, UserX, Activity, HeartPulse, PackageCheck } from 'lucide-react';
+import { AlertTriangle, Clock, Factory, MonitorPlay, ShieldCheck, Trophy, Target, TrendingUp, Zap, Clock4, CheckCircle2, UserX, Activity, HeartPulse, PackageCheck, Award } from 'lucide-react';
 import { buscarDashboardsTV } from '../../actions';
 import KanbanBoard from '../../../admin/producao/planeamento/components/KanbanBoard';
 
