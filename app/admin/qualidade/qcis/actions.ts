@@ -29,11 +29,11 @@ export async function fetchQcisData(filters: {
         while (fetchMore) {
             let paginatedQuery = supabase.from('qcis_audits').select('*');
 
-            // Set default 30-day window to prevent massive DB dumps freezing the UI if no dates are selected
+            // Set default 7-day window to prevent massive DB dumps freezing the UI if no dates are selected
             let effectiveStartDate = filters.startDate;
             if (!filters.startDate && !filters.endDate) {
                 const d = new Date();
-                d.setDate(d.getDate() - 30);
+                d.setDate(d.getDate() - 8); // 8 days to comfortably fit the 6-day rolling window requirement
                 effectiveStartDate = d.toISOString().split('T')[0];
             }
 
