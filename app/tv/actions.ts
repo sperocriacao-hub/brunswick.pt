@@ -416,29 +416,40 @@ export async function buscarDashboardsTV(tv_id: string) {
                     }
                 }
 
-                // 2. Barcos Embalados Ontem
+                // 2. Barcos Embalados Ontem (Auditorias QCIS no dia de ontem na Subestação de Embalamento DPU)
                 const ontem = new Date();
                 ontem.setDate(ontem.getDate() - 1);
-                const startOntem = new Date(ontem.getFullYear(), ontem.getMonth(), ontem.getDate(), 0, 0, 0).toISOString();
-                const endOntem = new Date(ontem.getFullYear(), ontem.getMonth(), ontem.getDate(), 23, 59, 59).toISOString();
+                const dataOntemStr = new Date(ontem.getFullYear(), ontem.getMonth(), ontem.getDate()).toISOString().split('T')[0];
 
-                // Procurar Barcos Fechados Ontem (Status = COMPLETED e Updated nesse range)
-                let boatsQuery = supabase.from('ordens_producao')
-                    .select('id, op_numero, atualizado_em', { count: 'exact' })
-                    .eq('status', 'COMPLETED')
-                    .gte('atualizado_em', startOntem)
-                    .lte('atualizado_em', endOntem);
+                let boatsQuery = supabase.from('qcis_audits')
+                    .select('boat_id, substation_name')
+                    .eq('fail_date', dataOntemStr);
 
                 if (tipoAlvo === 'LINHA' && alvoId) {
-                    boatsQuery = boatsQuery.eq('linha_producao_id', alvoId);
+                    const lName = opcoesLayout.qcisLinha?.trim() || configTv.nome_alvo_resolvido;
+                    if (lName) {
+                        if (opcoesLayout.qcisLinha?.trim()) {
+                            boatsQuery = boatsQuery.eq('linha_linha', lName);
+                        } else {
+                            boatsQuery = boatsQuery.textSearch('linha_linha', lName);
+                        }
+                    }
                 }
 
-                const { count: barcosOntem } = await boatsQuery;
+                const { data: ontemData } = await boatsQuery;
+                
+                let countBarcosOntem = 0;
+                if (ontemData && ontemData.length > 0) {
+                    const targetDPU = (opcoesLayout.qcisSubstationDPU || 'inspecção final embalamento').toLowerCase();
+                    const embOntemAudits = ontemData.filter(a => (a.substation_name || '').toLowerCase().includes(targetDPU));
+                    const uniqueBoatsOntem = new Set(embOntemAudits.map(a => a.boat_id).filter(Boolean));
+                    countBarcosOntem = uniqueBoatsOntem.size;
+                }
 
                 advancedMetrics.qcisKpis = {
                     ftrPercent: ftrPercent,
                     dpuEmbalamento: dpuScore,
-                    barcosEmbaladosOntem: barcosOntem || 0
+                    barcosEmbaladosOntem: countBarcosOntem || 0
                 };
             } catch (errQCIS) {
                 console.error("QCIS Aggregation silent fail:", errQCIS);
