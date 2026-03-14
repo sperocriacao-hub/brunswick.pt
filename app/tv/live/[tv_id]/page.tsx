@@ -495,13 +495,13 @@ export default function CustomTVDashboardPage() {
                     {opcoesLayout.showOeeHh && metrics.eficienciaHh && (
                         <div className="col-span-1 bg-slate-900/80 border border-slate-700/50 rounded-3xl p-5 shadow-2xl relative flex flex-col justify-between items-center transition-all bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]">
                             <h2 className="text-xs font-black uppercase tracking-widest text-blue-400 mb-2 flex items-center gap-2 self-start w-full border-b border-slate-800 pb-2">
-                                <Award size={16} /> Mensal H/H
+                                <Award size={16} /> Eficiência
                             </h2>
                             <div className="flex flex-col items-center justify-center my-2">
-                                <span className={`text-4xl lg:text-5xl font-black ${(metrics.eficienciaHh.percentual || 0) >= 100 ? 'text-emerald-400' : (metrics.eficienciaHh.percentual || 0) >= 85 ? 'text-amber-400' : 'text-rose-400'}`}>
+                                <span className={`text-4xl lg:text-5xl font-black ${(metrics.eficienciaHh.percentual || 0) >= 75 ? 'text-emerald-400' : (metrics.eficienciaHh.percentual || 0) >= 60 ? 'text-amber-400' : 'text-rose-400'}`}>
                                     {(metrics.eficienciaHh.percentual || 0).toFixed(1)}%
                                 </span>
-                                <span className="text-slate-500 text-[10px] uppercase font-bold mt-1 tracking-widest">Target Eficiência</span>
+                                <span className="text-slate-500 text-[10px] uppercase font-bold mt-1 tracking-widest">Objetivo 75%</span>
                             </div>
                             <div className="w-full flex justify-between items-end mt-2 pt-3 border-t border-slate-800">
                                 <div>

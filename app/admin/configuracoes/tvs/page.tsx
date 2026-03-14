@@ -348,7 +348,7 @@ export default function TVConfiguracoesPage() {
                                     showSafeArea: "Ranking: Área Mais Segura (HST)",
                                     showBottlenecks: "Alerta em Tempo Real: Gargalos Atuais",
                                     showEfficiency: "Painel de Atrasos e Média Atual",
-                                    showOeeHh: "Eficiência Financeira/Horas (H/H)",
+                                    showOeeHh: "Eficiência (Objetivo 75%)",
                                     showAbsentismo: "Taxa de Absentismo em Tempo Real",
                                     showSafetyCross: "Cruz de Segurança (Safety Cross)",
                                     showHstKpis: "Conformidade Fabril e Segurança Diária",
