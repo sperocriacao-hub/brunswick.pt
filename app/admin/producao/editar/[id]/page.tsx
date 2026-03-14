@@ -6,7 +6,8 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { fetchFormularioNovaOPData, getOrdemProducaoById, atualizarOrdemProducao } from './actions';
+import { fetchFormularioNovaOPData } from '../../nova/actions';
+import { getOrdemProducaoById, atualizarOrdemProducao } from './actions';
 import { useRouter } from 'next/navigation';
 
 export default function EditarOrdemProducao({ params }: { params: { id: string } }) {

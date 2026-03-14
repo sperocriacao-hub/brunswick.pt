@@ -7,9 +7,6 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-// Re-use the existing master data fetcher from the Nova section
-export { fetchFormularioNovaOPData } from '../../nova/actions';
-
 export async function getOrdemProducaoById(id: string) {
     try {
         const { data, error } = await supabase
