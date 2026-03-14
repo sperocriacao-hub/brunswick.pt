@@ -100,11 +100,22 @@ export async function POST(req: NextRequest) {
            return dateStr;
         };
 
-        // Algoritmo de Hashing para injetar um UUID Primário IDêntico determinístico 
-        // evitando duplicação cega no DB cada vez que o mesmo Excel for importado repetidamente.
+        // Algoritmo de Hashing Sequencial para injetar um UUID determinístico
+        // que respeita múltiplas linhas estritamente iguais no mesmo ficheiro (ex: 57 defeitos iguais no mesmo barco).
+        const payloadCounter = new Map<string, number>();
+
         const generateDeterministicUUID = (payload: any) => {
             const str = JSON.stringify(payload);
-            const hash = crypto.createHash('md5').update(str).digest('hex');
+            
+            // Generate base hash to count occurrences
+            const baseHash = crypto.createHash('md5').update(str).digest('hex');
+            const count = payloadCounter.get(baseHash) || 0;
+            payloadCounter.set(baseHash, count + 1);
+
+            // Create unique hash incorporating the sequence order
+            const finalStr = str + "_" + count;
+            const hash = crypto.createHash('md5').update(finalStr).digest('hex');
+            
             return `${hash.substring(0,8)}-${hash.substring(8,12)}-4${hash.substring(13,16)}-a${hash.substring(17,20)}-${hash.substring(20,32)}`;
         };
 
