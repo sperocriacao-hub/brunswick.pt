@@ -17,10 +17,8 @@ export async function fetchQcisData(filters: {
     categoria?: string,
     _cacheBuster?: string 
 } = {}) {
-    noStore(); // Desativa ativamente a cache agressiva do Next.js para pedidos Server-Side do Supabase
+    noStore(); // Desativa ativamente a cache agressiva do Next.js
     try {
-        // PostgREST limits queries to 1000 rows by default. Factory data easily exceeds this in 3 days.
-        // We must implement automatic range pagination to extract the entire month.
         let allData: any[] = [];
         let from = 0;
         const step = 1000;
@@ -29,16 +27,17 @@ export async function fetchQcisData(filters: {
         while (fetchMore) {
             let paginatedQuery = supabase.from('qcis_audits').select('*');
 
-            // Set default 7-day window to prevent massive DB dumps freezing the UI if no dates are selected
+            // Default fallback just in case the UI fails to send one
             let effectiveStartDate = filters.startDate;
+            let effectiveEndDate = filters.endDate;
             if (!filters.startDate && !filters.endDate) {
-                const d = new Date();
-                d.setDate(d.getDate() - 8); // 8 days to comfortably fit the 6-day rolling window requirement
-                effectiveStartDate = d.toISOString().split('T')[0];
+                const now = new Date();
+                effectiveStartDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+                effectiveEndDate = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
             }
 
             if (effectiveStartDate) paginatedQuery = paginatedQuery.gte('fail_date', effectiveStartDate);
-            if (filters.endDate) paginatedQuery = paginatedQuery.lte('fail_date', filters.endDate);
+            if (effectiveEndDate) paginatedQuery = paginatedQuery.lte('fail_date', effectiveEndDate);
             if (filters.linha) paginatedQuery = paginatedQuery.eq('linha_linha', filters.linha);
             if (filters.modelo) paginatedQuery = paginatedQuery.eq('model_ref', filters.modelo);
             if (filters.gate) paginatedQuery = paginatedQuery.eq('lista_gate', filters.gate);
@@ -54,13 +53,12 @@ export async function fetchQcisData(filters: {
                 allData = [...allData, ...data];
                 from += step;
                 if (data.length < step) {
-                    fetchMore = false; // Last page reached
+                    fetchMore = false; 
                 }
             } else {
                 fetchMore = false;
             }
 
-            // Safety break against infinite loops > 100k records (100 pages)
             if (allData.length >= 100000) {
                 fetchMore = false;
             }
