@@ -272,9 +272,9 @@ export default function CustomTVDashboardPage() {
                 </section>
 
                 {/* CENTER COL: NASA WIDGETS (Takes 6 columns to fit more) */}
-                <section className="col-span-6 grid grid-cols-2 auto-rows-min gap-4 overflow-y-auto pr-2 pb-6 w-full relative">
+                <section className="col-span-6 grid grid-cols-3 auto-rows-min gap-4 overflow-y-auto pr-2 pb-6 w-full relative">
                     {opcoesLayout.showOeeDay && (
-                        <div className="col-span-2 bg-slate-900/80 border border-slate-700/50 rounded-3xl p-4 shadow-2xl relative overflow-hidden flex flex-col gap-3">
+                        <div className="col-span-3 bg-slate-900/80 border border-slate-700/50 rounded-3xl p-4 shadow-2xl relative overflow-hidden flex flex-col gap-3">
                             <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 blur-3xl rounded-full"></div>
                             <h2 className="text-xl font-bold uppercase tracking-widest text-slate-400 flex items-center gap-2">
                                 <Target size={24} className="text-blue-400" /> Rendimento Global
