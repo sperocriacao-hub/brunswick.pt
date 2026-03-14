@@ -1,11 +1,11 @@
 'use client';
 
 import React, { useEffect, useState, useMemo } from 'react';
-import { Layers, Activity, AlertTriangle, Filter, ShieldAlert, BarChart3 } from 'lucide-react';
+import { Layers, Activity, AlertTriangle, Filter, ShieldAlert, BarChart3, Target, CheckCircle2 } from 'lucide-react';
 import { fetchQcisData } from './actions';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, CartesianGrid } from 'recharts';
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, CartesianGrid, Cell } from 'recharts';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 type QcisAudit = {
@@ -46,7 +46,8 @@ export default function QcisAnalyticsDashboard() {
     const loadData = async () => {
         setIsLoading(true);
         const [year, month] = selectedMonth.split('-');
-        // Limita o download à API estritamente para o Mês Selecionado (Impede latência)
+        
+        // Limita o download à API estritamente para o Mês Selecionado
         const startDate = new Date(Number(year), Number(month) - 1, 1).toISOString().split('T')[0];
         const endDate = new Date(Number(year), Number(month), 0).toISOString().split('T')[0];
 
@@ -88,47 +89,74 @@ export default function QcisAnalyticsDashboard() {
         });
     }, [audits, filterModelo, filterLinha, filterGate, filterCategoria]);
 
-    // 2. O CORAÇÃO V8: Extrair apenas os ÚLTIMOS 3 DIAS ATIVOS
-    const { active3Days, last3DaysData } = useMemo(() => {
+    // 2. O CORAÇÃO V8.1: Extrair apenas os ÚLTIMOS 6 DIAS ATIVOS
+    const { active6Days, last6DaysData } = useMemo(() => {
         const uniqueDates = Array.from(new Set(filteredBase.map(a => a.fail_date ? a.fail_date.split('T')[0] : null).filter(Boolean) as string[]));
         uniqueDates.sort((a, b) => b.localeCompare(a)); // Descending
-        const active3Days = uniqueDates.slice(0, 3).reverse(); // Chronological for charts
-        const active3Set = new Set(active3Days);
+        const active6Days = uniqueDates.slice(0, 6).reverse(); // Chronological for charts (6 Days)
+        const active6Set = new Set(active6Days);
         
-        const last3DaysData = filteredBase.filter(a => {
+        const last6DaysData = filteredBase.filter(a => {
             const dStr = a.fail_date ? a.fail_date.split('T')[0] : null;
-            return dStr && active3Set.has(dStr);
+            return dStr && active6Set.has(dStr);
         });
 
-        return { active3Days, last3DaysData };
+        return { active6Days, last6DaysData };
     }, [filteredBase]);
 
-    // Opções Dinamicas dos Dropdowns
+    // Opções Dinamicas dos Dropdowns (da base de dados do mes)
     const modelosUnicos = Array.from(new Set(filteredBase.map(a => a.model_ref).filter(Boolean))).sort();
     const linhasUnicas = Array.from(new Set(filteredBase.map(a => a.linha_linha).filter(Boolean))).sort();
     const gatesUnicos = Array.from(new Set(filteredBase.map(a => a.lista_gate).filter(Boolean))).sort();
     const categoriasUnicas = Array.from(new Set(filteredBase.map(a => a.lista_categoria).filter(Boolean))).sort();
 
-    // --- KPIs Globais (Apenas 3 Dias) ---
-    const totalDefeitos = last3DaysData.reduce((acc, curr) => acc + (curr.count_of_defects || 0), 0);
-    const totalBarcosUnicos = new Set(last3DaysData.map(a => a.boat_id).filter(Boolean)).size;
+    // --- MÁQUINAS MATEMÁTICAS GLOBAIS (Sobre os dados de 6 Dias) ---
+    
+    // KPI Clássicos
+    const totalDefeitos = last6DaysData.reduce((acc, curr) => acc + (curr.count_of_defects || 0), 0);
+    const totalBarcosUnicos = new Set(last6DaysData.map(a => a.boat_id).filter(Boolean)).size;
 
-    // Matriz 1: Modelos vs Gates (3 Dias)
+    // KPI: DPU Global (Defects Per Unit)
+    const globalDPU = totalBarcosUnicos > 0 ? (totalDefeitos / totalBarcosUnicos).toFixed(2) : "0.00";
+
+    // KPI: FTR Global % (First Time Rate - Apenas Testes Funcionais)
+    const globalFTR = useMemo(() => {
+        const ftrAudits = last6DaysData.filter(a => (a.substation_name || '').toLowerCase().includes('testes funcionais'));
+        if (ftrAudits.length === 0) return "N/A";
+        
+        const totalBoats = new Set(ftrAudits.map(a => a.boat_id).filter(Boolean)).size;
+        const zeroBoats = new Set(
+            ftrAudits.filter(a => {
+                const s = (a.seccao || '').toLowerCase();
+                return s.includes('zero') || s.includes('100%');
+            }).map(a => a.boat_id).filter(Boolean)
+        ).size;
+        
+        if (totalBoats === 0) return "0%";
+        return `${Math.round((zeroBoats / totalBoats) * 100)}%`;
+    }, [last6DaysData]);
+
+    // Formatador utilitário de Mês
+    const fmtDate = (str: string) => str.split('-').reverse().slice(0,2).join('/'); // DD/MM
+
+    // MATRIZ OPERACIONAL (Fail Date vs Quality Gates)
     const { heatmapMatrix, heatmapGates } = useMemo(() => {
         const matrix: Record<string, Record<string, number>> = {};
         const gatesSet = new Set<string>();
 
-        last3DaysData.forEach(a => {
-            const model = a.model_ref || 'Desconhecido';
+        last6DaysData.forEach(a => {
+            const dateStr = a.fail_date ? fmtDate(a.fail_date.split('T')[0]) : 'S/ Data';
             const gate = a.lista_gate || 'S/ Gate';
             gatesSet.add(gate);
-            if (!matrix[model]) matrix[model] = {};
-            matrix[model][gate] = (matrix[model][gate] || 0) + (a.count_of_defects || 0);
+            
+            if (!matrix[dateStr]) matrix[dateStr] = {};
+            matrix[dateStr][gate] = (matrix[dateStr][gate] || 0) + (a.count_of_defects || 0);
         });
+        
         return { heatmapMatrix: matrix, heatmapGates: Array.from(gatesSet).sort() };
-    }, [last3DaysData]);
+    }, [last6DaysData]);
 
-    // Matemáticas de Subestações
+    // Matemáticas de Subestações (Chronologic Lines)
     const { chartEmbalamento, chartTestes, chartPD, uniqueChartLinhas } = useMemo(() => {
         const linhasSet = new Set<string>();
         
@@ -141,13 +169,13 @@ export default function QcisAnalyticsDashboard() {
         
         const pdMap: Record<string, Record<string, number>> = {};
 
-        active3Days.forEach(d => {
+        active6Days.forEach(d => {
             embMap[d] = {}; embBoats[d] = {};
             ftrMap[d] = {}; ftrZero[d] = {}; ftrTotal[d] = {};
             pdMap[d] = {};
         });
 
-        last3DaysData.forEach(a => {
+        last6DaysData.forEach(a => {
             if (!a.linha_linha) return;
             const dStr = a.fail_date.split('T')[0];
             const linha = a.linha_linha.trim();
@@ -184,7 +212,7 @@ export default function QcisAnalyticsDashboard() {
         });
 
         // Compute Averages per Day
-        active3Days.forEach(d => {
+        active6Days.forEach(d => {
             let sumPdu = 0; let actEmb = 0;
             let sumFtr = 0; let actFtr = 0;
 
@@ -212,8 +240,7 @@ export default function QcisAnalyticsDashboard() {
             if (actFtr > 0) ftrMap[d]['Tendência Global'] = Math.round(sumFtr / actFtr);
         });
 
-        const fmtDate = (str: string) => str.split('-').reverse().slice(0,2).join('/'); // DD/MM
-        const fData = (mapBase: any) => active3Days.map(d => ({ name: fmtDate(d), ...mapBase[d] }));
+        const fData = (mapBase: any) => active6Days.map(d => ({ name: fmtDate(d), ...mapBase[d] }));
 
         return { 
             chartEmbalamento: fData(embMap), 
@@ -221,28 +248,42 @@ export default function QcisAnalyticsDashboard() {
             chartPD: fData(pdMap),
             uniqueChartLinhas: Array.from(linhasSet).sort()
         };
-    }, [last3DaysData, active3Days]);
+    }, [last6DaysData, active6Days]);
+
+    // PARETO: Top Defeitos (Descrições mais penalizadoras)
+    const paretoData = useMemo(() => {
+        const counter: Record<string, number> = {};
+        last6DaysData.forEach(a => {
+            const desc = a.defect_description || a.peca || 'Sem Descrição';
+            counter[desc] = (counter[desc] || 0) + (a.count_of_defects || 0);
+        });
+        return Object.entries(counter)
+            .map(([name, value]) => ({ name, value }))
+            .sort((a,b) => b.value - a.value)
+            .slice(0, 50); // Top 50 Ofensores
+    }, [last6DaysData]);
 
     const getColor = (idx: number, total: number) => `hsl(${idx * (360 / total)}, 70%, 50%)`;
 
     if (isLoading) {
-        return <div className="p-8 text-center text-slate-400 animate-pulse flex flex-col items-center justify-center h-screen border-slate-900 bg-[#020617]"><Layers size={48} className="text-slate-700 mb-4 animate-spin"/><div>A extrair dados imaculados V8 da Supabase...</div></div>;
+        return <div className="p-8 text-center text-slate-400 animate-pulse flex flex-col items-center justify-center h-screen border-slate-900 bg-[#020617]"><Layers size={48} className="text-slate-700 mb-4 animate-spin"/><div>A extrair dados QCIS Dashboard...</div></div>;
     }
 
     return (
         <div className="p-6 md:p-8 flex flex-col gap-6 bg-[#020617] min-h-[calc(100vh-64px)] overflow-y-auto text-slate-200">
+            
             {/* CABEÇALHO */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-800 pb-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-                        <ShieldAlert className="text-rose-500" /> QCIS Dashboard (V8 Clean Slate)
+                    <h1 className="text-2xl font-bold text-slate-100 flex items-center gap-2">
+                        <ShieldAlert className="text-rose-500" /> QCIS Dashboard
                     </h1>
-                    <p className="text-slate-400 text-sm mt-1">Cálculos Exatos e Isolados dos últimos 3 dias Úteis do Mês.</p>
+                    <p className="text-slate-400 text-sm mt-1">Cálculos Exatos e Isolados da Amostragem dos Últimos 6 Dias.</p>
                 </div>
                 <select 
                     value={selectedMonth} 
                     onChange={e => setSelectedMonth(e.target.value)}
-                    className="bg-slate-900 border border-slate-700 text-white rounded-lg px-4 py-2 font-medium"
+                    className="bg-slate-900 border border-slate-700 text-slate-200 rounded-lg px-4 py-2 font-medium"
                 >
                     {monthsDropdown.map(m => <option key={m.val} value={m.val}>{m.label}</option>)}
                 </select>
@@ -252,76 +293,114 @@ export default function QcisAnalyticsDashboard() {
             <div className="flex flex-wrap items-center gap-4 bg-slate-900 border border-slate-800 p-4 rounded-xl shadow-lg">
                 <div className="flex items-center gap-2 text-slate-400 hidden lg:flex"><Filter size={18}/><span className="text-sm font-semibold">Filtros Globais</span></div>
                 
-                <select value={filterModelo} onChange={e => setFilterModelo(e.target.value)} className="bg-slate-950 border border-slate-700 rounded px-3 py-1.5 text-sm font-medium text-slate-200 outline-none">
+                <select value={filterModelo} onChange={e => setFilterModelo(e.target.value)} className="bg-slate-950 border border-slate-700 rounded px-3 py-1.5 text-sm font-medium text-slate-300 outline-none">
                     <option value="">Todos os Modelos</option>{modelosUnicos.map(x => <option key={x} value={x}>{x}</option>)}
                 </select>
-                <select value={filterLinha} onChange={e => setFilterLinha(e.target.value)} className="bg-slate-950 border border-slate-700 rounded px-3 py-1.5 text-sm font-medium text-slate-200 outline-none">
+                <select value={filterLinha} onChange={e => setFilterLinha(e.target.value)} className="bg-slate-950 border border-slate-700 rounded px-3 py-1.5 text-sm font-medium text-slate-300 outline-none">
                     <option value="">Todas as Linhas</option>{linhasUnicas.map(x => <option key={x} value={x}>{x}</option>)}
                 </select>
-                <select value={filterGate} onChange={e => setFilterGate(e.target.value)} className="bg-slate-950 border border-slate-700 rounded px-3 py-1.5 text-sm font-medium text-slate-200 outline-none">
+                <select value={filterGate} onChange={e => setFilterGate(e.target.value)} className="bg-slate-950 border border-slate-700 rounded px-3 py-1.5 text-sm font-medium text-slate-300 outline-none">
                     <option value="">Todos os Gates</option>{gatesUnicos.map(x => <option key={x} value={x}>{x}</option>)}
                 </select>
-                <select value={filterCategoria} onChange={e => setFilterCategoria(e.target.value)} className="bg-slate-950 border border-slate-700 rounded px-3 py-1.5 text-sm font-medium text-slate-200 outline-none">
+                <select value={filterCategoria} onChange={e => setFilterCategoria(e.target.value)} className="bg-slate-950 border border-slate-700 rounded px-3 py-1.5 text-sm font-medium text-slate-300 outline-none">
                     <option value="">Todas as Categorias</option>{categoriasUnicas.map(x => <option key={x} value={x}>{x}</option>)}
                 </select>
             </div>
 
-            {/* KPIS (3 Dias) */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* KPIS DE TOPO */}
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-4">
                  <Card className="bg-slate-900 border-slate-800 shadow-xl relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-4 opacity-10"><AlertTriangle size={64} /></div>
-                    <CardHeader className="pb-2"><CardTitle className="text-slate-400 text-sm font-semibold uppercase tracking-wider">Defeitos Capturados</CardTitle></CardHeader>
-                    <CardContent><p className="text-4xl font-bold text-white">{totalDefeitos}</p></CardContent>
+                    <div className="absolute top-0 right-0 p-4 opacity-5"><AlertTriangle size={64} /></div>
+                    <CardHeader className="pb-1"><CardTitle className="text-slate-400 text-xs font-semibold uppercase tracking-wider">Defeitos Capturados</CardTitle></CardHeader>
+                    <CardContent><p className="text-2xl lg:text-3xl font-bold text-slate-100">{totalDefeitos}</p></CardContent>
                 </Card>
                 <Card className="bg-slate-900 border-slate-800 shadow-xl relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-4 opacity-10"><Layers size={64} /></div>
-                    <CardHeader className="pb-2"><CardTitle className="text-slate-400 text-sm font-semibold uppercase tracking-wider">Barcos Únicos Testados</CardTitle></CardHeader>
-                    <CardContent><p className="text-4xl font-bold text-white">{totalBarcosUnicos}</p></CardContent>
+                    <div className="absolute top-0 right-0 p-4 opacity-5"><Layers size={64} /></div>
+                    <CardHeader className="pb-1"><CardTitle className="text-slate-400 text-xs font-semibold uppercase tracking-wider">Barcos Únicos Testados</CardTitle></CardHeader>
+                    <CardContent><p className="text-2xl lg:text-3xl font-bold text-slate-100">{totalBarcosUnicos}</p></CardContent>
                 </Card>
-                <Card className="bg-slate-900 border-slate-800 shadow-xl relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-4 opacity-10"><BarChart3 size={64} /></div>
-                    <CardHeader className="pb-2"><CardTitle className="text-slate-400 text-sm font-semibold uppercase tracking-wider">Histórico Avaliado</CardTitle></CardHeader>
-                    <CardContent><p className="text-2xl font-bold text-emerald-400 mt-2">{active3Days.length > 0 ? active3Days.map(d=>d.split('-').reverse().slice(0,2).join('/')).join(' | ') : 'Sem dados'}</p></CardContent>
+                <Card className="bg-slate-900 border-slate-800 shadow-xl relative overflow-hidden ring-1 ring-emerald-500/20">
+                    <div className="absolute top-0 right-0 p-4 opacity-10 text-emerald-500"><CheckCircle2 size={64} /></div>
+                    <CardHeader className="pb-1"><CardTitle className="text-slate-400 text-xs font-semibold uppercase tracking-wider">FTR Global Acumulado</CardTitle></CardHeader>
+                    <CardContent><p className="text-2xl lg:text-3xl font-bold text-emerald-400">{globalFTR}</p></CardContent>
+                </Card>
+                <Card className="bg-slate-900 border-slate-800 shadow-xl relative overflow-hidden ring-1 ring-rose-500/20">
+                    <div className="absolute top-0 right-0 p-4 opacity-10 text-rose-500"><Target size={64} /></div>
+                    <CardHeader className="pb-1"><CardTitle className="text-slate-400 text-xs font-semibold uppercase tracking-wider">DPU Global (Soma/Barco)</CardTitle></CardHeader>
+                    <CardContent><p className="text-2xl lg:text-3xl font-bold text-rose-400">{globalDPU}</p></CardContent>
                 </Card>
             </div>
 
-            {/* MATRIZ GATES VS MODELO */}
-            <Card className="bg-slate-900 border-slate-800 shadow-xl">
-                <CardHeader><CardTitle className="text-white">Matriz Operacional: Modelos vs Quality Gates</CardTitle></CardHeader>
-                <CardContent className="overflow-x-auto custom-scrollbar pb-4">
-                    {Object.keys(heatmapMatrix).length > 0 ? (
-                    <Table className="min-w-max">
-                        <TableHeader>
-                            <TableRow className="border-slate-800 hover:bg-transparent">
-                                <TableHead className="text-slate-400 min-w-[150px] font-semibold">Modelo</TableHead>
-                                {heatmapGates.map(g => <TableHead key={g} className="text-center text-slate-400 font-semibold">{g}</TableHead>)}
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {Object.keys(heatmapMatrix).sort().map(model => (
-                                <TableRow key={model} className="border-slate-800 hover:bg-slate-800/50">
-                                    <TableCell className="font-medium text-slate-200">{model}</TableCell>
-                                    {heatmapGates.map(gate => {
-                                        const v = heatmapMatrix[model][gate] || 0;
-                                        return (
-                                            <TableCell key={gate} className="text-center">
-                                                {v > 0 ? <Badge className={`${v > 15 ? 'bg-rose-500/20 text-rose-400 hover:bg-rose-500/30' : 'bg-orange-500/20 text-orange-400 hover:bg-orange-500/30'} font-bold`}>{v}</Badge> : <span className="text-slate-700">-</span>}
-                                            </TableCell>
-                                        )
-                                    })}
+            {/* MATRIZ GATES VS DATA E PARETO */}
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                
+                {/* MATRIZ OPERACIONAL (Fail Date vs Quality Gates) */}
+                <Card className="bg-slate-900 border-slate-800 shadow-xl xl:col-span-2">
+                    <CardHeader><CardTitle className="text-slate-200">Matriz Operacional: Fail Date vs Quality Gates</CardTitle></CardHeader>
+                    <CardContent className="overflow-x-auto custom-scrollbar pb-4 max-h-[400px] overflow-y-auto">
+                        {Object.keys(heatmapMatrix).length > 0 ? (
+                        <Table className="min-w-max">
+                            <TableHeader>
+                                <TableRow className="border-slate-800 hover:bg-transparent">
+                                    <TableHead className="text-slate-400 min-w-[120px] font-semibold sticky left-0 bg-slate-900 shadow-[1px_0_0_0_#1e293b] z-10">Data</TableHead>
+                                    {heatmapGates.map(g => <TableHead key={g} className="text-center text-slate-400 font-semibold max-w-[150px] truncate" title={g}>{g}</TableHead>)}
                                 </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                    ) : <div className="text-slate-500 py-6 text-center italic">Nenhuma anomalia listada nos últimos 3 dias úteis.</div>}
-                </CardContent>
-            </Card>
+                            </TableHeader>
+                            <TableBody>
+                                {active6Days.map(dRaw => {
+                                    const dateStr = fmtDate(dRaw);
+                                    if(!heatmapMatrix[dateStr]) return null;
+                                    
+                                    return (
+                                        <TableRow key={dateStr} className="border-slate-800 hover:bg-slate-800/50">
+                                            <TableCell className="font-medium text-slate-300 sticky left-0 bg-slate-900 shadow-[1px_0_0_0_#1e293b] z-10">{dateStr}</TableCell>
+                                            {heatmapGates.map(gate => {
+                                                const v = heatmapMatrix[dateStr][gate] || 0;
+                                                return (
+                                                    <TableCell key={gate} className="text-center">
+                                                        {v > 0 ? <Badge className={`${v > 15 ? 'bg-rose-500/20 text-rose-400 hover:bg-rose-500/30' : 'bg-orange-500/20 text-orange-400 hover:bg-orange-500/30'} font-bold`}>{v}</Badge> : <span className="text-slate-700">-</span>}
+                                                    </TableCell>
+                                                )
+                                            })}
+                                        </TableRow>
+                                    )
+                                })}
+                            </TableBody>
+                        </Table>
+                        ) : <div className="text-slate-500 py-6 text-center italic">Sem anomalias neste período.</div>}
+                    </CardContent>
+                </Card>
 
-            {/* 3 GRÁFICOS INFERIORES */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-12">
+                {/* PARETO DOS DEFEITOS */}
+                <Card className="bg-slate-900 border-slate-800 shadow-xl xl:col-span-1">
+                    <CardHeader><CardTitle className="text-slate-200">Top Ofensores (Pareto)</CardTitle></CardHeader>
+                    <CardContent className="h-[350px]">
+                        {paretoData.length > 0 ? (
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={paretoData.slice(0, 10)} layout="vertical" margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
+                                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#1e293b" />
+                                    <XAxis type="number" stroke="#94a3b8" fontSize={11} />
+                                    <YAxis dataKey="name" type="category" width={120} stroke="#94a3b8" fontSize={11} tickFormatter={(v) => v.length > 15 ? v.substring(0, 15) + '...' : v} />
+                                    <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', color: '#fff', borderRadius: '8px' }} />
+                                    <Bar dataKey="value" fill="#6366f1" radius={[0, 4, 4, 0]}>
+                                        {paretoData.slice(0, 10).map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={index === 0 ? '#ef4444' : '#6366f1'} />
+                                        ))}
+                                    </Bar>
+                                </BarChart>
+                            </ResponsiveContainer>
+                        ) : <div className="h-full flex items-center justify-center text-slate-600 italic">Sem ofensores</div>}
+                    </CardContent>
+                </Card>
+
+            </div>
+
+            {/* 3 GRÁFICOS INFERIORES DE LINHAS (Subestações Críticas) */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                
                 {/* EMBALAMENTO */}
                 <Card className="bg-slate-900 border-slate-800 shadow-xl">
-                    <CardHeader><CardTitle className="text-white text-lg font-bold">Inspecção Final Embalamento (PDU)</CardTitle></CardHeader>
+                    <CardHeader><CardTitle className="text-slate-200 text-lg font-bold">Inspecção Final Embalamento (PDU)</CardTitle></CardHeader>
                     <CardContent className="h-80">
                         {chartEmbalamento.length > 0 ? (
                             <ResponsiveContainer width="100%" height="100%">
@@ -343,7 +422,7 @@ export default function QcisAnalyticsDashboard() {
 
                 {/* TESTES FUNCIONAIS (FTR) */}
                 <Card className="bg-slate-900 border-slate-800 shadow-xl">
-                    <CardHeader><CardTitle className="text-white text-lg font-bold">Testes Funcionais (FTR %)</CardTitle></CardHeader>
+                    <CardHeader><CardTitle className="text-slate-200 text-lg font-bold">Testes Funcionais (FTR %)</CardTitle></CardHeader>
                     <CardContent className="h-80">
                         {chartTestes.length > 0 ? (
                             <ResponsiveContainer width="100%" height="100%">
@@ -352,7 +431,7 @@ export default function QcisAnalyticsDashboard() {
                                     <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} tickMargin={8} />
                                     <YAxis domain={[0, 100]} tickFormatter={(v)=>`${v}%`} stroke="#94a3b8" fontSize={11} />
                                     {/* @ts-ignore */}
-                                    <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', color: '#fff', borderRadius: '8px' }} formatter={(value: any) => [`${value}%`, '']} />
+                                    <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', color: '#fff', borderRadius: '8px' }} formatter={(v: any) => [`${v}%`, '']} />
                                     <Legend wrapperStyle={{ fontSize: '13px', paddingTop: '10px' }} />
                                     {uniqueChartLinhas.map((linha, idx) => (
                                         <Line key={linha} type="monotone" dataKey={linha} stroke={getColor(idx, uniqueChartLinhas.length)} strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
@@ -366,7 +445,7 @@ export default function QcisAnalyticsDashboard() {
 
                 {/* P&D */}
                 <Card className="bg-slate-900 border-slate-800 shadow-xl col-span-1 lg:col-span-2">
-                    <CardHeader><CardTitle className="text-white text-lg font-bold flex items-center gap-2"><Activity className="text-fuchsia-400" /> P&D (Defeitos Totais)</CardTitle></CardHeader>
+                    <CardHeader><CardTitle className="text-slate-200 text-lg font-bold flex items-center gap-2"><Activity className="text-fuchsia-400" /> P&D (Defeitos Totais)</CardTitle></CardHeader>
                     <CardContent className="h-80">
                         {chartPD.length > 0 ? (
                             <ResponsiveContainer width="100%" height="100%">
@@ -384,7 +463,47 @@ export default function QcisAnalyticsDashboard() {
                         ) : <div className="h-full flex items-center justify-center text-slate-600 italic">Sem dados neste período</div>}
                     </CardContent>
                 </Card>
+
             </div>
+
+            {/* TABELA DE DADOS RAW */}
+            <Card className="bg-slate-900 border-slate-800 shadow-xl">
+                 <CardHeader><CardTitle className="text-slate-200">Lista Histórica de Auditorias (Período Ativo)</CardTitle></CardHeader>
+                 <CardContent>
+                     <div className="overflow-x-auto border border-slate-800 rounded-lg max-h-[500px] overflow-y-auto">
+                        <Table>
+                            <TableHeader className="bg-slate-800/50 sticky top-0 z-10 backdrop-blur">
+                                <TableRow className="border-slate-700">
+                                    <TableHead className="text-slate-300">Data</TableHead>
+                                    <TableHead className="text-slate-300">Boat ID</TableHead>
+                                    <TableHead className="text-slate-300">Gate</TableHead>
+                                    <TableHead className="text-slate-300">Substation</TableHead>
+                                    <TableHead className="text-slate-300">Secção</TableHead>
+                                    <TableHead className="text-slate-300">Peça</TableHead>
+                                    <TableHead className="text-slate-300">Defeitos</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {last6DaysData.length > 0 ? last6DaysData.slice(0, 100).map((a, i) => (
+                                    <TableRow key={a.id || i} className="border-slate-800 hover:bg-slate-800/30">
+                                        <TableCell className="text-slate-300">{a.fail_date ? fmtDate(a.fail_date.split('T')[0]) : 'N/A'}</TableCell>
+                                        <TableCell className="font-medium text-blue-400">{a.boat_id}</TableCell>
+                                        <TableCell className="text-slate-300">{a.lista_gate || '-'}</TableCell>
+                                        <TableCell className="text-slate-300 max-w-[150px] truncate" title={a.substation_name}>{a.substation_name || '-'}</TableCell>
+                                        <TableCell className="text-slate-300">{a.seccao || '-'}</TableCell>
+                                        <TableCell className="text-slate-300 max-w-[200px] truncate" title={a.peca}>{a.peca || '-'}</TableCell>
+                                        <TableCell className="font-bold text-center text-rose-400">{a.count_of_defects || 0}</TableCell>
+                                    </TableRow>
+                                )) : (
+                                    <TableRow><TableCell colSpan={7} className="text-center py-6 text-slate-500 italic">Sem auditorias na seleção atual</TableCell></TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
+                    {last6DaysData.length > 100 && <div className="text-right text-xs text-slate-500 mt-2">Mostrando as primeiras 100 linhas ativas.</div>}
+                 </CardContent>
+            </Card>
+
         </div>
     );
 }
