@@ -174,32 +174,52 @@ export default function CustomTVDashboardPage() {
                 </div>
             </header>
 
-            {/* --- AREA ANDON NOTIFICATION BAR (RADAR NASA) --- */}
+            {/* --- AREA ANDON NOTIFICATION BAR (RADAR NASA 3D) --- */}
             {radarEstacoes.length > 0 && (
-                <div className={`w-full shadow-[inset_0_4px_10px_rgba(0,0,0,0.5)] flex items-center border-b border-slate-800 transition-colors duration-1000 z-10 shrink-0 select-none ${radarEstacoes.some(a => a.hasAndon) ? 'bg-gradient-to-r from-slate-900 via-red-950/40 to-slate-900 border-red-900/50' : 'bg-slate-950/80'} ${tipoAlvo === 'GERAL' ? 'justify-between flex-nowrap gap-1 py-1.5 px-3 overflow-hidden' : 'justify-center flex-wrap gap-4 px-6 py-3'}`}>
-                    {radarEstacoes.map(station => (
-                        <div key={station.id} className={`flex items-center gap-2 px-3 py-1 rounded-full border transition-all duration-500 ${tipoAlvo === 'GERAL' ? 'flex-1 min-w-0 justify-center max-w-[140px]' : 'shrink-0 min-w-[150px] px-4 py-1.5'} ${station.hasAndon ? 'bg-red-950/80 border-red-500/60 shadow-[0_0_15px_rgba(220,38,38,0.2)]' : 'bg-slate-900/60 border-slate-800/60 opacity-60'}`}>
-                            {station.hasAndon ? (
-                                <div className={`relative flex shrink-0 ${tipoAlvo === 'GERAL' ? 'h-2 w-2' : 'h-4 w-4'}`}>
-                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                                    <span className={`relative inline-flex rounded-full bg-red-600 border border-red-400 shadow-[0_0_10px_rgba(239,68,68,0.8)] ${tipoAlvo === 'GERAL' ? 'h-2 w-2' : 'h-4 w-4'}`}></span>
+                <div className={`w-full relative shadow-[inset_0_10px_20px_rgba(0,0,0,0.8)] border-b-[3px] border-t-[3px] transition-colors duration-1000 z-10 shrink-0 select-none overflow-hidden ${radarEstacoes.some(a => a.hasAndon) ? 'bg-slate-900 border-y-red-950/80 shadow-[inset_0_0_50px_rgba(220,38,38,0.15)]' : 'bg-slate-900 border-slate-950'} ${tipoAlvo === 'GERAL' ? 'py-5 px-4' : 'py-8 px-8'}`}>
+                    
+                    {/* The 3D Conveyor Belt (Track Line / Linha Puxada) */}
+                    <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-8 bg-slate-950 border-y-2 border-slate-800 shadow-[inset_0_3px_8px_rgba(0,0,0,0.9),0_2px_4px_rgba(255,255,255,0.02)] z-0 overflow-hidden flex items-center">
+                         <div className="absolute inset-0 opacity-30 bg-[repeating-linear-gradient(45deg,transparent,transparent_10px,rgba(255,255,255,0.05)_10px,rgba(255,255,255,0.05)_20px)]"></div>
+                         <div className="w-full h-1 bg-black/80 shadow-[0_1px_0_rgba(255,255,255,0.05)]"></div>
+                    </div>
+
+                    <div className={`relative flex items-center z-10 ${tipoAlvo === 'GERAL' ? 'justify-between flex-nowrap gap-2 max-w-full overflow-hidden' : 'justify-center flex-wrap gap-8'}`}>
+                        {radarEstacoes.map((station) => (
+                            <div key={station.id} className="flex items-center group relative">
+                                
+                                <div className={`flex flex-col items-center justify-center rounded-lg transition-all duration-500 transform ${tipoAlvo === 'GERAL' ? 'flex-1 min-w-0 max-w-[120px] px-2 py-2.5' : 'shrink-0 min-w-[140px] px-3 py-3.5'} ${station.hasAndon ? 'bg-gradient-to-b from-red-500 to-red-800 border-2 border-red-300 shadow-[0_6px_0_#450a0a,0_15px_25px_rgba(220,38,38,0.5)] -translate-y-1.5' : 'bg-gradient-to-b from-slate-600 to-slate-800 border-2 border-slate-500 shadow-[0_5px_0_#020617,0_8px_15px_rgba(0,0,0,0.6)]'}`}>
+                                    
+                                    {/* 3D Top highlight for volumetric effect */}
+                                    <div className="absolute top-0 left-0 right-0 h-1.5 bg-white/15 rounded-t-sm"></div>
+
+                                    <div className="flex items-center gap-2 w-full justify-center mt-1">
+                                        {station.hasAndon ? (
+                                            <div className="relative flex shrink-0 h-4 w-4">
+                                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-100 opacity-75"></span>
+                                                <span className="relative inline-flex rounded-full bg-white shadow-[0_0_15px_rgba(255,255,255,1)] h-4 w-4 border-2 border-red-500"></span>
+                                            </div>
+                                        ) : (
+                                            <div className="rounded-full bg-emerald-400 border-2 border-emerald-200 shadow-[0_0_10px_rgba(52,211,153,0.8)] shrink-0 h-3 w-3"></div>
+                                        )}
+                                        
+                                        <div className="flex flex-col justify-center min-w-0 items-center text-center">
+                                            <span className={`font-black uppercase tracking-widest leading-tight truncate w-full ${tipoAlvo === 'GERAL' ? 'text-[0.6rem]' : 'text-xs'} ${station.hasAndon ? 'text-white' : 'text-slate-100'}`} style={{ textShadow: station.hasAndon ? '0 1px 3px rgba(0,0,0,0.9)' : '0 1px 2px rgba(0,0,0,0.7)' }}>
+                                                {station.nome_estacao.split('-').pop()?.trim() || station.nome_estacao}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    {station.hasAndon && tipoAlvo !== 'GERAL' && (
+                                        <div className="mt-2.5 w-full bg-black/60 rounded flex items-center justify-center p-1.5 border-t border-red-500/40 shadow-inner">
+                                            <span className="text-[0.6rem] text-red-100 font-bold uppercase truncate text-center leading-none" style={{ textShadow: '0 1px 1px black' }}>
+                                                {station.andonType || 'ALARME ATIVO'}
+                                            </span>
+                                        </div>
+                                    )}
                                 </div>
-                            ) : (
-                                <div className={`rounded-full bg-emerald-500/80 border border-emerald-400 shadow-[0_0_5px_rgba(34,197,94,0.3)] shrink-0 opacity-50 ${tipoAlvo === 'GERAL' ? 'h-2 w-2' : 'h-3 w-3'}`}></div>
-                            )}
-                            
-                            <div className="flex flex-col justify-center min-w-0">
-                                <span className={`font-black uppercase tracking-wider leading-none truncate ${tipoAlvo === 'GERAL' ? 'text-[9px]' : 'text-xs'} ${station.hasAndon ? 'text-red-400' : 'text-slate-400'}`}>
-                                    {station.nome_estacao.split('-').pop()?.trim() || station.nome_estacao}
-                                </span>
-                                {station.hasAndon && tipoAlvo !== 'GERAL' && (
-                                    <span className="text-[10px] text-red-200 font-bold uppercase truncate max-w-[130px] leading-tight mt-0.5 opacity-90">
-                                        {station.andonType || 'Alarme Fabril'}
-                                    </span>
-                                )}
                             </div>
-                        </div>
-                    ))}
+                        ))}
+                    </div>
                 </div>
             )}
 
