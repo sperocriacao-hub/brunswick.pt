@@ -114,9 +114,11 @@ export async function fetchModeloParaEdicao(modeloId: string) {
             }
         };
 
-    } catch (err: any) {
+    } catch (err: unknown) {
         console.error("fetchModeloParaEdicao error:", err);
-        return { success: false, error: err.message };
+        let msg = "Erro desconhecido";
+        if (err instanceof Error) msg = err.message;
+        return { success: false, error: msg };
     }
 }
 
@@ -211,8 +213,10 @@ export async function atualizarModeloCompleto(input: EditarModeloInput): Promise
 
         return { success: true };
 
-    } catch (err: any) {
+    } catch (err: unknown) {
         console.error("atualizarModeloCompleto error:", err);
-        return { success: false, error: err.message };
+        let msg = "Erro desconhecido";
+        if (err instanceof Error) msg = err.message;
+        return { success: false, error: msg };
     }
 }

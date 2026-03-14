@@ -57,8 +57,10 @@ export async function getEficienciaDados(filtros: FiltrosEficiencia): Promise<{ 
             }
         };
 
-    } catch (err: any) {
-        return { success: false, error: err.message };
+    } catch (err: unknown) {
+        let msg = "Erro desconhecido";
+        if (err instanceof Error) msg = err.message;
+        return { success: false, error: msg };
     }
 }
 

@@ -87,7 +87,7 @@ export default function NovoModeloPage() {
   const addMetaHH = () => {
     setMetasHH([...metasHH, { id: crypto.randomUUID(), tipo_alvo: 'AREA', area_id: '', linha_id: '', estacao_id: '', horas_homem: 0 }]);
   };
-  const updateMetaHH = (id: string, field: keyof InMetaHH, value: any) => {
+  const updateMetaHH = (id: string, field: keyof InMetaHH, value: string | number) => {
     setMetasHH(metasHH.map(m => m.id === id ? { ...m, [field]: value } : m));
   };
   const removeMetaHH = (id: string) => setMetasHH(metasHH.filter(m => m.id !== id));

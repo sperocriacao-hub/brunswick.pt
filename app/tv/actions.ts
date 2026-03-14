@@ -528,7 +528,9 @@ export async function buscarDashboardsTV(tv_id: string) {
             radarEstacoes,
             advancedMetrics
         };
-    } catch (err: any) {
-        return { success: false, error: err.message || "Erro Técnico TV." };
+    } catch (err: unknown) {
+        let msg = "Erro Técnico TV.";
+        if (err instanceof Error) msg = err.message;
+        return { success: false, error: msg };
     }
 }

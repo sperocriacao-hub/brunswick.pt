@@ -13,13 +13,17 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 
+type LinhaPadraoType = {
+  letra_linha: string;
+};
+
 type ModeloInfo = {
   id: string;
   nome_modelo: string;
   model_year: string;
   created_at: string;
   status: string;
-  linha_padrao_id?: any;
+  linha_padrao_id?: LinhaPadraoType | null;
 };
 
 export default function ModelosListPage() {
@@ -37,7 +41,24 @@ export default function ModelosListPage() {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setModelos(data || []);
+      
+      const mappedData: ModeloInfo[] = (data || []).map(item => {
+        let linhaObj = item.linha_padrao_id as any;
+        if (Array.isArray(linhaObj) && linhaObj.length > 0) {
+          linhaObj = linhaObj[0];
+        } else if (Array.isArray(linhaObj)) {
+            linhaObj = null;
+        }
+        return {
+            id: item.id,
+            nome_modelo: item.nome_modelo,
+            model_year: item.model_year,
+            created_at: item.created_at,
+            status: item.status,
+            linha_padrao_id: linhaObj ? { letra_linha: linhaObj.letra_linha } : null,
+        }
+      });
+      setModelos(mappedData);
     } catch (error: unknown) {
       console.error(error);
       alert("Erro ao carregar modelos.");
@@ -226,8 +247,8 @@ export default function ModelosListPage() {
                                              <span className="font-mono bg-slate-100 px-2 py-1 rounded text-xs">{modelo.model_year}</span>
                                         </TableCell>
                                         <TableCell>
-                                            {modelo.linha_padrao_id && (modelo.linha_padrao_id as any).letra_linha ? (
-                                                 <Badge variant="outline" className="border-blue-200 text-blue-700 bg-blue-50">Linha {(modelo.linha_padrao_id as any).letra_linha}</Badge>
+                                            {modelo.linha_padrao_id && modelo.linha_padrao_id.letra_linha ? (
+                                                 <Badge variant="outline" className="border-blue-200 text-blue-700 bg-blue-50">Linha {modelo.linha_padrao_id.letra_linha}</Badge>
                                             ) : (
                                                  <span className="text-xs text-slate-400 italic">N/A</span>
                                             )}
