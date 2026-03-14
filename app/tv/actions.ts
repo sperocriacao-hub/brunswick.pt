@@ -357,6 +357,83 @@ export async function buscarDashboardsTV(tv_id: string) {
             console.error("Metric aggregation silent fail:", mErr);
         }
 
+        // --- NOVO MÓDULO: QCIS (Qualidade Inter-Camadas) ---
+        if (opcoesLayout.showQCISQuality) {
+            try {
+                const now = new Date();
+                const primeiroDia = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+                const ultimoDia = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+                
+                // 1. Dados QCIS para o Mês Decorrente (Foco na Linha Atual se Configurado)
+                let qcisQuery = supabase.from('qcis_audits')
+                    .select('substation_name, boat_id, count_of_defects, seccao')
+                    .gte('fail_date', primeiroDia)
+                    .lte('fail_date', ultimoDia);
+
+                // Se a TV for de LINHA, limitamos a qualidade apenas à Linha corrente.
+                if (tipoAlvo === 'LINHA' && alvoId) {
+                    const lName = configTv.nome_alvo_resolvido;
+                    if (lName) qcisQuery = qcisQuery.textSearch('linha_linha', lName);
+                }
+                
+                const { data: qcisData } = await qcisQuery;
+
+                let ftrPercent = "N/A";
+                let dpuScore = "0.00";
+
+                if (qcisData && qcisData.length > 0) {
+                    // KPI: FTR (Testes Funcionais)
+                    const ftrAudits = qcisData.filter(a => (a.substation_name || '').toLowerCase().includes('testes funcionais'));
+                    if (ftrAudits.length > 0) {
+                        const totalBoats = new Set(ftrAudits.map(a => a.boat_id).filter(Boolean)).size;
+                        const zeroBoats = new Set(
+                            ftrAudits.filter(a => {
+                                const s = (a.seccao || '').toLowerCase();
+                                return s.includes('zero') || s.includes('100%');
+                            }).map(a => a.boat_id).filter(Boolean)
+                        ).size;
+                        if (totalBoats > 0) ftrPercent = `${Math.round((zeroBoats / totalBoats) * 100)}%`;
+                    }
+                    
+                    // KPI: DPU (Inspecção Final Embalamento)
+                    const embAudits = qcisData.filter(a => (a.substation_name || '').toLowerCase().includes('inspecção final embalamento'));
+                    if (embAudits.length > 0) {
+                        const totalEmbBoats = new Set(embAudits.map(a => a.boat_id).filter(Boolean)).size;
+                        const totalDefects = embAudits.reduce((acc, curr) => acc + (curr.count_of_defects || 0), 0);
+                        if (totalEmbBoats > 0) dpuScore = (totalDefects / totalEmbBoats).toFixed(2);
+                    }
+                }
+
+                // 2. Barcos Embalados Ontem
+                const ontem = new Date();
+                ontem.setDate(ontem.getDate() - 1);
+                const startOntem = new Date(ontem.getFullYear(), ontem.getMonth(), ontem.getDate(), 0, 0, 0).toISOString();
+                const endOntem = new Date(ontem.getFullYear(), ontem.getMonth(), ontem.getDate(), 23, 59, 59).toISOString();
+
+                // Procurar Barcos Fechados Ontem (Status = COMPLETED e Updated nesse range)
+                let boatsQuery = supabase.from('ordens_producao')
+                    .select('id, op_numero, atualizado_em', { count: 'exact' })
+                    .eq('status', 'COMPLETED')
+                    .gte('atualizado_em', startOntem)
+                    .lte('atualizado_em', endOntem);
+
+                if (tipoAlvo === 'LINHA' && alvoId) {
+                    boatsQuery = boatsQuery.eq('linha_producao_id', alvoId);
+                }
+
+                const { count: barcosOntem } = await boatsQuery;
+
+                advancedMetrics.qcisKpis = {
+                    ftrPercent: ftrPercent,
+                    dpuEmbalamento: dpuScore,
+                    barcosEmbaladosOntem: barcosOntem || 0
+                };
+            } catch (errQCIS) {
+                console.error("QCIS Aggregation silent fail:", errQCIS);
+                advancedMetrics.qcisKpis = { ftrPercent: "N/A", dpuEmbalamento: "0.00", barcosEmbaladosOntem: 0 };
+            }
+        }
+
         // 6. Build Radar Estacoes Array
         let radarEstacoes: any[] = [];
 

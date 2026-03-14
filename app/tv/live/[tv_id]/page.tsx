@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
-import { AlertTriangle, Clock, Factory, MonitorPlay, ShieldCheck, Trophy, Target, TrendingUp, Zap, Clock4, CheckCircle2, UserX, Activity, HeartPulse } from 'lucide-react';
+import { AlertTriangle, Clock, Factory, MonitorPlay, ShieldCheck, Trophy, Target, TrendingUp, Zap, Clock4, CheckCircle2, UserX, Activity, HeartPulse, PackageCheck } from 'lucide-react';
 import { buscarDashboardsTV } from '../../actions';
 import KanbanBoard from '../../../admin/producao/planeamento/components/KanbanBoard';
 
@@ -305,6 +305,37 @@ export default function CustomTVDashboardPage() {
                                         <span className="text-rose-900 text-[10px] mt-1 font-bold">BACKLOG: {metrics.kpiOee?.atrasoMinutos || 0} MIN</span>
                                     </div>
                                 )}
+                            </div>
+                        </div>
+                    )}
+
+                    {opcoesLayout.showQCISQuality && metrics.qcisKpis && (
+                        <div className="col-span-1 bg-slate-900/80 border border-slate-700/50 rounded-3xl p-5 shadow-2xl relative flex flex-col justify-between">
+                            <h2 className="text-xs font-black uppercase tracking-widest text-indigo-400 mb-3 flex items-center gap-2">
+                                <ShieldCheck size={16} /> Qualidade (Mês)
+                            </h2>
+                            <div className="space-y-3">
+                                <div className="flex justify-between items-center bg-slate-950/50 p-2.5 rounded-xl border border-slate-800">
+                                    <div className="flex flex-col">
+                                        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">FTR Global</span>
+                                        <span className="text-[9px] text-slate-600 font-bold uppercase">Objetivo 80%</span>
+                                    </div>
+                                    <span className={`text-2xl font-black ${parseInt(metrics.qcisKpis.ftrPercent) >= 80 ? 'text-emerald-400' : 'text-amber-400'}`}>{metrics.qcisKpis.ftrPercent}</span>
+                                </div>
+                                <div className="flex justify-between items-center bg-slate-950/50 p-2.5 rounded-xl border border-slate-800">
+                                    <div className="flex flex-col">
+                                        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">DPU Embalamento</span>
+                                        <span className="text-[9px] text-slate-600 font-bold uppercase">Objetivo 18.0</span>
+                                    </div>
+                                    <span className={`text-2xl font-black ${(parseFloat(metrics.qcisKpis.dpuEmbalamento) <= 18 && parseFloat(metrics.qcisKpis.dpuEmbalamento) > 0) ? 'text-emerald-400' : 'text-rose-400'}`}>{metrics.qcisKpis.dpuEmbalamento}</span>
+                                </div>
+                                <div className="flex justify-between items-center bg-indigo-950/30 p-2.5 rounded-xl border border-indigo-900/50 shadow-inner">
+                                    <div className="flex flex-col">
+                                        <span className="text-[11px] font-bold text-indigo-400 uppercase tracking-widest flex items-center gap-1.5"><PackageCheck size={12}/> Barcos Embalados</span>
+                                        <span className="text-[9px] text-indigo-500/80 font-bold uppercase">Acumulado Ontem</span>
+                                    </div>
+                                    <span className="text-3xl font-black text-indigo-400">{metrics.qcisKpis.barcosEmbaladosOntem}</span>
+                                </div>
                             </div>
                         </div>
                     )}

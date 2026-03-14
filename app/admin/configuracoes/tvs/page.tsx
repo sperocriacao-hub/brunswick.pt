@@ -35,6 +35,7 @@ export default function TVConfiguracoesPage() {
         showAbsentismo: true,
         showSafetyCross: true,
         showHstKpis: true,
+        showQCISQuality: true,
         minimiseAndon: true
     });
 
@@ -79,6 +80,7 @@ export default function TVConfiguracoesPage() {
             showAbsentismo: true,
             showSafetyCross: true,
             showHstKpis: true,
+            showQCISQuality: true,
             minimiseAndon: true
         });
         setIsAddModalOpen(true);
@@ -95,7 +97,7 @@ export default function TVConfiguracoesPage() {
             showOeeDay: true, showOeeMonth: true, showWorkerOfMonth: true,
             showSafeArea: true, showBottlenecks: true, showEfficiency: true,
             showAbsentismo: true, showSafetyCross: true, showHstKpis: true,
-            minimiseAndon: true
+            showQCISQuality: true, minimiseAndon: true
         });
         setIsAddModalOpen(true);
     }
@@ -323,6 +325,7 @@ export default function TVConfiguracoesPage() {
                                     showAbsentismo: "Taxa de Absentismo em Tempo Real",
                                     showSafetyCross: "Cruz de Segurança (Safety Cross)",
                                     showHstKpis: "Conformidade Fabril e Segurança Diária",
+                                    showQCISQuality: "Métricas QCIS (FTR & DPU)",
                                     minimiseAndon: "Minimizar Alertas Andon (Poupar Espaço Tela)"
                                 }).map(([key, label]) => (
                                     <label key={key} className="flex flex-row items-start gap-3 cursor-pointer p-3 hover:bg-white rounded-lg border border-transparent hover:border-slate-200 hover:shadow-sm transition-all">
