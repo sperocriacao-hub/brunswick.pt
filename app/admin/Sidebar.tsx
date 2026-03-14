@@ -42,7 +42,7 @@ export function Sidebar({
     if (nivelPermissao === "Admin") return true;
 
     // 2. Dashboard is implicitly open to anyone who has access to the Backoffice.
-    if (modulePath === "/admin") return true;
+    if (modulePath === "/admin" || modulePath === "/admin/dashboard/eficiencia") return true;
 
     // 3. Otherwise, check if the exact path exists in their permitted modules array.
     return permissoesModulos.includes(modulePath);
@@ -69,6 +69,11 @@ export function Sidebar({
           <rect x="3" y="16" width="7" height="5"></rect>
         </svg>
       ),
+    },
+    {
+      name: "Eficiência H/H",
+      href: "/admin/dashboard/eficiencia",
+      icon: <Award size={24} />,
     },
     {
       name: "Desperdício OEE",

@@ -353,6 +353,39 @@ export async function buscarDashboardsTV(tv_id: string) {
                     advancedMetrics.safetyCrossDays = [];
                 }
             }
+
+            // --- NOVO: Eficiência Global H/H ---
+            if (opcoesLayout.showOeeHh) {
+                try {
+                    const now = new Date();
+                    const startOfMonthStr = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0)).toISOString();
+                    const endOfMonthStr = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0, 23, 59, 59)).toISOString();
+
+                    let areaId = null, linhaId = null;
+                    if (configTv.tipo_alvo === 'AREA') areaId = configTv.alvo_id;
+                    if (configTv.tipo_alvo === 'LINHA') linhaId = configTv.alvo_id;
+
+                    const { data: efiData, error: efiErr } = await supabase.rpc('get_eficiencia_hh', {
+                        p_data_inicio: startOfMonthStr,
+                        p_data_fim: endOfMonthStr,
+                        p_area_id: areaId,
+                        p_linha_id: linhaId,
+                        p_estacao_id: null
+                    });
+                    
+                    if (!efiErr && efiData && efiData.length > 0) {
+                        advancedMetrics.eficienciaHh = {
+                            percentual: Number(efiData[0].eficiencia_percentual) || 0,
+                            horasGanhas: Number(efiData[0].horas_ganhas) || 0,
+                            horasTrabalhadas: Number(efiData[0].horas_trabalhadas) || 0,
+                        };
+                    } else {
+                        advancedMetrics.eficienciaHh = { percentual: 0, horasGanhas: 0, horasTrabalhadas: 0 };
+                    }
+                } catch (e) {
+                     advancedMetrics.eficienciaHh = { percentual: 0, horasGanhas: 0, horasTrabalhadas: 0 };
+                }
+            }
         } catch (mErr) {
             console.error("Metric aggregation silent fail:", mErr);
         }

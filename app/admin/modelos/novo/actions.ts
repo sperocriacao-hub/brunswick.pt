@@ -6,6 +6,7 @@ import { cookies } from 'next/headers';
 
 type InTarefa = { ordem: string; descricao: string; estacao_id: string; imagem_url: string };
 type InOpcional = { nome_opcao: string; descricao_opcao: string; tarefas: InTarefa[] };
+export type InMetaHH = { id?: string; tipo_alvo: 'AREA' | 'ESTACAO' | 'AREA_LINHA'; area_id?: string; linha_id?: string; estacao_id?: string; horas_homem: number };
 
 export interface CriarModeloInput {
     nome_modelo: string;
@@ -14,6 +15,7 @@ export interface CriarModeloInput {
 
     tarefasGerais: InTarefa[];
     opcionais: InOpcional[];
+    metasHH: InMetaHH[];
 }
 
 export async function criarModeloCompleto(input: CriarModeloInput): Promise<{ success: boolean; error?: string; modeloId?: string }> {
@@ -36,6 +38,20 @@ export async function criarModeloCompleto(input: CriarModeloInput): Promise<{ su
 
         if (errModelo) throw errModelo;
         const modeloId = modeloCriado.id;
+
+        // 2. Inserir Metas H/H
+        if (input.metasHH && input.metasHH.length > 0) {
+            const metasPayload = input.metasHH.map(m => ({
+                modelo_id: modeloId,
+                tipo_alvo: m.tipo_alvo,
+                area_id: m.area_id || null,
+                linha_id: m.linha_id || null,
+                estacao_id: m.estacao_id || null,
+                horas_homem: m.horas_homem
+            }));
+            const { error: errMetas } = await supabase.from('modelo_metas_hh').insert(metasPayload);
+            if (errMetas) throw errMetas;
+        }
 
         // 3. Inserir Roteiros de Produção Gerais (Tarefas Básicas)
         if (input.tarefasGerais.length > 0) {

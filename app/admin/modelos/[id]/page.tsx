@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Trash2, Save, FileText, Settings, X, Upload, Loader2 } from 'lucide-react';
 import { useRouter, useParams } from 'next/navigation';
-import { atualizarModeloCompleto, EditarModeloInput, fetchModeloParaEdicao } from './actions';
+import { atualizarModeloCompleto, EditarModeloInput, fetchModeloParaEdicao, InMetaHH } from './actions';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -48,9 +48,11 @@ export default function EditarModeloPage() {
     const [partes, setPartes] = useState<any[]>([]); // Keep it defined to avoid errors on addParte although it's removed from UI
     const [tarefasGerais, setTarefasGerais] = useState<Tarefa[]>([]);
     const [opcionais, setOpcionais] = useState<Opcional[]>([]);
+    const [metasHH, setMetasHH] = useState<InMetaHH[]>([]);
     
     // Lista de Linhas Ativas para Dropdown
     const [linhasProducao, setLinhasProducao] = useState<{id: string, letra_linha: string}[]>([]);
+    const [areasFabrica, setAreasFabrica] = useState<{id: string, nome_area: string}[]>([]);
 
     useEffect(() => {
         if (!modeloId) return;
@@ -63,6 +65,9 @@ export default function EditarModeloPage() {
                 const { data: linhas } = await supabase.from('linhas_producao').select('id, letra_linha').order('letra_linha');
                 setLinhasProducao(linhas || []);
 
+                const { data: areas } = await supabase.from('areas_fabrica').select('id, nome_area').order('ordem_sequencial');
+                setAreasFabrica(areas || []);
+
                 // Now Fetch the Model Data
                 const res = await fetchModeloParaEdicao(modeloId);
                 if (res.success && res.data) {
@@ -74,6 +79,7 @@ export default function EditarModeloPage() {
                     
                     setTarefasGerais(res.data.tarefasGerais as unknown as Tarefa[] || []);
                     setOpcionais(res.data.opcionais as unknown as Opcional[] || []);
+                    setMetasHH(res.data.metasHH || []);
                 } else {
                     alert("Erro ao carregar dados do Molde.");
                 }
@@ -90,6 +96,15 @@ export default function EditarModeloPage() {
     // Estado do Modal de Opcional
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [currentOpcional, setCurrentOpcional] = useState<Opcional | null>(null);
+
+    // Handlers Metas HH
+    const addMetaHH = () => {
+        setMetasHH([...metasHH, { id: crypto.randomUUID(), tipo_alvo: 'AREA', area_id: '', linha_id: '', estacao_id: '', horas_homem: 0 }]);
+    };
+    const updateMetaHH = (id: string, field: keyof InMetaHH, value: any) => {
+        setMetasHH(metasHH.map(m => m.id === id ? { ...m, [field]: value } : m));
+    };
+    const removeMetaHH = (id: string) => setMetasHH(metasHH.filter(m => m.id !== id));
 
     // Handlers Tarefas Gerais
     const addTarefaGeral = () => {
@@ -219,7 +234,8 @@ export default function EditarModeloPage() {
                 status: status,
                 linha_padrao_id: linhaPadraoId || undefined,
                 tarefasGerais: tarefasGerais,
-                opcionais: opcionais
+                opcionais: opcionais,
+                metasHH: metasHH
             };
 
             const res = await atualizarModeloCompleto(input);
@@ -420,7 +436,80 @@ export default function EditarModeloPage() {
                 </div>
             </section>
 
-
+            {/* SECCTAO 2: METAS DE EFICIÊNCIA (H/H) */}
+            <section className="glass-panel p-6 mb-8 mt-8 animate-delay-1">
+                <div className="flex justify-between items-center mb-6">
+                    <h2 style={{ fontSize: '1.25rem', color: 'var(--primary)' }}>Metas de Eficiência (H/H Target)</h2>
+                    <button className="btn btn-outline" onClick={addMetaHH}>
+                        <Plus size={18} style={{ marginRight: '8px' }} /> Nova Meta H/H
+                    </button>
+                </div>
+                
+                <div className="table-container">
+                    <table className="table-premium">
+                        <thead>
+                            <tr>
+                                <th>Escopo (Tipo Alvo)</th>
+                                <th>Definição do Alvo</th>
+                                <th style={{ width: '150px' }}>Target (Horas)</th>
+                                <th style={{ textAlign: 'right', width: '80px' }}>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {metasHH.length === 0 && (
+                                <tr>
+                                    <td colSpan={4} style={{ textAlign: 'center', opacity: 0.5, padding: '2rem' }}>O modelo não possui metas de eficiência definidas.</td>
+                                </tr>
+                            )}
+                            {metasHH.map(meta => (
+                                <tr key={meta.id}>
+                                    <td>
+                                        <select className="form-control" value={meta.tipo_alvo} onChange={e => {
+                                            updateMetaHH(meta.id!, 'tipo_alvo', e.target.value);
+                                            // Reset fields when changing scope to avoid constraint violations
+                                            updateMetaHH(meta.id!, 'area_id', '');
+                                            updateMetaHH(meta.id!, 'linha_id', '');
+                                            updateMetaHH(meta.id!, 'estacao_id', '');
+                                        }}>
+                                            <option value="AREA">Área Fabril Completa</option>
+                                            <option value="AREA_LINHA">Interseção Área + Linha</option>
+                                            <option value="ESTACAO">Estação Específica</option>
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <div className="flex gap-2">
+                                            {(meta.tipo_alvo === 'AREA' || meta.tipo_alvo === 'AREA_LINHA') && (
+                                                <select className="form-control" value={meta.area_id} onChange={e => updateMetaHH(meta.id!, 'area_id', e.target.value)}>
+                                                    <option value="">-- Selecione a Área --</option>
+                                                    {areasFabrica.map(a => <option key={a.id} value={a.id}>{a.nome_area}</option>)}
+                                                </select>
+                                            )}
+                                            {meta.tipo_alvo === 'AREA_LINHA' && (
+                                                <select className="form-control" value={meta.linha_id} onChange={e => updateMetaHH(meta.id!, 'linha_id', e.target.value)}>
+                                                    <option value="">-- Selecione a Linha --</option>
+                                                    {linhasProducao.map(l => <option key={l.id} value={l.id}>Linha {l.letra_linha}</option>)}
+                                                </select>
+                                            )}
+                                            {meta.tipo_alvo === 'ESTACAO' && (
+                                                <select className="form-control" value={meta.estacao_id} onChange={e => updateMetaHH(meta.id!, 'estacao_id', e.target.value)}>
+                                                    <option value="">-- Selecione a Estação --</option>
+                                                    {ESTACOES.map(e => <option key={e.id} value={e.id}>{e.nome}</option>)}
+                                                </select>
+                                            )}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <input type="number" step="0.5" className="form-control" placeholder="Target H/H" value={meta.horas_homem || ''} onChange={e => updateMetaHH(meta.id!, 'horas_homem', parseFloat(e.target.value) || 0)} />
+                                    </td>
+                                    <td style={{ textAlign: 'right' }}>
+                                        <button className="btn-icon danger" onClick={() => removeMetaHH(meta.id!)}><Trash2 size={18} /></button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
 
             {/* SECCTAO 3: TAREFAS GERAIS (Roteiro) */}
             <section className="glass-panel p-6 mb-8 animate-delay-2">

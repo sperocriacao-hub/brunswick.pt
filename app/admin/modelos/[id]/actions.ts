@@ -5,6 +5,7 @@ import { cookies } from 'next/headers';
 
 type InTarefa = { id?: string; ordem: string; descricao: string; estacao_id: string; imagem_url: string };
 type InOpcional = { id?: string; nome_opcao: string; descricao_opcao: string; tarefas: InTarefa[] };
+export type InMetaHH = { id?: string; tipo_alvo: 'AREA' | 'ESTACAO' | 'AREA_LINHA'; area_id?: string; linha_id?: string; estacao_id?: string; horas_homem: number };
 
 export interface EditarModeloInput {
     id: string;
@@ -14,6 +15,7 @@ export interface EditarModeloInput {
     linha_padrao_id?: string;
     tarefasGerais: InTarefa[];
     opcionais: InOpcional[];
+    metasHH: InMetaHH[];
 }
 
 export async function fetchModeloParaEdicao(modeloId: string) {
@@ -69,6 +71,7 @@ export async function fetchModeloParaEdicao(modeloId: string) {
                 id: t.id,
                 ordem: t.ordem_tarefa.toString(),
                 descricao: t.descricao_tarefa,
+                estacao_destino_id: t.estacao_destino_id || '',
                 estacao_id: t.estacao_destino_id || '',
                 imagem_url: t.imagem_instrucao_url || ''
             }));
@@ -81,6 +84,23 @@ export async function fetchModeloParaEdicao(modeloId: string) {
             });
         }
 
+        // 4. Fetch Metas H/H
+        const { data: metasDb, error: errMetas } = await supabase
+            .from('modelo_metas_hh')
+            .select('*')
+            .eq('modelo_id', modeloId);
+
+        if (errMetas) throw errMetas;
+
+        const metasHH: InMetaHH[] = (metasDb || []).map(m => ({
+            id: m.id,
+            tipo_alvo: m.tipo_alvo,
+            area_id: m.area_id || '',
+            linha_id: m.linha_id || '',
+            estacao_id: m.estacao_id || '',
+            horas_homem: parseFloat(m.horas_homem) || 0
+        }));
+
         return {
             success: true,
             data: {
@@ -89,7 +109,8 @@ export async function fetchModeloParaEdicao(modeloId: string) {
                 status: modelo.status,
                 linha_padrao_id: modelo.linha_padrao_id,
                 tarefasGerais,
-                opcionais
+                opcionais,
+                metasHH
             }
         };
 
@@ -170,6 +191,22 @@ export async function atualizarModeloCompleto(input: EditarModeloInput): Promise
                     if (errTOp) throw errTOp;
                 }
             }
+        }
+
+        // 4. Update Metas H/H (Purge & Recreate)
+        await supabase.from('modelo_metas_hh').delete().eq('modelo_id', input.id);
+
+        if (input.metasHH && input.metasHH.length > 0) {
+            const metasPayload = input.metasHH.map(m => ({
+                modelo_id: input.id,
+                tipo_alvo: m.tipo_alvo,
+                area_id: m.area_id || null,
+                linha_id: m.linha_id || null,
+                estacao_id: m.estacao_id || null,
+                horas_homem: m.horas_homem
+            }));
+            const { error: errMetas } = await supabase.from('modelo_metas_hh').insert(metasPayload);
+            if (errMetas) throw errMetas;
         }
 
         return { success: true };
