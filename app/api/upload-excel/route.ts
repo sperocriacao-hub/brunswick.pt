@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
     // O ficheiro SAP "QCIS Excel.xlsx" tem nomenclaturas próprias e datas em formato Serial.
     if (tableName === "qcis_audits") {
       const qcisData = rawData.map((row) => {
-        // Função utilitária para converter Data Serial do Excel em YYYY-MM-DD
+        // Função utilitária agressiva para forçar formato ISO YYYY-MM-DD no Postgres
         const parseExcelDate = (serial: any) => {
            if (!serial) return null;
            if (typeof serial === 'number') {
@@ -78,7 +78,19 @@ export async function POST(req: NextRequest) {
               const date_info = new Date(utc_value * 1000);
               return date_info.toISOString().split('T')[0];
            }
-           return String(serial);
+           let dateStr = String(serial).trim().split(' ')[0];
+           if (dateStr.includes('T')) dateStr = dateStr.split('T')[0];
+           
+           if (dateStr.includes('/')) {
+                const parts = dateStr.split('/');
+                if (parts[2].length >= 4) { return `${parts[2].substring(0,4)}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`; } 
+                else if (parts[0].length === 4) { return `${parts[0]}-${parts[1].padStart(2,'0')}-${parts[2].substring(0,2).padStart(2,'0')}`; }
+            } else if (dateStr.includes('-')) {
+                const parts = dateStr.split('-');
+                if (parts[0].length === 4) { return `${parts[0]}-${parts[1].padStart(2,'0')}-${parts[2].substring(0,2).padStart(2,'0')}`; } 
+                else { return `${parts[2].substring(0,4)}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`; }
+            }
+           return dateStr;
         };
 
         // Algoritmo de Hashing para injetar um UUID Primário IDêntico determinístico 
