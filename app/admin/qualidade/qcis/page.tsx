@@ -201,6 +201,13 @@ export default function QcisAnalyticsDashboard() {
         const ftrZeroMap: Record<string, Record<string, Set<string>>> = {};
         const ftrTotalMap: Record<string, Record<string, Set<string>>> = {};
         
+        // Globals (Tendência Total)
+        const embGlobalDefectsMap: Record<string, number> = {};
+        const embGlobalBoatsMap: Record<string, Set<string>> = {};
+        const ftrGlobalZeroMap: Record<string, Set<string>> = {};
+        const ftrGlobalTotalMap: Record<string, Set<string>> = {};
+        const pdGlobalMap: Record<string, number> = {};
+
         const linhasSet = new Set<string>();
 
         rolling6DaysList.forEach(d => {
@@ -210,6 +217,12 @@ export default function QcisAnalyticsDashboard() {
             pdMap[d] = {};
             ftrZeroMap[d] = {};
             ftrTotalMap[d] = {};
+            
+            embGlobalDefectsMap[d] = 0;
+            embGlobalBoatsMap[d] = new Set();
+            ftrGlobalZeroMap[d] = new Set();
+            ftrGlobalTotalMap[d] = new Set();
+            pdGlobalMap[d] = 0;
         });
 
         filteredAudits.forEach(a => {
@@ -229,22 +242,28 @@ export default function QcisAnalyticsDashboard() {
                 embalamentoMap[dStr][linha] = (embalamentoMap[dStr][linha] || 0) + (a.count_of_defects || 0);
                 if(!embalamentoBoatsMap[dStr][linha]) embalamentoBoatsMap[dStr][linha] = new Set();
                 embalamentoBoatsMap[dStr][linha].add(boatId);
+                
+                embGlobalDefectsMap[dStr] += (a.count_of_defects || 0);
+                embGlobalBoatsMap[dStr].add(boatId);
             }
 
             // Testes Funcionais (FTR - First Time Rate %)
             if (sub.includes('testes funcionais')) {
                 if(!ftrTotalMap[dStr][linha]) ftrTotalMap[dStr][linha] = new Set();
                 ftrTotalMap[dStr][linha].add(boatId);
+                ftrGlobalTotalMap[dStr].add(boatId);
 
                 if (seccao.includes('zero') || seccao.includes('100%')) {
                     if(!ftrZeroMap[dStr][linha]) ftrZeroMap[dStr][linha] = new Set();
                     ftrZeroMap[dStr][linha].add(boatId);
+                    ftrGlobalZeroMap[dStr].add(boatId);
                 }
             }
 
             // P&D (Volume de Defeitos)
             if (sub.includes('p&d') || sub.endsWith('p&d')) {
                 pdMap[dStr][linha] = (pdMap[dStr][linha] || 0) + (a.count_of_defects || 0);
+                pdGlobalMap[dStr] += (a.count_of_defects || 0);
             }
         });
 
@@ -261,6 +280,16 @@ export default function QcisAnalyticsDashboard() {
                 const embBoats = embalamentoBoatsMap[d][linha] ? embalamentoBoatsMap[d][linha].size : 0;
                 embalamentoMap[d][linha] = embBoats > 0 ? Number((embDefects / embBoats).toFixed(2)) : 0;
             });
+            
+            // Global Calcs (Tendência Global da Fábrica)
+            const globalEmbBoats = embGlobalBoatsMap[d].size;
+            embalamentoMap[d]['Tendência Global'] = globalEmbBoats > 0 ? Number((embGlobalDefectsMap[d] / globalEmbBoats).toFixed(2)) : 0;
+            
+            const globalFtrTotal = ftrGlobalTotalMap[d].size;
+            const globalFtrZero = ftrGlobalZeroMap[d].size;
+            testesMap[d]['Tendência Global'] = globalFtrTotal > 0 ? Math.round((globalFtrZero / globalFtrTotal) * 100) : 0;
+            
+            pdMap[d]['Tendência Global'] = pdGlobalMap[d];
         });
 
         const formatLineData = (map: Record<string, Record<string, number>>) => {
@@ -725,8 +754,9 @@ export default function QcisAnalyticsDashboard() {
                                     <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', color: '#fff', borderRadius: '8px' }} />
                                     <Legend wrapperStyle={{ fontSize: '12px' }} />
                                     {uniqueChartLinhas.map((linha, idx) => (
-                                        <Line key={linha} type="monotone" dataKey={linha} name={linha} stroke={`hsl(${idx * (360 / uniqueChartLinhas.length)}, 70%, 50%)`} strokeWidth={3} dot={{ r: 4, fill: '#0f172a', strokeWidth: 2 }} activeDot={{ r: 7 }} />
+                                        <Line key={linha} type="monotone" dataKey={linha} name={linha} stroke={`hsl(${idx * (360 / uniqueChartLinhas.length)}, 70%, 50%)`} strokeWidth={2} strokeOpacity={0.6} dot={{ r: 3, fill: '#0f172a', strokeWidth: 1 }} activeDot={{ r: 5 }} />
                                     ))}
+                                    <Line type="monotone" dataKey="Tendência Global" name="Tendência Global" stroke="#fbbf24" strokeWidth={5} dot={{ r: 5, fill: '#0f172a', strokeWidth: 2 }} activeDot={{ r: 8 }} />
                                 </LineChart>
                             </ResponsiveContainer>
                         ) : (
@@ -751,8 +781,9 @@ export default function QcisAnalyticsDashboard() {
                                     <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', color: '#fff', borderRadius: '8px' }} formatter={(value: any) => [`${value}%`, '']} />
                                     <Legend wrapperStyle={{ fontSize: '12px' }} />
                                     {uniqueChartLinhas.map((linha, idx) => (
-                                        <Line key={linha} type="monotone" dataKey={linha} name={linha} stroke={`hsl(${idx * (360 / uniqueChartLinhas.length)}, 70%, 50%)`} strokeWidth={3} dot={{ r: 4, fill: '#0f172a', strokeWidth: 2 }} activeDot={{ r: 7 }} />
+                                        <Line key={linha} type="monotone" dataKey={linha} name={linha} stroke={`hsl(${idx * (360 / uniqueChartLinhas.length)}, 70%, 50%)`} strokeWidth={2} strokeOpacity={0.6} dot={{ r: 3, fill: '#0f172a', strokeWidth: 1 }} activeDot={{ r: 5 }} />
                                     ))}
+                                    <Line type="monotone" dataKey="Tendência Global" name="Tendência Global" stroke="#fbbf24" strokeWidth={5} dot={{ r: 5, fill: '#0f172a', strokeWidth: 2 }} activeDot={{ r: 8 }} />
                                 </LineChart>
                             </ResponsiveContainer>
                         ) : (
@@ -777,8 +808,9 @@ export default function QcisAnalyticsDashboard() {
                                     <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', color: '#fff', borderRadius: '8px' }} />
                                     <Legend wrapperStyle={{ fontSize: '12px' }} />
                                     {uniqueChartLinhas.map((linha, idx) => (
-                                        <Line key={linha} type="monotone" dataKey={linha} name={linha} stroke={`hsl(${idx * (360 / uniqueChartLinhas.length)}, 70%, 50%)`} strokeWidth={3} dot={{ r: 4, fill: '#0f172a', strokeWidth: 2 }} activeDot={{ r: 7 }} />
+                                        <Line key={linha} type="monotone" dataKey={linha} name={linha} stroke={`hsl(${idx * (360 / uniqueChartLinhas.length)}, 70%, 50%)`} strokeWidth={2} strokeOpacity={0.6} dot={{ r: 3, fill: '#0f172a', strokeWidth: 1 }} activeDot={{ r: 5 }} />
                                     ))}
+                                    <Line type="monotone" dataKey="Tendência Global" name="Tendência Global" stroke="#fbbf24" strokeWidth={5} dot={{ r: 5, fill: '#0f172a', strokeWidth: 2 }} activeDot={{ r: 8 }} />
                                 </LineChart>
                             </ResponsiveContainer>
                         ) : (
