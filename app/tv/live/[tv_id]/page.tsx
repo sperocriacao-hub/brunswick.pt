@@ -34,8 +34,8 @@ export default function CustomTVDashboardPage() {
     useEffect(() => {
         const timer = setInterval(() => setTime(new Date()), 1000);
         
-        // Aumentar a resolução base do ecrã da TV (aumenta o tamanho de todos os rems em 25%)
-        document.documentElement.style.fontSize = '20px';
+        // Aumentar a resolução base do ecrã da TV (aumenta o tamanho de todos os rems em 50%)
+        document.documentElement.style.fontSize = '24px';
 
         return () => {
             clearInterval(timer);
