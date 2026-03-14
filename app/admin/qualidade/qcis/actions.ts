@@ -19,22 +19,46 @@ export async function fetchQcisData(filters: {
 } = {}) {
     noStore(); // Desativa ativamente a cache agressiva do Next.js para pedidos Server-Side do Supabase
     try {
-        let query = supabase.from('qcis_audits').select('*');
+        // PostgREST limits queries to 1000 rows by default. Factory data easily exceeds this in 3 days.
+        // We must implement automatic range pagination to extract the entire month.
+        let allData: any[] = [];
+        let from = 0;
+        const step = 1000;
+        let fetchMore = true;
 
-        if (filters.startDate) query = query.gte('fail_date', filters.startDate);
-        if (filters.endDate) query = query.lte('fail_date', filters.endDate);
-        if (filters.linha) query = query.eq('linha_linha', filters.linha);
-        if (filters.modelo) query = query.eq('model_ref', filters.modelo);
-        if (filters.gate) query = query.eq('lista_gate', filters.gate);
-        if (filters.categoria) query = query.eq('lista_categoria', filters.categoria);
+        while (fetchMore) {
+            let paginatedQuery = supabase.from('qcis_audits').select('*');
 
-        // Limiting to 50000 recent records for memory safety on the edge if no dates are passed.
-        query = query.order('fail_date', { ascending: false }).limit(50000);
+            if (filters.startDate) paginatedQuery = paginatedQuery.gte('fail_date', filters.startDate);
+            if (filters.endDate) paginatedQuery = paginatedQuery.lte('fail_date', filters.endDate);
+            if (filters.linha) paginatedQuery = paginatedQuery.eq('linha_linha', filters.linha);
+            if (filters.modelo) paginatedQuery = paginatedQuery.eq('model_ref', filters.modelo);
+            if (filters.gate) paginatedQuery = paginatedQuery.eq('lista_gate', filters.gate);
+            if (filters.categoria) paginatedQuery = paginatedQuery.eq('lista_categoria', filters.categoria);
 
-        const { data, error } = await query;
-        if (error) throw error;
+            const { data, error } = await paginatedQuery
+                .order('fail_date', { ascending: false })
+                .range(from, from + step - 1);
 
-        return { success: true, data: data || [] };
+            if (error) throw error;
+
+            if (data && data.length > 0) {
+                allData = [...allData, ...data];
+                from += step;
+                if (data.length < step) {
+                    fetchMore = false; // Last page reached
+                }
+            } else {
+                fetchMore = false;
+            }
+
+            // Safety break against infinite loops > 100k records (100 pages)
+            if (allData.length >= 100000) {
+                fetchMore = false;
+            }
+        }
+
+        return { success: true, data: allData };
     } catch (err: any) {
         console.error("Erro a carregar dados QCIS:", err);
         return { success: false, error: err.message || "Erro desconhecido" };
