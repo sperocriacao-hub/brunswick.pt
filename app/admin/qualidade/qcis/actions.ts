@@ -29,7 +29,15 @@ export async function fetchQcisData(filters: {
         while (fetchMore) {
             let paginatedQuery = supabase.from('qcis_audits').select('*');
 
-            if (filters.startDate) paginatedQuery = paginatedQuery.gte('fail_date', filters.startDate);
+            // Set default 30-day window to prevent massive DB dumps freezing the UI if no dates are selected
+            let effectiveStartDate = filters.startDate;
+            if (!filters.startDate && !filters.endDate) {
+                const d = new Date();
+                d.setDate(d.getDate() - 30);
+                effectiveStartDate = d.toISOString().split('T')[0];
+            }
+
+            if (effectiveStartDate) paginatedQuery = paginatedQuery.gte('fail_date', effectiveStartDate);
             if (filters.endDate) paginatedQuery = paginatedQuery.lte('fail_date', filters.endDate);
             if (filters.linha) paginatedQuery = paginatedQuery.eq('linha_linha', filters.linha);
             if (filters.modelo) paginatedQuery = paginatedQuery.eq('model_ref', filters.modelo);
