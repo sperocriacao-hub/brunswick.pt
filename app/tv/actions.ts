@@ -153,16 +153,28 @@ export async function buscarDashboardsTV(tv_id: string) {
 
                     if (topWorker) {
                         const worker = topWorker as any;
+                        
+                        const now = new Date();
+                        const startOfMonthStr = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0)).toISOString().split('T')[0];
+
+                        const { data: progressionData } = await supabase
+                            .from('avaliacoes_diarias')
+                            .select('data_avaliacao, nota_eficiencia')
+                            .eq('funcionario_id', worker.funcionario_id)
+                            .gte('data_avaliacao', startOfMonthStr)
+                            .order('data_avaliacao', { ascending: true });
+
                         advancedMetrics.heroiTurno = {
                             nome_operador: worker.nome_operador || 'Sem Avaliações Recentes',
-                            nota_eficiencia: worker.media_eficiencia || 0
+                            nota_eficiencia: worker.media_eficiencia || 0,
+                            progresso_diario: progressionData || []
                         };
                     } else {
                         // Fallback: If no evaluations found for this Area/Linha this month
-                        advancedMetrics.heroiTurno = { nome_operador: 'A Aguardar Avaliações M.E.S.', nota_eficiencia: 0 };
+                        advancedMetrics.heroiTurno = { nome_operador: 'A Aguardar Avaliações M.E.S.', nota_eficiencia: 0, progresso_diario: [] };
                     }
                 } catch (err) {
-                    advancedMetrics.heroiTurno = { nome_operador: 'Erro a Carregar', nota_eficiencia: 0 };
+                    advancedMetrics.heroiTurno = { nome_operador: 'Erro a Carregar', nota_eficiencia: 0, progresso_diario: [] };
                 }
             }
 

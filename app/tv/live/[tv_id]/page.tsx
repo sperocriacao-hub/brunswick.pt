@@ -335,20 +335,40 @@ export default function CustomTVDashboardPage() {
                     )}
 
                     {opcoesLayout.showWorkerOfMonth && metrics.heroiTurno && (
-                        <div className="col-span-1 bg-gradient-to-br from-amber-500/20 to-orange-600/10 border border-amber-500/50 rounded-3xl p-5 shadow-[0_0_30px_rgba(245,158,11,0.15)] relative flex flex-col justify-between overflow-hidden">
+                        <div className="col-span-1 md:col-span-2 bg-gradient-to-br from-amber-500/20 to-orange-600/10 border border-amber-500/50 rounded-3xl p-5 shadow-[0_0_30px_rgba(245,158,11,0.15)] relative flex flex-col justify-between overflow-hidden">
                             <div className="absolute -right-6 -top-6 text-amber-500/10 rotate-12">
                                 <Trophy size={100} />
                             </div>
-                            <h2 className="text-xs font-black uppercase tracking-widest text-amber-500 mb-3 flex items-center gap-2 relative z-10">
-                                <Trophy size={16} /> Alta-Performance
+                            <h2 className="text-xs font-black uppercase tracking-widest text-amber-500 mb-3 flex items-center gap-2 relative z-10 w-full border-b border-amber-500/20 pb-2">
+                                <Trophy size={16} /> Alta-Performance (Destaque do Mês)
                             </h2>
-                            <div className="relative z-10">
-                                <p className="text-2xl font-black text-white leading-tight mb-2 drop-shadow-md truncate">{metrics.heroiTurno.nome_operador}</p>
-                                <div className="mt-2 inline-flex items-center gap-2 bg-amber-500/20 border border-amber-500/50 rounded-full px-4 py-1.5">
-                                    <Zap size={14} className="text-amber-400 fill-amber-400" />
-                                    <span className="text-amber-400 font-black tracking-widest text-sm text-center block">
-                                        {metrics.heroiTurno.nota_eficiencia || 0} SCORE
-                                    </span>
+                            <div className="relative z-10 flex flex-col h-full w-full">
+                                <div className="flex justify-between items-start w-full">
+                                    <div>
+                                        <p className="text-2xl font-black text-white leading-tight mb-2 drop-shadow-md truncate">{metrics.heroiTurno.nome_operador}</p>
+                                        <div className="inline-flex items-center gap-2 bg-amber-500/20 border border-amber-500/50 rounded-full px-4 py-1.5 shadow-inner">
+                                            <Zap size={14} className="text-amber-400 fill-amber-400 animate-pulse" />
+                                            <span className="text-amber-400 font-black tracking-widest text-sm text-center block">
+                                                {metrics.heroiTurno.nota_eficiencia || 0} SCORE ATUAL
+                                            </span>
+                                        </div>
+                                    </div>
+                                    {metrics.heroiTurno.progresso_diario && metrics.heroiTurno.progresso_diario.length > 0 && (
+                                        <div className="text-right flex flex-col justify-end">
+                                            <span className="text-amber-500/60 text-[9px] uppercase font-black tracking-widest mb-1">Evolução Mensal (Dias Anteriores)</span>
+                                            <div className="flex items-end gap-1 h-14 w-40 opacity-90">
+                                                {metrics.heroiTurno.progresso_diario.map((dia: any, idx: number) => {
+                                                    const maxScore = Math.max(100, ...metrics.heroiTurno.progresso_diario.map((d: any) => d.nota_eficiencia));
+                                                    const heightPercent = Math.max(10, Math.min((dia.nota_eficiencia / maxScore) * 100, 100)); // minimo 10% height para ser visivel
+                                                    return (
+                                                        <div key={idx} className="flex-1 bg-amber-950/40 rounded-t-sm flex items-end overflow-hidden border-b border-amber-500/20 h-full relative" title={`${dia.data_avaliacao}: ${dia.nota_eficiencia}`}>
+                                                            <div style={{ height: `${heightPercent}%` }} className="w-full bg-gradient-to-t from-amber-600 to-amber-400 rounded-t-sm drop-shadow-[0_0_5px_rgba(251,191,36,0.5)]"></div>
+                                                        </div>
+                                                    )
+                                                })}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
