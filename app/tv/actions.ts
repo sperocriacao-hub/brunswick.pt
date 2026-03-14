@@ -373,10 +373,13 @@ export async function buscarDashboardsTV(tv_id: string) {
                 // Se a TV for de LINHA, limitamos a qualidade apenas à Linha corrente.
                 if (tipoAlvo === 'LINHA' && alvoId) {
                     const lName = configTv.nome_alvo_resolvido;
+                    console.log(`[QCIS TV DEBUG] Filtro ativo para Linha: ${lName}`);
                     if (lName) qcisQuery = qcisQuery.textSearch('linha_linha', lName);
                 }
                 
-                const { data: qcisData } = await qcisQuery;
+                const { data: qcisData, error: qcisError } = await qcisQuery;
+                console.log(`[QCIS TV DEBUG] Retornados ${qcisData?.length || 0} registos para Datas ${primeiroDia} a ${ultimoDia}`);
+                if (qcisError) console.error("[QCIS TV DEBUG] DB Query Error:", qcisError);
 
                 let ftrPercent = "N/A";
                 let dpuScore = "0.00";

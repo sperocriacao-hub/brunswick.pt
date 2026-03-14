@@ -315,26 +315,20 @@ export default function CustomTVDashboardPage() {
                                 <ShieldCheck size={24} className="text-indigo-500" /> Qualidade (Mês)
                             </h2>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div className="flex justify-between items-center bg-slate-950/50 p-4 rounded-2xl border border-slate-800/80">
-                                    <div className="flex flex-col">
-                                        <span className="text-sm font-bold text-slate-400 uppercase tracking-widest">FTR Global</span>
-                                        <span className="text-[10px] text-slate-600 font-bold uppercase mt-1">Objetivo 80%</span>
-                                    </div>
+                                <div className="flex flex-col items-center justify-center bg-slate-950/50 p-4 rounded-2xl border border-slate-800/80">
+                                    <span className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-1">FTR Global</span>
                                     <span className={`text-4xl lg:text-5xl font-black ${parseInt(metrics.qcisKpis.ftrPercent) >= 80 ? 'text-emerald-400' : 'text-amber-400'}`}>{metrics.qcisKpis.ftrPercent}</span>
+                                    <span className="text-slate-600 text-[10px] mt-1 font-bold">OBJETIVO: 80%</span>
                                 </div>
-                                <div className="flex justify-between items-center bg-slate-950/50 p-4 rounded-2xl border border-slate-800/80">
-                                    <div className="flex flex-col">
-                                        <span className="text-sm font-bold text-slate-400 uppercase tracking-widest">DPU Embalamento</span>
-                                        <span className="text-[10px] text-slate-600 font-bold uppercase mt-1">Objetivo 18.0</span>
-                                    </div>
+                                <div className="flex flex-col items-center justify-center bg-slate-950/50 p-4 rounded-2xl border border-slate-800/80">
+                                    <span className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-1">DPU Embalamento</span>
                                     <span className={`text-4xl lg:text-5xl font-black ${(parseFloat(metrics.qcisKpis.dpuEmbalamento) <= 18 && parseFloat(metrics.qcisKpis.dpuEmbalamento) > 0) ? 'text-emerald-400' : 'text-rose-400'}`}>{metrics.qcisKpis.dpuEmbalamento}</span>
+                                    <span className="text-slate-600 text-[10px] mt-1 font-bold">OBJETIVO: 18.0</span>
                                 </div>
-                                <div className="flex justify-between items-center bg-indigo-950/30 p-4 rounded-2xl border border-indigo-900/50 shadow-inner">
-                                    <div className="flex flex-col">
-                                        <span className="text-sm font-bold text-indigo-400 uppercase tracking-widest flex items-center gap-1.5"><PackageCheck size={16}/> Barcos Embalados</span>
-                                        <span className="text-[10px] text-indigo-500/80 font-bold uppercase mt-1">Acumulado Ontem</span>
-                                    </div>
-                                    <span className="text-4xl lg:text-5xl font-black text-indigo-400">{metrics.qcisKpis.barcosEmbaladosOntem}</span>
+                                <div className="flex flex-col items-center justify-center bg-indigo-950/30 p-4 rounded-2xl border border-indigo-900/50 shadow-inner">
+                                    <span className="text-indigo-400/80 text-xs font-bold uppercase tracking-widest mb-1 flex items-center gap-1.5"><PackageCheck size={14}/> Barcos Embalados</span>
+                                    <span className="text-4xl lg:text-5xl font-black text-indigo-400 drop-shadow-[0_0_10px_rgba(99,102,241,0.3)]">{metrics.qcisKpis.barcosEmbaladosOntem}</span>
+                                    <span className="text-indigo-900 text-[10px] mt-1 font-bold uppercase">Acumulado Ontem</span>
                                 </div>
                             </div>
                         </div>
