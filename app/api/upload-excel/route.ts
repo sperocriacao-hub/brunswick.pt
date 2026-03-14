@@ -117,8 +117,20 @@ export async function POST(req: NextRequest) {
         };
       });
       
+      // Deduplicate the array in memory mapping by the Deterministic Hash ID 
+      // This prevents the "ON CONFLICT DO UPDATE command cannot affect row a second time" error 
+      // caused by the SAP Excel having identically duplicated rows in the same spreadsheet.
+      const uniqueQcisData: any[] = [];
+      const seenIds = new Set<string>();
+      for (const row of qcisData) {
+          if (!seenIds.has(row.id)) {
+              seenIds.add(row.id);
+              uniqueQcisData.push(row);
+          }
+      }
+
       // Upsert QCIS directly bypassing standard generic string normalizations
-      const { error } = await supabaseAdmin.from(tableName).upsert(qcisData);
+      const { error } = await supabaseAdmin.from(tableName).upsert(uniqueQcisData);
       
       if (error) {
          return NextResponse.json({ success: false, error: `Erro no parser QCIS: ${error.message}` }, { status: 400 });
@@ -126,8 +138,8 @@ export async function POST(req: NextRequest) {
 
       return NextResponse.json({
         success: true,
-        recordsAffected: qcisData.length,
-        message: `Processadas ${qcisData.length} auditorias de Qualidade (QCIS).`,
+        recordsAffected: uniqueQcisData.length,
+        message: `Processadas ${uniqueQcisData.length} auditorias ÚNICAS (Filtrou ${qcisData.length - uniqueQcisData.length} duplicados do SAP).`,
       });
     }
     // --- FIM INTERCETOR QCIS ---
