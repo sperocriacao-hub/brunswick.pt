@@ -223,6 +223,13 @@ export default function GeneralOrdersDashboard() {
                                                         <Eye className="mr-2 h-4 w-4" />
                                                         Ver Rastreamento Live
                                                     </DropdownMenuItem>
+                                                    <DropdownMenuItem
+                                                        className="cursor-pointer font-bold text-amber-600 focus:bg-amber-50 focus:text-amber-700"
+                                                        onClick={() => router.push(`/admin/producao/editar/${order.id}`)}
+                                                    >
+                                                        <Activity className="mr-2 h-4 w-4" /> {/* Or Pencil/Edit icon if available */}
+                                                        Editar Ordem / Tracker
+                                                    </DropdownMenuItem>
                                                     <DropdownMenuSeparator />
                                                     {order.status !== 'Cancelada' && order.status !== 'Concluida' && (
                                                         <DropdownMenuItem
