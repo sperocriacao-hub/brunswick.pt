@@ -155,7 +155,8 @@ export default function GeneralOrdersDashboard() {
                             <TableRow>
                                 <TableHead className="font-bold text-slate-600">Barco</TableHead>
                                 <TableHead className="font-bold text-slate-600">Nº Ordem</TableHead>
-                                <TableHead className="font-bold text-slate-600">Modelo</TableHead>
+                                <TableHead className="font-bold text-slate-600">RFID Token</TableHead>
+                                <TableHead className="font-bold text-slate-600">Nº Série</TableHead>
                                 <TableHead className="font-bold text-slate-600">Status M.E.S</TableHead>
                                 <TableHead className="font-bold text-slate-600">Início Mestre</TableHead>
                                 <TableHead className="font-bold text-slate-600">Fim Mestre</TableHead>
@@ -182,11 +183,6 @@ export default function GeneralOrdersDashboard() {
                                     <TableRow key={order.id} className="hover:bg-blue-50/30 transition-colors">
                                         <TableCell className="font-bold text-blue-900 border-l-2 border-transparent">
                                             {order.display_nome || '--'}
-                                            {order.rfid_token && (
-                                                <Badge variant="outline" className="ml-2 bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] uppercase font-mono tracking-wider translate-y-[-1px]">
-                                                    <Activity className="inline w-3 h-3 mr-1" />{order.rfid_token}
-                                                </Badge>
-                                            )}
                                         </TableCell>
                                         <TableCell className="font-bold text-slate-700">
                                             {order.op_numero}
@@ -194,7 +190,12 @@ export default function GeneralOrdersDashboard() {
                                                 <Badge variant="destructive" className="ml-2 text-[10px] px-1.5 py-0 h-4 uppercase translate-y-[-2px]">🔥 Hot</Badge>
                                             )}
                                         </TableCell>
-                                        <TableCell className="font-medium text-slate-600">{order.modelos?.nome_modelo || '--'}</TableCell>
+                                        <TableCell className="font-mono text-emerald-700 tracking-wider text-xs">
+                                            {order.rfid_token ? order.rfid_token : <span className="text-slate-300">N/A</span>}
+                                        </TableCell>
+                                        <TableCell className="font-medium text-slate-600">
+                                            {order.num_serie || '--'}
+                                        </TableCell>
                                         <TableCell>
                                             <Badge variant="secondary" className={getStatusStyle(order.status)}>
                                                 {order.status}
