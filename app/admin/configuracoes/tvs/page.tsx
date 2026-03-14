@@ -25,7 +25,24 @@ export default function TVConfiguracoesPage() {
     const [layout, setLayout] = useState('KPIS_HINT');
     const [currentHost, setCurrentHost] = useState('brunswick-pt.vercel.app'); // fallback
 
-    const [opcoesLayout, setOpcoesLayout] = useState({
+    interface OpcoesLayoutProps {
+        showOeeDay: boolean;
+        showOeeMonth: boolean;
+        showWorkerOfMonth: boolean;
+        showSafeArea: boolean;
+        showBottlenecks: boolean;
+        showEfficiency: boolean;
+        showAbsentismo: boolean;
+        showSafetyCross: boolean;
+        showHstKpis: boolean;
+        showQCISQuality: boolean;
+        minimiseAndon: boolean;
+        qcisLinha?: string;
+        qcisSubstationFTR?: string;
+        qcisSubstationDPU?: string;
+    }
+
+    const [opcoesLayout, setOpcoesLayout] = useState<OpcoesLayoutProps>({
         showOeeDay: true,
         showOeeMonth: true,
         showWorkerOfMonth: true,
@@ -340,8 +357,8 @@ export default function TVConfiguracoesPage() {
                                     <label key={key} className="flex flex-row items-start gap-3 cursor-pointer p-3 hover:bg-white rounded-lg border border-transparent hover:border-slate-200 hover:shadow-sm transition-all">
                                         <input
                                             type="checkbox"
-                                            checked={opcoesLayout[key as keyof typeof opcoesLayout]}
-                                            onChange={() => setOpcoesLayout(prev => ({ ...prev, [key]: !prev[key as keyof typeof prev] }))}
+                                            checked={!!opcoesLayout[key as keyof OpcoesLayoutProps]}
+                                            onChange={() => setOpcoesLayout(prev => ({ ...prev, [key]: !prev[key as keyof OpcoesLayoutProps] }))}
                                             className="w-5 h-5 mt-0.5 text-blue-600 rounded border-slate-300 focus:ring-blue-500 shrink-0"
                                         />
                                         <span className="text-sm font-semibold text-slate-700 select-none leading-tight">{label}</span>
