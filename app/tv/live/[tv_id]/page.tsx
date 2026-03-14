@@ -195,9 +195,13 @@ export default function CustomTVDashboardPage() {
 
                                     <div className="flex items-center gap-2 w-full justify-center mt-1">
                                         {station.hasAndon ? (
-                                            <div className="relative flex shrink-0 h-4 w-4">
-                                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-100 opacity-75"></span>
-                                                <span className="relative inline-flex rounded-full bg-white shadow-[0_0_15px_rgba(255,255,255,1)] h-4 w-4 border-2 border-red-500"></span>
+                                            <div className="relative flex justify-center items-center shrink-0 w-6 h-6 mb-1">
+                                                {/* Giroflex Core / Base */}
+                                                <div className="absolute w-3 h-3 bg-white rounded-full border-2 border-red-500 z-10 shadow-[0_0_20px_rgba(255,0,0,1),0_0_40px_rgba(255,0,0,0.8)]"></div>
+                                                {/* Rotating Light Beam (Siren Sweep) */}
+                                                <div className="absolute w-16 h-16 bg-[conic-gradient(from_0deg,transparent_0_300deg,rgba(255,255,255,0.5)_360deg)] rounded-full animate-spin z-0 pointer-events-none origin-center mix-blend-overlay"></div>
+                                                {/* Intense Red Pulse (Siren Volumetric Glow) */}
+                                                <span className="animate-ping absolute inline-flex h-8 w-8 rounded-full bg-red-500 opacity-60 z-0 drop-shadow-[0_0_10px_rgba(220,38,38,0.9)]"></span>
                                             </div>
                                         ) : (
                                             <div className="rounded-full bg-emerald-400 border-2 border-emerald-200 shadow-[0_0_10px_rgba(52,211,153,0.8)] shrink-0 h-3 w-3"></div>
