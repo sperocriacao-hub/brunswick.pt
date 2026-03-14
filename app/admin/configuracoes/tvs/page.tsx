@@ -209,6 +209,7 @@ export default function TVConfiguracoesPage() {
                                     <span className={`px-2.5 py-1 rounded-full text-xs font-bold leading-none capitalize 
                                         ${tv.tipo_alvo === 'LINHA' ? 'bg-indigo-100 text-indigo-700' :
                                             tv.tipo_alvo === 'AREA' ? 'bg-emerald-100 text-emerald-700' :
+                                                tv.tipo_alvo === 'PLANEAMENTO' ? 'bg-blue-100 text-blue-700' :
                                                 'bg-purple-100 text-purple-700'}`}>
                                         {tv.tipo_alvo}
                                     </span>
@@ -282,10 +283,11 @@ export default function TVConfiguracoesPage() {
                                 <option value="LINHA">Focar numa Linha de Produção Singular</option>
                                 <option value="AREA">Focar em Diversas Linhas de uma Área</option>
                                 <option value="GERAL">Visão Geral Completa de Fábrica</option>
+                                <option value="PLANEAMENTO">Dashboard de Planeamento Semanal</option>
                             </select>
                         </div>
 
-                        {tipoAlvo !== 'GERAL' && (
+                        {tipoAlvo !== 'GERAL' && tipoAlvo !== 'PLANEAMENTO' && (
                             <div className="space-y-2 p-4 bg-slate-50 border border-slate-200 rounded-lg">
                                 <Label>Selecione exatamente quem é o Alvo:</Label>
                                 <select
@@ -305,10 +307,11 @@ export default function TVConfiguracoesPage() {
                             </div>
                         )}
 
-                        <div className="space-y-3 pt-4 border-t border-slate-200">
-                            <Label className="text-blue-700 font-bold flex items-center gap-2">
-                                <Settings size={16} /> Widgets NASA-Level (Configuração do Layout)
-                            </Label>
+                        {tipoAlvo !== 'PLANEAMENTO' && (
+                            <div className="space-y-3 pt-4 border-t border-slate-200">
+                                <Label className="text-blue-700 font-bold flex items-center gap-2">
+                                    <Settings size={16} /> Widgets NASA-Level (Configuração do Layout)
+                                </Label>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-100">
                                 {Object.entries({
                                     showOeeDay: "OEE Global do Dia (Real vs Objetivo)",
@@ -332,8 +335,9 @@ export default function TVConfiguracoesPage() {
                                         <span className="text-sm font-semibold text-slate-700 select-none leading-tight">{label}</span>
                                     </label>
                                 ))}
+                                </div>
                             </div>
-                        </div>
+                        )}
 
                         <DialogFooter className="mt-6 gap-2 sm:justify-between">
                             <Button type="button" variant="ghost" onClick={() => setIsAddModalOpen(false)}>

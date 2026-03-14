@@ -23,8 +23,41 @@ export async function buscarDashboardsTV(tv_id: string) {
             return { success: false, error: "Referência de TV Indisponível." };
         }
 
-        const tipoAlvo = configTv.tipo_alvo; // 'LINHA', 'AREA', 'GERAL'
+        const tipoAlvo = configTv.tipo_alvo; // 'LINHA', 'AREA', 'GERAL', 'PLANEAMENTO'
         const alvoId = configTv.alvo_id;
+
+        // Fast-path: Se for Dashboard de Planeamento, injetamos as OPs planeadas e contornamos a lógica Andon/Operadores
+        if (tipoAlvo === 'PLANEAMENTO') {
+            const { data, error } = await supabase
+                .from('ordens_producao')
+                .select(`
+                    id, op_numero, hin_hull_id, semana_planeada, ordem_sequencial_linha, data_prevista_inicio,
+                    modelos ( nome_modelo ),
+                    linhas_producao ( letra_linha )
+                `)
+                .in('status', ['PLANNED', 'IN_PROGRESS'])
+                .order('ordem_sequencial_linha', { ascending: true });
+
+            let planeamentoData: any[] = [];
+            if (!error && data) {
+                planeamentoData = (data as any[]).map(op => ({
+                    id: op.id,
+                    op_numero: op.op_numero,
+                    modelo: op.modelos?.nome_modelo || 'Desconhecido',
+                    hin_hull_id: op.hin_hull_id,
+                    semana_planeada: op.semana_planeada || 'BACKLOG',
+                    ordem_sequencial_linha: op.ordem_sequencial_linha || 0,
+                    data_prevista_inicio: op.data_prevista_inicio,
+                    linha: op.linhas_producao?.letra_linha || 'N/A'
+                }));
+            }
+
+            return {
+                success: true,
+                config: configTv,
+                planeamentoData
+            };
+        }
 
         // 2. Dependendo do Tipo de Alvo, recolher quais Estações pertencem a esse escopo
         let dictEstacoes: string[] = [];

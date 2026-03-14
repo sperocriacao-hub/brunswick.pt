@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
 import { AlertTriangle, Clock, Factory, MonitorPlay, ShieldCheck, Trophy, Target, TrendingUp, Zap, Clock4, CheckCircle2, UserX, Activity, HeartPulse } from 'lucide-react';
 import { buscarDashboardsTV } from '../../actions';
+import KanbanBoard from '../../../admin/producao/planeamento/components/KanbanBoard';
 
 // Supabase Anon Client for Websockets Listeners ONLY
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -25,6 +26,7 @@ export default function CustomTVDashboardPage() {
     const [tipoAlvo, setTipoAlvo] = useState<string>('');
     const [opcoesLayout, setOpcoesLayout] = useState<any>({});
     const [metrics, setMetrics] = useState<any>({ kpiOee: {}, heroiTurno: null, melhorArea: null, gargalos: [] });
+    const [planeamentoOrdens, setPlaneamentoOrdens] = useState<any[]>([]);
 
     const [refreshTick, setRefreshTick] = useState(0);
     const [time, setTime] = useState(new Date());
@@ -42,12 +44,17 @@ export default function CustomTVDashboardPage() {
             if (res.success && res.config) {
                 setNomeTv(res.config.nome_tv);
                 setAlvoNome(res.config.nome_alvo_resolvido);
-                setBarcosAtivos(res.barcos || []);
-                setAlertas(res.alertasGlobais || []);
-                setRadarEstacoes(res.radarEstacoes || []);
                 setTipoAlvo(res.config.tipo_alvo || '');
-                setOpcoesLayout(res.config.opcoes_layout || {});
-                setMetrics(res.advancedMetrics || {});
+                
+                if (res.config.tipo_alvo === 'PLANEAMENTO') {
+                    setPlaneamentoOrdens(res.planeamentoData || []);
+                } else {
+                    setBarcosAtivos(res.barcos || []);
+                    setAlertas(res.alertasGlobais || []);
+                    setRadarEstacoes(res.radarEstacoes || []);
+                    setOpcoesLayout(res.config.opcoes_layout || {});
+                    setMetrics(res.advancedMetrics || {});
+                }
             } else {
                 setNomeTv("🔴 SINAL PERDIDO");
                 setAlvoNome("Esta TV não foi configurada ou perdeu a ligação ao servidor M.E.S.");
@@ -92,6 +99,44 @@ export default function CustomTVDashboardPage() {
                 <MonitorPlay size={120} className="mb-8 opacity-20" />
                 <h1 className="text-6xl font-black mb-4 uppercase">{nomeTv}</h1>
                 <p className="text-3xl font-mono">{alvoNome}</p>
+            </div>
+        );
+    }
+
+    if (tipoAlvo === 'PLANEAMENTO') {
+        return (
+            <div className="w-screen h-screen flex flex-col overflow-hidden bg-slate-950 text-slate-200">
+                {/* --- NASA HUD TOP HEADER --- */}
+                <header className="flex items-center justify-between border-b-[4px] border-slate-800 bg-slate-900/50 p-6 shadow-md z-10 shrink-0">
+                    <div className="flex items-center gap-8">
+                        <div className="flex items-center justify-center pr-2">
+                            <img src="/logo.png" alt="Logo" className="w-[240px] h-auto object-contain drop-shadow-xl" />
+                        </div>
+                        <div>
+                            <h1 className="text-5xl font-black tracking-tighter uppercase text-white truncate max-w-4xl">{alvoNome}</h1>
+                            <p className="text-xl text-blue-400 font-bold tracking-widest uppercase flex items-center gap-3">
+                                <MonitorPlay size={20} className="text-blue-500" /> DATALINK: {nomeTv}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center bg-black/60 border border-slate-700 rounded-2xl px-8 py-4 shadow-[inset_0_4px_10px_rgba(0,0,0,0.6)]">
+                        <Clock size={36} className="text-emerald-400 mr-5 animate-pulse" />
+                        <span className="text-5xl font-mono font-black tracking-widest text-emerald-400">
+                            {time.toLocaleTimeString('pt-PT', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                        </span>
+                    </div>
+                </header>
+                
+                <div className="flex-1 overflow-hidden p-4 relative kanban-tv-wrapper bg-slate-950">
+                     <KanbanBoard inicialOrdens={planeamentoOrdens} />
+                </div>
+                {/* Strict CSS override to make Kanban passive on TVs */}
+                <style dangerouslySetInnerHTML={{__html: `
+                    .kanban-tv-wrapper button { display: none !important; }
+                    .kanban-tv-wrapper .glass-panel { pointer-events: none !important; transform: scale(1.02); margin-top: 4px; border: 1px solid rgba(59,130,246,0.3) !important; background: rgba(15,23,42,0.8) !important;}
+                    .kanban-tv-wrapper { padding-top: 2rem !important; }
+                `}} />
             </div>
         );
     }
