@@ -310,31 +310,31 @@ export default function CustomTVDashboardPage() {
                     )}
 
                     {opcoesLayout.showQCISQuality && metrics.qcisKpis && (
-                        <div className="col-span-1 bg-slate-900/80 border border-slate-700/50 rounded-3xl p-5 shadow-2xl relative flex flex-col justify-between">
-                            <h2 className="text-xs font-black uppercase tracking-widest text-indigo-400 mb-3 flex items-center gap-2">
-                                <ShieldCheck size={16} /> Qualidade (Mês)
+                        <div className="col-span-3 bg-slate-900/80 border border-slate-700/50 rounded-3xl p-4 shadow-2xl relative overflow-hidden flex flex-col gap-3">
+                            <h2 className="text-xl font-bold uppercase tracking-widest text-indigo-400 flex items-center gap-2">
+                                <ShieldCheck size={24} className="text-indigo-500" /> Qualidade (Mês)
                             </h2>
-                            <div className="space-y-3">
-                                <div className="flex justify-between items-center bg-slate-950/50 p-2.5 rounded-xl border border-slate-800">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="flex justify-between items-center bg-slate-950/50 p-4 rounded-2xl border border-slate-800/80">
                                     <div className="flex flex-col">
-                                        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">FTR Global</span>
-                                        <span className="text-[9px] text-slate-600 font-bold uppercase">Objetivo 80%</span>
+                                        <span className="text-sm font-bold text-slate-400 uppercase tracking-widest">FTR Global</span>
+                                        <span className="text-[10px] text-slate-600 font-bold uppercase mt-1">Objetivo 80%</span>
                                     </div>
-                                    <span className={`text-2xl font-black ${parseInt(metrics.qcisKpis.ftrPercent) >= 80 ? 'text-emerald-400' : 'text-amber-400'}`}>{metrics.qcisKpis.ftrPercent}</span>
+                                    <span className={`text-4xl lg:text-5xl font-black ${parseInt(metrics.qcisKpis.ftrPercent) >= 80 ? 'text-emerald-400' : 'text-amber-400'}`}>{metrics.qcisKpis.ftrPercent}</span>
                                 </div>
-                                <div className="flex justify-between items-center bg-slate-950/50 p-2.5 rounded-xl border border-slate-800">
+                                <div className="flex justify-between items-center bg-slate-950/50 p-4 rounded-2xl border border-slate-800/80">
                                     <div className="flex flex-col">
-                                        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">DPU Embalamento</span>
-                                        <span className="text-[9px] text-slate-600 font-bold uppercase">Objetivo 18.0</span>
+                                        <span className="text-sm font-bold text-slate-400 uppercase tracking-widest">DPU Embalamento</span>
+                                        <span className="text-[10px] text-slate-600 font-bold uppercase mt-1">Objetivo 18.0</span>
                                     </div>
-                                    <span className={`text-2xl font-black ${(parseFloat(metrics.qcisKpis.dpuEmbalamento) <= 18 && parseFloat(metrics.qcisKpis.dpuEmbalamento) > 0) ? 'text-emerald-400' : 'text-rose-400'}`}>{metrics.qcisKpis.dpuEmbalamento}</span>
+                                    <span className={`text-4xl lg:text-5xl font-black ${(parseFloat(metrics.qcisKpis.dpuEmbalamento) <= 18 && parseFloat(metrics.qcisKpis.dpuEmbalamento) > 0) ? 'text-emerald-400' : 'text-rose-400'}`}>{metrics.qcisKpis.dpuEmbalamento}</span>
                                 </div>
-                                <div className="flex justify-between items-center bg-indigo-950/30 p-2.5 rounded-xl border border-indigo-900/50 shadow-inner">
+                                <div className="flex justify-between items-center bg-indigo-950/30 p-4 rounded-2xl border border-indigo-900/50 shadow-inner">
                                     <div className="flex flex-col">
-                                        <span className="text-[11px] font-bold text-indigo-400 uppercase tracking-widest flex items-center gap-1.5"><PackageCheck size={12}/> Barcos Embalados</span>
-                                        <span className="text-[9px] text-indigo-500/80 font-bold uppercase">Acumulado Ontem</span>
+                                        <span className="text-sm font-bold text-indigo-400 uppercase tracking-widest flex items-center gap-1.5"><PackageCheck size={16}/> Barcos Embalados</span>
+                                        <span className="text-[10px] text-indigo-500/80 font-bold uppercase mt-1">Acumulado Ontem</span>
                                     </div>
-                                    <span className="text-3xl font-black text-indigo-400">{metrics.qcisKpis.barcosEmbaladosOntem}</span>
+                                    <span className="text-4xl lg:text-5xl font-black text-indigo-400">{metrics.qcisKpis.barcosEmbaladosOntem}</span>
                                 </div>
                             </div>
                         </div>
