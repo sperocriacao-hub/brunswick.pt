@@ -37,6 +37,10 @@ export default function QcisAnalyticsDashboard() {
     const currentMonthPrefix = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
     const [selectedMonth, setSelectedMonth] = useState(currentMonthPrefix);
 
+    // Filtros de Período Específico (Sobrepõem o Mês)
+    const [customStartDate, setCustomStartDate] = useState('');
+    const [customEndDate, setCustomEndDate] = useState('');
+
     // Filtros NASA Secundários
     const [filterModelo, setFilterModelo] = useState('');
     const [filterLinha, setFilterLinha] = useState('');
@@ -45,11 +49,15 @@ export default function QcisAnalyticsDashboard() {
 
     const loadData = async () => {
         setIsLoading(true);
-        const [year, month] = selectedMonth.split('-');
-        
-        // Limita o download à API estritamente para o Mês Selecionado
-        const startDate = new Date(Number(year), Number(month) - 1, 1).toISOString().split('T')[0];
-        const endDate = new Date(Number(year), Number(month), 0).toISOString().split('T')[0];
+        let startDate = customStartDate;
+        let endDate = customEndDate;
+
+        // Se falhar algum dos custom dates, cai no "Mês" para estabelecer os limites da API
+        if (!startDate || !endDate) {
+            const [year, month] = selectedMonth.split('-');
+            startDate = startDate || new Date(Number(year), Number(month) - 1, 1).toISOString().split('T')[0];
+            endDate = endDate || new Date(Number(year), Number(month), 0).toISOString().split('T')[0];
+        }
 
         const res = await fetchQcisData({ startDate, endDate, _cacheBuster: Date.now().toString() });
         if (res.success && res.data) {
@@ -57,12 +65,9 @@ export default function QcisAnalyticsDashboard() {
         } else {
             setAudits([]);
         }
-        setIsLoading(false);
-    };
-
     useEffect(() => {
         loadData();
-    }, [selectedMonth]);
+    }, [selectedMonth, customStartDate, customEndDate]);
 
     const monthsDropdown = useMemo(() => {
         const arr = [];
@@ -89,20 +94,25 @@ export default function QcisAnalyticsDashboard() {
         });
     }, [audits, filterModelo, filterLinha, filterGate, filterCategoria]);
 
-    // 2. O CORAÇÃO V8.1: Extrair apenas os ÚLTIMOS 6 DIAS ATIVOS
-    const { active6Days, last6DaysData } = useMemo(() => {
+    // 2. O CORAÇÃO V8.1: Extrair dias ativos cronológicos (6 pelo Mês, ou tudo se período Custom)
+    const { activeDays, activeData } = useMemo(() => {
         const uniqueDates = Array.from(new Set(filteredBase.map(a => a.fail_date ? a.fail_date.split('T')[0] : null).filter(Boolean) as string[]));
         uniqueDates.sort((a, b) => b.localeCompare(a)); // Descending
-        const active6Days = uniqueDates.slice(0, 6).reverse(); // Chronological for charts (6 Days)
-        const active6Set = new Set(active6Days);
         
-        const last6DaysData = filteredBase.filter(a => {
+        // Se usar um filtro customizado, permitimos até 31 dias. Se for o Mês padrão, os 6 mais recentes.
+        const isCustom = customStartDate || customEndDate;
+        const maxDays = isCustom ? 31 : 6;
+        
+        const activeDaysRaw = uniqueDates.slice(0, maxDays).reverse(); // Chronological for charts
+        const activeSet = new Set(activeDaysRaw);
+        
+        const activeDataList = filteredBase.filter(a => {
             const dStr = a.fail_date ? a.fail_date.split('T')[0] : null;
-            return dStr && active6Set.has(dStr);
+            return dStr && activeSet.has(dStr);
         });
 
-        return { active6Days, last6DaysData };
-    }, [filteredBase]);
+        return { activeDays: activeDaysRaw, activeData: activeDataList };
+    }, [filteredBase, customStartDate, customEndDate]);
 
     // Opções Dinamicas dos Dropdowns (da base de dados do mes)
     const modelosUnicos = Array.from(new Set(filteredBase.map(a => a.model_ref).filter(Boolean))).sort();
@@ -110,18 +120,18 @@ export default function QcisAnalyticsDashboard() {
     const gatesUnicos = Array.from(new Set(filteredBase.map(a => a.lista_gate).filter(Boolean))).sort();
     const categoriasUnicas = Array.from(new Set(filteredBase.map(a => a.lista_categoria).filter(Boolean))).sort();
 
-    // --- MÁQUINAS MATEMÁTICAS GLOBAIS (Sobre os dados de 6 Dias) ---
+    // --- MÁQUINAS MATEMÁTICAS GLOBAIS (Sobre os dados ativos) ---
     
     // KPI Clássicos
-    const totalDefeitos = last6DaysData.reduce((acc, curr) => acc + (curr.count_of_defects || 0), 0);
-    const totalBarcosUnicos = new Set(last6DaysData.map(a => a.boat_id).filter(Boolean)).size;
+    const totalDefeitos = activeData.reduce((acc, curr) => acc + (curr.count_of_defects || 0), 0);
+    const totalBarcosUnicos = new Set(activeData.map(a => a.boat_id).filter(Boolean)).size;
 
     // KPI: DPU Global (Defects Per Unit)
     const globalDPU = totalBarcosUnicos > 0 ? (totalDefeitos / totalBarcosUnicos).toFixed(2) : "0.00";
 
     // KPI: FTR Global % (First Time Rate - Apenas Testes Funcionais)
     const globalFTR = useMemo(() => {
-        const ftrAudits = last6DaysData.filter(a => (a.substation_name || '').toLowerCase().includes('testes funcionais'));
+        const ftrAudits = activeData.filter(a => (a.substation_name || '').toLowerCase().includes('testes funcionais'));
         if (ftrAudits.length === 0) return "N/A";
         
         const totalBoats = new Set(ftrAudits.map(a => a.boat_id).filter(Boolean)).size;
@@ -134,7 +144,7 @@ export default function QcisAnalyticsDashboard() {
         
         if (totalBoats === 0) return "0%";
         return `${Math.round((zeroBoats / totalBoats) * 100)}%`;
-    }, [last6DaysData]);
+    }, [activeData]);
 
     // Formatador utilitário de Mês
     const fmtDate = (str: string) => str.split('-').reverse().slice(0,2).join('/'); // DD/MM
@@ -144,7 +154,7 @@ export default function QcisAnalyticsDashboard() {
         const matrix: Record<string, Record<string, number>> = {};
         const gatesSet = new Set<string>();
 
-        last6DaysData.forEach(a => {
+        activeData.forEach(a => {
             const dateStr = a.fail_date ? fmtDate(a.fail_date.split('T')[0]) : 'S/ Data';
             const gate = a.lista_gate || 'S/ Gate';
             gatesSet.add(gate);
@@ -154,7 +164,7 @@ export default function QcisAnalyticsDashboard() {
         });
         
         return { heatmapMatrix: matrix, heatmapGates: Array.from(gatesSet).sort() };
-    }, [last6DaysData]);
+    }, [activeData]);
 
     // Matemáticas de Subestações (Chronologic Lines)
     const { chartEmbalamento, chartTestes, chartPD, uniqueChartLinhas } = useMemo(() => {
@@ -169,13 +179,13 @@ export default function QcisAnalyticsDashboard() {
         
         const pdMap: Record<string, Record<string, number>> = {};
 
-        active6Days.forEach(d => {
+        activeDays.forEach(d => {
             embMap[d] = {}; embBoats[d] = {};
             ftrMap[d] = {}; ftrZero[d] = {}; ftrTotal[d] = {};
             pdMap[d] = {};
         });
 
-        last6DaysData.forEach(a => {
+        activeData.forEach(a => {
             if (!a.linha_linha) return;
             const dStr = a.fail_date.split('T')[0];
             const linha = a.linha_linha.trim();
@@ -212,7 +222,7 @@ export default function QcisAnalyticsDashboard() {
         });
 
         // Compute Averages per Day
-        active6Days.forEach(d => {
+        activeDays.forEach(d => {
             let sumPdu = 0; let actEmb = 0;
             let sumFtr = 0; let actFtr = 0;
 
@@ -240,7 +250,7 @@ export default function QcisAnalyticsDashboard() {
             if (actFtr > 0) ftrMap[d]['Tendência Global'] = Math.round(sumFtr / actFtr);
         });
 
-        const fData = (mapBase: any) => active6Days.map(d => ({ name: fmtDate(d), ...mapBase[d] }));
+        const fData = (mapBase: any) => activeDays.map(d => ({ name: fmtDate(d), ...mapBase[d] }));
 
         return { 
             chartEmbalamento: fData(embMap), 
@@ -248,12 +258,12 @@ export default function QcisAnalyticsDashboard() {
             chartPD: fData(pdMap),
             uniqueChartLinhas: Array.from(linhasSet).sort()
         };
-    }, [last6DaysData, active6Days]);
+    }, [activeData, activeDays]);
 
     // PARETO: Top Defeitos (Descrições mais penalizadoras)
     const paretoData = useMemo(() => {
         const counter: Record<string, number> = {};
-        last6DaysData.forEach(a => {
+        activeData.forEach(a => {
             const desc = a.defect_description || a.peca || 'Sem Descrição';
             counter[desc] = (counter[desc] || 0) + (a.count_of_defects || 0);
         });
@@ -261,7 +271,7 @@ export default function QcisAnalyticsDashboard() {
             .map(([name, value]) => ({ name, value }))
             .sort((a,b) => b.value - a.value)
             .slice(0, 50); // Top 50 Ofensores
-    }, [last6DaysData]);
+    }, [activeData]);
 
     const getColor = (idx: number, total: number) => `hsl(${idx * (360 / total)}, 70%, 50%)`;
 
@@ -272,21 +282,54 @@ export default function QcisAnalyticsDashboard() {
     return (
         <div className="p-6 md:p-8 flex flex-col gap-6 bg-[#020617] min-h-[calc(100vh-64px)] overflow-y-auto text-slate-200">
             
-            {/* CABEÇALHO */}
+            {/* CABEÇALHO E FILTROS DE DATA */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-800 pb-4">
                 <div>
                     <h1 className="text-2xl font-bold text-slate-100 flex items-center gap-2">
                         <ShieldAlert className="text-rose-500" /> QCIS Dashboard
                     </h1>
-                    <p className="text-slate-400 text-sm mt-1">Cálculos Exatos e Isolados da Amostragem dos Últimos 6 Dias.</p>
+                    <p className="text-slate-400 text-sm mt-1">
+                        {customStartDate || customEndDate 
+                            ? 'Cálculos Exatos isolados no Período Customizado (Max 31 dias).' 
+                            : 'Cálculos Exatos da Amostragem dos Últimos 6 Dias Ativos.'}
+                    </p>
                 </div>
-                <select 
-                    value={selectedMonth} 
-                    onChange={e => setSelectedMonth(e.target.value)}
-                    className="bg-slate-900 border border-slate-700 text-slate-200 rounded-lg px-4 py-2 font-medium"
-                >
-                    {monthsDropdown.map(m => <option key={m.val} value={m.val}>{m.label}</option>)}
-                </select>
+                
+                <div className="flex flex-wrap items-center gap-3">
+                    {/* Date Range Inputs */}
+                    <div className="flex items-center gap-2 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1">
+                        <input 
+                            type="date" 
+                            className="bg-transparent text-sm text-slate-300 outline-none w-32" 
+                            value={customStartDate} 
+                            onChange={e => setCustomStartDate(e.target.value)} 
+                            title="Data de Início"
+                        />
+                        <span className="text-slate-500 text-xs">até</span>
+                        <input 
+                            type="date" 
+                            className="bg-transparent text-sm text-slate-300 outline-none w-32" 
+                            value={customEndDate} 
+                            onChange={e => setCustomEndDate(e.target.value)} 
+                            title="Data de Fim"
+                        />
+                        {(customStartDate || customEndDate) && (
+                            <button 
+                                onClick={() => { setCustomStartDate(''); setCustomEndDate(''); }}
+                                className="text-xs text-rose-400 bg-rose-500/20 px-2 py-1 rounded hover:bg-rose-500/30"
+                            >
+                                Limpar
+                            </button>
+                        )}
+                    </div>
+                    <select 
+                        value={selectedMonth} 
+                        onChange={e => { setSelectedMonth(e.target.value); setCustomStartDate(''); setCustomEndDate(''); }}
+                        className="bg-slate-900 border border-slate-700 text-slate-200 rounded-lg px-4 py-2 font-medium"
+                    >
+                        {monthsDropdown.map(m => <option key={m.val} value={m.val}>{m.label}</option>)}
+                    </select>
+                </div>
             </div>
 
             {/* FILTROS NAVBAR */}
@@ -347,7 +390,7 @@ export default function QcisAnalyticsDashboard() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {active6Days.map(dRaw => {
+                                {activeDays.map(dRaw => {
                                     const dateStr = fmtDate(dRaw);
                                     if(!heatmapMatrix[dateStr]) return null;
                                     
@@ -483,7 +526,7 @@ export default function QcisAnalyticsDashboard() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {last6DaysData.length > 0 ? last6DaysData.slice(0, 100).map((a, i) => (
+                                {activeData.length > 0 ? activeData.slice(0, 100).map((a, i) => (
                                     <TableRow key={a.id || i} className="border-slate-800 hover:bg-slate-800/30">
                                         <TableCell className="text-slate-300">{a.fail_date ? fmtDate(a.fail_date.split('T')[0]) : 'N/A'}</TableCell>
                                         <TableCell className="font-medium text-blue-400">{a.boat_id}</TableCell>
@@ -499,7 +542,7 @@ export default function QcisAnalyticsDashboard() {
                             </TableBody>
                         </Table>
                     </div>
-                    {last6DaysData.length > 100 && <div className="text-right text-xs text-slate-500 mt-2">Mostrando as primeiras 100 linhas ativas.</div>}
+                    {activeData.length > 100 && <div className="text-right text-xs text-slate-500 mt-2">Mostrando as primeiras 100 linhas ativas.</div>}
                  </CardContent>
             </Card>
 
