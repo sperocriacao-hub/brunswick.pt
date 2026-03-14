@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient } from '@supabase/supabase-js';
+import { unstable_noStore as noStore } from 'next/cache';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
@@ -15,6 +16,7 @@ export async function fetchQcisData(filters: {
     gate?: string, 
     categoria?: string 
 } = {}) {
+    noStore(); // Desativa ativamente a cache agressiva do Next.js para pedidos Server-Side do Supabase
     try {
         let query = supabase.from('qcis_audits').select('*');
 

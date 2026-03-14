@@ -64,6 +64,21 @@ export default function QcisAnalyticsDashboard() {
         loadData();
     }, [startDate, endDate]);
 
+    // Dinamicamente gerar os últimos 12 meses para o Dropdown Standardizado
+    const monthsDropdown = useMemo(() => {
+        const arr = [];
+        const today = new Date();
+        for(let i=0; i<12; i++) {
+            const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+            const mStr = d.toLocaleString('pt-PT', { month: 'long' });
+            const label = mStr.charAt(0).toUpperCase() + mStr.slice(1) + ' ' + d.getFullYear();
+            const yyyy = d.getFullYear();
+            const mm = String(d.getMonth() + 1).padStart(2, '0');
+            arr.push({ label, val: `${yyyy}-${mm}` });
+        }
+        return arr;
+    }, []);
+
     // Aplicar Filtros ao Dataset Principal
     const filteredAudits = useMemo(() => {
         return audits.filter(a => {
@@ -336,8 +351,8 @@ export default function QcisAnalyticsDashboard() {
                     </div>
 
                     <div className="flex items-center gap-2 bg-slate-900/50 p-1 rounded-lg border border-slate-700">
-                        <input 
-                            type="month"
+                        <select 
+                            value={startDate ? startDate.substring(0,7) : ""}
                             onChange={e => {
                                 if(!e.target.value) {
                                     setStartDate('');
@@ -352,7 +367,10 @@ export default function QcisAnalyticsDashboard() {
                             }}
                             className="bg-transparent text-white text-sm px-2 py-1 cursor-pointer focus:outline-none"
                             title="Mês Específico"
-                        />
+                        >
+                            <option value="">Todo o Histórico</option>
+                            {monthsDropdown.map(m => <option key={m.val} value={m.val}>{m.label}</option>)}
+                        </select>
                         <div className="h-4 w-px bg-slate-700"></div>
                         <input 
                             type="date" 
