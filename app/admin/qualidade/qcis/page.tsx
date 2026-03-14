@@ -180,7 +180,7 @@ export default function QcisAnalyticsDashboard() {
     }, [filteredAudits]);
 
     // 6-Day Rolling Window Logic
-    const rolling6Days = useMemo(() => {
+    const { rolling6Days, rolling6DaysList } = useMemo(() => {
         const datesSet = new Set<string>();
         filteredAudits.forEach(a => {
             if (a.fail_date) datesSet.add(a.fail_date.split('T')[0]);
@@ -188,42 +188,85 @@ export default function QcisAnalyticsDashboard() {
         // Sort descending to get the latest 6 days
         const sortedDates = Array.from(datesSet).sort((a,b) => b.localeCompare(a));
         const last6 = sortedDates.slice(0, 6);
-        return new Set(last6); 
+        return { rolling6Days: new Set(last6), rolling6DaysList: last6.sort((a,b) => a.localeCompare(b)) }; 
     }, [filteredAudits]);
 
-    // 3 Substation Flow Charts (Rolling 6 Active Days)
-    const { chartEmbalamento, chartTestes, chartPD } = useMemo(() => {
-        const mapEmb: Record<string, number> = {};
-        const mapTest: Record<string, number> = {};
-        const mapPD: Record<string, number> = {};
+    // 3 Substation Flow Charts (Rolling 6 Active Days - Daily Trends)
+    const { chartEmbalamento, chartTestes, chartPD, uniqueChartLinhas } = useMemo(() => {
+        const embalamentoMap: Record<string, Record<string, number>> = {};
+        const testesMap: Record<string, Record<string, number>> = {};
+        const pdMap: Record<string, Record<string, number>> = {};
+        
+        const ftrZeroMap: Record<string, Record<string, Set<string>>> = {};
+        const ftrTotalMap: Record<string, Record<string, Set<string>>> = {};
+        
+        const linhasSet = new Set<string>();
+
+        rolling6DaysList.forEach(d => {
+            embalamentoMap[d] = {};
+            testesMap[d] = {};
+            pdMap[d] = {};
+            ftrZeroMap[d] = {};
+            ftrTotalMap[d] = {};
+        });
 
         filteredAudits.forEach(a => {
             if (!a.fail_date || !a.linha_linha) return;
             const dStr = a.fail_date.split('T')[0];
-            if (!rolling6Days.has(dStr)) return; // Restrict to the last 6 distinct days in the selected period
+            if (!rolling6Days.has(dStr)) return;
 
             const sub = (a.substation_name || '').toLowerCase();
             const linha = a.linha_linha.trim();
+            const seccao = (a.seccao || '').toLowerCase();
+            const boatId = a.boat_id || 'unknown';
 
-            if (sub.includes('final embalamento')) {
-                mapEmb[linha] = (mapEmb[linha] || 0) + (a.count_of_defects || 0);
+            linhasSet.add(linha);
+
+            // Embalamento (Volume de Defeitos) - Widened filter to catch 'Inspeção Final embalamento'
+            if (sub.includes('embalamento')) {
+                embalamentoMap[dStr][linha] = (embalamentoMap[dStr][linha] || 0) + (a.count_of_defects || 0);
             }
+
+            // Testes Funcionais (FTR - First Time Rate %)
             if (sub.includes('testes funcionais')) {
-                mapTest[linha] = (mapTest[linha] || 0) + (a.count_of_defects || 0);
+                if(!ftrTotalMap[dStr][linha]) ftrTotalMap[dStr][linha] = new Set();
+                ftrTotalMap[dStr][linha].add(boatId);
+
+                if (seccao.includes('zero') || seccao.includes('100%')) {
+                    if(!ftrZeroMap[dStr][linha]) ftrZeroMap[dStr][linha] = new Set();
+                    ftrZeroMap[dStr][linha].add(boatId);
+                }
             }
+
+            // P&D (Volume de Defeitos)
             if (sub.includes('p&d') || sub.endsWith('p&d')) {
-                mapPD[linha] = (mapPD[linha] || 0) + (a.count_of_defects || 0);
+                pdMap[dStr][linha] = (pdMap[dStr][linha] || 0) + (a.count_of_defects || 0);
             }
         });
 
-        const formatData = (map: Record<string, number>) => Object.entries(map).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
+        // Compile FTR Percentages
+        rolling6DaysList.forEach(d => {
+            linhasSet.forEach(linha => {
+                const totalBoats = ftrTotalMap[d][linha] ? ftrTotalMap[d][linha].size : 0;
+                const zeroBoats = ftrZeroMap[d][linha] ? ftrZeroMap[d][linha].size : 0;
+                testesMap[d][linha] = totalBoats > 0 ? Math.round((zeroBoats / totalBoats) * 100) : 0;
+            });
+        });
+
+        const formatLineData = (map: Record<string, Record<string, number>>) => {
+            return rolling6DaysList.map(date => {
+                const [y, m, day] = date.split('-');
+                return { name: `${day}/${m}`, ...map[date] };
+            });
+        };
 
         return { 
-            chartEmbalamento: formatData(mapEmb),
-            chartTestes: formatData(mapTest),
-            chartPD: formatData(mapPD)
+            chartEmbalamento: formatLineData(embalamentoMap),
+            chartTestes: formatLineData(testesMap),
+            chartPD: formatLineData(pdMap),
+            uniqueChartLinhas: Array.from(linhasSet).sort()
         };
-    }, [filteredAudits, rolling6Days]);
+    }, [filteredAudits, rolling6Days, rolling6DaysList]);
 
     // Chart: Substation Name
     const chartDataSubstation = useMemo(() => {
@@ -651,9 +694,9 @@ export default function QcisAnalyticsDashboard() {
                 </Card>
 
                 {/* Heatmap: Gate vs Timeline is now above, next is Embalamento */}
-                {/* Rolling 6 Days Substation Flow Charts */}
+                {/* Rolling 6 Days Substation Trend Flow Charts */}
                 <Card className="bg-slate-900 border-slate-800 shadow-xl flex flex-col col-span-1 lg:col-span-2">
-                     {/* Placeholder to make heatmap span full width if needed, or we just keep the grid flow */}
+                     <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 rounded-full blur-2xl pointer-events-none"></div>
                 </Card>
 
                 <Card className="bg-slate-900 border-slate-800 shadow-xl flex flex-col">
@@ -665,15 +708,16 @@ export default function QcisAnalyticsDashboard() {
                     <CardContent className="h-80">
                         {chartEmbalamento.length > 0 ? (
                             <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={chartEmbalamento} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
+                                <LineChart data={chartEmbalamento} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
                                     <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
                                     <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} interval={0} tick={{ fill: '#cbd5e1' }} />
                                     <YAxis stroke="#94a3b8" fontSize={11} />
-                                    <Tooltip cursor={{fill: '#1e293b'}} contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', color: '#fff', borderRadius: '8px' }} />
-                                    <Bar dataKey="value" fill="#06b6d4" radius={[4, 4, 0, 0]}>
-                                        <LabelList dataKey="value" position="top" fill="#cbd5e1" fontSize={10} />
-                                    </Bar>
-                                </BarChart>
+                                    <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', color: '#fff', borderRadius: '8px' }} />
+                                    <Legend wrapperStyle={{ fontSize: '12px' }} />
+                                    {uniqueChartLinhas.map((linha, idx) => (
+                                        <Line key={linha} type="monotone" dataKey={linha} name={linha} stroke={`hsl(${idx * (360 / uniqueChartLinhas.length)}, 70%, 50%)`} strokeWidth={3} dot={{ r: 4, fill: '#0f172a', strokeWidth: 2 }} activeDot={{ r: 7 }} />
+                                    ))}
+                                </LineChart>
                             </ResponsiveContainer>
                         ) : (
                             <div className="h-full flex items-center justify-center text-slate-600">Sem dados analíticos</div>
@@ -684,21 +728,22 @@ export default function QcisAnalyticsDashboard() {
                 <Card className="bg-slate-900 border-slate-800 shadow-xl flex flex-col">
                     <CardHeader>
                         <CardTitle className="text-white text-lg font-bold flex items-center gap-2">
-                            <Activity className="text-emerald-400" /> Testes Funcionais (Últ. 6 Dias)
+                            <Activity className="text-emerald-400" /> FTR - Testes Funcionais (Últ. 6 Dias)
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="h-80">
                         {chartTestes.length > 0 ? (
                             <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={chartTestes} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
+                                <LineChart data={chartTestes} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
                                     <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
                                     <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} interval={0} tick={{ fill: '#cbd5e1' }} />
-                                    <YAxis stroke="#94a3b8" fontSize={11} />
-                                    <Tooltip cursor={{fill: '#1e293b'}} contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', color: '#fff', borderRadius: '8px' }} />
-                                    <Bar dataKey="value" fill="#10b981" radius={[4, 4, 0, 0]}>
-                                        <LabelList dataKey="value" position="top" fill="#cbd5e1" fontSize={10} />
-                                    </Bar>
-                                </BarChart>
+                                    <YAxis domain={[0, 100]} tickFormatter={(val) => `${val}%`} stroke="#94a3b8" fontSize={11} />
+                                    <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', color: '#fff', borderRadius: '8px' }} formatter={(value: any) => [`${value}%`, '']} />
+                                    <Legend wrapperStyle={{ fontSize: '12px' }} />
+                                    {uniqueChartLinhas.map((linha, idx) => (
+                                        <Line key={linha} type="monotone" dataKey={linha} name={linha} stroke={`hsl(${idx * (360 / uniqueChartLinhas.length)}, 70%, 50%)`} strokeWidth={3} dot={{ r: 4, fill: '#0f172a', strokeWidth: 2 }} activeDot={{ r: 7 }} />
+                                    ))}
+                                </LineChart>
                             </ResponsiveContainer>
                         ) : (
                             <div className="h-full flex items-center justify-center text-slate-600">Sem dados analíticos</div>
@@ -715,15 +760,16 @@ export default function QcisAnalyticsDashboard() {
                     <CardContent className="h-80">
                         {chartPD.length > 0 ? (
                             <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={chartPD} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
+                                <LineChart data={chartPD} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
                                     <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
                                     <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} interval={0} tick={{ fill: '#cbd5e1' }} />
                                     <YAxis stroke="#94a3b8" fontSize={11} />
-                                    <Tooltip cursor={{fill: '#1e293b'}} contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', color: '#fff', borderRadius: '8px' }} />
-                                    <Bar dataKey="value" fill="#d946ef" radius={[4, 4, 0, 0]}>
-                                        <LabelList dataKey="value" position="top" fill="#cbd5e1" fontSize={10} />
-                                    </Bar>
-                                </BarChart>
+                                    <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', color: '#fff', borderRadius: '8px' }} />
+                                    <Legend wrapperStyle={{ fontSize: '12px' }} />
+                                    {uniqueChartLinhas.map((linha, idx) => (
+                                        <Line key={linha} type="monotone" dataKey={linha} name={linha} stroke={`hsl(${idx * (360 / uniqueChartLinhas.length)}, 70%, 50%)`} strokeWidth={3} dot={{ r: 4, fill: '#0f172a', strokeWidth: 2 }} activeDot={{ r: 7 }} />
+                                    ))}
+                                </LineChart>
                             </ResponsiveContainer>
                         ) : (
                             <div className="h-full flex items-center justify-center text-slate-600">Sem dados analíticos</div>
