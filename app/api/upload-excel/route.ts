@@ -86,9 +86,10 @@ export async function POST(req: NextRequest) {
                 let p0 = parts[0], p1 = parts[1], p2 = parts[2];
                 if (p2 && p2.length === 2) p2 = `20${p2}`; 
                 
-                let dd = p0, mm = p1;
-                if (Number(p1) > 12) { dd = p1; mm = p0; }
-                else if (Number(p0) > 12 && p0.length <= 2) { dd = p0; mm = p1; }
+                // Formato Americano (MM/DD/YYYY) provado pelo output do SAP do cliente
+                let mm = p0, dd = p1;
+                // Safety net: Se o primeiro número for maior que 12, então É OBRIGATORIAMENTE o dia (DD/MM/YYYY)
+                if (Number(p0) > 12 && p0.length <= 2) { dd = p0; mm = p1; }
                 
                 if (p2 && p2.length >= 4) { return `${p2.substring(0,4)}-${mm.padStart(2,'0')}-${dd.padStart(2,'0')}`; } 
                 else if (p0 && p0.length === 4) { return `${p0}-${mm.padStart(2,'0')}-${p2.substring(0,2).padStart(2,'0')}`; }
@@ -97,9 +98,8 @@ export async function POST(req: NextRequest) {
                 let p0 = parts[0], p1 = parts[1], p2 = parts[2];
                 if (p2 && p2.length === 2) p2 = `20${p2}`;
                 
-                let dd = p0, mm = p1;
-                if (Number(p1) > 12) { dd = p1; mm = p0; }
-                else if (Number(p0) > 12 && p0.length <= 2) { dd = p0; mm = p1; }
+                let mm = p0, dd = p1;
+                if (Number(p0) > 12 && p0.length <= 2) { dd = p0; mm = p1; }
                 
                 if (p0 && p0.length === 4) { return `${p0}-${mm.padStart(2,'0')}-${p2.substring(0,2).padStart(2,'0')}`; } 
                 else if (p2 && p2.length >= 4) { return `${p2.substring(0,4)}-${mm.padStart(2,'0')}-${dd.padStart(2,'0')}`; }
