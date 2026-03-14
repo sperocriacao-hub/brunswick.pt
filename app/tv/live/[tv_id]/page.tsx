@@ -230,8 +230,8 @@ export default function CustomTVDashboardPage() {
             {/* --- MASTER GRID CONTENT --- */}
             <main className="flex-1 overflow-hidden grid grid-cols-12 gap-6 p-6">
 
-                {/* LEFT COL: ORDENS EM CURSO (Production Queue) - Takes 4 cols or 5 cols */}
-                <section className="col-span-4 flex flex-col gap-6 overflow-hidden">
+                {/* LEFT COL: ORDENS EM CURSO (Production Queue) - Takes 3 cols */}
+                <section className="col-span-3 flex flex-col gap-6 overflow-hidden">
                     <h2 className="text-2xl font-bold uppercase tracking-widest text-slate-500 flex items-center gap-2 border-b-2 border-slate-800 pb-2">
                         <Zap size={24} className="text-blue-500" /> Produção Ativa
                     </h2>
@@ -511,8 +511,8 @@ export default function CustomTVDashboardPage() {
                     )}
                 </section>
 
-                {/* RIGHT COL: DEDICATED ANDON SIDEBAR (Shrunk to 2 columns) */}
-                <section className="col-span-2 flex flex-col h-full bg-slate-900 border-l border-slate-800 rounded-l-3xl overflow-hidden shadow-2xl relative">
+                {/* RIGHT COL: DEDICATED ANDON SIDEBAR (Increased to 3 columns) */}
+                <section className="col-span-3 flex flex-col h-full bg-slate-900 border-l border-slate-800 rounded-l-3xl overflow-hidden shadow-2xl relative">
 
                     {!temAlertaCritico ? (
                         <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-black/40">
