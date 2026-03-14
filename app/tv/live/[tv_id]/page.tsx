@@ -115,8 +115,8 @@ export default function CustomTVDashboardPage() {
         return (
             <div className="w-screen h-screen flex flex-col overflow-hidden bg-slate-950 text-slate-200">
                 {/* --- NASA HUD TOP HEADER --- */}
-                <header className="flex items-center justify-between border-b-[4px] border-slate-800 bg-slate-900/50 p-6 shadow-md z-10 shrink-0">
-                    <div className="flex items-center gap-8">
+                <header className="flex items-center justify-between border-b-[4px] border-slate-800 bg-slate-900/50 p-3 shadow-md z-10 shrink-0">
+                    <div className="flex items-center gap-6">
                         <div className="flex items-center justify-center pr-2">
                             <img src="/logo.png" alt="Logo" className="h-[3rem] w-auto object-contain drop-shadow-xl" />
                         </div>
@@ -128,9 +128,9 @@ export default function CustomTVDashboardPage() {
                         </div>
                     </div>
 
-                    <div className="flex items-center bg-black/60 border border-slate-700 rounded-2xl px-8 py-4 shadow-[inset_0_4px_10px_rgba(0,0,0,0.6)]">
-                        <Clock size={36} className="text-emerald-400 mr-5 animate-pulse" />
-                        <span className="text-5xl font-mono font-black tracking-widest text-emerald-400">
+                    <div className="flex items-center bg-black/60 border border-slate-700 rounded-2xl px-6 py-2 shadow-[inset_0_4px_10px_rgba(0,0,0,0.6)]">
+                        <Clock size={28} className="text-emerald-400 mr-4 animate-pulse" />
+                        <span className="text-4xl font-mono font-black tracking-widest text-emerald-400">
                             {time.toLocaleTimeString('pt-PT', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                         </span>
                     </div>
@@ -153,8 +153,8 @@ export default function CustomTVDashboardPage() {
         <div className="w-screen h-screen flex flex-col overflow-hidden selection:bg-rose-500/30 bg-slate-950 text-slate-200">
 
             {/* --- NASA HUD TOP HEADER --- */}
-            <header className="flex items-center justify-between border-b-[4px] border-slate-800 bg-slate-900/50 p-6 shadow-md z-10 shrink-0">
-                <div className="flex items-center gap-8">
+            <header className="flex items-center justify-between border-b-[4px] border-slate-800 bg-slate-900/50 p-3 shadow-md z-10 shrink-0">
+                <div className="flex items-center gap-6">
                     <div className="flex items-center justify-center pr-2">
                         <img src="/logo.png" alt="Logo" className="h-[3rem] w-auto object-contain drop-shadow-xl" />
                     </div>
@@ -166,9 +166,9 @@ export default function CustomTVDashboardPage() {
                     </div>
                 </div>
 
-                <div className="flex items-center bg-black/60 border border-slate-700 rounded-2xl px-8 py-4 shadow-[inset_0_4px_10px_rgba(0,0,0,0.6)]">
-                    <Clock size={36} className="text-emerald-400 mr-5 animate-pulse" />
-                    <span className="text-5xl font-mono font-black tracking-widest text-emerald-400">
+                <div className="flex items-center bg-black/60 border border-slate-700 rounded-2xl px-6 py-2 shadow-[inset_0_4px_10px_rgba(0,0,0,0.6)]">
+                    <Clock size={28} className="text-emerald-400 mr-4 animate-pulse" />
+                    <span className="text-4xl font-mono font-black tracking-widest text-emerald-400">
                         {time.toLocaleTimeString('pt-PT', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                     </span>
                 </div>
