@@ -142,30 +142,41 @@ export default function QcisAnalyticsDashboard() {
             .sort((a, b) => b.value - a.value);
     }, [filteredAudits]);
 
-    // MATRIX 1: Quality Gate vs Modelos
-    const { matrixGateModeloData, uniqueModelos } = useMemo(() => {
+    // HEATMAP: Quality Gate vs Linha do Tempo (Datas)
+    const { heatMapData, heatMapDates } = useMemo(() => {
         const map: Record<string, Record<string, number>> = {};
-        const modelosSet = new Set<string>();
+        const datesSet = new Set<string>();
 
+        // 1. Gather all unique dates in the dataset
         filteredAudits.forEach(a => {
-            if (!a.lista_gate) return;
-            const gate = String(a.lista_gate).trim();
-            const md = a.model_ref ? String(a.model_ref).trim() : 'N/A';
-            
-            modelosSet.add(md);
-            if(!map[gate]) map[gate] = {};
-            if(!map[gate][md]) map[gate][md] = 0;
-            map[gate][md] += (a.count_of_defects || 0);
+            if (!a.lista_gate || !a.fail_date) return;
+            const rawDate = a.fail_date.split('T')[0];
+            datesSet.add(rawDate);
         });
 
-        const sortedModelos = Array.from(modelosSet).sort();
+        // 2. Sort dates chronologically
+        const sortedDates = Array.from(datesSet).sort();
+        
+        // 3. Populate sums
+        filteredAudits.forEach(a => {
+            if (!a.lista_gate || !a.fail_date) return;
+            const gate = String(a.lista_gate).trim();
+            const dateStr = a.fail_date.split('T')[0];
+            
+            if(!map[gate]) map[gate] = {};
+            if(!map[gate][dateStr]) map[gate][dateStr] = 0;
+            map[gate][dateStr] += (a.count_of_defects || 0);
+        });
+
+        // 4. Transform into Array
         const dataArr = Object.entries(map).map(([gate, values]) => {
             const row: any = { gate };
-            sortedModelos.forEach(m => row[m] = values[m] || 0);
+            sortedDates.forEach(d => row[d] = values[d] || 0);
             return row;
         }).sort((a, b) => a.gate.localeCompare(b.gate, undefined, { numeric: true, sensitivity: 'base' }));
 
-        return { matrixGateModeloData: dataArr, uniqueModelos: sortedModelos };
+        // A pedido do utilizador, a timeline final deve conter visualmente todos os dias filtrados. Se for demais, scroll horizontal resolve.
+        return { heatMapData: dataArr, heatMapDates: sortedDates };
     }, [filteredAudits]);
 
     // MATRIX 2: Categoria vs Linha Produção
@@ -552,11 +563,11 @@ export default function QcisAnalyticsDashboard() {
                     </CardContent>
                 </Card>
 
-                {/* Matriz 1: Gate vs Modelo */}
+                {/* Heatmap: Gate vs Timeline */}
                 <Card className="bg-slate-900 border-slate-800 shadow-xl flex flex-col">
                     <CardHeader>
                         <CardTitle className="text-white text-lg font-bold flex items-center gap-2">
-                            <Activity className="text-rose-400" /> Matriz Operacional: Quality Gate vs Modelos
+                            <Activity className="text-amber-400" /> Heatmap Temporal: Quality Gate vs Datas
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="flex-1 overflow-x-auto 
@@ -564,30 +575,33 @@ export default function QcisAnalyticsDashboard() {
                         [&::-webkit-scrollbar-track]:bg-slate-900/50
                         [&::-webkit-scrollbar-track]:rounded-full
                         [&::-webkit-scrollbar-thumb]:bg-gradient-to-r
-                        [&::-webkit-scrollbar-thumb]:from-rose-500
-                        [&::-webkit-scrollbar-thumb]:to-rose-800
+                        [&::-webkit-scrollbar-thumb]:from-amber-500
+                        [&::-webkit-scrollbar-thumb]:to-amber-800
                         [&::-webkit-scrollbar-thumb]:rounded-full
-                        hover:[&::-webkit-scrollbar-thumb]:from-rose-400
-                        hover:[&::-webkit-scrollbar-thumb]:to-rose-600
+                        hover:[&::-webkit-scrollbar-thumb]:from-amber-400
+                        hover:[&::-webkit-scrollbar-thumb]:to-amber-600
                     ">
                         <table className="w-full text-sm text-center text-slate-300 min-w-max">
                             <thead className="text-xs uppercase bg-slate-800/50 text-slate-400">
                                 <tr>
                                     <th className="px-4 py-3 border-b border-r border-slate-700 text-left sticky left-0 bg-slate-900/90 backdrop-blur-sm z-20 shadow-[2px_0_5px_rgba(0,0,0,0.2)]">Quality Gate</th>
-                                    {uniqueModelos.map(m => (
-                                        <th key={m} className="px-3 py-3 border-b border-slate-700 whitespace-nowrap min-w-[70px]">
-                                            {m}
-                                        </th>
-                                    ))}
+                                    {heatMapDates.map(d => {
+                                        const [y, m, day] = d.split('-');
+                                        return (
+                                            <th key={d} className="px-3 py-3 border-b border-slate-700 whitespace-nowrap min-w-[50px]">
+                                                {`${day}/${m}`}
+                                            </th>
+                                        );
+                                    })}
                                 </tr>
                             </thead>
                             <tbody>
-                                {matrixGateModeloData.map((row) => {
+                                {heatMapData.map((row) => {
                                     const getColor = (val: number) => {
                                         if (!val || val === 0) return 'bg-transparent text-slate-600';
-                                        if (val < 3) return 'bg-rose-500/20 text-rose-300 border border-rose-500/30 font-bold rounded-lg';
-                                        if (val < 10) return 'bg-rose-500/50 text-white border border-rose-500/70 font-bold shadow-lg shadow-rose-500/20 rounded-lg';
-                                        return 'bg-rose-600 text-white border border-rose-500 font-black shadow-xl shadow-rose-600/40 rounded-lg scale-110 z-10';
+                                        if (val < 3) return 'bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold rounded-lg';
+                                        if (val < 10) return 'bg-amber-500/50 text-white border border-amber-500/70 font-bold shadow-lg shadow-amber-500/20 rounded-lg';
+                                        return 'bg-amber-600 text-white border border-amber-500 font-black shadow-xl shadow-amber-600/40 rounded-lg scale-110 z-10';
                                     };
 
                                     return (
@@ -595,22 +609,22 @@ export default function QcisAnalyticsDashboard() {
                                             <td className="px-4 py-3 font-semibold text-slate-200 text-left border-r border-slate-800/50 sticky left-0 bg-slate-900/90 backdrop-blur-sm z-20 shadow-[2px_0_5px_rgba(0,0,0,0.2)]">
                                                 {row.gate}
                                             </td>
-                                            {uniqueModelos.map(mStr => {
-                                                const val = row[mStr] || 0;
+                                            {heatMapDates.map(d => {
+                                                const val = row[d] || 0;
                                                 return (
-                                                    <td key={mStr} className="p-2">
-                                                        <div className={`py-2 px-1 transition-all ${getColor(val)}`}>
-                                                            {val === 0 ? '-' : val}
+                                                    <td key={d} className="px-1 py-1">
+                                                        <div className={`w-full h-full min-h-[32px] flex items-center justify-center transition-all ${getColor(val)}`}>
+                                                            {val > 0 ? val : '-'}
                                                         </div>
                                                     </td>
-                                                )
+                                                );
                                             })}
                                         </tr>
-                                    )
+                                    );
                                 })}
                             </tbody>
                         </table>
-                        {matrixGateModeloData.length === 0 && (
+                        {heatMapData.length === 0 && (
                             <div className="h-40 flex items-center justify-center text-slate-600">Sem dados analíticos</div>
                         )}
                     </CardContent>
