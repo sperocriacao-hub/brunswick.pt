@@ -430,8 +430,7 @@ export default function QcisAnalyticsDashboard() {
                                     <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
                                     <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} tickMargin={8} />
                                     <YAxis domain={[0, 100]} tickFormatter={(v)=>`${v}%`} stroke="#94a3b8" fontSize={11} />
-                                    {/* @ts-ignore */}
-                                    <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', color: '#fff', borderRadius: '8px' }} formatter={(v: any) => [`${v}%`, '']} />
+                                    <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', color: '#fff', borderRadius: '8px' }} />
                                     <Legend wrapperStyle={{ fontSize: '13px', paddingTop: '10px' }} />
                                     {uniqueChartLinhas.map((linha, idx) => (
                                         <Line key={linha} type="monotone" dataKey={linha} stroke={getColor(idx, uniqueChartLinhas.length)} strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
