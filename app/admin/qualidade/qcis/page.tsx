@@ -9,7 +9,7 @@ import {
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, Sector, LineChart, Line, Legend, CartesianGrid } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, Sector, LineChart, Line, Legend, CartesianGrid, LabelList } from 'recharts';
 
 // Tipagem baseada no schema do PostgreSQL 'qcis_audits'
 type QcisAudit = {
@@ -179,31 +179,51 @@ export default function QcisAnalyticsDashboard() {
         return { heatMapData: dataArr, heatMapDates: sortedDates };
     }, [filteredAudits]);
 
-    // MATRIX 2: Categoria vs Linha Produção
-    const { matrixCategoriaLinhaData, uniqueLinhas } = useMemo(() => {
-        const map: Record<string, Record<string, number>> = {};
-        const linhasSet = new Set<string>();
+    // 6-Day Rolling Window Logic
+    const rolling6Days = useMemo(() => {
+        const datesSet = new Set<string>();
+        filteredAudits.forEach(a => {
+            if (a.fail_date) datesSet.add(a.fail_date.split('T')[0]);
+        });
+        // Sort descending to get the latest 6 days
+        const sortedDates = Array.from(datesSet).sort((a,b) => b.localeCompare(a));
+        const last6 = sortedDates.slice(0, 6);
+        return new Set(last6); 
+    }, [filteredAudits]);
+
+    // 3 Substation Flow Charts (Rolling 6 Active Days)
+    const { chartEmbalamento, chartTestes, chartPD } = useMemo(() => {
+        const mapEmb: Record<string, number> = {};
+        const mapTest: Record<string, number> = {};
+        const mapPD: Record<string, number> = {};
 
         filteredAudits.forEach(a => {
-            if (!a.lista_categoria) return;
-            const cat = String(a.lista_categoria).trim();
-            const ln = a.linha_linha ? String(a.linha_linha).trim() : 'N/A';
-            
-            linhasSet.add(ln);
-            if(!map[cat]) map[cat] = {};
-            if(!map[cat][ln]) map[cat][ln] = 0;
-            map[cat][ln] += (a.count_of_defects || 0);
+            if (!a.fail_date || !a.linha_linha) return;
+            const dStr = a.fail_date.split('T')[0];
+            if (!rolling6Days.has(dStr)) return; // Restrict to the last 6 distinct days in the selected period
+
+            const sub = (a.substation_name || '').toLowerCase();
+            const linha = a.linha_linha.trim();
+
+            if (sub.includes('final embalamento')) {
+                mapEmb[linha] = (mapEmb[linha] || 0) + (a.count_of_defects || 0);
+            }
+            if (sub.includes('testes funcionais')) {
+                mapTest[linha] = (mapTest[linha] || 0) + (a.count_of_defects || 0);
+            }
+            if (sub.includes('p&d') || sub.endsWith('p&d')) {
+                mapPD[linha] = (mapPD[linha] || 0) + (a.count_of_defects || 0);
+            }
         });
 
-        const sortedLinhas = Array.from(linhasSet).sort();
-        const dataArr = Object.entries(map).map(([categoria, values]) => {
-            const row: any = { categoria };
-            sortedLinhas.forEach(l => row[l] = values[l] || 0);
-            return row;
-        }).sort((a, b) => a.categoria.localeCompare(b.categoria, undefined, { numeric: true, sensitivity: 'base' }));
+        const formatData = (map: Record<string, number>) => Object.entries(map).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
 
-        return { matrixCategoriaLinhaData: dataArr, uniqueLinhas: sortedLinhas };
-    }, [filteredAudits]);
+        return { 
+            chartEmbalamento: formatData(mapEmb),
+            chartTestes: formatData(mapTest),
+            chartPD: formatData(mapPD)
+        };
+    }, [filteredAudits, rolling6Days]);
 
     // Chart: Substation Name
     const chartDataSubstation = useMemo(() => {
@@ -630,66 +650,83 @@ export default function QcisAnalyticsDashboard() {
                     </CardContent>
                 </Card>
 
-                {/* Matriz 2: Categoria vs Linha */}
+                {/* Heatmap: Gate vs Timeline is now above, next is Embalamento */}
+                {/* Rolling 6 Days Substation Flow Charts */}
+                <Card className="bg-slate-900 border-slate-800 shadow-xl flex flex-col col-span-1 lg:col-span-2">
+                     {/* Placeholder to make heatmap span full width if needed, or we just keep the grid flow */}
+                </Card>
+
                 <Card className="bg-slate-900 border-slate-800 shadow-xl flex flex-col">
                     <CardHeader>
                         <CardTitle className="text-white text-lg font-bold flex items-center gap-2">
-                            <Activity className="text-cyan-400" /> Matriz Estratégica: Categoria vs Linha Produção
+                            <Activity className="text-cyan-400" /> Inspecção Final Embalamento (Últ. 6 Dias)
                         </CardTitle>
                     </CardHeader>
-                    <CardContent className="flex-1 overflow-x-auto 
-                        [&::-webkit-scrollbar]:h-2
-                        [&::-webkit-scrollbar-track]:bg-slate-900/50
-                        [&::-webkit-scrollbar-track]:rounded-full
-                        [&::-webkit-scrollbar-thumb]:bg-gradient-to-r
-                        [&::-webkit-scrollbar-thumb]:from-cyan-500
-                        [&::-webkit-scrollbar-thumb]:to-blue-800
-                        [&::-webkit-scrollbar-thumb]:rounded-full
-                        hover:[&::-webkit-scrollbar-thumb]:from-cyan-400
-                        hover:[&::-webkit-scrollbar-thumb]:to-blue-600
-                    ">
-                        <table className="w-full text-sm text-center text-slate-300 min-w-max">
-                            <thead className="text-xs uppercase bg-slate-800/50 text-slate-400">
-                                <tr>
-                                    <th className="px-4 py-3 border-b border-r border-slate-700 text-left sticky left-0 bg-slate-900/90 backdrop-blur-sm z-20 shadow-[2px_0_5px_rgba(0,0,0,0.2)]">Categoria Defeito</th>
-                                    {uniqueLinhas.map(l => (
-                                        <th key={l} className="px-3 py-3 border-b border-slate-700 whitespace-nowrap min-w-[70px]">
-                                            {l}
-                                        </th>
-                                    ))}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {matrixCategoriaLinhaData.map((row) => {
-                                    const getColor = (val: number) => {
-                                        if (!val || val === 0) return 'bg-transparent text-slate-600';
-                                        if (val < 3) return 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-bold rounded-lg';
-                                        if (val < 10) return 'bg-cyan-500/50 text-white border border-cyan-500/70 font-bold shadow-lg shadow-cyan-500/20 rounded-lg';
-                                        return 'bg-blue-600 text-white border border-blue-500 font-black shadow-xl shadow-blue-600/40 rounded-lg scale-110 z-10';
-                                    };
+                    <CardContent className="h-80">
+                        {chartEmbalamento.length > 0 ? (
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={chartEmbalamento} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                                    <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} interval={0} tick={{ fill: '#cbd5e1' }} />
+                                    <YAxis stroke="#94a3b8" fontSize={11} />
+                                    <Tooltip cursor={{fill: '#1e293b'}} contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', color: '#fff', borderRadius: '8px' }} />
+                                    <Bar dataKey="value" fill="#06b6d4" radius={[4, 4, 0, 0]}>
+                                        <LabelList dataKey="value" position="top" fill="#cbd5e1" fontSize={10} />
+                                    </Bar>
+                                </BarChart>
+                            </ResponsiveContainer>
+                        ) : (
+                            <div className="h-full flex items-center justify-center text-slate-600">Sem dados analíticos</div>
+                        )}
+                    </CardContent>
+                </Card>
 
-                                    return (
-                                        <tr key={row.categoria} className="border-b border-slate-800/50 hover:bg-slate-800/30">
-                                            <td className="px-4 py-3 font-semibold text-slate-200 text-left border-r border-slate-800/50 sticky left-0 bg-slate-900/90 backdrop-blur-sm z-20 shadow-[2px_0_5px_rgba(0,0,0,0.2)]">
-                                                {row.categoria}
-                                            </td>
-                                            {uniqueLinhas.map(lStr => {
-                                                const val = row[lStr] || 0;
-                                                return (
-                                                    <td key={lStr} className="p-2">
-                                                        <div className={`py-2 px-1 transition-all ${getColor(val)}`}>
-                                                            {val === 0 ? '-' : val}
-                                                        </div>
-                                                    </td>
-                                                )
-                                            })}
-                                        </tr>
-                                    )
-                                })}
-                            </tbody>
-                        </table>
-                        {matrixCategoriaLinhaData.length === 0 && (
-                            <div className="h-40 flex items-center justify-center text-slate-600">Sem dados analíticos</div>
+                <Card className="bg-slate-900 border-slate-800 shadow-xl flex flex-col">
+                    <CardHeader>
+                        <CardTitle className="text-white text-lg font-bold flex items-center gap-2">
+                            <Activity className="text-emerald-400" /> Testes Funcionais (Últ. 6 Dias)
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="h-80">
+                        {chartTestes.length > 0 ? (
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={chartTestes} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                                    <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} interval={0} tick={{ fill: '#cbd5e1' }} />
+                                    <YAxis stroke="#94a3b8" fontSize={11} />
+                                    <Tooltip cursor={{fill: '#1e293b'}} contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', color: '#fff', borderRadius: '8px' }} />
+                                    <Bar dataKey="value" fill="#10b981" radius={[4, 4, 0, 0]}>
+                                        <LabelList dataKey="value" position="top" fill="#cbd5e1" fontSize={10} />
+                                    </Bar>
+                                </BarChart>
+                            </ResponsiveContainer>
+                        ) : (
+                            <div className="h-full flex items-center justify-center text-slate-600">Sem dados analíticos</div>
+                        )}
+                    </CardContent>
+                </Card>
+
+                <Card className="bg-slate-900 border-slate-800 shadow-xl col-span-1 lg:col-span-2 flex flex-col">
+                    <CardHeader>
+                        <CardTitle className="text-white text-lg font-bold flex items-center gap-2">
+                            <Activity className="text-fuchsia-400" /> P&D (Últ. 6 Dias)
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="h-80">
+                        {chartPD.length > 0 ? (
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={chartPD} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                                    <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} interval={0} tick={{ fill: '#cbd5e1' }} />
+                                    <YAxis stroke="#94a3b8" fontSize={11} />
+                                    <Tooltip cursor={{fill: '#1e293b'}} contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', color: '#fff', borderRadius: '8px' }} />
+                                    <Bar dataKey="value" fill="#d946ef" radius={[4, 4, 0, 0]}>
+                                        <LabelList dataKey="value" position="top" fill="#cbd5e1" fontSize={10} />
+                                    </Bar>
+                                </BarChart>
+                            </ResponsiveContainer>
+                        ) : (
+                            <div className="h-full flex items-center justify-center text-slate-600">Sem dados analíticos</div>
                         )}
                     </CardContent>
                 </Card>
