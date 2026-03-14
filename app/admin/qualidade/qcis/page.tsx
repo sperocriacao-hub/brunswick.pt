@@ -194,6 +194,7 @@ export default function QcisAnalyticsDashboard() {
     // 3 Substation Flow Charts (Rolling 6 Active Days - Daily Trends)
     const { chartEmbalamento, chartTestes, chartPD, uniqueChartLinhas } = useMemo(() => {
         const embalamentoMap: Record<string, Record<string, number>> = {};
+        const embalamentoBoatsMap: Record<string, Record<string, Set<string>>> = {};
         const testesMap: Record<string, Record<string, number>> = {};
         const pdMap: Record<string, Record<string, number>> = {};
         
@@ -204,6 +205,7 @@ export default function QcisAnalyticsDashboard() {
 
         rolling6DaysList.forEach(d => {
             embalamentoMap[d] = {};
+            embalamentoBoatsMap[d] = {};
             testesMap[d] = {};
             pdMap[d] = {};
             ftrZeroMap[d] = {};
@@ -222,9 +224,11 @@ export default function QcisAnalyticsDashboard() {
 
             linhasSet.add(linha);
 
-            // Embalamento (Volume de Defeitos) - Widened filter to catch 'Inspeção Final embalamento'
+            // Embalamento (Volume de Defeitos -> converted to PDU later)
             if (sub.includes('embalamento')) {
                 embalamentoMap[dStr][linha] = (embalamentoMap[dStr][linha] || 0) + (a.count_of_defects || 0);
+                if(!embalamentoBoatsMap[dStr][linha]) embalamentoBoatsMap[dStr][linha] = new Set();
+                embalamentoBoatsMap[dStr][linha].add(boatId);
             }
 
             // Testes Funcionais (FTR - First Time Rate %)
@@ -244,12 +248,18 @@ export default function QcisAnalyticsDashboard() {
             }
         });
 
-        // Compile FTR Percentages
+        // Compile FTR Percentages & Embalamento PDUs
         rolling6DaysList.forEach(d => {
             linhasSet.forEach(linha => {
+                // Testes Funcionais (FTR)
                 const totalBoats = ftrTotalMap[d][linha] ? ftrTotalMap[d][linha].size : 0;
                 const zeroBoats = ftrZeroMap[d][linha] ? ftrZeroMap[d][linha].size : 0;
                 testesMap[d][linha] = totalBoats > 0 ? Math.round((zeroBoats / totalBoats) * 100) : 0;
+                
+                // Embalamento (PDU: Per Defect Unit)
+                const embDefects = embalamentoMap[d][linha] || 0;
+                const embBoats = embalamentoBoatsMap[d][linha] ? embalamentoBoatsMap[d][linha].size : 0;
+                embalamentoMap[d][linha] = embBoats > 0 ? Number((embDefects / embBoats).toFixed(2)) : 0;
             });
         });
 
