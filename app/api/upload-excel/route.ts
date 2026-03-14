@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import * as XLSX from "xlsx";
+import crypto from "crypto";
 
 export async function POST(req: NextRequest) {
   try {
@@ -80,7 +81,23 @@ export async function POST(req: NextRequest) {
            return String(serial);
         };
 
+        // Algoritmo de Hashing para injetar um UUID Primário IDêntico determinístico 
+        // evitando duplicação cega no DB cada vez que o mesmo Excel for importado repetidamente.
+        const generateDeterministicUUID = (payload: any) => {
+            const str = JSON.stringify(payload);
+            const hash = crypto.createHash('md5').update(str).digest('hex');
+            return `${hash.substring(0,8)}-${hash.substring(8,12)}-4${hash.substring(13,16)}-a${hash.substring(17,20)}-${hash.substring(20,32)}`;
+        };
+
         return {
+           id: generateDeterministicUUID({
+               fail_date: parseExcelDate(row["Failed Date"] || row["Fail Date"] || row["Data"]),
+               boat_id: row["Boat ID"] ? String(row["Boat ID"]) : null,
+               peca: row["Peça"] ? String(row["Peça"]) : null,
+               defect_description: row["Defect Description"] ? String(row["Defect Description"]) : null,
+               substation_name: row["Substation Name"] || row["Principal Auditoria"] ? String(row["Substation Name"] || row["Principal Auditoria"]) : null,
+               count: row["Count of Defects"] ? Number(row["Count of Defects"]) : 0,
+           }),
            fail_date: parseExcelDate(row["Failed Date"] || row["Fail Date"] || row["Data"]),
            boat_id: row["Boat ID"] ? String(row["Boat ID"]) : null,
            model_ref: row["Model"] ? String(row["Model"]) : null,
