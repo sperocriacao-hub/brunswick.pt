@@ -300,11 +300,25 @@ export async function buscarDashboardsTV(tv_id: string) {
             }
 
             let opsRfidsForKpis: string[] = [];
+            let opsUuidsForKpis: string[] = [];
+            
             if (opcoesLayout.showAbsentismo || opcoesLayout.showHstKpis) {
-                // 1. Fetch operators directly using TV scope
-                let opsQuery = supabase.from('operadores').select('id, tag_rfid_operador').eq('status', 'Ativo');
+                // 1. Fetch operators directly using TV scope or Fallback
+                let opsQuery = supabase.from('operadores').select('id, tag_rfid_operador, estacoes:posto_base_id(nome_estacao)').eq('status', 'Ativo');
                 
-                if (configTv.tipo_alvo === 'AREA' && configTv.alvo_id) {
+                const nomeTargetTV = configTv.nome_alvo_resolvido || '';
+                const isMontagemLine = configTv.tipo_alvo === 'LINHA' && /linha [abcd]/i.test(nomeTargetTV);
+                const prefixoLinhaPuro = isMontagemLine ? nomeTargetTV.replace(/linha/i, '').trim() : '';
+                const prefixoFormatado = prefixoLinhaPuro ? `${prefixoLinhaPuro} -` : '';
+
+                if (isMontagemLine) {
+                    const { data: areaMontagem } = await supabase.from('areas_fabrica').select('id').ilike('nome_area', '%Montagem%').limit(1).single();
+                    if (areaMontagem) {
+                        opsQuery = opsQuery.eq('area_base_id', areaMontagem.id);
+                    } else {
+                        opsQuery = opsQuery.eq('linha_base_id', configTv.alvo_id); // Safety fallback
+                    }
+                } else if (configTv.tipo_alvo === 'AREA' && configTv.alvo_id) {
                     opsQuery = opsQuery.eq('area_base_id', configTv.alvo_id);
                 } else if (configTv.tipo_alvo === 'LINHA' && configTv.alvo_id) {
                     opsQuery = opsQuery.eq('linha_base_id', configTv.alvo_id);
@@ -313,12 +327,21 @@ export async function buscarDashboardsTV(tv_id: string) {
                 const { data: ops, error: opErr } = await opsQuery;
                 if (opErr) console.error("Erro a buscar operadores:", opErr);
 
-                const activeOps = ops || [];
-                const opsRfids = activeOps.map(o => o.tag_rfid_operador).filter(Boolean);
-                opsRfidsForKpis = opsRfids;
+                let activeOps = ops || [];
+
+                if (isMontagemLine && prefixoFormatado) {
+                    activeOps = activeOps.filter(o => {
+                        const est = Array.isArray(o.estacoes) ? o.estacoes[0] : (o.estacoes as any);
+                        const nomeEstacao = est?.nome_estacao || '';
+                        return nomeEstacao.startsWith(prefixoFormatado);
+                    });
+                }
+
+                opsRfidsForKpis = activeOps.map(o => o.tag_rfid_operador).filter(Boolean);
+                opsUuidsForKpis = activeOps.map(o => o.id).filter(Boolean);
 
                 if (opcoesLayout.showAbsentismo) {
-                    const totalCadastrados = opsRfids.length;
+                    const totalCadastrados = opsRfidsForKpis.length;
                     let absentismoData = { taxa: 0, faltosos: 0, cadastrados: totalCadastrados };
 
                     if (totalCadastrados > 0) {
@@ -331,7 +354,7 @@ export async function buscarDashboardsTV(tv_id: string) {
                             .select('operador_rfid')
                             .gte('timestamp', startOfDay.toISOString())
                             .lte('timestamp', endOfDay.toISOString())
-                            .in('operador_rfid', opsRfids);
+                            .in('operador_rfid', opsRfidsForKpis.length > 0 ? opsRfidsForKpis : ['none']);
 
                         const rfidsPresentes = new Set((presencas || []).map(p => p.operador_rfid));
                         const totalPresentes = rfidsPresentes.size;
@@ -354,10 +377,9 @@ export async function buscarDashboardsTV(tv_id: string) {
                         .select('nota_hst, nota_qualidade')
                         .eq('data_avaliacao', localHojeStr);
 
-                    // Re-utilizar os UUIDs dos operadores ativos no Escopo (Não Rfids, UUIDS)
-                    const opsUuids = activeOps.map(o => o.id).filter(Boolean);
-                    if (opsUuids.length > 0 && configTv.tipo_alvo !== 'GERAL') {
-                        evalsQuery = evalsQuery.in('funcionario_id', opsUuids);
+                    // Re-utilizar os UUIDs dos operadores ativos filtrados pelo Escopo local
+                    if (opsUuidsForKpis.length > 0 && configTv.tipo_alvo !== 'GERAL') {
+                        evalsQuery = evalsQuery.in('funcionario_id', opsUuidsForKpis);
                     }
 
                     const { data: evals } = await evalsQuery;
