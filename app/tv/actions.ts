@@ -551,18 +551,22 @@ export async function buscarDashboardsTV(tv_id: string) {
             });
         }
 
-        // 7. Fetch Occurrences for CNN Ticker (Últimas 24 horas)
-        const last24HoursStr = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-
-        const { data: ocorrenciasHoje } = await supabase
+        // 7. Fetch Occurrences for CNN Ticker (Últimas 24 horas - filtered in JS to bypass timezone quirks)
+        const { data: ocorrenciasRecentes } = await supabase
             .from('hst_ocorrencias')
             .select(`
                 *,
                 areas_fabrica(nome_area),
                 estacoes(nome_estacao)
             `)
-            .gte('data_hora_ocorrencia', last24HoursStr)
-            .order('data_hora_ocorrencia', { ascending: false });
+            .order('data_hora_ocorrencia', { ascending: false })
+            .limit(10);
+
+        const limit24H = Date.now() - (24 * 60 * 60 * 1000);
+        const ocorrenciasHoje = ocorrenciasRecentes?.filter(o => {
+            if (!o.data_hora_ocorrencia) return false;
+            return new Date(o.data_hora_ocorrencia).getTime() >= limit24H;
+        }) || [];
 
         return {
             success: true,
