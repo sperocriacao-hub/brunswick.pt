@@ -421,20 +421,37 @@ export default function CustomTVDashboardPage() {
                     )}
 
                     {opcoesLayout.showAbsentismo && metrics.absentismo && (
-                        <div className="col-span-1 bg-slate-900/80 border border-slate-700/50 rounded-3xl p-5 shadow-2xl relative flex flex-col justify-between">
-                            <h2 className="text-xs font-black uppercase tracking-widest text-blue-400 mb-3 flex items-center gap-2">
+                        <div className="col-span-1 bg-gradient-to-tr from-slate-900/90 to-blue-950/40 border border-slate-700/50 rounded-3xl p-5 shadow-2xl relative flex flex-col justify-between overflow-hidden group">
+                            {/* Decorative Tech Overlay */}
+                            <div className="absolute right-0 top-0 w-32 h-32 bg-blue-500/10 blur-3xl rounded-full"></div>
+                            <div className="absolute -bottom-4 -left-4 text-slate-800/30 rotate-12 transition-transform group-hover:-rotate-12 duration-700">
+                                <UserX size={100} />
+                            </div>
+
+                            <h2 className="text-xs font-black uppercase tracking-widest text-blue-400 mb-4 flex items-center gap-2 relative z-10 border-b border-blue-500/20 pb-2">
                                 <UserX size={16} /> Assiduidade
                             </h2>
-                            <div className="flex items-end justify-between">
-                                <div>
-                                    <p className="text-4xl font-black leading-none text-emerald-400">
+
+                            <div className="relative z-10 flex flex-col justify-between h-full">
+                                {/* Presences (Huge highlight) */}
+                                <div className="flex flex-col mb-4">
+                                    <p className="text-6xl font-black leading-none text-emerald-400 drop-shadow-[0_0_15px_rgba(52,211,153,0.3)]">
                                         {Math.max(0, metrics.absentismo.cadastrados - metrics.absentismo.faltosos)}
+                                        <span className="text-xl text-slate-500 font-bold ml-1">/{metrics.absentismo.cadastrados}</span>
                                     </p>
-                                    <p className="text-emerald-700/80 text-[10px] font-bold tracking-widest mt-1 uppercase">Presenças</p>
+                                    <p className="text-emerald-500/80 text-[10px] font-black tracking-widest mt-2 uppercase bg-emerald-950/40 border border-emerald-900/50 w-fit px-3 py-1 rounded-full shadow-inner">
+                                        Operadores Ativos
+                                    </p>
                                 </div>
-                                <div className="text-right">
-                                    <p className="text-2xl font-black text-rose-500 leading-none mb-1">{metrics.absentismo.faltosos}</p>
-                                    <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Ausências</p>
+
+                                {/* Absences (Warning highlight) */}
+                                <div className="self-end mt-auto bg-rose-950/30 border border-rose-900/50 rounded-2xl p-3 w-full flex justify-between items-center backdrop-blur-sm">
+                                    <span className="text-[10px] font-black text-rose-500/80 uppercase tracking-widest">
+                                        Faltosos
+                                    </span>
+                                    <span className="text-3xl font-black text-rose-500 drop-shadow-md">
+                                        {metrics.absentismo.faltosos}
+                                    </span>
                                 </div>
                             </div>
                         </div>
