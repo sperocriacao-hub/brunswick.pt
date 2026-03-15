@@ -458,27 +458,53 @@ export default function CustomTVDashboardPage() {
                     )}
 
                     {opcoesLayout.showHstKpis && metrics.hstKpis && (
-                        <div className="col-span-1 bg-slate-900/80 border border-slate-700/50 rounded-3xl p-5 shadow-2xl relative flex flex-col justify-center gap-3">
-                            <h2 className="text-xs font-black uppercase tracking-widest text-cyan-400 mb-1 flex items-center gap-2">
-                                <Activity size={16} /> Auditorias & Diário
+                        <div className="col-span-1 bg-gradient-to-br from-slate-900/90 to-cyan-950/30 border border-slate-700/50 rounded-3xl p-5 shadow-2xl relative flex flex-col justify-between overflow-hidden group">
+                            {/* Decorative Tech Overlay */}
+                            <div className="absolute -left-10 -bottom-10 w-40 h-40 bg-cyan-500/10 blur-3xl rounded-full"></div>
+                            <div className="absolute right-2 top-2 text-cyan-500/10 rotate-12 transition-transform group-hover:rotate-45 duration-700">
+                                <Activity size={80} />
+                            </div>
+
+                            <h2 className="text-xs font-black uppercase tracking-widest text-cyan-400 mb-4 flex items-center gap-2 relative z-10 border-b border-cyan-500/20 pb-2">
+                                <ShieldCheck size={16} /> Auditorias & Diário
                             </h2>
-                            <div className="space-y-3">
-                                <div>
-                                    <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest mb-1 text-slate-400">
-                                        <span>Conformidade</span>
-                                        <span className={metrics.hstKpis.conformidadeFabril < 90 ? 'text-rose-400' : 'text-emerald-400'}>{metrics.hstKpis.conformidadeFabril}%</span>
+                            
+                            <div className="space-y-5 relative z-10 flex-1 flex flex-col justify-center">
+                                {/* Conformidade Fabril Widget */}
+                                <div className="bg-slate-950/50 border border-slate-800/80 rounded-2xl p-3 shadow-inner relative overflow-hidden">
+                                    <div className="absolute right-0 top-0 bottom-0 w-1 bg-slate-800">
+                                        <div className={`absolute bottom-0 w-full transition-all duration-1000 ${metrics.hstKpis.conformidadeFabril < 90 ? 'bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.8)]' : 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.8)]'}`} style={{ height: `${metrics.hstKpis.conformidadeFabril}%` }}></div>
                                     </div>
-                                    <div className="w-full bg-slate-800 rounded-full h-1.5">
-                                        <div className={`h-1.5 rounded-full ${metrics.hstKpis.conformidadeFabril < 90 ? 'bg-rose-500' : 'bg-emerald-500'}`} style={{ width: `${metrics.hstKpis.conformidadeFabril}%` }}></div>
+                                    
+                                    <div className="flex justify-between items-end mb-2 pr-4">
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 leading-tight w-20">Conformidade Global</span>
+                                        <span className={`text-4xl font-black leading-none drop-shadow-md ${metrics.hstKpis.conformidadeFabril < 90 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                                            {metrics.hstKpis.conformidadeFabril}%
+                                        </span>
+                                    </div>
+                                    <div className="pr-4">
+                                        <div className="w-full bg-slate-900 rounded-full h-1.5 shadow-inner">
+                                            <div className={`h-1.5 rounded-full transition-all duration-1000 ${metrics.hstKpis.conformidadeFabril < 90 ? 'bg-gradient-to-r from-rose-700 to-rose-400 shadow-[0_0_8px_rgba(244,63,94,0.5)]' : 'bg-gradient-to-r from-emerald-700 to-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]'}`} style={{ width: `${metrics.hstKpis.conformidadeFabril}%` }}></div>
+                                        </div>
                                     </div>
                                 </div>
-                                <div>
-                                    <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest mb-1 text-slate-400">
-                                        <span>Segurança</span>
-                                        <span className={metrics.hstKpis.segurancaDiaria < 95 ? 'text-amber-400' : 'text-emerald-400'}>{metrics.hstKpis.segurancaDiaria}%</span>
+
+                                {/* Segurança Diária Widget */}
+                                <div className="bg-slate-950/50 border border-slate-800/80 rounded-2xl p-3 shadow-inner relative overflow-hidden">
+                                    <div className="absolute right-0 top-0 bottom-0 w-1 bg-slate-800">
+                                        <div className={`absolute bottom-0 w-full transition-all duration-1000 ${metrics.hstKpis.segurancaDiaria < 95 ? 'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.8)]' : 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.8)]'}`} style={{ height: `${metrics.hstKpis.segurancaDiaria}%` }}></div>
                                     </div>
-                                    <div className="w-full bg-slate-800 rounded-full h-1.5">
-                                        <div className={`h-1.5 rounded-full ${metrics.hstKpis.segurancaDiaria < 95 ? 'bg-amber-500' : 'bg-emerald-500'}`} style={{ width: `${metrics.hstKpis.segurancaDiaria}%` }}></div>
+
+                                    <div className="flex justify-between items-end mb-2 pr-4">
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 leading-tight w-20">Segurança Diária</span>
+                                        <span className={`text-4xl font-black leading-none drop-shadow-md ${metrics.hstKpis.segurancaDiaria < 95 ? 'text-amber-400' : 'text-emerald-400'}`}>
+                                            {metrics.hstKpis.segurancaDiaria}%
+                                        </span>
+                                    </div>
+                                    <div className="pr-4">
+                                        <div className="w-full bg-slate-900 rounded-full h-1.5 shadow-inner">
+                                            <div className={`h-1.5 rounded-full transition-all duration-1000 ${metrics.hstKpis.segurancaDiaria < 95 ? 'bg-gradient-to-r from-amber-700 to-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.5)]' : 'bg-gradient-to-r from-emerald-700 to-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]'}`} style={{ width: `${metrics.hstKpis.segurancaDiaria}%` }}></div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
