@@ -727,7 +727,7 @@ export default function CustomTVDashboardPage() {
                     {/* Fixed Left Header (News Channel logo style) */}
                     <div className="bg-red-600 h-full px-6 flex items-center justify-center relative z-20 shrink-0 shadow-[5px_0_15px_rgba(0,0,0,0.5)]">
                         <AlertTriangle className="text-white w-6 h-6 mr-3 animate-pulse" />
-                        <span className="text-white font-black uppercase tracking-widest text-sm drop-shadow-md">Alerta HST Ocorrências (Hoje)</span>
+                        <span className="text-white font-black uppercase tracking-widest text-sm drop-shadow-md">Alerta HST Ocorrências (Últimas 24h)</span>
                         <div className="absolute -right-4 top-0 h-full w-4 bg-red-600 transform skew-x-12"></div>
                     </div>
                     

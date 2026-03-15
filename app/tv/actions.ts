@@ -549,16 +549,8 @@ export async function buscarDashboardsTV(tv_id: string) {
             });
         }
 
-        // 7. Fetch Occurrences for CNN Ticker (Today)
-        // Usar formatação local explícita para evitar saltos de fuso horário UTC-Local
-        const ptFormatter = new Intl.DateTimeFormat('pt-PT', { timeZone: 'Europe/Lisbon', year: 'numeric', month: '2-digit', day: '2-digit' });
-        const parts = ptFormatter.formatToParts(new Date());
-        const year = parts.find(p => p.type === 'year')?.value;
-        const month = parts.find(p => p.type === 'month')?.value;
-        const day = parts.find(p => p.type === 'day')?.value;
-        
-        const todayStartStr = `${year}-${month}-${day}T00:00:00.000Z`;
-        const todayEndStr = `${year}-${month}-${day}T23:59:59.999Z`;
+        // 7. Fetch Occurrences for CNN Ticker (Últimas 24 horas)
+        const last24HoursStr = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
         const { data: ocorrenciasHoje } = await supabase
             .from('hst_ocorrencias')
@@ -567,8 +559,7 @@ export async function buscarDashboardsTV(tv_id: string) {
                 areas_fabrica(nome_area),
                 estacoes(nome_estacao)
             `)
-            .gte('data_hora_ocorrencia', todayStartStr)
-            .lte('data_hora_ocorrencia', todayEndStr)
+            .gte('data_hora_ocorrencia', last24HoursStr)
             .order('data_hora_ocorrencia', { ascending: false });
 
         return {
