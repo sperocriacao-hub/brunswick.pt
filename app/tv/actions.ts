@@ -145,33 +145,12 @@ export async function buscarDashboardsTV(tv_id: string) {
         const opcoesLayout = configTv.opcoes_layout || {};
         let advancedMetrics: any = { kpiOee: {}, heroiTurno: null, melhorArea: null, gargalos: [] };
 
-            // RESOLVER FALLBACK DA MONTAGEM GLOBAL PARA DASHBOARDS DE LINHA (Requisito do Utilizador)
-            // Se a TV for de uma Linha específica (A, B...), métricas como Operadores, Herói, Assiduidade e Segurança 
-            // devem apontar para a Área 'Montagem' em vez da Linha em si, pois o RH aloca as pessoas à Área.
-            let metricasTipoAlvo = configTv.tipo_alvo;
-            let metricasAlvoId = configTv.alvo_id;
-            
-            if (configTv.tipo_alvo === 'LINHA') {
-                const isMontagemLine = /linha [abcd]/i.test(configTv.nome_alvo_resolvido || '');
-                if (isMontagemLine) {
-                    const { data: areaMontagem } = await supabase.from('areas_fabrica')
-                        .select('id')
-                        .ilike('nome_area', '%Montagem%')
-                        .limit(1)
-                        .single();
-                    if (areaMontagem) {
-                        metricasTipoAlvo = 'AREA';
-                        metricasAlvoId = areaMontagem.id;
-                    }
-                }
-            }
-
         try {
             if (opcoesLayout.showWorkerOfMonth) {
                 try {
                     const { data: topWorker } = await supabase.rpc('get_top_worker_of_month', {
-                        p_tipo_alvo: metricasTipoAlvo,
-                        p_alvo_id: metricasAlvoId
+                        p_tipo_alvo: configTv.tipo_alvo,
+                        p_alvo_id: configTv.alvo_id
                     }).single();
 
                     if (topWorker) {
@@ -214,8 +193,8 @@ export async function buscarDashboardsTV(tv_id: string) {
                 } else {
                     // Fetch stations within this TV's scope
                     let stQuery = supabase.from('estacoes').select('id, nome_estacao');
-                    if (metricasTipoAlvo === 'AREA') stQuery = stQuery.eq('area_id', metricasAlvoId);
-                    if (metricasTipoAlvo === 'LINHA') stQuery = stQuery.eq('linha_id', metricasAlvoId);
+                    if (configTv.tipo_alvo === 'AREA') stQuery = stQuery.eq('area_id', configTv.alvo_id);
+                    if (configTv.tipo_alvo === 'LINHA') stQuery = stQuery.eq('linha_id', configTv.alvo_id);
                     const { data: stList } = await stQuery;
                     targetEntities = stList || [];
                 }
@@ -322,15 +301,33 @@ export async function buscarDashboardsTV(tv_id: string) {
 
             let opsRfidsForKpis: string[] = [];
             if (opcoesLayout.showAbsentismo || opcoesLayout.showHstKpis) {
-                // To apply the prefix rule, we need the operator's station name
+                
+                // --- REGRA ISOLADA DA MONTAGEM APENAS PARA ABSENTISMO E KPI HST ---
+                // Se a TV é Linha A/B/C/D, precisamos procurar operadores na Área 'Montagem' 
+                // e depois filtra-los consoante 'A -', 'B -', etc.
+                let useMontagemFallback = false;
+                let montagemId = null;
+                const nomeTargetTV = configTv.nome_alvo_resolvido || '';
+                const isMontagemLine = /linha [abcd]/i.test(nomeTargetTV);
+
+                if (configTv.tipo_alvo === 'LINHA' && isMontagemLine) {
+                    const { data: areaMontagem } = await supabase.from('areas_fabrica').select('id').ilike('nome_area', '%Montagem%').limit(1).single();
+                    if (areaMontagem) {
+                        useMontagemFallback = true;
+                        montagemId = areaMontagem.id;
+                    }
+                }
+
                 let opsQuery = supabase.from('operadores')
                     .select('id, tag_rfid_operador, area_base_id, linha_base_id, estacoes:posto_base_id(nome_estacao)')
                     .eq('status', 'Ativo');
                 
-                if (metricasTipoAlvo === 'AREA' && metricasAlvoId) {
-                    opsQuery = opsQuery.eq('area_base_id', metricasAlvoId);
-                } else if (metricasTipoAlvo === 'LINHA' && metricasAlvoId) {
-                    opsQuery = opsQuery.eq('linha_base_id', metricasAlvoId);
+                if (useMontagemFallback && montagemId) {
+                    opsQuery = opsQuery.eq('area_base_id', montagemId);
+                } else if (configTv.tipo_alvo === 'AREA' && configTv.alvo_id) {
+                    opsQuery = opsQuery.eq('area_base_id', configTv.alvo_id);
+                } else if (configTv.tipo_alvo === 'LINHA' && configTv.alvo_id) {
+                    opsQuery = opsQuery.eq('linha_base_id', configTv.alvo_id);
                 }
                 
                 const { data: ops, error: opErr } = await opsQuery;
@@ -338,25 +335,19 @@ export async function buscarDashboardsTV(tv_id: string) {
 
                 let activeOps = ops || [];
 
-                // REGRA DE NEGÓCIO: Filtragem por Prefixo de Estação
-                // Se a TV foi originalmente configurada para uma LINHA, mas ativou o fallback da Montagem
-                // Precisamos filtrar desta massa gigante (toda a Montagem) apenas os que estão em estações 
-                // cujo prefixo bate certo com o nome da Linha Original alvo da TV (ex: configTv.nome_alvo_resolvido === 'Linha A' -> prefixo 'A -')
-                if (configTv.tipo_alvo === 'LINHA' && metricasTipoAlvo === 'AREA') {
-                    const nomeLinhaAlvo = configTv.nome_alvo_resolvido || ''; // Exibe 'Linha A', 'Linha B', etc.
-                    // Extrair a letra da Linha (último caracter) ou assumir que a string começa com a letra
-                    const prefixoLinhaPuro = nomeLinhaAlvo.replace('Linha', '').trim(); // Fica só 'A', 'B', 'C', 'D'
-                    
+                // Se ativou o fallback, aplicar a regra do Prefixo da letura ("A -", "B -")
+                if (useMontagemFallback) {
+                    const prefixoLinhaPuro = nomeTargetTV.replace(/linha/i, '').trim(); // Fica só 'A', 'B', 'C', 'D'
                     if (prefixoLinhaPuro) {
-                        const prefixoFormatado = `${prefixoLinhaPuro} -`; // 'A -'
+                        const prefixoFormatado = `${prefixoLinhaPuro} -`; 
                         activeOps = activeOps.filter(o => {
-                            // Supabase join from many-to-one might return an array or object depending on exact schema casting
                             const est = Array.isArray(o.estacoes) ? o.estacoes[0] : (o.estacoes as any);
                             const nomeEstacao = est?.nome_estacao || '';
                             return nomeEstacao.startsWith(prefixoFormatado);
                         });
                     }
                 }
+                
                 const opsRfids = activeOps.map(o => o.tag_rfid_operador).filter(Boolean);
                 opsRfidsForKpis = opsRfids;
 
@@ -429,8 +420,8 @@ export async function buscarDashboardsTV(tv_id: string) {
                     const scRes = await getSafetyCross(
                         now.getFullYear(),
                         now.getMonth() + 1,
-                        metricasTipoAlvo,
-                        metricasAlvoId,
+                        configTv.tipo_alvo,
+                        configTv.alvo_id,
                         dictEstacoes
                     );
                     if (scRes.success && scRes.data) {
