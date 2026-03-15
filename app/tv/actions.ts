@@ -299,34 +299,45 @@ export async function buscarDashboardsTV(tv_id: string) {
                 };
             }
 
-                let opsRfidsForKpis: string[] = [];
+            let opsRfidsForKpis: string[] = [];
             if (opcoesLayout.showAbsentismo || opcoesLayout.showHstKpis) {
-                // Determine which workstations belong to the TV's scope
-                let estacoesQuery = supabase.from('estacoes').select('id, area_id, areas_fabrica!inner(linha_id)');
-                if (configTv.tipo_alvo === 'AREA' && configTv.alvo_id) {
-                    estacoesQuery = estacoesQuery.eq('area_id', configTv.alvo_id);
-                } else if (configTv.tipo_alvo === 'LINHA' && configTv.alvo_id) {
-                    estacoesQuery = estacoesQuery.eq('areas_fabrica.linha_id', configTv.alvo_id);
-                }
-                const { data: estacoesEscopo } = await estacoesQuery;
-                const estacoesIds = estacoesEscopo ? estacoesEscopo.map(e => e.id) : [];
+                // Fetch ALL active operators
+                const { data: allOps, error: opErr } = await supabase
+                    .from('operadores')
+                    .select('id, tag_rfid_operador, posto_base_id, area_base_id, linha_base_id')
+                    .eq('status', 'Ativo');
 
-                // Fetch operators that fall into this scope either directly by Area/Linha or indirectly via Posto Base
-                let opsQuery = supabase.from('operadores').select('id, tag_rfid_operador, posto_base_id, area_base_id, linha_base_id').eq('status', 'Ativo');
-                const { data: ops } = await opsQuery;
+                let activeOps = allOps || [];
 
-                // Filter operators that belong to the TV scope
-                let activeOps = ops || [];
-                if (configTv.tipo_alvo !== 'GERAL') {
-                    activeOps = activeOps.filter(o => {
-                        if (configTv.tipo_alvo === 'AREA' && configTv.alvo_id) {
-                            return o.area_base_id === configTv.alvo_id || (o.posto_base_id && estacoesIds.includes(o.posto_base_id));
+                // Filter operators based on the TV's configured target and scope
+                if (!opErr && configTv.tipo_alvo !== 'GERAL' && configTv.alvo_id) {
+                    if (configTv.tipo_alvo === 'AREA') {
+                        // Fetch Estacoes in this Area
+                        const { data: ests } = await supabase.from('estacoes').select('id').eq('area_id', configTv.alvo_id);
+                        const estIds = ests ? ests.map(e => e.id) : [];
+                        
+                        activeOps = activeOps.filter(o => 
+                            o.area_base_id === configTv.alvo_id || 
+                            (o.posto_base_id && estIds.includes(o.posto_base_id))
+                        );
+                    } else if (configTv.tipo_alvo === 'LINHA') {
+                        // Fetch Areas in this line
+                        const { data: areas } = await supabase.from('areas_fabrica').select('id').eq('linha_id', configTv.alvo_id);
+                        const areaIds = areas ? areas.map(a => a.id) : [];
+                        
+                        // Fetch Estacoes in these Areas
+                        let estIds: string[] = [];
+                        if (areaIds.length > 0) {
+                            const { data: ests } = await supabase.from('estacoes').select('id').in('area_id', areaIds);
+                            estIds = ests ? ests.map(e => e.id) : [];
                         }
-                        if (configTv.tipo_alvo === 'LINHA' && configTv.alvo_id) {
-                            return o.linha_base_id === configTv.alvo_id || (o.posto_base_id && estacoesIds.includes(o.posto_base_id));
-                        }
-                        return true;
-                    });
+
+                        activeOps = activeOps.filter(o => 
+                            o.linha_base_id === configTv.alvo_id || 
+                            (o.area_base_id && areaIds.includes(o.area_base_id)) ||
+                            (o.posto_base_id && estIds.includes(o.posto_base_id))
+                        );
+                    }
                 }
 
                 const opsRfids = activeOps.map(o => o.tag_rfid_operador).filter(Boolean);
