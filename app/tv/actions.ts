@@ -306,8 +306,20 @@ export async function buscarDashboardsTV(tv_id: string) {
                 
                 if (configTv.tipo_alvo === 'AREA' && configTv.alvo_id) {
                     opsQuery = opsQuery.eq('area_base_id', configTv.alvo_id);
-                } else if (configTv.tipo_alvo === 'LINHA' && configTv.alvo_id) {
-                    opsQuery = opsQuery.eq('linha_base_id', configTv.alvo_id);
+                } else if (configTv.tipo_alvo === 'LINHA') {
+                    // Fallback: Contar todos os operadores da Montagem quando a TV estiver alocada a uma Linha específica (A, B, C, D)
+                    const { data: areaMontagem } = await supabase.from('areas_fabrica')
+                        .select('id')
+                        .ilike('nome_area', '%Montagem%')
+                        .limit(1)
+                        .single();
+                        
+                    if (areaMontagem) {
+                        opsQuery = opsQuery.eq('area_base_id', areaMontagem.id);
+                    } else {
+                        // Fallback de segurança caso a área Montagem mude de nome
+                        opsQuery = opsQuery.eq('linha_base_id', configTv.alvo_id);
+                    }
                 }
                 
                 const { data: ops, error: opErr } = await opsQuery;
