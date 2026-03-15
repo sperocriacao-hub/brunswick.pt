@@ -549,13 +549,31 @@ export async function buscarDashboardsTV(tv_id: string) {
             });
         }
 
+        // 7. Fetch Occurrences for CNN Ticker (Today)
+        const tzOffset = (new Date()).getTimezoneOffset() * 60000;
+        const localNow = new Date(Date.now() - tzOffset);
+        const todayStartStr = localNow.toISOString().split('T')[0] + 'T00:00:00.000Z';
+        const todayEndStr = localNow.toISOString().split('T')[0] + 'T23:59:59.999Z';
+
+        const { data: ocorrenciasHoje } = await supabase
+            .from('hst_ocorrencias')
+            .select(`
+                *,
+                areas_fabrica(nome_area),
+                estacoes(nome_estacao)
+            `)
+            .gte('data_hora_ocorrencia', todayStartStr)
+            .lte('data_hora_ocorrencia', todayEndStr)
+            .order('data_hora_ocorrencia', { ascending: false });
+
         return {
             success: true,
             config: configTv,
             barcos: barcos,
             alertasGlobais: alertas || [],
             radarEstacoes,
-            advancedMetrics
+            advancedMetrics,
+            ocorrenciasHoje: ocorrenciasHoje || []
         };
     } catch (err: unknown) {
         let msg = "Erro Técnico TV.";

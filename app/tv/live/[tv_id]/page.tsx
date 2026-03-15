@@ -26,6 +26,7 @@ export default function CustomTVDashboardPage() {
     const [tipoAlvo, setTipoAlvo] = useState<string>('');
     const [opcoesLayout, setOpcoesLayout] = useState<any>({});
     const [metrics, setMetrics] = useState<any>({ kpiOee: {}, heroiTurno: null, melhorArea: null, gargalos: [] });
+    const [ocorrenciasHoje, setOcorrenciasHoje] = useState<any[]>([]);
     const [planeamentoOrdens, setPlaneamentoOrdens] = useState<any[]>([]);
 
     const [refreshTick, setRefreshTick] = useState(0);
@@ -62,6 +63,7 @@ export default function CustomTVDashboardPage() {
                     setRadarEstacoes(res.radarEstacoes || []);
                     setOpcoesLayout(res.config.opcoes_layout || {});
                     setMetrics(res.advancedMetrics || {});
+                    setOcorrenciasHoje(res.ocorrenciasHoje || []);
                 }
             } else {
                 setNomeTv("🔴 SINAL PERDIDO");
@@ -703,6 +705,57 @@ export default function CustomTVDashboardPage() {
                 </section>
 
             </main>
+
+            {/* --- CNN SAFETY TICKER (Occurrences Today) --- */}
+            {ocorrenciasHoje && ocorrenciasHoje.length > 0 && (
+                <div className="w-full h-12 bg-red-950/90 border-t-2 border-red-600 flex items-center z-50 shrink-0 overflow-hidden relative shadow-[0_-5px_20px_rgba(220,38,38,0.2)]">
+                    <style dangerouslySetInnerHTML={{__html: `
+                        @keyframes ticker {
+                            0% { transform: translateX(100vw); }
+                            100% { transform: translateX(-100%); }
+                        }
+                        .animate-ticker-fast {
+                            animation: ticker 25s linear infinite;
+                            display: inline-flex;
+                            will-change: transform;
+                        }
+                    `}} />
+                    
+                    {/* Fixed Left Header (News Channel logo style) */}
+                    <div className="bg-red-600 h-full px-6 flex items-center justify-center relative z-20 shrink-0 shadow-[5px_0_15px_rgba(0,0,0,0.5)]">
+                        <AlertTriangle className="text-white w-6 h-6 mr-3 animate-pulse" />
+                        <span className="text-white font-black uppercase tracking-widest text-sm drop-shadow-md">Alerta HST Ocorrências (Hoje)</span>
+                        <div className="absolute -right-4 top-0 h-full w-4 bg-red-600 transform skew-x-12"></div>
+                    </div>
+                    
+                    {/* Ticker Tape */}
+                    <div className="flex-1 overflow-hidden relative ml-6 flex items-center h-full">
+                        <div className="animate-ticker-fast items-center whitespace-nowrap">
+                            {ocorrenciasHoje.map((occ: any, i: number) => (
+                                <div key={i} className="inline-flex items-center text-red-100/90 font-bold uppercase tracking-widest text-sm mr-16 drop-shadow-md pb-[2px]">
+                                    <span className="font-mono text-red-400 bg-red-950/50 px-2 py-0.5 rounded border border-red-800/50 tracking-tighter mr-2 h-fit">
+                                        {new Date(occ.data_hora_ocorrencia).toLocaleTimeString('pt-PT', {hour: '2-digit', minute:'2-digit'})}
+                                    </span>
+                                    <span className="text-white bg-red-500/20 px-2 py-0.5 rounded h-fit">
+                                        {occ.tipo_ocorrencia}
+                                    </span>
+                                    {(occ.estacoes?.nome_estacao || occ.areas_fabrica?.nome_area) && (
+                                        <span className="text-red-300 ml-2">
+                                            [{occ.estacoes?.nome_estacao || occ.areas_fabrica?.nome_area}]
+                                        </span>
+                                    )}
+                                    {occ.descricao_ocorrencia && (
+                                        <span className="text-slate-200 font-normal ml-3 italic">
+                                            "{occ.descricao_ocorrencia}"
+                                        </span>
+                                    )}
+                                    <span className="ml-10 text-red-700/80 font-black">|</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
