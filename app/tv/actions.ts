@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient } from '@supabase/supabase-js';
+import { unstable_noStore as noStore } from 'next/cache';
 
 import { getSafetyCross } from '../admin/hst/dashboard/actions';
 
@@ -11,6 +12,7 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 export async function buscarDashboardsTV(tv_id: string) {
+    noStore();
     try {
         // 1. O que é que esta TV mostra afinal?
         const { data: configTv, error: tvErr } = await supabase
