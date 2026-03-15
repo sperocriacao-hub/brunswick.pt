@@ -152,14 +152,17 @@ export async function buscarDashboardsTV(tv_id: string) {
             let metricasAlvoId = configTv.alvo_id;
             
             if (configTv.tipo_alvo === 'LINHA') {
-                const { data: areaMontagem } = await supabase.from('areas_fabrica')
-                    .select('id')
-                    .ilike('nome_area', '%Montagem%')
-                    .limit(1)
-                    .single();
-                if (areaMontagem) {
-                    metricasTipoAlvo = 'AREA';
-                    metricasAlvoId = areaMontagem.id;
+                const isMontagemLine = /linha [abcd]/i.test(configTv.nome_alvo_resolvido || '');
+                if (isMontagemLine) {
+                    const { data: areaMontagem } = await supabase.from('areas_fabrica')
+                        .select('id')
+                        .ilike('nome_area', '%Montagem%')
+                        .limit(1)
+                        .single();
+                    if (areaMontagem) {
+                        metricasTipoAlvo = 'AREA';
+                        metricasAlvoId = areaMontagem.id;
+                    }
                 }
             }
 
