@@ -408,8 +408,10 @@ export default function CustomTVDashboardPage() {
                                 <ShieldCheck size={16} /> Zero Acidentes
                             </h2>
                             <div className="relative z-10">
-                                <p className="text-slate-400 text-[10px] font-bold tracking-widest uppercase mb-1 drop-shadow-sm">Liderança HSE</p>
-                                <p className="text-2xl font-black text-white leading-tight truncate">{metrics.melhorArea.nome}</p>
+                                <p className="text-slate-400 text-[10px] font-bold tracking-widest uppercase mb-1 drop-shadow-sm w-full truncate border-b border-emerald-500/20 pb-1">
+                                    Destaque Segurança ({metrics.melhorArea.tipo || 'Área'})
+                                </p>
+                                <p className="text-2xl font-black text-white leading-tight line-clamp-2 mt-1">{metrics.melhorArea.nome}</p>
                             </div>
                             <div className="mt-2 flex items-center gap-2 relative z-10 bg-black/40 rounded-xl p-2 border border-slate-800 self-start">
                                 <span className="text-emerald-400 text-xl font-black ml-1">{metrics.melhorArea.score}%</span>

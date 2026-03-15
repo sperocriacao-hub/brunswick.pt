@@ -179,45 +179,62 @@ export async function buscarDashboardsTV(tv_id: string) {
             }
 
             if (opcoesLayout.showSafeArea) {
-                // Fetch the area with the fewest unresolved safety/quality alerts
-                const { data: areasList, error: areaErr } = await supabase
-                    .from('areas_fabrica')
-                    .select('id, nome_area');
+                // If TV is scoped (Area/Linha), we find the safest Station. If General, we find safest Area.
+                const isGeneralScope = configTv.tipo_alvo === 'GERAL';
+                
+                let targetEntities: any[] = [];
+                let alertCounts = new Map();
 
-                if (!areaErr && areasList && areasList.length > 0) {
-                    const { data: activeAlerts } = await supabase
-                        .from('alertas_andon')
-                        .select('estacao_id, estacoes(area_id)')
-                        .eq('resolvido', false);
+                if (isGeneralScope) {
+                    const { data: areasList } = await supabase.from('areas_fabrica').select('id, nome_area');
+                    targetEntities = areasList || [];
+                } else {
+                    // Fetch stations within this TV's scope
+                    let stQuery = supabase.from('estacoes').select('id, nome_estacao');
+                    if (configTv.tipo_alvo === 'AREA') stQuery = stQuery.eq('area_id', configTv.alvo_id);
+                    if (configTv.tipo_alvo === 'LINHA') stQuery = stQuery.eq('linha_id', configTv.alvo_id);
+                    const { data: stList } = await stQuery;
+                    targetEntities = stList || [];
+                }
 
-                    // Simple logic: Find area with fewest active incident alerts
-                    const alertCounts = new Map();
-                    areasList.forEach(a => alertCounts.set(a.id, 0));
+                if (targetEntities.length > 0) {
+                    targetEntities.forEach(e => alertCounts.set(e.id, 0));
+
+                    // Fetch active alerts within the scope
+                    let alertsQuery = supabase.from('alertas_andon').select('estacao_id, estacoes(area_id)').eq('resolvido', false);
+                    if (!isGeneralScope && dictEstacoes.length > 0) {
+                        alertsQuery = alertsQuery.in('estacao_id', dictEstacoes);
+                    }
+                    const { data: activeAlerts } = await alertsQuery;
 
                     activeAlerts?.forEach((alert: any) => {
-                        const areaId = alert.estacoes?.area_id;
-                        if (areaId && alertCounts.has(areaId)) {
-                            alertCounts.set(areaId, alertCounts.get(areaId) + 1);
+                        const entityId = isGeneralScope ? alert.estacoes?.area_id : alert.estacao_id;
+                        if (entityId && alertCounts.has(entityId)) {
+                            alertCounts.set(entityId, alertCounts.get(entityId) + 1);
                         }
                     });
 
-                    let safestArea = areasList[0];
+                    let safestEntity = targetEntities[0];
                     let minAlerts = Infinity;
 
-                    for (const area of areasList) {
-                        const count = alertCounts.get(area.id);
+                    for (const entity of targetEntities) {
+                        const count = alertCounts.get(entity.id);
                         if (count < minAlerts) {
                             minAlerts = count;
-                            safestArea = area;
+                            safestEntity = entity;
                         }
                     }
 
-                    // Score is perfectly 100% minus 5% for every active alert in that area
+                    // Score is perfectly 100% minus 5% for every active alert in that area/station
                     const calcScore = Math.max(0, 100 - (minAlerts * 5));
-                    advancedMetrics.melhorArea = { nome: safestArea.nome_area, score: calcScore };
+                    advancedMetrics.melhorArea = { 
+                        nome: safestEntity.nome_area || safestEntity.nome_estacao, 
+                        score: calcScore,
+                        tipo: isGeneralScope ? 'Área Fábrica' : 'Estação'
+                    };
                 } else {
                     // Fallback
-                    advancedMetrics.melhorArea = { nome: configTv.nome_alvo_resolvido, score: 100 };
+                    advancedMetrics.melhorArea = { nome: configTv.nome_alvo_resolvido, score: 100, tipo: 'Alvo Isolado' };
                 }
             }
 
