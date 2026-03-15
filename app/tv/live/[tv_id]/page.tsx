@@ -335,34 +335,59 @@ export default function CustomTVDashboardPage() {
                     )}
 
                     {opcoesLayout.showWorkerOfMonth && metrics.heroiTurno && (
-                        <div className="col-span-1 md:col-span-2 bg-gradient-to-br from-amber-500/20 to-orange-600/10 border border-amber-500/50 rounded-3xl p-5 shadow-[0_0_30px_rgba(245,158,11,0.15)] relative flex flex-col justify-between overflow-hidden">
-                            <div className="absolute -right-6 -top-6 text-amber-500/10 rotate-12">
-                                <Trophy size={100} />
+                        <div className="col-span-1 md:col-span-2 bg-slate-900/80 border border-slate-700/50 rounded-3xl p-5 shadow-2xl relative flex overflow-hidden group">
+                            {/* Decorative background effects */}
+                            <div className="absolute -right-6 -top-6 text-blue-500/5 rotate-12 transition-transform group-hover:rotate-45 duration-700">
+                                <Trophy size={140} />
                             </div>
-                            <h2 className="text-xs font-black uppercase tracking-widest text-amber-500 mb-3 flex items-center gap-2 relative z-10 w-full border-b border-amber-500/20 pb-2">
-                                <Trophy size={16} /> Alta-Performance (Destaque do Mês)
-                            </h2>
-                            <div className="relative z-10 flex flex-col h-full w-full">
-                                <div className="flex justify-between items-start w-full">
-                                    <div>
-                                        <p className="text-2xl font-black text-white leading-tight mb-2 drop-shadow-md truncate">{metrics.heroiTurno.nome_operador}</p>
-                                        <div className="inline-flex items-center gap-2 bg-amber-500/20 border border-amber-500/50 rounded-full px-4 py-1.5 shadow-inner">
-                                            <Zap size={14} className="text-amber-400 fill-amber-400 animate-pulse" />
-                                            <span className="text-amber-400 font-black tracking-widest text-sm text-center block">
-                                                {metrics.heroiTurno.nota_eficiencia || 0} SCORE ATUAL
-                                            </span>
+                            <div className="absolute top-1/2 left-1/4 w-32 h-32 bg-yellow-500/10 blur-3xl rounded-full"></div>
+
+                            {/* Main Content Area */}
+                            <div className="relative z-10 flex flex-col w-full">
+                                <h2 className="text-xs font-black uppercase tracking-widest text-yellow-500 mb-4 flex items-center gap-2 border-b border-slate-800 pb-2">
+                                    <Trophy size={16} /> Alta-Performance (Funcionário do Mês)
+                                </h2>
+
+                                <div className="flex items-center gap-6 mt-2">
+                                    {/* Spotlight Avatar (HR Dash Style) */}
+                                    <div className="relative shrink-0 flex flex-col items-center">
+                                        <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center text-4xl font-extrabold shadow-[0_0_20px_rgba(59,130,246,0.5)] ring-4 ring-slate-800">
+                                            {metrics.heroiTurno.nome_operador.charAt(0).toUpperCase()}
+                                        </div>
+                                        <div className="absolute -bottom-3 inset-x-0 mx-auto w-fit bg-yellow-400 text-yellow-950 text-[10px] font-black px-3 py-0.5 rounded-full shadow-lg border border-yellow-300 tracking-wider">
+                                            1º LUGAR
                                         </div>
                                     </div>
+
+                                    {/* Contas e Score */}
+                                    <div className="flex flex-col flex-1 pl-2 justify-center">
+                                        <h4 className="text-2xl font-black text-white line-clamp-1 drop-shadow-md">
+                                            {metrics.heroiTurno.nome_operador}
+                                        </h4>
+                                        <div className="flex items-center gap-3 mt-3">
+                                            <div className="flex items-center gap-2 bg-slate-950/80 border border-slate-800 px-4 py-1.5 rounded-full shadow-inner">
+                                                <Star className="w-5 h-5 text-yellow-400 fill-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.8)]" />
+                                                <span className="font-black text-blue-400 text-xl leading-none">
+                                                    {metrics.heroiTurno.nota_eficiencia || 0}
+                                                </span>
+                                                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest leading-none pt-1">
+                                                    OEE Score
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Evolução Mini-Chart */}
                                     {metrics.heroiTurno.progresso_diario && metrics.heroiTurno.progresso_diario.length > 0 && (
-                                        <div className="text-right flex flex-col justify-end">
-                                            <span className="text-amber-500/60 text-[9px] uppercase font-black tracking-widest mb-1">Evolução Mensal (Dias Anteriores)</span>
-                                            <div className="flex items-end gap-1 h-14 w-40 opacity-90">
+                                        <div className="text-right flex flex-col justify-end shrink-0 pl-4 border-l border-slate-800">
+                                            <span className="text-slate-500 text-[9px] uppercase font-black tracking-widest mb-1 block w-full text-center">Evolução Mensal</span>
+                                            <div className="flex items-end gap-1 h-14 w-32 opacity-90 justify-center">
                                                 {metrics.heroiTurno.progresso_diario.map((dia: any, idx: number) => {
                                                     const maxScore = Math.max(100, ...metrics.heroiTurno.progresso_diario.map((d: any) => d.nota_eficiencia));
-                                                    const heightPercent = Math.max(10, Math.min((dia.nota_eficiencia / maxScore) * 100, 100)); // minimo 10% height para ser visivel
+                                                    const heightPercent = Math.max(10, Math.min((dia.nota_eficiencia / maxScore) * 100, 100));
                                                     return (
-                                                        <div key={idx} className="flex-1 bg-amber-950/40 rounded-t-sm flex items-end overflow-hidden border-b border-amber-500/20 h-full relative" title={`${dia.data_avaliacao}: ${dia.nota_eficiencia}`}>
-                                                            <div style={{ height: `${heightPercent}%` }} className="w-full bg-gradient-to-t from-amber-600 to-amber-400 rounded-t-sm drop-shadow-[0_0_5px_rgba(251,191,36,0.5)]"></div>
+                                                        <div key={idx} className="flex-1 w-full bg-slate-950/60 rounded-t-sm flex items-end overflow-hidden border-b border-slate-700 h-full relative group">
+                                                            <div style={{ height: `${heightPercent}%` }} className="w-full bg-gradient-to-t from-blue-700 to-blue-400 rounded-t-sm transition-all duration-1000 group-hover:bg-blue-300 drop-shadow-[0_0_5px_rgba(59,130,246,0.3)]"></div>
                                                         </div>
                                                     )
                                                 })}
