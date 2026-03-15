@@ -317,11 +317,15 @@ export async function buscarDashboardsTV(tv_id: string) {
                     let absentismoData = { taxa: 0, faltosos: 0, cadastrados: totalCadastrados };
 
                     if (totalCadastrados > 0) {
-                        const hojeStr = new Date().toISOString().split('T')[0];
+                        // Create robust midnight-to-midnight boundaries for the *current local day*
+                        const now = new Date();
+                        const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+                        const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+                        
                         const { data: presencas } = await supabase.from('log_ponto_diario')
                             .select('operador_rfid')
-                            .gte('timestamp', `${hojeStr}T00:00:00Z`)
-                            .lte('timestamp', `${hojeStr}T23:59:59Z`)
+                            .gte('timestamp', startOfDay.toISOString())
+                            .lte('timestamp', endOfDay.toISOString())
                             .in('operador_rfid', opsRfids);
 
                         const rfidsPresentes = new Set((presencas || []).map(p => p.operador_rfid));
@@ -334,10 +338,16 @@ export async function buscarDashboardsTV(tv_id: string) {
                 }
 
                 if (opcoesLayout.showHstKpis) {
-                    const hojeStr = new Date().toISOString().split('T')[0];
+                    const now = new Date();
+                    // Generate YYYY-MM-DD based on Local Server Time instead of UTC String slicing
+                    const year = now.getFullYear();
+                    const month = String(now.getMonth() + 1).padStart(2, '0');
+                    const day = String(now.getDate()).padStart(2, '0');
+                    const localHojeStr = `${year}-${month}-${day}`;
+
                     let evalsQuery = supabase.from('avaliacoes_diarias')
                         .select('nota_hst, nota_qualidade')
-                        .eq('data_avaliacao', hojeStr);
+                        .eq('data_avaliacao', localHojeStr);
 
                     // Re-utilizar os UUIDs dos operadores ativos no Escopo (Não Rfids, UUIDS)
                     const opsUuids = activeOps.map(o => o.id).filter(Boolean);
