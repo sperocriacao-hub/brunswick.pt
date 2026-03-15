@@ -126,10 +126,8 @@ export async function fetchDashboardData() {
             // Fetch ativos
             const { data: operadoresBase } = await supabase.from('operadores').select('id, nome_operador').eq('status', 'Ativo');
             
-            // Fetch avaliacoes dos ultimos 30 dias
-            const dLimit = new Date();
-            dLimit.setDate(dLimit.getDate() - 30);
-            const { data: avaliacoes } = await supabase.from('avaliacoes_diarias').select('*').gte('data_avaliacao', dLimit.toISOString());
+            // Fetch todas avaliacoes globais (Sem limite de data para apanhar histórico)
+            const { data: avaliacoes } = await supabase.from('avaliacoes_diarias').select('*');
 
             if (operadoresBase && avaliacoes) {
                 const scoredEmployees = operadoresBase.map(op => {
@@ -138,7 +136,10 @@ export async function fetchDashboardData() {
             
                     let totalScore = 0;
                     myEvals.forEach(ev => {
-                        const sum = (ev.nota_hst || 0) + (ev.nota_epi || 0) + (ev.nota_5s || 0) + (ev.nota_qualidade || 0) + (ev.nota_eficiencia || 0) + (ev.nota_objetivos || 0) + (ev.nota_atitude || 0);
+                        const sum = Number(ev.nota_hst || 0) + Number(ev.nota_epi || 0) + 
+                                    Number(ev.nota_5s || 0) + Number(ev.nota_qualidade || 0) + 
+                                    Number(ev.nota_eficiencia || 0) + Number(ev.nota_objetivos || 0) + 
+                                    Number(ev.nota_atitude || 0);
                         totalScore += sum / 7;
                     });
             
@@ -151,6 +152,9 @@ export async function fetchDashboardData() {
                 }).filter(op => op.evalCount > 0);
 
                 topTalentos = scoredEmployees.sort((a, b) => b.matriz_talento_media - a.matriz_talento_media).slice(0, 3);
+                console.log("SCADA DIAGNOSTICO - RAW AVALIACOES:", avaliacoes?.length);
+                console.log("SCADA DIAGNOSTICO - RAW SCORED EMPLOYEES:", scoredEmployees?.length);
+                console.log("SCADA DIAGNOSTICO - TOP TALENTOS FINAL:", topTalentos);
             }
         } catch(e) {
             console.error("Erro a extrair Wall of Fame:", e);
