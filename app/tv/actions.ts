@@ -145,133 +145,35 @@ export async function buscarDashboardsTV(tv_id: string) {
         const opcoesLayout = configTv.opcoes_layout || {};
         let advancedMetrics: any = { kpiOee: {}, heroiTurno: null, melhorArea: null, gargalos: [] };
 
-        // =========================================================================================
-        // REGRA DE NEGÓCIO: ALVOS E OPERADORES BASE DA TV (Montagem Fallback & Station Prefix Rule)
-        // =========================================================================================
-        const nomeTargetTV = configTv.nome_alvo_resolvido || '';
-        const isMontagemLine = configTv.tipo_alvo === 'LINHA' && /linha [abcd]/i.test(nomeTargetTV);
-        const prefixoLinhaPuro = isMontagemLine ? nomeTargetTV.replace(/linha/i, '').trim() : '';
-        const prefixoFormatado = prefixoLinhaPuro ? `${prefixoLinhaPuro} -` : '';
-
-        // Definimos o ID lógico que os widgets (Hero, Safety, etc) vão usar 
-        // (Se for Montagem Line, passamos a olhar para a Área da Montagem inteira, mas limitados aos operadores do prefixo)
-        let logicalTargetType = configTv.tipo_alvo;
-        let logicalTargetId = configTv.alvo_id;
-
-        if (isMontagemLine) {
-            const { data: areaMontagem } = await supabase.from('areas_fabrica').select('id').ilike('nome_area', '%Montagem%').limit(1).single();
-            if (areaMontagem) {
-                logicalTargetType = 'AREA';
-                logicalTargetId = areaMontagem.id;
-            }
-        }
-
-        // Descobrir Exatamente Quem são os Operadores Desta TV
-        let opsQuery = supabase.from('operadores')
-            .select('id, tag_rfid_operador, area_base_id, linha_base_id, estacoes:posto_base_id(nome_estacao)')
-            .eq('status', 'Ativo');
-
-        if (logicalTargetType === 'AREA' && logicalTargetId) {
-            opsQuery = opsQuery.eq('area_base_id', logicalTargetId);
-        } else if (logicalTargetType === 'LINHA' && logicalTargetId) {
-            opsQuery = opsQuery.eq('linha_base_id', logicalTargetId);
-        }
-
-        const { data: rawOps, error: opErr } = await opsQuery;
-        let tvActiveOps = rawOps || [];
-
-        // Filtro de Prefixo para as Linhas da Montagem
-        if (isMontagemLine && prefixoFormatado) {
-            tvActiveOps = tvActiveOps.filter(o => {
-                const est = Array.isArray(o.estacoes) ? o.estacoes[0] : (o.estacoes as any);
-                const nomeEstacao = est?.nome_estacao || '';
-                return nomeEstacao.startsWith(prefixoFormatado);
-            });
-        }
-
-        const tvActiveOpIds = tvActiveOps.map(o => o.id);
-        const tvActiveOpRfids = tvActiveOps.map(o => o.tag_rfid_operador).filter(Boolean);
-
-
-        // =========================================================================================
-        // CALCULO DOS WIDGETS
-        // =========================================================================================
-
         try {
             if (opcoesLayout.showWorkerOfMonth) {
                 try {
-                    // Adaptando o Herói do Turno apenas para o subset de operadores encontrados
-                    // Uma vez que a RPC retorna o Herói baseado na Área toda, temos de cruzar com a nossa pool de UUIDs filtrados (tvActiveOpIds)
-                    // Num cenário ideal reescrevia-se a RPC, mas podemos filtrar no Javascript puxando o mês num single query se o target for MontagemLine
-                    
-                    if (isMontagemLine && tvActiveOpIds.length > 0) {
-                        const now = new Date();
-                        const startOfMonthStr = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0)).toISOString();
+                    const { data: topWorker } = await supabase.rpc('get_top_worker_of_month', {
+                        p_tipo_alvo: configTv.tipo_alvo,
+                        p_alvo_id: configTv.alvo_id
+                    }).single();
+
+                    if (topWorker) {
+                        const worker = topWorker as any;
                         
-                        const { data: workerMonthRank } = await supabase.from('avaliacoes_diarias')
-                            .select('funcionario_id, nota_eficiencia, operadores(nome_operador)')
+                        const now = new Date();
+                        const startOfMonthStr = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0)).toISOString().split('T')[0];
+
+                        const { data: progressionData } = await supabase
+                            .from('avaliacoes_diarias')
+                            .select('data_avaliacao, nota_eficiencia')
+                            .eq('funcionario_id', worker.funcionario_id)
                             .gte('data_avaliacao', startOfMonthStr)
-                            .in('funcionario_id', tvActiveOpIds);
-                            
-                        if (workerMonthRank && workerMonthRank.length > 0) {
-                            // Find highest average
-                            const avgs: Record<string, { sum: number, count: number, nome: string }> = {};
-                            workerMonthRank.forEach(w => {
-                                if (!avgs[w.funcionario_id]) avgs[w.funcionario_id] = { sum: 0, count: 0, nome: (Array.isArray(w.operadores) ? w.operadores[0].nome_operador : (w.operadores as any)?.nome_operador) || '' };
-                                avgs[w.funcionario_id].sum += Number(w.nota_eficiencia || 0);
-                                avgs[w.funcionario_id].count++;
-                            });
-                            
-                            let bestId = '';
-                            let highestAvg = -1;
-                            for (const [id, stats] of Object.entries(avgs)) {
-                                const avg = stats.sum / stats.count;
-                                if (avg > highestAvg) { highestAvg = avg; bestId = id; }
-                            }
-                            
-                            const bestWorker = avgs[bestId];
-                            
-                            const { data: progressionData } = await supabase.from('avaliacoes_diarias')
-                                .select('data_avaliacao, nota_eficiencia')
-                                .eq('funcionario_id', bestId)
-                                .gte('data_avaliacao', startOfMonthStr)
-                                .order('data_avaliacao', { ascending: true });
-                                
-                            advancedMetrics.heroiTurno = {
-                                nome_operador: bestWorker.nome,
-                                nota_eficiencia: parseFloat(highestAvg.toFixed(2)),
-                                progresso_diario: progressionData || []
-                            };
-                        } else {
-                            advancedMetrics.heroiTurno = { nome_operador: 'A Aguardar Avaliações M.E.S.', nota_eficiencia: 0, progresso_diario: [] };
-                        }
+                            .order('data_avaliacao', { ascending: true });
+
+                        advancedMetrics.heroiTurno = {
+                            nome_operador: worker.nome_operador || 'Sem Avaliações Recentes',
+                            nota_eficiencia: worker.media_eficiencia || 0,
+                            progresso_diario: progressionData || []
+                        };
                     } else {
-                        // Standard RPC logic for Generic/Area/Other Lines
-                        const { data: topWorker } = await supabase.rpc('get_top_worker_of_month', {
-                            p_tipo_alvo: logicalTargetType,
-                            p_alvo_id: logicalTargetId
-                        }).single();
-
-                        if (topWorker) {
-                            const worker = topWorker as any;
-                            const now = new Date();
-                            const startOfMonthStr = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0)).toISOString().split('T')[0];
-
-                            const { data: progressionData } = await supabase
-                                .from('avaliacoes_diarias')
-                                .select('data_avaliacao, nota_eficiencia')
-                                .eq('funcionario_id', worker.funcionario_id)
-                                .gte('data_avaliacao', startOfMonthStr)
-                                .order('data_avaliacao', { ascending: true });
-
-                            advancedMetrics.heroiTurno = {
-                                nome_operador: worker.nome_operador || 'Sem Avaliações Recentes',
-                                nota_eficiencia: worker.media_eficiencia || 0,
-                                progresso_diario: progressionData || []
-                            };
-                        } else {
-                            advancedMetrics.heroiTurno = { nome_operador: 'A Aguardar Avaliações M.E.S.', nota_eficiencia: 0, progresso_diario: [] };
-                        }
+                        // Fallback: If no evaluations found for this Area/Linha this month
+                        advancedMetrics.heroiTurno = { nome_operador: 'A Aguardar Avaliações M.E.S.', nota_eficiencia: 0, progresso_diario: [] };
                     }
                 } catch (err) {
                     advancedMetrics.heroiTurno = { nome_operador: 'Erro a Carregar', nota_eficiencia: 0, progresso_diario: [] };
@@ -279,7 +181,7 @@ export async function buscarDashboardsTV(tv_id: string) {
             }
 
             if (opcoesLayout.showSafeArea) {
-                // Se for Geral, avaliamos Áreas. Se não, avaliamos Estações do escopo.
+                // If TV is scoped (Area/Linha), we find the safest Station. If General, we find safest Area.
                 const isGeneralScope = configTv.tipo_alvo === 'GERAL';
                 
                 let targetEntities: any[] = [];
@@ -289,27 +191,21 @@ export async function buscarDashboardsTV(tv_id: string) {
                     const { data: areasList } = await supabase.from('areas_fabrica').select('id, nome_area');
                     targetEntities = areasList || [];
                 } else {
+                    // Fetch stations within this TV's scope
                     let stQuery = supabase.from('estacoes').select('id, nome_estacao');
-                    if (logicalTargetType === 'AREA') stQuery = stQuery.eq('area_id', logicalTargetId);
-                    if (logicalTargetType === 'LINHA') stQuery = stQuery.eq('linha_id', logicalTargetId);
+                    if (configTv.tipo_alvo === 'AREA') stQuery = stQuery.eq('area_id', configTv.alvo_id);
+                    if (configTv.tipo_alvo === 'LINHA') stQuery = stQuery.eq('linha_id', configTv.alvo_id);
                     const { data: stList } = await stQuery;
-                    let dbStations = stList || [];
-                    
-                    // Applicar regra da "Montagem" às Estações: manter apenas as que têm a letra "A - "
-                    if (isMontagemLine && prefixoFormatado) {
-                        dbStations = dbStations.filter(s => s.nome_estacao.startsWith(prefixoFormatado));
-                    }
-                    targetEntities = dbStations;
+                    targetEntities = stList || [];
                 }
 
                 if (targetEntities.length > 0) {
                     targetEntities.forEach(e => alertCounts.set(e.id, 0));
 
-                    let validStationIds = targetEntities.map(e => e.id);
-
+                    // Fetch active alerts within the scope
                     let alertsQuery = supabase.from('alertas_andon').select('estacao_id, estacoes(area_id)').eq('resolvido', false);
-                    if (!isGeneralScope && validStationIds.length > 0) {
-                        alertsQuery = alertsQuery.in('estacao_id', validStationIds);
+                    if (!isGeneralScope && dictEstacoes.length > 0) {
+                        alertsQuery = alertsQuery.in('estacao_id', dictEstacoes);
                     }
                     const { data: activeAlerts } = await alertsQuery;
 
@@ -331,6 +227,7 @@ export async function buscarDashboardsTV(tv_id: string) {
                         }
                     }
 
+                    // Score is perfectly 100% minus 5% for every active alert in that area/station
                     const calcScore = Math.max(0, 100 - (minAlerts * 5));
                     advancedMetrics.melhorArea = { 
                         nome: safestEntity.nome_area || safestEntity.nome_estacao, 
@@ -338,14 +235,13 @@ export async function buscarDashboardsTV(tv_id: string) {
                         tipo: isGeneralScope ? 'Área Fábrica' : 'Estação'
                     };
                 } else {
+                    // Fallback
                     advancedMetrics.melhorArea = { nome: configTv.nome_alvo_resolvido, score: 100, tipo: 'Alvo Isolado' };
                 }
             }
 
             if (opcoesLayout.showBottlenecks) {
-                // Aqui mantemos as estacoes físicas resolvidas globalmente na var `dictEstacoes` (barcos physical line)
-                // Ou podemos fazer re-scoping igual à safetyArea se os gargalos na Montagem Linha A também só baterem em postos A.
-                // Vou manter o scoping global físico que estava a funcionar no início
+                // Fetch stations with the most recent unresolved incidents, constrained to this TV's scope
                 let gargalosQuery = supabase
                     .from('alertas_andon')
                     .select('criado_em, tipo_alerta, estacoes(nome_estacao)')
@@ -362,6 +258,8 @@ export async function buscarDashboardsTV(tv_id: string) {
             }
 
             if (opcoesLayout.showOeeDay || opcoesLayout.showOeeMonth || opcoesLayout.showEfficiency) {
+                // Cálculo de Rendimento baseado na Atividade Física Real:
+                // Qual a proporção de Barcos na linha que já passaram do Planeado?
                 let opsInTimeList: any[] = [];
                 let opsDelayedList: any[] = [];
 
@@ -373,7 +271,7 @@ export async function buscarDashboardsTV(tv_id: string) {
                         .in('estacao_id', dictEstacoes);
 
                     if (estacoesOps) {
-                        const currentWeek = 10; 
+                        const currentWeek = 10; // Simple mockup logic for current week until calendar utils are invoked
                         estacoesOps.forEach((op: any) => {
                             if (op.ordem?.semana_planeada >= currentWeek) opsInTimeList.push(op);
                             else opsDelayedList.push(op);
@@ -387,43 +285,56 @@ export async function buscarDashboardsTV(tv_id: string) {
 
                 if (totalAtivas > 0) {
                     const pctEmDia = (opsInTimeList.length / totalAtivas) * 100;
-                    kpiRealizado = pctEmDia; 
+                    kpiRealizado = pctEmDia; // Ex: se todos estiverem na semana certa, 100%
                     percentAtraso = 100 - pctEmDia;
                 }
 
                 advancedMetrics.kpiOee = {
                     diarioRealizado: parseFloat(kpiRealizado.toFixed(1)),
                     diarioObjetivo: 85.0,
-                    mensalRealizado: parseFloat(Math.max(0, kpiRealizado - 4).toFixed(1)), 
+                    mensalRealizado: parseFloat(Math.max(0, kpiRealizado - 4).toFixed(1)), // Mockup variation
                     mensalObjetivo: 85.0,
-                    atrasoMinutos: opsDelayedList.length * 45, 
+                    atrasoMinutos: opsDelayedList.length * 45, // Ex: 45 min penalty per delayed boat
                     percentagemAtraso: parseFloat(percentAtraso.toFixed(1))
                 };
             }
 
+            let opsRfidsForKpis: string[] = [];
             if (opcoesLayout.showAbsentismo || opcoesLayout.showHstKpis) {
+                // 1. Fetch operators directly using TV scope
+                let opsQuery = supabase.from('operadores').select('id, tag_rfid_operador').eq('status', 'Ativo');
+                
+                if (configTv.tipo_alvo === 'AREA' && configTv.alvo_id) {
+                    opsQuery = opsQuery.eq('area_base_id', configTv.alvo_id);
+                } else if (configTv.tipo_alvo === 'LINHA' && configTv.alvo_id) {
+                    opsQuery = opsQuery.eq('linha_base_id', configTv.alvo_id);
+                }
+                
+                const { data: ops, error: opErr } = await opsQuery;
+                if (opErr) console.error("Erro a buscar operadores:", opErr);
+
+                const activeOps = ops || [];
+                const opsRfids = activeOps.map(o => o.tag_rfid_operador).filter(Boolean);
+                opsRfidsForKpis = opsRfids;
+
                 if (opcoesLayout.showAbsentismo) {
-                    const totalCadastrados = tvActiveOpRfids.length;
+                    const totalCadastrados = opsRfids.length;
                     let absentismoData = { taxa: 0, faltosos: 0, cadastrados: totalCadastrados };
 
                     if (totalCadastrados > 0) {
+                        // Create robust midnight-to-midnight boundaries for the *current local day*
                         const now = new Date();
                         const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
                         const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
                         
-                        console.log(`[ABSENTISMO DEBUG] TV (${configTv.nome_alvo_resolvido}) | Cadastrados: ${totalCadastrados} | RFC IDs Pool:`, tvActiveOpRfids.slice(0, 5), '...');
-                        console.log(`[ABSENTISMO DEBUG] Buscando logs entre: ${startOfDay.toISOString()} e ${endOfDay.toISOString()}`);
-
                         const { data: presencas } = await supabase.from('log_ponto_diario')
                             .select('operador_rfid')
                             .gte('timestamp', startOfDay.toISOString())
                             .lte('timestamp', endOfDay.toISOString())
-                            .in('operador_rfid', tvActiveOpRfids);
+                            .in('operador_rfid', opsRfids);
 
                         const rfidsPresentes = new Set((presencas || []).map(p => p.operador_rfid));
                         const totalPresentes = rfidsPresentes.size;
-                        console.log(`[ABSENTISMO DEBUG] Encontradas ${presencas?.length || 0} presenças hoje. (Únicas: ${totalPresentes})`);
-                        
                         const totalAusentes = Math.max(0, totalCadastrados - totalPresentes);
                         const taxa = totalPresentes > 0 ? (totalAusentes / totalCadastrados) * 100 : 0;
                         absentismoData = { taxa: parseFloat(taxa.toFixed(1)), faltosos: totalAusentes, cadastrados: totalCadastrados };
@@ -433,6 +344,7 @@ export async function buscarDashboardsTV(tv_id: string) {
 
                 if (opcoesLayout.showHstKpis) {
                     const now = new Date();
+                    // Generate YYYY-MM-DD based on Local Server Time instead of UTC String slicing
                     const year = now.getFullYear();
                     const month = String(now.getMonth() + 1).padStart(2, '0');
                     const day = String(now.getDate()).padStart(2, '0');
@@ -442,8 +354,10 @@ export async function buscarDashboardsTV(tv_id: string) {
                         .select('nota_hst, nota_qualidade')
                         .eq('data_avaliacao', localHojeStr);
 
-                    if (tvActiveOpIds.length > 0 && configTv.tipo_alvo !== 'GERAL') {
-                        evalsQuery = evalsQuery.in('funcionario_id', tvActiveOpIds);
+                    // Re-utilizar os UUIDs dos operadores ativos no Escopo (Não Rfids, UUIDS)
+                    const opsUuids = activeOps.map(o => o.id).filter(Boolean);
+                    if (opsUuids.length > 0 && configTv.tipo_alvo !== 'GERAL') {
+                        evalsQuery = evalsQuery.in('funcionario_id', opsUuids);
                     }
 
                     const { data: evals } = await evalsQuery;
@@ -472,9 +386,9 @@ export async function buscarDashboardsTV(tv_id: string) {
                     const scRes = await getSafetyCross(
                         now.getFullYear(),
                         now.getMonth() + 1,
-                        logicalTargetType, // Uses the resolved generic target
-                        logicalTargetId,
-                        dictEstacoes // This might need explicit scoping too, but SC logic typically uses the Area ID inherently
+                        configTv.tipo_alvo,
+                        configTv.alvo_id,
+                        dictEstacoes
                     );
                     if (scRes.success && scRes.data) {
                         advancedMetrics.safetyCrossDays = scRes.data;
@@ -485,6 +399,10 @@ export async function buscarDashboardsTV(tv_id: string) {
                     advancedMetrics.safetyCrossDays = [];
                 }
             }
+
+            // --- NOVO: Eficiência Global H/H ---
+            if (opcoesLayout.showOeeHh) {
+                try {
                     const now = new Date();
                     const startOfMonthStr = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0)).toISOString();
                     const endOfMonthStr = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0, 23, 59, 59)).toISOString();
@@ -513,7 +431,12 @@ export async function buscarDashboardsTV(tv_id: string) {
                 } catch (e) {
                      advancedMetrics.eficienciaHh = { percentual: 0, horasGanhas: 0, horasTrabalhadas: 0 };
                 }
-            // --- NOVO MÓDULO: QCIS (Qualidade Inter-Camadas) ---
+            }
+        } catch (mErr) {
+            console.error("Metric aggregation silent fail:", mErr);
+        }
+
+        // --- NOVO MÓDULO: QCIS (Qualidade Inter-Camadas) ---
         if (opcoesLayout.showQCISQuality) {
             try {
                 const now = new Date();
@@ -527,7 +450,7 @@ export async function buscarDashboardsTV(tv_id: string) {
                     .lte('fail_date', ultimoDia);
 
                 // Se a TV for de LINHA, limitamos a qualidade apenas à Linha corrente.
-                if (logicalTargetType === 'LINHA' && logicalTargetId) {
+                if (tipoAlvo === 'LINHA' && alvoId) {
                     const lName = opcoesLayout.qcisLinha?.trim() || configTv.nome_alvo_resolvido;
                     console.log(`[QCIS TV DEBUG] Filtro ativo para Linha: ${lName}`);
                     if (lName) {
@@ -581,7 +504,7 @@ export async function buscarDashboardsTV(tv_id: string) {
                     .select('boat_id, substation_name')
                     .eq('fail_date', dataOntemStr);
 
-                if (logicalTargetType === 'LINHA' && logicalTargetId) {
+                if (tipoAlvo === 'LINHA' && alvoId) {
                     const lName = opcoesLayout.qcisLinha?.trim() || configTv.nome_alvo_resolvido;
                     if (lName) {
                         if (opcoesLayout.qcisLinha?.trim()) {
@@ -616,7 +539,7 @@ export async function buscarDashboardsTV(tv_id: string) {
         // 6. Build Radar Estacoes Array
         let radarEstacoes: any[] = [];
 
-        if (logicalTargetType === 'GERAL') {
+        if (tipoAlvo === 'GERAL') {
             radarEstacoes = radarAreasList.map(area => {
                 const alertasNaArea = alertas?.filter(a => {
                     const estacaoId = a.local_ocorrencia_id || a.estacao_id;
