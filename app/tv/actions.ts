@@ -411,6 +411,9 @@ export async function buscarDashboardsTV(tv_id: string) {
                         const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
                         const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
                         
+                        console.log(`[ABSENTISMO DEBUG] TV (${configTv.nome_alvo_resolvido}) | Cadastrados: ${totalCadastrados} | RFC IDs Pool:`, tvActiveOpRfids.slice(0, 5), '...');
+                        console.log(`[ABSENTISMO DEBUG] Buscando logs entre: ${startOfDay.toISOString()} e ${endOfDay.toISOString()}`);
+
                         const { data: presencas } = await supabase.from('log_ponto_diario')
                             .select('operador_rfid')
                             .gte('timestamp', startOfDay.toISOString())
@@ -419,6 +422,8 @@ export async function buscarDashboardsTV(tv_id: string) {
 
                         const rfidsPresentes = new Set((presencas || []).map(p => p.operador_rfid));
                         const totalPresentes = rfidsPresentes.size;
+                        console.log(`[ABSENTISMO DEBUG] Encontradas ${presencas?.length || 0} presenças hoje. (Únicas: ${totalPresentes})`);
+                        
                         const totalAusentes = Math.max(0, totalCadastrados - totalPresentes);
                         const taxa = totalPresentes > 0 ? (totalAusentes / totalCadastrados) * 100 : 0;
                         absentismoData = { taxa: parseFloat(taxa.toFixed(1)), faltosos: totalAusentes, cadastrados: totalCadastrados };

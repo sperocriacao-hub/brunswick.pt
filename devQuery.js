@@ -1,12 +1,20 @@
 const { createClient } = require('@supabase/supabase-js');
-const supabaseUrl = 'https://efenntgldjizgyyttiiw.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVmZW5udGdsZGppemd5eXR0aWl3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2NzI5ODIsImV4cCI6MjA4NzI0ODk4Mn0.1KPq3FBSo5Nn3qNQoHMEMvPBKBa1SYeI72QaUZMXSMc';
-const supabase = createClient(supabaseUrl, supabaseKey);
+require('dotenv').config({ path: '.env.local' });
+const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
 
-async function run() {
-  const { data, error } = await supabase.from('qcis_audits').select('substation_name');
-  if(error) { console.log(error); return;}
-  const unique = new Set(data.map(d => String(d.substation_name).toLowerCase()));
-  console.log('Substations:', Array.from(unique));
+async function check() {
+    const { data, error } = await supabase.from('hst_ocorrencias').select('*').order('data_hora_ocorrencia', { ascending: false }).limit(5);
+    console.log("Error:", error);
+    console.log("Recent Ocorrencias:", JSON.stringify(data, null, 2));
+
+    const ptFormatter = new Intl.DateTimeFormat('pt-PT', { timeZone: 'Europe/Lisbon', year: 'numeric', month: '2-digit', day: '2-digit' });
+    const parts = ptFormatter.formatToParts(new Date());
+    const year = parts.find(p => p.type === 'year')?.value;
+    const month = parts.find(p => p.type === 'month')?.value;
+    const day = parts.find(p => p.type === 'day')?.value;
+    
+    const todayStartStr = `${year}-${month}-${day}T00:00:00.000Z`;
+    const todayEndStr = `${year}-${month}-${day}T23:59:59.999Z`;
+    console.log("Query bounds:", todayStartStr, todayEndStr);
 }
-run();
+check();
