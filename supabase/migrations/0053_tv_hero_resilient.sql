@@ -28,7 +28,7 @@ BEGIN
         AND (
             p_tipo_alvo = 'GERAL' 
             OR (p_tipo_alvo = 'AREA' AND o.area_base_id = p_alvo_id)
-            OR (p_tipo_alvo = 'LINHA' AND o.linha_base_id = p_alvo_id)
+            OR (p_tipo_alvo = 'LINHA' AND o.posto_base_id IN (SELECT id FROM public.estacoes WHERE linha_id = p_alvo_id))
         )
     GROUP BY
         a.funcionario_id, o.nome_operador
