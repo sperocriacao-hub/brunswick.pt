@@ -28,6 +28,23 @@ export async function buscarDashboardsTV(tv_id: string) {
         const tipoAlvo = configTv.tipo_alvo; // 'LINHA', 'AREA', 'GERAL', 'PLANEAMENTO'
         const alvoId = configTv.alvo_id;
 
+        // Fetch Occurrences for CNN Ticker (Últimas 24 horas - filtered in JS to bypass timezone quirks)
+        const { data: ocorrenciasRecentes, error: occError } = await supabase
+            .from('hst_ocorrencias')
+            .select(`
+                *,
+                areas_fabrica(nome_area),
+                estacoes(nome_estacao)
+            `)
+            .order('data_hora_ocorrencia', { ascending: false })
+            .limit(10);
+
+        const limit24H = Date.now() - (24 * 60 * 60 * 1000);
+        const ocorrenciasHoje = ocorrenciasRecentes?.filter(o => {
+            if (!o.data_hora_ocorrencia) return false;
+            return new Date(o.data_hora_ocorrencia).getTime() >= limit24H;
+        }) || [];
+
         // Fast-path: Se for Dashboard de Planeamento, injetamos as OPs planeadas e contornamos a lógica Andon/Operadores
         if (tipoAlvo === 'PLANEAMENTO') {
             const { data, error } = await supabase
@@ -57,7 +74,8 @@ export async function buscarDashboardsTV(tv_id: string) {
             return {
                 success: true,
                 config: configTv,
-                planeamentoData
+                planeamentoData,
+                ocorrenciasHoje: ocorrenciasHoje || []
             };
         }
 
@@ -550,23 +568,6 @@ export async function buscarDashboardsTV(tv_id: string) {
                 };
             });
         }
-
-        // 7. Fetch Occurrences for CNN Ticker (Últimas 24 horas - filtered in JS to bypass timezone quirks)
-        const { data: ocorrenciasRecentes } = await supabase
-            .from('hst_ocorrencias')
-            .select(`
-                *,
-                areas_fabrica(nome_area),
-                estacoes(nome_estacao)
-            `)
-            .order('data_hora_ocorrencia', { ascending: false })
-            .limit(10);
-
-        const limit24H = Date.now() - (24 * 60 * 60 * 1000);
-        const ocorrenciasHoje = ocorrenciasRecentes?.filter(o => {
-            if (!o.data_hora_ocorrencia) return false;
-            return new Date(o.data_hora_ocorrencia).getTime() >= limit24H;
-        }) || [];
 
         return {
             success: true,
