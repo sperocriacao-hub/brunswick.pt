@@ -319,7 +319,10 @@ export async function buscarDashboardsTV(tv_id: string) {
 
             let opsRfidsForKpis: string[] = [];
             if (opcoesLayout.showAbsentismo || opcoesLayout.showHstKpis) {
-                let opsQuery = supabase.from('operadores').select('id, tag_rfid_operador').eq('status', 'Ativo');
+                // To apply the prefix rule, we need the operator's station name
+                let opsQuery = supabase.from('operadores')
+                    .select('id, tag_rfid_operador, area_base_id, linha_base_id, estacoes:posto_base_id(nome_estacao)')
+                    .eq('status', 'Ativo');
                 
                 if (metricasTipoAlvo === 'AREA' && metricasAlvoId) {
                     opsQuery = opsQuery.eq('area_base_id', metricasAlvoId);
@@ -330,7 +333,27 @@ export async function buscarDashboardsTV(tv_id: string) {
                 const { data: ops, error: opErr } = await opsQuery;
                 if (opErr) console.error("Erro a buscar operadores:", opErr);
 
-                const activeOps = ops || [];
+                let activeOps = ops || [];
+
+                // REGRA DE NEGÓCIO: Filtragem por Prefixo de Estação
+                // Se a TV foi originalmente configurada para uma LINHA, mas ativou o fallback da Montagem
+                // Precisamos filtrar desta massa gigante (toda a Montagem) apenas os que estão em estações 
+                // cujo prefixo bate certo com o nome da Linha Original alvo da TV (ex: configTv.nome_alvo_resolvido === 'Linha A' -> prefixo 'A -')
+                if (configTv.tipo_alvo === 'LINHA' && metricasTipoAlvo === 'AREA') {
+                    const nomeLinhaAlvo = configTv.nome_alvo_resolvido || ''; // Exibe 'Linha A', 'Linha B', etc.
+                    // Extrair a letra da Linha (último caracter) ou assumir que a string começa com a letra
+                    const prefixoLinhaPuro = nomeLinhaAlvo.replace('Linha', '').trim(); // Fica só 'A', 'B', 'C', 'D'
+                    
+                    if (prefixoLinhaPuro) {
+                        const prefixoFormatado = `${prefixoLinhaPuro} -`; // 'A -'
+                        activeOps = activeOps.filter(o => {
+                            // Supabase join from many-to-one might return an array or object depending on exact schema casting
+                            const est = Array.isArray(o.estacoes) ? o.estacoes[0] : (o.estacoes as any);
+                            const nomeEstacao = est?.nome_estacao || '';
+                            return nomeEstacao.startsWith(prefixoFormatado);
+                        });
+                    }
+                }
                 const opsRfids = activeOps.map(o => o.tag_rfid_operador).filter(Boolean);
                 opsRfidsForKpis = opsRfids;
 
