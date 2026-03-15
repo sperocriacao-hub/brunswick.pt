@@ -119,44 +119,11 @@ export async function fetchDashboardData() {
             nomeGargalo = "Nenhum Enxame Ativo";
         }
 
-        // 4. TOP 3 Pódio de Talentos RH (Matriz Dinâmica a partir de avaliacoes_diarias)
-        const { data: avaliacoes } = await supabase
-            .from('avaliacoes_diarias')
-            .select('operador_id, avaliacao, data_avaliacao');
-
-        const { data: operadoresBase } = await supabase
-            .from('operadores')
-            .select('id, nome_operador')
-            .eq('status', 'Ativo');
-
+        // 4. TOP 3 Pódio de Talentos RH (Matriz Dinâmica a partir de operadores.matriz_talento_media)
         let topTalentos: any[] = [];
-        if (avaliacoes && avaliacoes.length > 0 && operadoresBase) {
-            const mapStats: Record<string, { soma: number, count: number }> = {};
-            avaliacoes.forEach((av: any) => {
-                const oid = av.operador_id;
-                if (!mapStats[oid]) mapStats[oid] = { soma: 0, count: 0 };
-                // Converter string ex: '3' para Number
-                const nf = parseFloat(av.avaliacao);
-                if (!isNaN(nf)) {
-                    mapStats[oid].soma += nf;
-                    mapStats[oid].count += 1;
-                }
-            });
-
-            const pontuados = operadoresBase.map(op => {
-                const st = mapStats[op.id];
-                const mediaA = st && st.count > 0 ? st.soma / st.count : 0;
-                return {
-                    id: op.id,
-                    nome_operador: op.nome_operador,
-                    matriz_talento_media: mediaA
-                };
-            }).filter(op => op.matriz_talento_media > 0);
-
-            topTalentos = pontuados.sort((a, b) => b.matriz_talento_media - a.matriz_talento_media).slice(0, 3);
-        } else {
-            // Fallback para a coluna legacy da bd caso nao haja avaliacoes preenchidas e haja matriz estática
-            const { data: topTalentosData } = await supabase
+        
+        try {
+            const { data: topTalentosData, error: talentErr } = await supabase
                 .from('operadores')
                 .select('id, nome_operador, matriz_talento_media')
                 .eq('status', 'Ativo')
@@ -164,7 +131,11 @@ export async function fetchDashboardData() {
                 .order('matriz_talento_media', { ascending: false })
                 .limit(3);
 
+            if (talentErr) throw talentErr;
             topTalentos = topTalentosData || [];
+        } catch(e) {
+            console.error("Erro a extrair Wall of Fame:", e);
+            topTalentos = [];
         }
 
         // Gráfico OEE Global Mensal 
