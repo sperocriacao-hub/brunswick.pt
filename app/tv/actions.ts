@@ -145,12 +145,30 @@ export async function buscarDashboardsTV(tv_id: string) {
         const opcoesLayout = configTv.opcoes_layout || {};
         let advancedMetrics: any = { kpiOee: {}, heroiTurno: null, melhorArea: null, gargalos: [] };
 
+            // RESOLVER FALLBACK DA MONTAGEM GLOBAL PARA DASHBOARDS DE LINHA (Requisito do Utilizador)
+            // Se a TV for de uma Linha específica (A, B...), métricas como Operadores, Herói, Assiduidade e Segurança 
+            // devem apontar para a Área 'Montagem' em vez da Linha em si, pois o RH aloca as pessoas à Área.
+            let metricasTipoAlvo = configTv.tipo_alvo;
+            let metricasAlvoId = configTv.alvo_id;
+            
+            if (configTv.tipo_alvo === 'LINHA') {
+                const { data: areaMontagem } = await supabase.from('areas_fabrica')
+                    .select('id')
+                    .ilike('nome_area', '%Montagem%')
+                    .limit(1)
+                    .single();
+                if (areaMontagem) {
+                    metricasTipoAlvo = 'AREA';
+                    metricasAlvoId = areaMontagem.id;
+                }
+            }
+
         try {
             if (opcoesLayout.showWorkerOfMonth) {
                 try {
                     const { data: topWorker } = await supabase.rpc('get_top_worker_of_month', {
-                        p_tipo_alvo: configTv.tipo_alvo,
-                        p_alvo_id: configTv.alvo_id
+                        p_tipo_alvo: metricasTipoAlvo,
+                        p_alvo_id: metricasAlvoId
                     }).single();
 
                     if (topWorker) {
@@ -193,8 +211,8 @@ export async function buscarDashboardsTV(tv_id: string) {
                 } else {
                     // Fetch stations within this TV's scope
                     let stQuery = supabase.from('estacoes').select('id, nome_estacao');
-                    if (configTv.tipo_alvo === 'AREA') stQuery = stQuery.eq('area_id', configTv.alvo_id);
-                    if (configTv.tipo_alvo === 'LINHA') stQuery = stQuery.eq('linha_id', configTv.alvo_id);
+                    if (metricasTipoAlvo === 'AREA') stQuery = stQuery.eq('area_id', metricasAlvoId);
+                    if (metricasTipoAlvo === 'LINHA') stQuery = stQuery.eq('linha_id', metricasAlvoId);
                     const { data: stList } = await stQuery;
                     targetEntities = stList || [];
                 }
@@ -301,25 +319,12 @@ export async function buscarDashboardsTV(tv_id: string) {
 
             let opsRfidsForKpis: string[] = [];
             if (opcoesLayout.showAbsentismo || opcoesLayout.showHstKpis) {
-                // 1. Fetch operators directly using TV scope
                 let opsQuery = supabase.from('operadores').select('id, tag_rfid_operador').eq('status', 'Ativo');
                 
-                if (configTv.tipo_alvo === 'AREA' && configTv.alvo_id) {
-                    opsQuery = opsQuery.eq('area_base_id', configTv.alvo_id);
-                } else if (configTv.tipo_alvo === 'LINHA') {
-                    // Fallback: Contar todos os operadores da Montagem quando a TV estiver alocada a uma Linha específica (A, B, C, D)
-                    const { data: areaMontagem } = await supabase.from('areas_fabrica')
-                        .select('id')
-                        .ilike('nome_area', '%Montagem%')
-                        .limit(1)
-                        .single();
-                        
-                    if (areaMontagem) {
-                        opsQuery = opsQuery.eq('area_base_id', areaMontagem.id);
-                    } else {
-                        // Fallback de segurança caso a área Montagem mude de nome
-                        opsQuery = opsQuery.eq('linha_base_id', configTv.alvo_id);
-                    }
+                if (metricasTipoAlvo === 'AREA' && metricasAlvoId) {
+                    opsQuery = opsQuery.eq('area_base_id', metricasAlvoId);
+                } else if (metricasTipoAlvo === 'LINHA' && metricasAlvoId) {
+                    opsQuery = opsQuery.eq('linha_base_id', metricasAlvoId);
                 }
                 
                 const { data: ops, error: opErr } = await opsQuery;
@@ -398,8 +403,8 @@ export async function buscarDashboardsTV(tv_id: string) {
                     const scRes = await getSafetyCross(
                         now.getFullYear(),
                         now.getMonth() + 1,
-                        configTv.tipo_alvo,
-                        configTv.alvo_id,
+                        metricasTipoAlvo,
+                        metricasAlvoId,
                         dictEstacoes
                     );
                     if (scRes.success && scRes.data) {
