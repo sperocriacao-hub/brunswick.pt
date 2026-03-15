@@ -301,45 +301,19 @@ export async function buscarDashboardsTV(tv_id: string) {
 
             let opsRfidsForKpis: string[] = [];
             if (opcoesLayout.showAbsentismo || opcoesLayout.showHstKpis) {
-                // Fetch ALL active operators
-                const { data: allOps, error: opErr } = await supabase
-                    .from('operadores')
-                    .select('id, tag_rfid_operador, posto_base_id, area_base_id, linha_base_id')
-                    .eq('status', 'Ativo');
-
-                let activeOps = allOps || [];
-
-                // Filter operators based on the TV's configured target and scope
-                if (!opErr && configTv.tipo_alvo !== 'GERAL' && configTv.alvo_id) {
-                    if (configTv.tipo_alvo === 'AREA') {
-                        // Fetch Estacoes in this Area
-                        const { data: ests } = await supabase.from('estacoes').select('id').eq('area_id', configTv.alvo_id);
-                        const estIds = ests ? ests.map(e => e.id) : [];
-                        
-                        activeOps = activeOps.filter(o => 
-                            o.area_base_id === configTv.alvo_id || 
-                            (o.posto_base_id && estIds.includes(o.posto_base_id))
-                        );
-                    } else if (configTv.tipo_alvo === 'LINHA') {
-                        // Fetch Areas in this line
-                        const { data: areas } = await supabase.from('areas_fabrica').select('id').eq('linha_id', configTv.alvo_id);
-                        const areaIds = areas ? areas.map(a => a.id) : [];
-                        
-                        // Fetch Estacoes in these Areas
-                        let estIds: string[] = [];
-                        if (areaIds.length > 0) {
-                            const { data: ests } = await supabase.from('estacoes').select('id').in('area_id', areaIds);
-                            estIds = ests ? ests.map(e => e.id) : [];
-                        }
-
-                        activeOps = activeOps.filter(o => 
-                            o.linha_base_id === configTv.alvo_id || 
-                            (o.area_base_id && areaIds.includes(o.area_base_id)) ||
-                            (o.posto_base_id && estIds.includes(o.posto_base_id))
-                        );
-                    }
+                // 1. Fetch operators directly using TV scope
+                let opsQuery = supabase.from('operadores').select('id, tag_rfid_operador').eq('status', 'Ativo');
+                
+                if (configTv.tipo_alvo === 'AREA' && configTv.alvo_id) {
+                    opsQuery = opsQuery.eq('area_base_id', configTv.alvo_id);
+                } else if (configTv.tipo_alvo === 'LINHA' && configTv.alvo_id) {
+                    opsQuery = opsQuery.eq('linha_base_id', configTv.alvo_id);
                 }
+                
+                const { data: ops, error: opErr } = await opsQuery;
+                if (opErr) console.error("Erro a buscar operadores:", opErr);
 
+                const activeOps = ops || [];
                 const opsRfids = activeOps.map(o => o.tag_rfid_operador).filter(Boolean);
                 opsRfidsForKpis = opsRfids;
 
