@@ -70,10 +70,10 @@ export default async function HSTBanner() {
                         <span className="text-xl px-1">{daysWithoutAccident}</span>
                         <span>DIAS SEM ACIDENTES</span>
                         {ocorrenciasHoje.length > 0 ? (
-                            <div className="ml-4 flex-1 h-full flex items-center overflow-hidden border-l border-amber-500/30 pl-4 w-[600px] shrink-0">
+                            <div className="ml-4 flex-1 h-full flex items-center overflow-hidden border-l border-amber-500/30 pl-4 shrink-0">
                                 <style dangerouslySetInnerHTML={{__html: `
                                     @keyframes ticker {
-                                        0% { transform: translateX(100%); }
+                                        0% { transform: translateX(100vw); }
                                         100% { transform: translateX(-100%); }
                                     }
                                     .animate-ticker-fast {
@@ -84,18 +84,18 @@ export default async function HSTBanner() {
                                 `}} />
                                 <div className="animate-ticker-fast whitespace-nowrap">
                                     {ocorrenciasHoje.map((occ: any, i: number) => (
-                                        <div key={i} className="inline-flex items-center font-bold uppercase tracking-widest text-xs mr-16">
-                                            <span className="font-mono text-red-400 bg-red-950/50 px-1.5 py-0.5 rounded border border-red-800/50 mr-2">
+                                        <div key={i} className="inline-flex items-center font-black uppercase tracking-widest text-lg mr-24">
+                                            <span className="font-mono text-red-400 bg-red-950/50 px-2 py-0.5 rounded border border-red-800/50 mr-3 shadow-sm">
                                                 {new Date(occ.data_hora_ocorrencia).toLocaleTimeString('pt-PT', {hour: '2-digit', minute:'2-digit'})}
                                             </span>
-                                            <span className="text-red-400 bg-red-500/20 px-1.5 py-0.5 rounded mr-2">
+                                            <span className="text-red-300 bg-red-600/30 px-2 py-0.5 rounded mr-3 shadow-sm">
                                                 {occ.tipo_ocorrencia}
                                             </span>
                                             {(occ.estacoes?.nome_estacao || occ.areas_fabrica?.nome_area) && (
-                                                <span className="text-red-300 mr-2">[{occ.estacoes?.nome_estacao || occ.areas_fabrica?.nome_area}]</span>
+                                                <span className="text-red-400 mr-3">[{occ.estacoes?.nome_estacao || occ.areas_fabrica?.nome_area}]</span>
                                             )}
                                             {occ.descricao_evento && (
-                                                <span className="text-amber-200/80 font-normal italic">
+                                                <span className="text-amber-300 font-bold italic opacity-90">
                                                     "{occ.descricao_evento}"
                                                 </span>
                                             )}
