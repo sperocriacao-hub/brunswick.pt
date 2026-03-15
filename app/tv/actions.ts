@@ -301,7 +301,7 @@ export async function buscarDashboardsTV(tv_id: string) {
 
             let opsRfidsForKpis: string[] = [];
             if (opcoesLayout.showAbsentismo || opcoesLayout.showHstKpis) {
-                let opsQuery = supabase.from('operadores').select('id, tag_rfid_operador').eq('status', 'ATIVO');
+                let opsQuery = supabase.from('operadores').select('id, tag_rfid_operador').eq('status', 'Ativo');
                 if (configTv.tipo_alvo === 'AREA' && configTv.alvo_id) {
                     opsQuery = opsQuery.eq('area_base_id', configTv.alvo_id);
                 } else if (configTv.tipo_alvo === 'LINHA' && configTv.alvo_id) {
