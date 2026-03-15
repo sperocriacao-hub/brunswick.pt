@@ -63,8 +63,8 @@ export default function CustomTVDashboardPage() {
                     setRadarEstacoes(res.radarEstacoes || []);
                     setOpcoesLayout(res.config.opcoes_layout || {});
                     setMetrics(res.advancedMetrics || {});
-                    setOcorrenciasHoje(res.ocorrenciasHoje || []);
                 }
+                setOcorrenciasHoje(res.ocorrenciasHoje || []);
             } else {
                 setNomeTv("🔴 SINAL PERDIDO");
                 setAlvoNome("Esta TV não foi configurada ou perdeu a ligação ao servidor M.E.S.");
