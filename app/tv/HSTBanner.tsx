@@ -32,6 +32,24 @@ export default async function HSTBanner() {
         daysWithoutAccident = differenceInDays(new Date(), new Date('2024-01-01T00:00:00.000Z'));
     }
 
+    // --- CNN TICKER INTEGRATION ---
+    // Fetch Occurrences for CNN Ticker (Últimas 24 horas - filtered in JS to bypass timezone quirks)
+    const { data: ocorrenciasRecentes } = await supabase
+        .from('hst_ocorrencias')
+        .select(`
+            *,
+            areas_fabrica(nome_area),
+            estacoes(nome_estacao)
+        `)
+        .order('data_hora_ocorrencia', { ascending: false })
+        .limit(10);
+
+    const limit24H = Date.now() - (24 * 60 * 60 * 1000);
+    const ocorrenciasHoje = ocorrenciasRecentes?.filter(o => {
+        if (!o.data_hora_ocorrencia) return false;
+        return new Date(o.data_hora_ocorrencia).getTime() >= limit24H;
+    }) || [];
+
     return (
         <div className="absolute bottom-0 w-full h-12 bg-slate-900 border-t border-slate-800 flex items-center justify-between px-6 z-50">
             <div className="flex items-center gap-4">
@@ -47,16 +65,52 @@ export default async function HSTBanner() {
                         <span>DIAS SEM ACIDENTES DE TRABALHO</span>
                     </div>
                 ) : (
-                    <div className="flex items-center gap-2 text-amber-500 font-bold tracking-widest uppercase">
+                    <div className="flex items-center gap-2 text-amber-500 font-bold tracking-widest uppercase truncate max-w-[800px]">
                         <span>ESTAMOS HÁ</span>
                         <span className="text-xl px-1">{daysWithoutAccident}</span>
                         <span>DIAS SEM ACIDENTES</span>
-                        <span className="text-[10px] ml-2 text-amber-500/50">ATENÇÃO REDOBRADA</span>
+                        {ocorrenciasHoje.length > 0 ? (
+                            <div className="ml-4 flex-1 h-full flex items-center overflow-hidden border-l border-amber-500/30 pl-4 w-[600px] shrink-0">
+                                <style dangerouslySetInnerHTML={{__html: `
+                                    @keyframes ticker {
+                                        0% { transform: translateX(100%); }
+                                        100% { transform: translateX(-100%); }
+                                    }
+                                    .animate-ticker-fast {
+                                        animation: ticker 25s linear infinite;
+                                        display: inline-flex;
+                                        will-change: transform;
+                                    }
+                                `}} />
+                                <div className="animate-ticker-fast whitespace-nowrap">
+                                    {ocorrenciasHoje.map((occ: any, i: number) => (
+                                        <div key={i} className="inline-flex items-center font-bold uppercase tracking-widest text-xs mr-16">
+                                            <span className="font-mono text-red-400 bg-red-950/50 px-1.5 py-0.5 rounded border border-red-800/50 mr-2">
+                                                {new Date(occ.data_hora_ocorrencia).toLocaleTimeString('pt-PT', {hour: '2-digit', minute:'2-digit'})}
+                                            </span>
+                                            <span className="text-red-400 bg-red-500/20 px-1.5 py-0.5 rounded mr-2">
+                                                {occ.tipo_ocorrencia}
+                                            </span>
+                                            {(occ.estacoes?.nome_estacao || occ.areas_fabrica?.nome_area) && (
+                                                <span className="text-red-300 mr-2">[{occ.estacoes?.nome_estacao || occ.areas_fabrica?.nome_area}]</span>
+                                            )}
+                                            {occ.descricao_evento && (
+                                                <span className="text-amber-200/80 font-normal italic">
+                                                    "{occ.descricao_evento}"
+                                                </span>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        ) : (
+                            <span className="text-[10px] ml-2 text-amber-500/50">ATENÇÃO REDOBRADA</span>
+                        )}
                     </div>
                 )}
             </div>
 
-            <div className="text-slate-500 text-xs font-mono font-bold uppercase flex gap-4">
+            <div className="text-slate-500 text-xs font-mono font-bold uppercase flex gap-4 shrink-0 bg-slate-900 z-10 pl-2">
                 <span className="flex items-center gap-1.5"><Target size={14} /> Meta: 365 Dias</span>
                 <span>« ZERO ACIDENTES »</span>
             </div>
