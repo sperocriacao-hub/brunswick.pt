@@ -301,7 +301,7 @@ export async function buscarDashboardsTV(tv_id: string) {
 
             let opsRfidsForKpis: string[] = [];
             if (opcoesLayout.showAbsentismo || opcoesLayout.showHstKpis) {
-                let opsQuery = supabase.from('operadores').select('id, tag_rfid').eq('status', 'ATIVO');
+                let opsQuery = supabase.from('operadores').select('id, tag_rfid_operador').eq('status', 'ATIVO');
                 if (configTv.tipo_alvo === 'AREA' && configTv.alvo_id) {
                     opsQuery = opsQuery.eq('area_base_id', configTv.alvo_id);
                 } else if (configTv.tipo_alvo === 'LINHA' && configTv.alvo_id) {
@@ -309,7 +309,7 @@ export async function buscarDashboardsTV(tv_id: string) {
                 }
                 const { data: ops } = await opsQuery;
                 const activeOps = ops || [];
-                const opsRfids = activeOps.map(o => o.tag_rfid).filter(Boolean);
+                const opsRfids = activeOps.map(o => o.tag_rfid_operador).filter(Boolean);
                 opsRfidsForKpis = opsRfids;
 
                 if (opcoesLayout.showAbsentismo) {
