@@ -299,16 +299,36 @@ export async function buscarDashboardsTV(tv_id: string) {
                 };
             }
 
-            let opsRfidsForKpis: string[] = [];
+                let opsRfidsForKpis: string[] = [];
             if (opcoesLayout.showAbsentismo || opcoesLayout.showHstKpis) {
-                let opsQuery = supabase.from('operadores').select('id, tag_rfid_operador').eq('status', 'Ativo');
+                // Determine which workstations belong to the TV's scope
+                let estacoesQuery = supabase.from('estacoes').select('id, area_id, areas_fabrica!inner(linha_id)');
                 if (configTv.tipo_alvo === 'AREA' && configTv.alvo_id) {
-                    opsQuery = opsQuery.eq('area_base_id', configTv.alvo_id);
+                    estacoesQuery = estacoesQuery.eq('area_id', configTv.alvo_id);
                 } else if (configTv.tipo_alvo === 'LINHA' && configTv.alvo_id) {
-                    opsQuery = opsQuery.eq('linha_base_id', configTv.alvo_id);
+                    estacoesQuery = estacoesQuery.eq('areas_fabrica.linha_id', configTv.alvo_id);
                 }
+                const { data: estacoesEscopo } = await estacoesQuery;
+                const estacoesIds = estacoesEscopo ? estacoesEscopo.map(e => e.id) : [];
+
+                // Fetch operators that fall into this scope either directly by Area/Linha or indirectly via Posto Base
+                let opsQuery = supabase.from('operadores').select('id, tag_rfid_operador, posto_base_id, area_base_id, linha_base_id').eq('status', 'Ativo');
                 const { data: ops } = await opsQuery;
-                const activeOps = ops || [];
+
+                // Filter operators that belong to the TV scope
+                let activeOps = ops || [];
+                if (configTv.tipo_alvo !== 'GERAL') {
+                    activeOps = activeOps.filter(o => {
+                        if (configTv.tipo_alvo === 'AREA' && configTv.alvo_id) {
+                            return o.area_base_id === configTv.alvo_id || (o.posto_base_id && estacoesIds.includes(o.posto_base_id));
+                        }
+                        if (configTv.tipo_alvo === 'LINHA' && configTv.alvo_id) {
+                            return o.linha_base_id === configTv.alvo_id || (o.posto_base_id && estacoesIds.includes(o.posto_base_id));
+                        }
+                        return true;
+                    });
+                }
+
                 const opsRfids = activeOps.map(o => o.tag_rfid_operador).filter(Boolean);
                 opsRfidsForKpis = opsRfids;
 
