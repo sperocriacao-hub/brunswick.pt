@@ -550,10 +550,15 @@ export async function buscarDashboardsTV(tv_id: string) {
         }
 
         // 7. Fetch Occurrences for CNN Ticker (Today)
-        const tzOffset = (new Date()).getTimezoneOffset() * 60000;
-        const localNow = new Date(Date.now() - tzOffset);
-        const todayStartStr = localNow.toISOString().split('T')[0] + 'T00:00:00.000Z';
-        const todayEndStr = localNow.toISOString().split('T')[0] + 'T23:59:59.999Z';
+        // Usar formatação local explícita para evitar saltos de fuso horário UTC-Local
+        const ptFormatter = new Intl.DateTimeFormat('pt-PT', { timeZone: 'Europe/Lisbon', year: 'numeric', month: '2-digit', day: '2-digit' });
+        const parts = ptFormatter.formatToParts(new Date());
+        const year = parts.find(p => p.type === 'year')?.value;
+        const month = parts.find(p => p.type === 'month')?.value;
+        const day = parts.find(p => p.type === 'day')?.value;
+        
+        const todayStartStr = `${year}-${month}-${day}T00:00:00.000Z`;
+        const todayEndStr = `${year}-${month}-${day}T23:59:59.999Z`;
 
         const { data: ocorrenciasHoje } = await supabase
             .from('hst_ocorrencias')

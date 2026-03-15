@@ -87,6 +87,9 @@ export default function CustomTVDashboardPage() {
             .on('postgres_changes', { event: '*', schema: 'public', table: 'alertas_andon' }, () => {
                 setRefreshTick(t => t + 1);
             })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'hst_ocorrencias' }, () => {
+                setRefreshTick(t => t + 1);
+            })
             .on('postgres_changes', { event: '*', schema: 'public', table: 'ordens_producao' }, () => {
                 setRefreshTick(t => t + 1);
             })
