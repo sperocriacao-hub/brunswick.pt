@@ -119,23 +119,41 @@ export async function fetchDashboardData() {
             nomeGargalo = "Nenhum Enxame Ativo";
         }
 
-        // 4. TOP 3 Pódio de Talentos RH (Matriz Dinâmica a partir de operadores.matriz_talento_media)
+        // 4. TOP 3 Pódio de Talentos RH (Matriz Dinâmica a partir das Avaliações Diárias reais)
         let topTalentos: any[] = [];
         
         try {
-            const { data: topTalentosData, error: talentErr } = await supabase
-                .from('operadores')
-                .select('id, nome_operador, matriz_talento_media')
-                .eq('status', 'Ativo')
-                .not('matriz_talento_media', 'is', null)
-                .order('matriz_talento_media', { ascending: false })
-                .limit(3);
+            // Fetch ativos
+            const { data: operadoresBase } = await supabase.from('operadores').select('id, nome_operador').eq('status', 'Ativo');
+            
+            // Fetch avaliacoes dos ultimos 30 dias
+            const dLimit = new Date();
+            dLimit.setDate(dLimit.getDate() - 30);
+            const { data: avaliacoes } = await supabase.from('avaliacoes_diarias').select('*').gte('data_avaliacao', dLimit.toISOString());
 
-            if (talentErr) throw talentErr;
-            topTalentos = topTalentosData || [];
+            if (operadoresBase && avaliacoes) {
+                const scoredEmployees = operadoresBase.map(op => {
+                    const myEvals = avaliacoes.filter(e => e.funcionario_id === op.id);
+                    if (myEvals.length === 0) return { ...op, matriz_talento_media: 0, evalCount: 0 };
+            
+                    let totalScore = 0;
+                    myEvals.forEach(ev => {
+                        const sum = (ev.nota_hst || 0) + (ev.nota_epi || 0) + (ev.nota_5s || 0) + (ev.nota_qualidade || 0) + (ev.nota_eficiencia || 0) + (ev.nota_objetivos || 0) + (ev.nota_atitude || 0);
+                        totalScore += sum / 7;
+                    });
+            
+                    return {
+                        id: op.id,
+                        nome_operador: op.nome_operador,
+                        matriz_talento_media: totalScore / myEvals.length,
+                        evalCount: myEvals.length
+                    };
+                }).filter(op => op.evalCount > 0);
+
+                topTalentos = scoredEmployees.sort((a, b) => b.matriz_talento_media - a.matriz_talento_media).slice(0, 3);
+            }
         } catch(e) {
             console.error("Erro a extrair Wall of Fame:", e);
-            topTalentos = [];
         }
 
         // Gráfico OEE Global Mensal 
