@@ -10,7 +10,7 @@ export async function POST(req: Request) {
         const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
         const supabase = createClient(supabaseUrl, supabaseKey);
 
-        const logs = [];
+        const logs: string[] = [];
         const simLog = (msg: string) => logs.push(`[${new Date().toISOString().split('T')[1]?.substring(0,8)}] ${msg}`);
 
         simLog("🤖 INICIANDO QA BOT: Inspeção da Fábrica...");
