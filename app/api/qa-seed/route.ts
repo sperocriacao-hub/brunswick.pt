@@ -68,7 +68,7 @@ export async function POST() {
         const { data: extOp } = await supabase.from('operadores').select('id').eq('tag_rfid_operador', 'QA-RFID-CHUCK');
         if (!extOp || extOp.length === 0) {
             addToLogs("👷 A Requisitar Operários Artificiais aos Recursos Humanos...");
-            await supabase.from('operadores').insert([
+            const opRes = await supabase.from('operadores').insert([
                 { 
                     numero_operador: 'QA-001', 
                     nome_operador: 'Auditor Chuck Norris', 
@@ -78,19 +78,21 @@ export async function POST() {
                     nivel_permissao: 'Operador'
                 }
             ]);
+            if (opRes.error) addToLogs(`❌ Erro BD (Operadores): ${opRes.error.message}`);
         }
         
         // 5. Injectar OP no Gantt/Backlog
         const { data: extOpProd } = await supabase.from('ordens_producao').select('id').like('op_numero', 'QA-TEST-%');
         if (!extOpProd || extOpProd.length === 0) {
             addToLogs("📦 A Adicionar Ordens de Produção 'QA-TEST-X' ao Backlog...");
-            await supabase.from('ordens_producao').insert([
-                { op_numero: 'QA-TEST-001', modelo_id: modelosIds[0], status: 'PLANNED', data_prevista_inicio: new Date().toISOString() },
-                { op_numero: 'QA-TEST-002', modelo_id: modelosIds[0], status: 'Backlog' }
+            const orRes = await supabase.from('ordens_producao').insert([
+                { op_numero: `QA-TEST-${Math.floor(Math.random() * 9999)}`, modelo_id: modelosIds[0], status: 'PLANNED', data_prevista_inicio: new Date().toISOString() },
+                { op_numero: `QA-TEST-${Math.floor(Math.random() * 9999)}`, modelo_id: modelosIds[0], status: 'Backlog', data_prevista_inicio: new Date().toISOString() }
             ]);
+            if (orRes.error) addToLogs(`❌ Erro BD (Ordens de Produção): ${orRes.error.message}`);
         }
         
-        addToLogs("🎉 Injeção concluída com sucesso. Sistema preparado para Teste Automático!");
+        addToLogs("🎉 Injeção concluída. Verifica acima se existem ❌ Erros de Base de Dados.");
 
         return NextResponse.json({ success: true, logs });
 
