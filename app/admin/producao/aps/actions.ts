@@ -11,7 +11,7 @@ export async function buscarDadosAPS() {
         const { data: ordens, error: errOrdens } = await supabase
             .from('ordens_producao')
             .select(`
-                id, op_numero, status, prioridade, edt_estimado, op_tipo, modelo_id, data_prevista_inicio,
+                id, op_numero, display_nome, status, prioridade, edt_estimado, op_tipo, modelo_id, data_prevista_inicio,
                 modelos ( nome_modelo )
             `)
             .in('status', ['PLANNED', 'IN_PROGRESS']);

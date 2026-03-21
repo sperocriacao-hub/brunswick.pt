@@ -183,7 +183,7 @@ export default function ApsBoard({
                                         <GripVertical className="h-4 w-4 text-slate-300 mt-1 cursor-grab" />
                                         <div>
                                             <div className="text-xs font-bold text-blue-900 leading-tight">
-                                                {order.modelos?.nome_modelo || "Produto"}
+                                                {order.display_nome || order.modelos?.nome_modelo || "Produto"}
                                             </div>
                                             <div className="text-[10px] text-slate-500 mt-0.5">
                                                 {order.op_numero}
@@ -238,7 +238,7 @@ export default function ApsBoard({
                                 <div className="divide-y relative">
                                     {/* Mapeamento das Ordens já planeadas */}
                                     {scheduledOrders.map((order, orderIndex) => {
-                                        const productName = order.modelos?.nome_modelo || "Produto Desconhecido";
+                                        const productName = order.display_nome || order.modelos?.nome_modelo || "Modelo Desconhecido";
                                         const orderStart = new Date(order.data_prevista_inicio);
                                         orderStart.setHours(0,0,0,0);
                                         
@@ -339,7 +339,7 @@ export default function ApsBoard({
                                             <div key={rfid.id} className="border rounded px-3 py-3 bg-white shadow-sm hover:border-blue-200 transition-colors">
                                                 <div className="flex justify-between items-start mb-2">
                                                     <div>
-                                                        <h4 className="font-bold text-sm text-slate-700">{opDetails?.modelos?.nome_modelo || 'Modelo Desconhecido'} ({opDetails?.op_numero || 'OP-???'})</h4>
+                                                        <h4 className="font-bold text-sm text-slate-700">{opDetails?.display_nome || opDetails?.modelos?.nome_modelo || 'Modelo Desconhecido'} ({opDetails?.op_numero || 'OP-???'})</h4>
                                                         <p className="text-xs text-slate-500 mt-0.5">Tipo: {opDetails?.op_tipo}</p>
                                                     </div>
                                                     <Badge className="bg-blue-500 hover:bg-blue-600">Em curso: {elapsedHours}h</Badge>
