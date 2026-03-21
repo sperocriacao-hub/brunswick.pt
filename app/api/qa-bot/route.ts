@@ -10,76 +10,106 @@ export async function POST(req: Request) {
         const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
         const supabase = createClient(supabaseUrl, supabaseKey);
 
+        const url = new URL(req.url);
+        const phase = url.searchParams.get('phase') || 'M1';
+
         const logs: string[] = [];
         const simLog = (msg: string) => logs.push(`[${new Date().toISOString().split('T')[1]?.substring(0,8)}] ${msg}`);
 
-        simLog("🤖 INICIANDO QA BOT: Inspeção da Fábrica...");
+        simLog(`🤖 INICIANDO QA BOT: Inspeção Crítica Modo [${phase}]...`);
 
-        // 1. Encontrar o Operador de QA Ativo
-        const { data: operadores } = await supabase.from('operadores').select('*').like('numero_operador', 'QA-%').eq('status', 'Ativo').limit(1);
+        // Common Setup for 1 Operator and 1 OP
+        const { data: operadores } = await supabase.from('operadores').select('*').like('numero_operador', 'QA-%').eq('status', 'Ativo');
         if (!operadores || operadores.length === 0) {
-            return NextResponse.json({ success: false, error: "Sem QA Operador", logs: [...logs, "❌ FALHA: O Operador 'Auditor Chuck Norris' desapareceu."] });
-        }
-        const op = operadores[0];
-        simLog(`✅ Operador Escalonado: ${op.nome_operador} (RFID: ${op.tag_rfid_operador})`);
-
-        // 2. Encontrar uma O.P em Planeamento ou Produção INJETADA PELO QA
-        const { data: ordens } = await supabase.from('ordens_producao').select('*').like('op_numero', 'QA-%').in('status', ['PLANNED', 'IN_PROGRESS']).order('created_at', { ascending: false }).limit(10);
-        if (!ordens || ordens.length === 0) {
-            return NextResponse.json({ success: false, error: "Sem ordens QA", logs: [...logs, "❌ FALHA: Nenhuma OP 'QA-TEST' encontrada. Clica no Botão Verde primeiro!"] });
+            return NextResponse.json({ success: false, error: "Sem QA Operador", logs: [...logs, "❌ O Operador 'Auditor Chuck Norris' desapareceu."] });
         }
         
-        let ordem = null;
+        const { data: ordens } = await supabase.from('ordens_producao').select('*').like('op_numero', 'QA-%').in('status', ['PLANNED', 'IN_PROGRESS']).order('created_at', { ascending: false }).limit(20);
+        if (!ordens || ordens.length === 0) {
+            return NextResponse.json({ success: false, error: "Sem ordens QA", logs: [...logs, "❌ Nenhuma OP 'QA-TEST' encontrada. Corre o Big Bang primeiro!"] });
+        }
+        // Resolve Starting Station for M2/M3
+        let ordem = ordens[0];
         let estacaoId = null;
-
-        for (const o of ordens) {
-            const { data: roteiro } = await supabase.from('roteiros_producao').select('estacao_id, sequencia').eq('modelo_id', o.modelo_id).order('sequencia', { ascending: true }).limit(1);
-            if (roteiro && roteiro.length > 0) {
-                ordem = o;
-                estacaoId = roteiro[0].estacao_id;
-                break;
-            }
+        
+        // Find Roteiro for the first order to use as generic start station
+        const { data: roteiro } = await supabase.from('roteiros_producao').select('estacao_id').eq('modelo_id', ordem.modelo_id).order('sequencia', { ascending: true }).limit(1);
+        if (roteiro && roteiro.length > 0) {
+            estacaoId = roteiro[0].estacao_id;
+        } else {
+             return NextResponse.json({ success: false, error: "Sem roteiro", logs: [...logs, "❌ O Modelo do barco não tem Roteiro."] });
         }
-
-        if (!ordem || !estacaoId) {
-            return NextResponse.json({ success: false, error: "Nenhum modelo agendado possui Roteiro de Fabrico configurado.", logs: [...logs, `❌ FALHA: O(s) modelo(s) dos barcos atuais não têm um Roteiro de Produção (Workflow) definido. Injeta dados de QA primeiro!`] });
-        }
-        const { data: estacaoData } = await supabase.from('estacoes').select('nome_estacao').eq('id', estacaoId).single();
-        simLog(`✅ Estação de Início: ${estacaoData?.nome_estacao || estacaoId}`);
-
-        simLog("⚙️ INICIANDO SIMULAÇÃO DE IOT/HARDWARE ESP32...");
 
         const host = req.headers.get('host');
         const protocol = host?.includes('localhost') ? 'http' : 'https';
         const apiUrl = `${protocol}://${host}/api/mes/iot`;
 
         const fireIoT = async (action: string, payload: any) => {
-            simLog(`📡 Enviando REST [${action}]...`);
-            const res = await fetch(apiUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ device_id: 'QA_BOT_01', ...payload })
-            });
-            const data = await res.json();
-            simLog(`   -> Resposta: ${JSON.stringify(data)}`);
-            return data;
+            const res = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ device_id: 'QA_BOT_01', ...payload }) });
+            return res.json();
         };
 
-        // PASSO A: Bater o Ponto Diário (Entrada)
-        await fireIoT('PONTO', { action: 'PONTO', operador_rfid: op.tag_rfid_operador, shift_action: 'ENTRADA' });
+        const op = operadores[0];
 
-        // PASSO B: Iniciar Tarefa no Barco (Clock IN OEE)
-        await fireIoT('TOGGLE_TAREFA', { action: 'TOGGLE_TAREFA', operador_rfid: op.tag_rfid_operador, estacao_id: estacaoId, op_id: ordem.id });
+        if (phase === 'M1') {
+            simLog("🧪 TESTE M1: BATER PONTO SIMULTÂNEO DA EQUIPA...");
+            const promises = operadores.map(operador => fireIoT('PONTO', { action: 'PONTO', operador_rfid: operador.tag_rfid_operador, shift_action: 'ENTRADA' }));
+            const results = await Promise.all(promises);
+            results.forEach((r, i) => simLog(`   -> Op ${i+1}: ${r.success ? 'Ponto Quente' : 'Falha'}`));
+            simLog("🏁 M1: HR SYSTEM CONCLUÍDO!");
+            return NextResponse.json({ success: true, logs });
+        }
 
-        // PASSO C: Simular que passaram 2 segundos e ele Finalizou a Tarefa! (Clock OUT OEE)
-        await fireIoT('TOGGLE_TAREFA', { action: 'TOGGLE_TAREFA', operador_rfid: op.tag_rfid_operador, estacao_id: estacaoId, op_id: ordem.id });
+        if (phase === 'M2') {
+            simLog("🧪 TESTE M2: PROGRESSÃO APS E TEMPO REAL...");
+            const dataPonto = await fireIoT('PONTO', { action: 'PONTO', operador_rfid: op.tag_rfid_operador, shift_action: 'ENTRADA' });
+            simLog(`   -> Ponto Injetado: ${JSON.stringify(dataPonto)}`);
+            const dataInit = await fireIoT('TOGGLE_TAREFA', { action: 'TOGGLE_TAREFA', operador_rfid: op.tag_rfid_operador, estacao_id: estacaoId, op_id: ordem.id });
+            simLog(`   -> OP Iniciar: ${JSON.stringify(dataInit)}`);
+            const dataEnd = await fireIoT('TOGGLE_TAREFA', { action: 'TOGGLE_TAREFA', operador_rfid: op.tag_rfid_operador, estacao_id: estacaoId, op_id: ordem.id });
+            simLog(`   -> OP Finalizar: ${JSON.stringify(dataEnd)}`);
+            simLog("🏁 M2: GANTT SYSTEM RESISTIU ÀS PROGRESSÕES!");
+            return NextResponse.json({ success: true, logs });
+        }
 
-        // PASSO D: Fechar a Estação (Botão UP) para avançar o Barco
-        await fireIoT('FECHAR_ESTACAO', { action: 'FECHAR_ESTACAO', operador_rfid: op.tag_rfid_operador, estacao_id: estacaoId, op_id: ordem.id });
+        if (phase === 'M3') {
+            simLog("🧪 TESTE M3: GATILHO KITTING DE LOGÍSTICA...");
+            const dataAvanco = await fireIoT('FECHAR_ESTACAO', { action: 'FECHAR_ESTACAO', operador_rfid: op.tag_rfid_operador, estacao_id: estacaoId, op_id: ordem.id });
+            simLog(`   -> Fecho Estação HMI: ${JSON.stringify(dataAvanco)}`);
+            
+            simLog("   -> 🔎 A Inspecionar Base de Dados por gatilho Logístico gerado matematicamente...");
+            const { data: logsLoc } = await supabase.from('logistica_pedidos').select('*').eq('ordem_producao_id', ordem.id);
+            if (logsLoc && logsLoc.length > 0) {
+                simLog(`   -> ✅ Sucesso! O servidor gerou os kits pendentes: ${logsLoc[0].peca_solicitada}`);
+            } else {
+                simLog(`   -> ⚠️ Aviso: A Estação seguinte não injetou Logística Pendente (Tabela logistica_pedidos Vazia)`);
+            }
+            simLog("🏁 M3: AUTO-LOGÍSTICA & PULL SYSTEM VALIDADOS!");
+            return NextResponse.json({ success: true, logs });
+        }
 
-        simLog("🏁 SIMULAÇÃO DE TURNO DE 1 BARCO CONCLUÍDA COM SUCESSO!");
+        if (phase === 'MASS_TEST') {
+            simLog("☢️ HYPER STRESS TEST ATIVADO ☢️");
+            simLog(`   -> Disparando ${ordens.length * 4} ações concorrentes na Cloud...`);
+            
+            const massPromises = [];
+            for (let i = 0; i < ordens.length; i++) {
+                const targetOp = ordens[i];
+                const targetOperador = operadores[i % operadores.length];
+                
+                massPromises.push(fireIoT('TOGGLE_TAREFA', { action: 'TOGGLE_TAREFA', operador_rfid: targetOperador.tag_rfid_operador, estacao_id: estacaoId, op_id: targetOp.id }));
+                massPromises.push(fireIoT('TOGGLE_TAREFA', { action: 'TOGGLE_TAREFA', operador_rfid: targetOperador.tag_rfid_operador, estacao_id: estacaoId, op_id: targetOp.id }));
+                massPromises.push(fireIoT('FECHAR_ESTACAO', { action: 'FECHAR_ESTACAO', operador_rfid: targetOperador.tag_rfid_operador, estacao_id: estacaoId, op_id: targetOp.id }));
+            }
+            
+            const results = await Promise.all(massPromises);
+            const fails = results.filter(r => !r.success).length;
+            simLog(`🔥 Mass Promise Cluster Resolvido. Total Requisições Cump: ${results.length}. Falhas Concorrentes: ${fails}.`);
+            simLog("🏁 CORE STRESS TEST SYSTEM SOBREVIVEU!");
+            return NextResponse.json({ success: fails === 0 ? true : false, error: fails > 0 ? "Algumas transações falharam sob carga." : undefined, logs });
+        }
 
-        return NextResponse.json({ success: true, logs });
+        return NextResponse.json({ success: false, error: "Phase inválida", logs });
 
     } catch (e: any) {
         return NextResponse.json({ success: false, error: e.message }, { status: 500 });

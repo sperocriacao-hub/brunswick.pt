@@ -64,29 +64,34 @@ export async function POST() {
         }
         addToLogs("✅ Roteiros Mapeados e Injetados (Ligação Modelo <-> Estações Efetuada).");
 
-        // 4. Injetar Trabalhadores
-        const { data: extOp } = await supabase.from('operadores').select('id').eq('tag_rfid_operador', 'QA-RFID-CHUCK');
+        // 4. Injetar Trabalhadores (Equipa QA de 5)
+        const qaTags = ['QA-RFID-CHUCK', 'QA-RFID-SARAH', 'QA-RFID-JOHN', 'QA-RFID-LISA', 'QA-RFID-MIKE'];
+        const { data: extOp } = await supabase.from('operadores').select('id').eq('tag_rfid_operador', qaTags[0]);
         if (!extOp || extOp.length === 0) {
-            addToLogs("👷 A Requisitar Operários Artificiais aos Recursos Humanos...");
-            const opRes = await supabase.from('operadores').insert([
-                { 
-                    numero_operador: 'QA-001', 
-                    nome_operador: 'Auditor Chuck Norris', 
-                    tag_rfid_operador: 'QA-RFID-CHUCK',
-                    funcao: 'Operador Polivalente',
-                    status: 'Ativo',
-                    nivel_permissao: 'Operador'
-                }
-            ]);
+            addToLogs("👷 A Recrutar Equipa de 5 Auditores Virtuais aos Recursos Humanos...");
+            const opsToInsert = qaTags.map((tag, i) => ({
+                numero_operador: `QA-00${i+1}`, 
+                nome_operador: `Auditor Virtual ${tag.split('-')[2]}`, 
+                tag_rfid_operador: tag,
+                funcao: 'QA Automation Bot',
+                status: 'Ativo',
+                nivel_permissao: 'Operador'
+            }));
+            const opRes = await supabase.from('operadores').insert(opsToInsert);
             if (opRes.error) addToLogs(`❌ Erro BD (Operadores): ${opRes.error.message}`);
         }
         
-        // 5. Injectar OP no Gantt/Backlog (Forçar criação a cada click)
-        addToLogs("📦 A Adicionar Ordens de Produção 'QA-TEST-X' ao Backlog...");
-        const orRes = await supabase.from('ordens_producao').insert([
-            { op_numero: `QA-TEST-${Math.floor(Math.random() * 99999)}`, modelo_id: modelosIds[0], status: 'PLANNED', data_prevista_inicio: new Date().toISOString() },
-            { op_numero: `QA-TEST-${Math.floor(Math.random() * 99999)}`, modelo_id: modelosIds[0], status: 'PLANNED', data_prevista_inicio: null }
-        ]);
+        // 5. Injectar 10 OPs no Gantt/Backlog (Forçar criação a cada click)
+        addToLogs("📦 A Adicionar Lote Massivo de 10 Ordens de Produção 'QA-TEST-X'...");
+        
+        const massOps = Array.from({ length: 10 }).map((_, i) => ({
+            op_numero: `QA-TEST-${Math.floor(Math.random() * 999999)}`,
+            modelo_id: modelosIds[i % 2], // Alternate between the two models
+            status: i < 3 ? 'PLANNED' : 'PLANNED', // All PLANNED, but some with dates below
+            data_prevista_inicio: i < 3 ? new Date().toISOString() : null // 3 in Gantt, 7 in Backlog
+        }));
+        
+        const orRes = await supabase.from('ordens_producao').insert(massOps);
         if (orRes.error) addToLogs(`❌ Erro BD (Ordens de Produção): ${orRes.error.message}`);
         
         addToLogs("🎉 Injeção concluída. Verifica acima se existem ❌ Erros de Base de Dados.");
