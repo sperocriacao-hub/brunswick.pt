@@ -28,7 +28,7 @@ function DraggableOrder({ order, children, className }: { order: any, children: 
 }
 
 // --- Custom Droppable for Dates ---
-function DroppableDate({ dateStr, children, className }: { dateStr: string, children: React.ReactNode, className?: string }) {
+function DroppableDate({ dateStr, children, className }: { dateStr: string, children?: React.ReactNode, className?: string }) {
     const { isOver, setNodeRef } = useDroppable({
         id: `date-${dateStr}`,
         data: { dateStr }
