@@ -60,13 +60,15 @@ export default function ApsBoard({
     historicoAps = [], 
     moldesPlan = [],
     estacoes = [],
-    activeRfids = []
+    activeRfids = [],
+    manutencoesPlan = []
 }: { 
     inicialOrdens: any[], 
     historicoAps: any[], 
     moldesPlan?: any[],
     estacoes?: any[],
-    activeRfids?: any[]
+    activeRfids?: any[],
+    manutencoesPlan?: any[]
 }) {
     const [viewMode, setViewMode] = useState<"timeline" | "workcenter" | "analytics">("timeline");
     const [ordersState, setOrdersState] = useState(inicialOrdens);
@@ -98,6 +100,36 @@ export default function ApsBoard({
         if (droppableId.startsWith('date-')) {
             const novaDataStr = over.data.current?.dateStr;
             if (novaDataStr) {
+                const order = ordersState.find(o => o.id === orderId);
+                // Validação de Colisão de Moldes
+                if (order) {
+                    const orderMolds = [order.molde_casco_id, order.molde_coberta_id].filter(Boolean);
+                    const orderStart = new Date(novaDataStr);
+                    orderStart.setHours(0,0,0,0);
+
+                    for (const mId of orderMolds) {
+                        const maint = (manutencoesPlan || []).find(m => m.molde_id === mId && m.data_abertura);
+                        if (maint) {
+                            const mainStart = new Date(maint.data_abertura);
+                            mainStart.setHours(0,0,0,0);
+                            let mainEnd = new Date(mainStart);
+                            mainEnd.setDate(mainEnd.getDate() + 3); // Curing padding
+                            if (maint.data_conclusao) {
+                                mainEnd = new Date(maint.data_conclusao);
+                                mainEnd.setHours(23,59,59,999);
+                            }
+                            
+                            const oppEnd = new Date(orderStart);
+                            oppEnd.setDate(oppEnd.getDate() + 2); // OP curing time
+
+                            if (orderStart <= mainEnd && oppEnd >= mainStart) {
+                                alert(`🚨 CHOQUE FÍSICO (TPM): O Molde exigido encontra-se reservado para Manutenção "${maint.descricao || maint.status}". A Ordem não foi escalonada.`);
+                                return; 
+                            }
+                        }
+                    }
+                }
+
                 // Optimistic update
                 setOrdersState(prev => prev.map(o => o.id === orderId ? { ...o, data_prevista_inicio: novaDataStr, status: 'PLANNED' } : o));
                 
@@ -178,24 +210,61 @@ export default function ApsBoard({
                                 <span className="bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full text-xs">{backlogOrders.length}</span>
                             </h3>
                             <div className="space-y-2 max-h-[600px] overflow-y-auto pr-1">
-                                {backlogOrders.map(order => (
-                                    <DraggableOrder key={order.id} order={order} className="bg-white border rounded p-2 shadow-sm relative group flex items-start gap-2">
-                                        <GripVertical className="h-4 w-4 text-slate-300 mt-1 cursor-grab" />
-                                        <div>
-                                            <div className="text-xs font-bold text-blue-900 leading-tight">
-                                                {order.display_nome || order.modelos?.nome_modelo || "Produto"}
-                                            </div>
-                                            <div className="text-[10px] text-slate-500 mt-0.5">
-                                                {order.op_numero}
-                                            </div>
-                                            {order.op_tipo === 'Sub-OP' && (
-                                                <div className="text-[9px] mt-1 bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded w-max">
-                                                    Sub-OP de {order.parent_op_id?.substring(0,4)}
+                                {backlogOrders.map(order => {
+                                    // Health Badge do Molde
+                                    const mCasco = moldesPlan.find(m => m.id === order.molde_casco_id);
+                                    const mCoberta = moldesPlan.find(m => m.id === order.molde_coberta_id);
+                                    let mWorst = null;
+                                    if (mCasco || mCoberta) {
+                                        const arr = [mCasco, mCoberta].filter(m => !!m);
+                                        mWorst = arr.sort((a,b) => (b.ciclos_estimados/b.manutenir_em) - (a.ciclos_estimados/a.manutenir_em))[0];
+                                    }
+
+                                    let badgeColor = "bg-slate-100 text-slate-600 border-slate-200";
+                                    let badgeText = "";
+                                    let isDisponivel = true;
+
+                                    if (mWorst) {
+                                        const ratio = mWorst.ciclos_estimados / mWorst.manutenir_em;
+                                        badgeText = `${mWorst.ciclos_estimados}/${mWorst.manutenir_em} usos`;
+                                        if (mWorst.status === 'Em Manutenção' || mWorst.status === 'Retirado') {
+                                            badgeColor = "bg-red-100 text-red-800 border-red-300";
+                                            badgeText = mWorst.status;
+                                            isDisponivel = false;
+                                        } else if (ratio >= 0.9) {
+                                            badgeColor = "bg-orange-100 text-orange-800 border-orange-300";
+                                        } else {
+                                            badgeColor = "bg-emerald-50 text-emerald-700 border-emerald-200";
+                                        }
+                                    }
+
+                                    return (
+                                        <DraggableOrder key={order.id} order={order} className={cn("bg-white border rounded p-2 shadow-sm relative group flex items-start gap-2", !isDisponivel && "border-red-300 opacity-70")}>
+                                            <GripVertical className="h-4 w-4 text-slate-300 mt-1 cursor-grab" />
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex justify-between items-start gap-1 w-full">
+                                                    <div className="text-xs font-bold text-blue-900 leading-tight truncate shrink" title={order.display_nome || order.modelos?.nome_modelo || "Produto"}>
+                                                        {order.display_nome || order.modelos?.nome_modelo || "Produto"}
+                                                    </div>
+                                                    {mWorst && (
+                                                        <div className={cn("text-[9px] px-1 py-0.5 rounded border whitespace-nowrap shrink-0 flex items-center gap-1", badgeColor)}>
+                                                            <div className={cn("w-1.5 h-1.5 rounded-full", isDisponivel ? "bg-current" : "bg-red-500 animate-pulse")} />
+                                                            {badgeText}
+                                                        </div>
+                                                    )}
                                                 </div>
-                                            )}
-                                        </div>
-                                    </DraggableOrder>
-                                ))}
+                                                <div className="text-[10px] text-slate-500 mt-0.5 truncate">
+                                                    {order.op_numero}
+                                                </div>
+                                                {order.op_tipo === 'Sub-OP' && (
+                                                    <div className="text-[9px] mt-1 bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded w-max">
+                                                        Sub-OP de {order.parent_op_id?.substring(0,4)}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </DraggableOrder>
+                                    );
+                                })}
                                 {backlogOrders.length === 0 && (
                                     <div className="text-xs text-center text-slate-500 py-4 opacity-60">
                                         Nenhuma OP pendente.
@@ -312,6 +381,108 @@ export default function ApsBoard({
                             </div>
                         </CardContent>
                     </Card>
+
+                    {/* GANTT MOLDES AREA */}
+                    {moldesPlan && moldesPlan.length > 0 && (
+                        <Card className="flex-1 overflow-hidden border-orange-200 shadow-sm w-full mt-6">
+                            <CardHeader className="bg-orange-50 border-b pb-4">
+                                <div className="flex justify-between items-center">
+                                    <CardTitle className="text-lg text-orange-900">Ocupação de Moldes & Manutenção (TPM)</CardTitle>
+                                    <div className="flex space-x-4 text-sm text-slate-500 hidden xl:flex">
+                                        <span className="flex items-center"><span className="w-3 h-3 rounded bg-orange-400 mr-2 opacity-60"></span> Janela de Cura (Ocupado)</span>
+                                        <span className="flex items-center"><span className="w-3 h-3 rounded bg-[repeating-linear-gradient(45deg,transparent,transparent_2px,#ef4444_2px,#ef4444_4px)] mr-2"></span> Manutenção Preventiva</span>
+                                    </div>
+                                </div>
+                            </CardHeader>
+                            <CardContent className="p-0 overflow-x-auto">
+                                <div className="min-w-[800px] lg:min-w-0">
+                                    <div className="flex border-b bg-slate-50">
+                                        <div className="w-1/4 p-3 font-semibold text-slate-600 border-r flex items-center shrink-0">
+                                            Recurso Físico (Molde)
+                                        </div>
+                                        <div className="w-3/4 flex">
+                                            {daysArray.map((day, i) => (
+                                                <div key={i} className="flex-1 border-r text-center py-2 text-xs text-slate-500 flex flex-col justify-center">
+                                                    <span className="font-bold">{day.getDate()}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div className="divide-y relative">
+                                        {moldesPlan.map(molde => {
+                                            const opsUsingMold = scheduledOrders.filter(o => o.molde_casco_id === molde.id || o.molde_coberta_id === molde.id);
+                                            const maintenanceBlocks = (manutencoesPlan || []).filter(m => m.molde_id === molde.id);
+
+                                            return (
+                                                <div key={molde.id} className="flex group hover:bg-slate-50 transition-colors h-10 relative">
+                                                    <div className="w-1/4 p-2 border-r bg-white flex items-center justify-between shrink-0 h-full relative z-20">
+                                                        <div className="flex items-center gap-2 overflow-hidden w-full pr-2">
+                                                            <div className={cn("w-2 h-2 rounded-full shrink-0", molde.status === 'Em Manutenção' ? 'bg-red-500 animate-pulse' : 'bg-emerald-500')} />
+                                                            <span className="text-xs font-bold text-slate-700 truncate">{molde.nome_parte}</span>
+                                                        </div>
+                                                        <div className="text-[9px] text-slate-400 shrink-0 font-medium">({molde.ciclos_estimados}/{molde.manutenir_em})</div>
+                                                    </div>
+                                                    
+                                                    <div className="w-3/4 flex relative z-10">
+                                                        {daysArray.map((day, i) => (
+                                                            <div key={i} className="flex-1 border-r h-full relative" />
+                                                        ))}
+
+                                                        {opsUsingMold.map(op => {
+                                                            const orderStart = new Date(op.data_prevista_inicio);
+                                                            orderStart.setHours(0,0,0,0);
+                                                            let startOffsetDays = Math.floor((orderStart.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                                                            const durationDays = 2; // Curing
+
+                                                            if (startOffsetDays >= daysArray.length || startOffsetDays < -durationDays) return null;
+
+                                                            return (
+                                                                <div 
+                                                                    key={op.id}
+                                                                    className="absolute top-1 bottom-1 rounded bg-orange-400 opacity-60 pointer-events-none z-10 border border-orange-500"
+                                                                    style={{ 
+                                                                        left: `${Math.max(0, (startOffsetDays / daysArray.length) * 100)}%`,
+                                                                        width: `${Math.min((durationDays - (startOffsetDays < 0 ? Math.abs(startOffsetDays) : 0)) / daysArray.length, 1) * 100}%`
+                                                                    }}
+                                                                />
+                                                            );
+                                                        })}
+
+                                                        {maintenanceBlocks.map(main => {
+                                                            if (!main.data_abertura) return null;
+                                                            const mainStart = new Date(main.data_abertura);
+                                                            mainStart.setHours(0,0,0,0);
+                                                            let startOffsetDays = Math.floor((mainStart.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                                                            let durationDays = 3; 
+                                                            if (main.data_conclusao) {
+                                                                const mainEnd = new Date(main.data_conclusao);
+                                                                durationDays = Math.ceil((mainEnd.getTime() - mainStart.getTime()) / (1000 * 60 * 60 * 24)) || 1;
+                                                            }
+
+                                                            if (startOffsetDays >= daysArray.length || startOffsetDays < -durationDays) return null;
+
+                                                            return (
+                                                                <div 
+                                                                    key={main.id}
+                                                                    className="absolute top-1 bottom-1 rounded border border-red-500 bg-[repeating-linear-gradient(45deg,transparent,transparent_4px,rgba(239,68,68,0.2)_4px,rgba(239,68,68,0.2)_8px)] pointer-events-none z-20 flex items-center overflow-hidden pl-1"
+                                                                    style={{ 
+                                                                        left: `${Math.max(0, (startOffsetDays / daysArray.length) * 100)}%`,
+                                                                        width: `${Math.min((durationDays - (startOffsetDays < 0 ? Math.abs(startOffsetDays) : 0)) / daysArray.length, 1) * 100}%`
+                                                                    }}
+                                                                >
+                                                                    <span className="text-[9px] font-bold text-red-800 bg-white/80 px-1 rounded truncate">TPM: {main.descricao || "Manutenção"}</span>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
                 </div>
                 </DndContext>
                 </div>

@@ -12,6 +12,7 @@ export async function buscarDadosAPS() {
             .from('ordens_producao')
             .select(`
                 id, op_numero, display_nome, status, prioridade, edt_estimado, op_tipo, modelo_id, data_prevista_inicio,
+                molde_casco_id, molde_coberta_id,
                 modelos ( nome_modelo )
             `)
             .in('status', ['PLANNED', 'IN_PROGRESS']);
@@ -41,7 +42,14 @@ export async function buscarDadosAPS() {
             .select('id, op_id, estacao_id, timestamp_inicio')
             .is('timestamp_fim', null);
 
-        return { success: true, ordens, bottlenecks, moldes: moldesRaw, estacoes: estacoes || [], activeRfids: activeRfids || [] };
+        const { data: manutencoes, error: errMan } = await supabase
+            .from('moldes_intervencoes')
+            .select('id, molde_id, data_abertura, data_conclusao, status, descricao')
+            .neq('status', 'Encerrada');
+
+        if (errMan) throw errMan;
+
+        return { success: true, ordens, bottlenecks, moldes: moldesRaw, manutencoes: manutencoes || [], estacoes: estacoes || [], activeRfids: activeRfids || [] };
     } catch (e: any) {
         return { success: false, error: e.message };
     }
