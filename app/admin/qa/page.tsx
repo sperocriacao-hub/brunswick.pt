@@ -18,7 +18,27 @@ export default function QADashboard() {
             if (data.logs) setLogs(data.logs);
             
             if (!data.success) {
-                setLogs(prev => [...prev, "❌ Erro Fatal Anotado: " + data.error]);
+                setLogs(prev => [...prev, "❌ Erro Fatal Anotado: " + (data.error || 'Desconhecido')]);
+            }
+        } catch (e: any) {
+            setLogs(prev => [...prev, "❌ Erro de Ligação à API: " + e.message]);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const runSeedData = async () => {
+        setLoading(true);
+        setLogs(["A Inicializar Construtor de Base de Dados..."]);
+        
+        try {
+            const res = await fetch('/api/qa-seed', { method: 'POST' });
+            const data = await res.json();
+            
+            if (data.logs) setLogs(data.logs);
+            
+            if (!data.success) {
+                setLogs(prev => [...prev, "❌ Erro Fatal Anotado: " + (data.error || 'Desconhecido')]);
             }
         } catch (e: any) {
             setLogs(prev => [...prev, "❌ Erro de Ligação à API: " + e.message]);
@@ -41,12 +61,32 @@ export default function QADashboard() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {/* Control Panel */}
-                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 overflow-y-auto max-h-[500px]">
                     <h2 className="text-xl font-bold flex items-center gap-2 mb-4 border-b pb-2">
                         <DatabaseZap className="text-amber-500" /> Cockpit de Testes
                     </h2>
                     
                     <div className="space-y-4">
+                        {/* THE FOUNDATION INJECTOR */}
+                        <div className="p-4 border border-emerald-200 bg-emerald-50/50 rounded-xl">
+                            <h3 className="font-bold text-emerald-900">Passo Inicial: O "Big Bang" de Testes</h3>
+                            <p className="text-sm text-emerald-700/80 mt-1 mb-4">
+                                Esta rotina preenche a tua Base de Dados (caso esteja vazia) com "Massa Genética" crucial para a simulação:
+                                cria Roteiros Fictícios, um Auditor RFID e Barcos Falsos. Indispensável correr isto pelo menos 1 vez.
+                            </p>
+                            <button 
+                                onClick={runSeedData}
+                                disabled={loading}
+                                className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-300 text-white font-bold rounded-lg flex items-center justify-center transition-all shadow-md active:scale-95"
+                            >
+                                {loading ? (
+                                    <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> A fabricar peças HTML...</>
+                                ) : (
+                                    <><DatabaseZap className="w-5 h-5 mr-2 fill-current text-white" /> Injetar Massa de Dados (Seed)</>
+                                )}
+                            </button>
+                        </div>
+                        
                         <div className="p-4 border border-indigo-100 bg-indigo-50/50 rounded-xl">
                             <h3 className="font-bold text-indigo-900">Teste #1: O Ciclo de Vida do Barco</h3>
                             <p className="text-sm text-indigo-700/80 mt-1 mb-4">

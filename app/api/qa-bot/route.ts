@@ -24,19 +24,26 @@ export async function POST(req: Request) {
         simLog(`✅ Operador Escalonado: ${op.nome_operador} (RFID: ${op.tag_rfid_operador})`);
 
         // 2. Encontrar uma O.P em Planeamento ou Produção
-        const { data: ordens } = await supabase.from('ordens_producao').select('*').in('status', ['PLANNED', 'IN_PROGRESS']).limit(1);
+        const { data: ordens } = await supabase.from('ordens_producao').select('*').in('status', ['PLANNED', 'IN_PROGRESS']).limit(10);
         if (!ordens || ordens.length === 0) {
-            return NextResponse.json({ success: false, logs: [...logs, "❌ FALHA: Nenhuma OP 'PLANNED' ou 'IN_PROGRESS' encontrada. Crie uma Ordem de Produção no Admin primeiro."] });
+            return NextResponse.json({ success: false, error: "Sem ordens", logs: [...logs, "❌ FALHA: Nenhuma OP 'PLANNED' ou 'IN_PROGRESS' encontrada. Crie uma Ordem de Produção no Admin primeiro."] });
         }
-        const ordem = ordens[0];
-        simLog(`✅ OP Agendada Detetada: ${ordem.op_numero} (Status: ${ordem.status})`);
+        
+        let ordem = null;
+        let estacaoId = null;
 
-        // 3. Descobrir a primeira estação do roteiro desta OP
-        const { data: roteiro } = await supabase.from('roteiros_producao').select('estacao_id, sequencia').eq('modelo_id', ordem.modelo_id).order('sequencia', { ascending: true }).limit(1);
-        if (!roteiro || roteiro.length === 0) {
-            return NextResponse.json({ success: false, logs: [...logs, `❌ FALHA: O modelo do barco não tem um Roteiro de Produção definido.`] });
+        for (const o of ordens) {
+            const { data: roteiro } = await supabase.from('roteiros_producao').select('estacao_id, sequencia').eq('modelo_id', o.modelo_id).order('sequencia', { ascending: true }).limit(1);
+            if (roteiro && roteiro.length > 0) {
+                ordem = o;
+                estacaoId = roteiro[0].estacao_id;
+                break;
+            }
         }
-        const estacaoId = roteiro[0].estacao_id;
+
+        if (!ordem || !estacaoId) {
+            return NextResponse.json({ success: false, error: "Nenhum modelo agendado possui Roteiro de Fabrico configurado.", logs: [...logs, `❌ FALHA: O(s) modelo(s) dos barcos atuais não têm um Roteiro de Produção (Workflow) definido. Injeta dados de QA primeiro!`] });
+        }
         const { data: estacaoData } = await supabase.from('estacoes').select('nome_estacao').eq('id', estacaoId).single();
         simLog(`✅ Estação de Início: ${estacaoData?.nome_estacao || estacaoId}`);
 
