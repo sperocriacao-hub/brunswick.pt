@@ -185,7 +185,7 @@ export default function LogisticaLivePage() {
                 if (resLinhas.data) setLinhas(resLinhas.data as LinhaProducao[]);
 
                 // 2. Trazer apenas OPs ativas num Mapping Rápido
-                const resOps = await supabase.from('ordens_producao').select('*, modelos(nome_modelo)').eq('status', 'Em Produção');
+                const resOps = await supabase.from('ordens_producao').select('*, modelos(nome_modelo)').eq('status', 'IN_PROGRESS');
                 const opsMap: Record<string, OrdemProducao> = {};
                 resOps.data?.forEach(op => {
                     const opU = op as unknown as OrdemProducao;
@@ -212,30 +212,37 @@ export default function LogisticaLivePage() {
 
                 if (modelosInFlight.length > 0) {
                     const { data: routeData } = await supabase
-                        .from('roteiros_sequencia')
-                        .select('estacao_destino_id, sequencia_num, tempo_ciclo_especifico, modelo_id, estacoes(nome_estacao)')
+                        .from('roteiros_producao')
+                        .select('estacao_id, sequencia, tempo_ciclo, modelo_id, estacoes(nome_estacao)')
                         .in('modelo_id', modelosInFlight)
-                        .order('sequencia_num');
+                        .order('sequencia');
 
                     if (routeData) {
                         // Alimentar o Engine de SLAs de forma isolada
                         const viewRoteiro: Record<string, RoteiroPasso> = {};
                         routeData.forEach(r => {
-                            const rU = r as unknown as RoteiroPasso;
-                            viewRoteiro[`${r.modelo_id}_${r.estacao_destino_id}`] = rU;
+                            // Mapear os campos retornados para a interface interna
+                            const rU = {
+                                sequencia_num: r.sequencia,
+                                estacao_destino_id: r.estacao_id,
+                                modelo_id: r.modelo_id,
+                                tempo_ciclo_especifico: r.tempo_ciclo,
+                                estacoes: r.estacoes
+                            } as unknown as RoteiroPasso;
+                            viewRoteiro[`${r.modelo_id}_${r.estacao_id}`] = rU;
                         });
                         setRoteirosView(viewRoteiro);
 
                         // Formatar colunas exclusivas baseadas na ordem primária geométrica dos Roteiros
                         const uniqueStationsMap = new Map();
                         routeData.forEach(r => {
-                            if (!uniqueStationsMap.has(r.estacao_destino_id)) {
+                            if (!uniqueStationsMap.has(r.estacao_id)) {
                                 const rRec = r as Record<string, unknown>;
                                 const est = rRec.estacoes as Record<string, unknown> | null;
-                                uniqueStationsMap.set(r.estacao_destino_id, {
-                                    id: r.estacao_destino_id,
-                                    nome: est && typeof est === 'object' && 'nome_estacao' in est ? String(est.nome_estacao) : 'Sala Limpa',
-                                    sort: r.sequencia_num
+                                uniqueStationsMap.set(r.estacao_id, {
+                                    id: r.estacao_id,
+                                    nome: est && typeof est === 'object' && 'nome_estacao' in est ? String(est.nome_estacao) : 'Estação',
+                                    sort: r.sequencia
                                 });
                             }
                         });
