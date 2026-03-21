@@ -122,7 +122,7 @@ export default function GeneralOrdersDashboard() {
     };
 
         const opsCountByLinha = linhas.map(l => ({
-        nome: l.nome_linha,
+        nome: "Linha " + l.letra_linha,
         count: filteredOrders.filter(o => o.linha_id === l.id).length
     })).filter(x => x.count > 0);
 
@@ -252,7 +252,7 @@ export default function GeneralOrdersDashboard() {
                                 className="h-9 border border-slate-200 rounded-md px-3 text-sm focus:border-blue-500 outline-none min-w-[140px]"
                             >
                                 <option value="all">Todas as Linhas</option>
-                                {linhas.map(l => <option key={l.id} value={l.id}>{l.nome_linha}</option>)}
+                                {linhas.map(l => <option key={l.id} value={l.id}>Linha {l.letra_linha}</option>)}
                             </select>
                         </div>
                         <div className="flex items-center gap-2">

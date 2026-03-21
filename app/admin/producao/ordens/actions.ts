@@ -16,12 +16,12 @@ export async function getProductionOrders() {
                 .select(`
                     id, op_numero, modelo_id, status, data_inicio, data_fim, display_nome, rfid_token, num_serie, linha_id,
                     modelos(nome_modelo, model_year),
-                    linhas_producao(nome_linha)
+                    linhas_producao(letra_linha)
                 `)
                 .order('data_inicio', { ascending: false }),
             
             // Linhas
-            supabase.from('linhas_producao').select('id, nome_linha').order('nome_linha'),
+            supabase.from('linhas_producao').select('id, letra_linha').order('letra_linha'),
             
             // Areas
             supabase.from('areas_fabrica').select('id, nome_area').order('ordem_sequencial'),
