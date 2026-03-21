@@ -62,15 +62,17 @@ export async function POST() {
                 if(res.error) addToLogs(`❌ Erro ao Mapear Roteiro: ${res.error.message}`);
             }
         }
-        addToLogs("✅ Roteiros Mapeados e Injetados (Ligação Modelo <-> Estações Efetuada).");
-
         // 4. Injetar Trabalhadores (Equipa QA de 5)
         const qaTags = ['QA-RFID-CHUCK', 'QA-RFID-SARAH', 'QA-RFID-JOHN', 'QA-RFID-LISA', 'QA-RFID-MIKE'];
-        const { data: extOp } = await supabase.from('operadores').select('id').eq('tag_rfid_operador', qaTags[0]);
-        if (!extOp || extOp.length === 0) {
-            addToLogs("👷 A Recrutar Equipa de 5 Auditores Virtuais aos Recursos Humanos...");
-            const opsToInsert = qaTags.map((tag, i) => ({
-                numero_operador: `QA-00${i+1}`, 
+        
+        const { data: extOps } = await supabase.from('operadores').select('tag_rfid_operador').in('tag_rfid_operador', qaTags);
+        const existingTags = extOps?.map(o => o.tag_rfid_operador) || [];
+        const missingTags = qaTags.filter(tag => !existingTags.includes(tag));
+
+        if (missingTags.length > 0) {
+            addToLogs(`👷 A Recrutar ${missingTags.length} Auditores Virtuais em falta aos Recursos Humanos...`);
+            const opsToInsert = missingTags.map((tag, i) => ({
+                numero_operador: `QA-00${Math.floor(Math.random() * 9999)}`, 
                 nome_operador: `Auditor Virtual ${tag.split('-')[2]}`, 
                 tag_rfid_operador: tag,
                 funcao: 'QA Automation Bot',
