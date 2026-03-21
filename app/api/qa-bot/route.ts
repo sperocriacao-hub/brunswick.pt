@@ -90,28 +90,34 @@ export async function POST(req: Request) {
 
         if (phase === 'MASS_TEST') {
             simLog("☢️ HYPER STRESS TEST ATIVADO ☢️");
-            simLog(`   -> Disparando o Ciclo Produtivo Assíncrono para ${ordens.length} Navios simultaneamente...`);
+            simLog(`   -> Disparando o Ciclo Produtivo Assíncrono para ${ordens.length} Navios simultaneamente, distribuídos pelos ${operadores.length} Operadores QA.`);
             
-            const massPromises = ordens.map(async (targetOp, i) => {
-                const targetOperador = operadores[i % operadores.length];
+            // Agrupar Navios por Operador (Simulação Física Correta: Um Operador não pode estar em dois postos no mesmo milisegundo)
+            const operatorQueues: any[][] = operadores.map(() => []);
+            ordens.forEach((o, i) => operatorQueues[i % operadores.length].push(o));
+
+            const operatorPromises = operatorQueues.map(async (queue, opIndex) => {
+                const targetOperador = operadores[opIndex];
                 let threadFails = 0;
                 
-                const r1: any = await fireIoT('TOGGLE_TAREFA', { action: 'TOGGLE_TAREFA', operador_rfid: targetOperador.tag_rfid_operador, estacao_id: estacaoId, op_id: targetOp.id });
-                if (!r1.success) threadFails++;
-                
-                const r2: any = await fireIoT('TOGGLE_TAREFA', { action: 'TOGGLE_TAREFA', operador_rfid: targetOperador.tag_rfid_operador, estacao_id: estacaoId, op_id: targetOp.id });
-                if (!r2.success) threadFails++;
-                
-                const r3: any = await fireIoT('FECHAR_ESTACAO', { action: 'FECHAR_ESTACAO', operador_rfid: targetOperador.tag_rfid_operador, estacao_id: estacaoId, op_id: targetOp.id });
-                if (!r3.success) threadFails++;
+                for (const targetOp of queue) {
+                    const r1: any = await fireIoT('TOGGLE_TAREFA', { action: 'TOGGLE_TAREFA', operador_rfid: targetOperador.tag_rfid_operador, estacao_id: estacaoId, op_id: targetOp.id });
+                    if (!r1.success) threadFails++;
+                    
+                    const r2: any = await fireIoT('TOGGLE_TAREFA', { action: 'TOGGLE_TAREFA', operador_rfid: targetOperador.tag_rfid_operador, estacao_id: estacaoId, op_id: targetOp.id });
+                    if (!r2.success) threadFails++;
+                    
+                    const r3: any = await fireIoT('FECHAR_ESTACAO', { action: 'FECHAR_ESTACAO', operador_rfid: targetOperador.tag_rfid_operador, estacao_id: estacaoId, op_id: targetOp.id });
+                    if (!r3.success) threadFails++;
+                }
 
                 return threadFails;
             });
             
-            const results = await Promise.all(massPromises);
+            const results = await Promise.all(operatorPromises);
             const fails = results.reduce((acc, curr) => acc + curr, 0);
             
-            simLog(`🔥 Simulação Concorrente Cluster Resolvida. Total Navios Emulados: ${ordens.length}. Falhas Transacionais DB: ${fails}.`);
+            simLog(`🔥 Cluster de Operadores Autônomos Resolvido. Total Navios Emulados: ${ordens.length}. Falhas Transacionais DB: ${fails}.`);
             simLog("🏁 CORE STRESS TEST SYSTEM SOBREVIVEU!");
             return NextResponse.json({ success: fails === 0 ? true : false, error: fails > 0 ? "Algumas transações colidiram na base de dados (Row Lock)." : undefined, logs });
         }
