@@ -22,7 +22,7 @@ export async function GET(req: Request) {
             nome: 'Molde Golden X-Pro',
             estado: 'Disponível',
             localizacao: 'Armazém A',
-            ciclos_utilizacao: 0,
+            ciclos_estimados: 0,
             limite_ciclos: 50,
             data_ultima_manutencao: new Date().toISOString()
         }).select().single();
@@ -30,26 +30,11 @@ export async function GET(req: Request) {
         if (errMolde) logs.push(`❌ Erro Molde: ${errMolde.message}`);
         else logs.push(`✅ Molde Criado: ${molde.nome}`);
 
-        // 2. Criar Peças (BOM)
-        const pecasData = [
-            { nome_peca: 'Fibras Vidro Premium', tipo: 'Standard', codigo_referencia: 'FBR-001', custo_estimado: 500, stock_atual: 100 },
-            { nome_peca: 'Gelcoat Branco Neve', tipo: 'Standard', codigo_referencia: 'GEL-002', custo_estimado: 200, stock_atual: 50 },
-            { nome_peca: 'Motor 300hp Mercury V8', tipo: 'Opcional', codigo_referencia: 'MOT-300V8', custo_estimado: 8000, stock_atual: 10 }
-        ];
-        
-        const { data: pecas, error: errPecas } = await supabase.from('pecas').insert(pecasData).select();
-        if (errPecas) logs.push(`❌ Erro Peças: ${errPecas.message}`);
-        else logs.push(`✅ Peças Criadas: ${pecas.length}`);
-
         // 3. Criar Modelo (Barco)
         const { data: modelo, error: errModelo } = await supabase.from('modelos').insert({
             nome_modelo: 'Brunswick X-Pro (Manual Edition)',
+            model_year: 2026,
             descricao: 'Barco desportivo de alta performance com materiais de luxo.',
-            comprimento: 7.5,
-            boca: 2.5,
-            peso: 1500,
-            capacidade_passageiros: 8,
-            data_lancamento: '2026-03-21'
         }).select().single();
 
         if (errModelo) {
@@ -57,17 +42,18 @@ export async function GET(req: Request) {
         } else {
             logs.push(`✅ Modelo Criado: ${modelo.nome_modelo}`);
 
-            if (pecas) {
-                // Ligar Peças ao Modelo (BOM)
-                const pecasModeloData = pecas.map(p => ({
-                    modelo_id: modelo.id,
-                    peca_id: p.id,
-                    quantidade_necessaria: p.tipo === 'Standard' ? 10 : 1,
-                    obrigatorio: p.tipo === 'Standard'
-                }));
-                await supabase.from('modelo_pecas').insert(pecasModeloData);
-                logs.push("✅ B.O.M (Lista de Materiais) interligada ao Barco");
-            }
+            // 2. Criar Peças/BOM (Composição Modelo) e Opcionais
+            const pecasModeloData = [
+                { modelo_id: modelo.id, nome_parte: 'Fibras Vidro Premium', num_molde: molde ? molde.id : null, categoria: 'Casco' },
+                { modelo_id: modelo.id, nome_parte: 'Gelcoat Branco Neve', num_molde: null, categoria: 'Química' }
+            ];
+            const { error: errPecas } = await supabase.from('composicao_modelo').insert(pecasModeloData);
+            if (errPecas) logs.push(`❌ Erro Peças: ${errPecas.message}`);
+            else logs.push("✅ B.O.M (Lista de Materiais Básicos) interligada ao Barco");
+
+            const opcoesData = [{ modelo_id: modelo.id, nome_opcao: 'Motor 300hp Mercury V8' }];
+            const { error: errOpc } = await supabase.from('opcionais').insert(opcoesData);
+            if (!errOpc) logs.push("✅ Opcionais criados (Motor V8)");
             
             // Ligar Molde ao Modelo
             if (molde) {
