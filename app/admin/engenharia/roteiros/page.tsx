@@ -96,7 +96,17 @@ export default function RoteirosPage() {
 
 
     const handleAddPasso = () => {
-        if (!modeloAtivoId || partes.length === 0 || estacoes.length === 0) return;
+        if (!modeloAtivoId) return;
+
+        if (estacoes.length === 0) {
+            alert('Atenção: Não existem Estações de Trabalho criadas no Chão de Fábrica.');
+            return;
+        }
+
+        if (partes.length === 0) {
+            alert('Este modelo não tem peças de B.O.M gravadas. Use primeiro o botão "Nova Peça Básica" ao lado para criar o produto alvo (ex: Casco).');
+            return;
+        }
 
         // Obter número de sequência máximo
         const maxSeq = roteiro.reduce((max, r) => r.sequencia_num > max ? r.sequencia_num : max, 0);
@@ -123,6 +133,32 @@ export default function RoteirosPage() {
         const novo = [...roteiro];
         novo.splice(idx, 1);
         setRoteiro(novo);
+    };
+
+    const handleCreateQuickPart = async () => {
+        if (!modeloAtivoId) return;
+        const partName = prompt('Introduza o nome da Peça/Estrutura a produzir na estação (Ex: Casco Laminado / Convés / Interior):');
+        if (!partName || partName.trim().length === 0) return;
+
+        try {
+            setIsSaving(true);
+            const res = await supabase.from('composicao_modelo').insert({
+                modelo_id: modeloAtivoId,
+                nome_parte: partName,
+                categoria: 'BIG_PART' // Default placeholder safe for the DB constraint
+            }).select('id, nome_parte, num_molde, categoria');
+
+            if (res.error) throw res.error;
+            
+            if (res.data) {
+                setPartes([...partes, res.data[0]]);
+                alert('Peça B.O.M adicionada. Agora já pode Adicionar o Passo!');
+            }
+        } catch (error: any) {
+            alert(`Erro a criar B.O.M parte: ${error.message}`);
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     const handleSaveRoteiro = async () => {
@@ -181,6 +217,10 @@ export default function RoteirosPage() {
                     <button className="btn btn-outline" style={{ borderRadius: '999px', padding: '0.4rem 1rem', fontSize: '0.85rem' }} onClick={() => fetchMestres()} disabled={isLoading || isSaving}>
                         <RefreshCw size={14} style={{ marginRight: '6px' }} className={isLoading ? "animate-spin" : ""} />
                         Refresh
+                    </button>
+                    <button className="btn btn-outline" style={{ borderRadius: '999px', padding: '0.4rem 1rem', fontSize: '0.85rem' }} onClick={handleCreateQuickPart} disabled={isLoading || isSaving || !modeloAtivoId}>
+                        <Box size={14} style={{ marginRight: '6px' }} />
+                        Nova Peça Básica
                     </button>
                     <button className="btn btn-primary" style={{ borderRadius: '999px', padding: '0.4rem 1rem', fontSize: '0.85rem', boxShadow: '0 0 15px var(--accent)', background: 'var(--accent)' }} onClick={handleAddPasso} disabled={isLoading || isSaving || !modeloAtivoId}>
                         <Plus size={14} style={{ marginRight: '6px' }} />
