@@ -28,9 +28,10 @@ export default function GeneralOrdersDashboard() {
     const [linhas, setLinhas] = useState<any[]>([]);
     const [areas, setAreas] = useState<any[]>([]);
     const [wips, setWips] = useState<any[]>([]);
+    const [feriados, setFeriados] = useState<any[]>([]);
 
     const [searchTerm, setSearchTerm] = useState('');
-    const [filterMes, setFilterMes] = useState('');
+    const [filterMes, setFilterMes] = useState(() => new Date().toISOString().slice(0, 7));
     const [filterPeriodoInicio, setFilterPeriodoInicio] = useState('');
     const [filterPeriodoFim, setFilterPeriodoFim] = useState('');
     const [filterLinha, setFilterLinha] = useState('all');
@@ -47,6 +48,7 @@ export default function GeneralOrdersDashboard() {
             setLinhas(res.linhas || []);
             setAreas(res.areas || []);
             setWips(res.wips || []);
+            setFeriados(res.feriados || []);
         } else {
             alert('🚨 ERRO DB: ' + res.error);
         }
@@ -97,6 +99,13 @@ export default function GeneralOrdersDashboard() {
             });
         }
 
+        // Sort ascending by data_fim
+        result.sort((a, b) => {
+            if (!a.data_fim) return 1;
+            if (!b.data_fim) return -1;
+            return new Date(a.data_fim).getTime() - new Date(b.data_fim).getTime();
+        });
+
         setFilteredOrders(result);
     }, [searchTerm, filterMes, filterPeriodoInicio, filterPeriodoFim, filterLinha, filterArea, orders, wips]);
 
@@ -121,10 +130,77 @@ export default function GeneralOrdersDashboard() {
         }
     };
 
-        const opsCountByLinha = linhas.map(l => ({
-        nome: "Linha " + l.letra_linha,
-        count: filteredOrders.filter(o => o.linha_id === l.id).length
-    })).filter(x => x.count > 0);
+    const today = new Date();
+    today.setHours(0,0,0,0);
+
+    const overdueOrders = filteredOrders.filter(o => {
+        if (o.status === 'Concluida' || o.status === 'Cancelada') return false;
+        if (!o.data_fim) return false;
+        return new Date(o.data_fim) < today;
+    }).length;
+
+    const riskOrders = filteredOrders.filter(o => {
+        if (o.status === 'Concluida' || o.status === 'Cancelada') return false;
+        if (!o.data_fim || !o.edt_estimado) return false;
+        return new Date(o.edt_estimado) > new Date(o.data_fim);
+    }).length;
+
+    const calcPerc = (concl: number, tot: number) => tot === 0 ? 0 : Math.round((concl / tot) * 100);
+
+    const totalThisMonth = filteredOrders.length;
+    const concluidasThisMonth = filteredOrders.filter(o => o.status === 'Concluida').length;
+    const percentConcluidoFabrica = calcPerc(concluidasThisMonth, totalThisMonth);
+
+    const calculateTakt = (linhaId?: string) => {
+        const currentDate = new Date();
+        const currentMonth = currentDate.getMonth();
+        const currentYear = currentDate.getFullYear();
+        const lastDayOfMonth = new Date(currentYear, currentMonth + 1, 0);
+
+        let remainingWorkingDays = 0;
+        let d = new Date(currentDate);
+        d.setHours(0,0,0,0);
+
+        while (d <= lastDayOfMonth) {
+            const dayOfWeek = d.getDay();
+            if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+                const isHoliday = feriados.some(f => {
+                    if (!f.data_feriado) return false;
+                    const ds = f.data_feriado.split('-'); // ISO YYYY-MM-DD
+                    const fM = parseInt(ds[1]) - 1;
+                    const fD = parseInt(ds[2]);
+                    if (f.recorrente_anualmente) return fM === d.getMonth() && fD === d.getDate();
+                    return parseInt(ds[0]) === d.getFullYear() && fM === d.getMonth() && fD === d.getDate();
+                });
+                if (!isHoliday) remainingWorkingDays++;
+            }
+            d.setDate(d.getDate() + 1);
+        }
+
+        let boatsToFinish = filteredOrders.filter(o => {
+            if (linhaId && o.linha_id !== linhaId) return false;
+            if (o.status === 'Cancelada' || o.status === 'Concluida') return false;
+            if (!o.data_fim) return false;
+            const endD = new Date(o.data_fim);
+            return endD.getMonth() === currentMonth && endD.getFullYear() === currentYear;
+        }).length;
+
+        if (remainingWorkingDays === 0) return boatsToFinish > 0 ? "⚠️" : "0.0";
+        return (boatsToFinish / remainingWorkingDays).toFixed(1);
+    };
+
+    const opsCountByLinha = linhas.map(l => {
+        const opsLinha = filteredOrders.filter(o => o.linha_id === l.id);
+        const concls = opsLinha.filter(o => o.status === 'Concluida').length;
+        return {
+            nome: "Linha " + l.letra_linha,
+            id: l.id,
+            count: opsLinha.length,
+            concluidas: concls,
+            perc: calcPerc(concls, opsLinha.length),
+            takt: calculateTakt(l.id)
+        };
+    }).filter(x => x.count > 0 || parseFloat(x.takt) > 0);
 
     const opsCountByArea = areas.map(a => ({
         nome: a.nome_area,
@@ -156,52 +232,69 @@ export default function GeneralOrdersDashboard() {
                 </div>
             </div>
 
-            {/* Metricas Rapidas */}
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            {/* Metricas Rapidas Avancadas */}
+            <div className="grid grid-cols-2 xl:grid-cols-6 gap-4">
                 <Card className="p-4 border-slate-200 shadow-sm flex flex-col justify-center">
-                    <div className="flex items-center gap-3 mb-2">
-                        <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center">
-                            <Activity size={16} />
-                        </div>
-                        <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total OTs</p>
-                    </div>
-                    <p className="text-2xl font-black text-slate-800">{filteredOrders.length}</p>
+                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Total OTs</p>
+                    <p className="text-2xl font-black text-slate-800">{totalThisMonth}</p>
+                </Card>
+                <Card className="p-4 border-rose-200 bg-rose-50 shadow-sm flex flex-col justify-center">
+                    <p className="text-xs font-bold text-rose-600 uppercase tracking-wider mb-2 flex items-center gap-1"><AlertCircle size={14}/>Atrasadas</p>
+                    <p className="text-2xl font-black text-rose-700">{overdueOrders}</p>
+                </Card>
+                <Card className="p-4 border-amber-200 bg-amber-50 shadow-sm flex flex-col justify-center">
+                    <p className="text-xs font-bold text-amber-600 uppercase tracking-wider mb-2 flex items-center gap-1"><Activity size={14}/>Risco Falhar</p>
+                    <p className="text-2xl font-black text-amber-700">{riskOrders}</p>
                 </Card>
                 <Card className="p-4 border-slate-200 shadow-sm flex flex-col justify-center">
-                    <div className="flex items-center gap-3 mb-2">
-                        <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center">
-                            <Layers size={16} />
-                        </div>
-                        <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Em Produção</p>
-                    </div>
-                    <p className="text-2xl font-black text-emerald-600">
-                        {filteredOrders.filter(o => o.status === 'Em Producao').length}
-                    </p>
+                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Takt Alvo Fábrica</p>
+                    <p className="text-2xl font-black text-blue-600">{calculateTakt()}/dia</p>
                 </Card>
-                {/* Indicador OPs por Linha */}
-                <Card className="p-4 border-slate-200 shadow-sm md:col-span-1 bg-slate-50">
-                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Por Linha</p>
-                    <div className="space-y-1">
-                        {opsCountByLinha.length > 0 ? opsCountByLinha.map(l => (
-                            <div key={l.nome} className="flex justify-between text-sm">
-                                <span className="text-slate-600 truncate mr-2">{l.nome}</span>
-                                <span className="font-bold text-blue-900">{l.count}</span>
-                            </div>
-                        )) : <span className="text-xs text-slate-400">Sem dados</span>}
+                <Card className="p-4 border-slate-200 shadow-sm flex flex-col justify-center">
+                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Conclusão</p>
+                    <div className="flex items-center gap-3">
+                        <p className="text-2xl font-black text-emerald-600">{percentConcluidoFabrica}%</p>
+                        <span className="text-xs text-slate-400 font-medium pt-1">({concluidasThisMonth}/{totalThisMonth})</span>
                     </div>
                 </Card>
-                {/* Indicador OPs por Área */}
-                <Card className="p-4 border-slate-200 shadow-sm md:col-span-2 bg-slate-50">
-                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">WIP Físico Por Área</p>
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                        {opsCountByArea.length > 0 ? opsCountByArea.map(a => (
-                            <div key={a.nome} className="flex justify-between text-sm">
-                                <span className="text-slate-600 truncate mr-2">{a.nome}</span>
+                <Card className="p-4 border-slate-200 shadow-sm bg-slate-50 relative overflow-hidden flex flex-col justify-center col-span-2 xl:col-span-1">
+                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">WIP Por Área</p>
+                    <div className="space-y-1 z-10 w-full">
+                        {opsCountByArea.length > 0 ? opsCountByArea.slice(0, 3).map(a => (
+                            <div key={a.nome} className="flex justify-between text-xs w-full">
+                                <span className="text-slate-600 truncate mr-1">{a.nome}</span>
                                 <span className="font-bold text-emerald-700">{a.count}</span>
                             </div>
-                        )) : <span className="text-xs text-slate-400">Sem unidades no chão de fábrica</span>}
+                        )) : <span className="text-xs text-slate-400">Sem WIP</span>}
                     </div>
                 </Card>
+            </div>
+
+            {/* Metricas por Linha */}
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                {opsCountByLinha.map(l => (
+                    <Card key={l.id} className="p-4 border-slate-200 shadow-sm relative">
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="font-bold text-blue-900 border-b-2 border-blue-200 pb-1">{l.nome}</h3>
+                            <Badge variant="outline" className="text-[10px] bg-slate-50">{l.concluidas}/{l.count} OTs</Badge>
+                        </div>
+                        <div className="space-y-3">
+                            <div>
+                                <div className="flex justify-between text-xs mb-1">
+                                    <span className="text-slate-500 font-semibold uppercase">Progresso</span>
+                                    <span className="font-bold text-slate-700">{l.perc}%</span>
+                                </div>
+                                <div className="w-full bg-slate-100 rounded-full h-2">
+                                    <div className="bg-emerald-500 h-2 rounded-full transition-all duration-1000" style={{ width: `${l.perc}%` }}></div>
+                                </div>
+                            </div>
+                            <div className="flex justify-between items-center pt-2 border-t border-slate-50">
+                                <span className="text-[10px] text-slate-500 font-bold uppercase">Takt Alvo Diário:</span>
+                                <span className="font-black text-blue-600 text-lg">{l.takt}</span>
+                            </div>
+                        </div>
+                    </Card>
+                ))}
             </div>
 
             {/* Painel Principal */}

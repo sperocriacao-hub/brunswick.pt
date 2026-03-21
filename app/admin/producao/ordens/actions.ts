@@ -14,7 +14,7 @@ export async function getProductionOrders() {
             supabase
                 .from('ordens_producao')
                 .select(`
-                    id, op_numero, modelo_id, status, data_inicio, data_fim, display_nome, rfid_token, num_serie, linha_id,
+                    id, op_numero, modelo_id, status, data_inicio, data_fim, edt_estimado, display_nome, rfid_token, num_serie, linha_id,
                     modelos(nome_modelo, model_year),
                     linhas_producao(letra_linha)
                 `)
@@ -33,7 +33,10 @@ export async function getProductionOrders() {
                     op_id, estacao_id,
                     estacoes(id, area_id)
                 `)
-                .is('timestamp_fim', null)
+                .is('timestamp_fim', null),
+
+            // Feriados para calculo de Takt Mensal
+            supabase.from('sys_feriados_fabrica').select('data_feriado, recorrente_anualmente')
         ]);
 
         if (ordensResult.error) throw new Error("Ordens DB Error: " + JSON.stringify(ordensResult.error));
@@ -46,7 +49,8 @@ export async function getProductionOrders() {
             data: ordensResult.data,
             linhas: linhasResult.data || [],
             areas: areasResult.data || [],
-            wips: wipsResult.data || []
+            wips: wipsResult.data || [],
+            feriados: wipsResult.error ? [] : (await supabase.from('sys_feriados_fabrica').select('data_feriado, recorrente_anualmente')).data || []
         };
     } catch (error: any) {
         console.error('Error fetching production orders and filters:', error);
