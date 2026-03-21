@@ -15,7 +15,7 @@ export async function buscarDadosAPS() {
                 molde_casco_id, molde_coberta_id,
                 modelos ( nome_modelo )
             `)
-            .in('status', ['PLANNED', 'IN_PROGRESS']);
+            .in('status', ['Draft', 'PLANNED', 'IN_PROGRESS']);
             
         if (errOrdens) throw errOrdens;
 

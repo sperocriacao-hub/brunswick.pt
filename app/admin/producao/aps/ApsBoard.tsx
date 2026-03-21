@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Play, Pause, CheckCircle, AlertTriangle, ChevronRight, Filter, GripVertical } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { DndContext, useDraggable, useDroppable, DragEndEvent, closestCenter } from '@dnd-kit/core';
+import { DndContext, useDraggable, useDroppable, DragEndEvent, pointerWithin } from '@dnd-kit/core';
 import { salvarPlaneamentoAPS, concluirOperacaoWorkcenter } from "./actions";
 
 // --- Custom Draggable for Orders ---
@@ -200,7 +200,7 @@ export default function ApsBoard({
                             </div>
                         </div>
                     )}
-                <DndContext onDragEnd={handleDragEnd} collisionDetection={closestCenter}>
+                <DndContext onDragEnd={handleDragEnd} collisionDetection={pointerWithin}>
                 <div className="flex flex-col xl:flex-row gap-6 items-start">
                     {/* BACKLOG COLUMN */}
                     <div className="w-full xl:w-64 shrink-0 space-y-3">
