@@ -23,8 +23,7 @@ export async function GET(req: Request) {
             estado: 'Disponível',
             localizacao: 'Armazém A',
             ciclos_estimados: 0,
-            limite_ciclos: 50,
-            data_ultima_manutencao: new Date().toISOString()
+            limite_ciclos: 50
         }).select().single();
         
         if (errMolde) logs.push(`❌ Erro Molde: ${errMolde.message}`);
@@ -34,7 +33,6 @@ export async function GET(req: Request) {
         const { data: modelo, error: errModelo } = await supabase.from('modelos').insert({
             nome_modelo: 'Brunswick X-Pro (Manual Edition)',
             model_year: 2026,
-            descricao: 'Barco desportivo de alta performance com materiais de luxo.',
         }).select().single();
 
         if (errModelo) {
