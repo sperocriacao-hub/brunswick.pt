@@ -87,7 +87,7 @@ export async function POST() {
             addToLogs("📦 A Adicionar Ordens de Produção 'QA-TEST-X' ao Backlog...");
             const orRes = await supabase.from('ordens_producao').insert([
                 { op_numero: `QA-TEST-${Math.floor(Math.random() * 9999)}`, modelo_id: modelosIds[0], status: 'PLANNED', data_prevista_inicio: new Date().toISOString() },
-                { op_numero: `QA-TEST-${Math.floor(Math.random() * 9999)}`, modelo_id: modelosIds[0], status: 'Backlog', data_prevista_inicio: new Date().toISOString() }
+                { op_numero: `QA-TEST-${Math.floor(Math.random() * 9999)}`, modelo_id: modelosIds[0], status: 'PLANNED', data_prevista_inicio: null }
             ]);
             if (orRes.error) addToLogs(`❌ Erro BD (Ordens de Produção): ${orRes.error.message}`);
         }
