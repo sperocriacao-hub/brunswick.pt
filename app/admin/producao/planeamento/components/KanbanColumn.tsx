@@ -19,13 +19,13 @@ export function KanbanColumn({ coluna, items, isBacklog }: KanbanColumnProps) {
 
     return (
         <div
-            className={`flex flex-col flex-shrink-0 w-80 md:w-96 rounded-2xl p-4 transition-colors ${isBacklog ? 'bg-slate-900/50 border border-slate-700/50' : 'bg-black/30 border border-white/5'} ${isOver ? 'ring-2 ring-blue-500/50 bg-blue-900/10' : ''}`}
+            className={`flex flex-col flex-shrink-0 w-80 md:w-96 rounded-2xl p-4 transition-colors ${isBacklog ? 'bg-slate-100 border border-slate-200' : 'bg-white border border-slate-200 shadow-sm'} ${isOver ? 'ring-2 ring-blue-500/50 bg-blue-50' : ''}`}
         >
             <div className="flex items-center justify-between mb-4 px-2">
-                <h2 className={`font-bold text-lg ${isBacklog ? 'text-slate-300' : 'text-blue-400'}`}>
+                <h2 className={`font-bold text-lg ${isBacklog ? 'text-slate-600' : 'text-blue-900'}`}>
                     {coluna.title}
                 </h2>
-                <div className="bg-white/10 text-xs font-bold text-white px-2 py-1 rounded-full">
+                <div className="bg-slate-200 text-xs font-bold text-slate-600 px-3 py-1 rounded-full">
                     {items.length} OP(s)
                 </div>
             </div>
@@ -42,7 +42,7 @@ export function KanbanColumn({ coluna, items, isBacklog }: KanbanColumnProps) {
 
                 {/* Visual Cue that this space is active dropzone during drag */}
                 {items.length === 0 && (
-                    <div className={`h-full border-2 border-dashed rounded-xl flex items-center justify-center text-sm font-bold ${isOver ? 'border-blue-500/50 text-blue-400' : 'border-white/5 text-slate-600'}`}>
+                    <div className={`h-full border-2 border-dashed rounded-xl flex items-center justify-center text-sm font-bold ${isOver ? 'border-blue-300 text-blue-500' : 'border-slate-300 text-slate-400'}`}>
                         Largar Barcos Aqui
                     </div>
                 )}

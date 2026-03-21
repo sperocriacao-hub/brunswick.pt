@@ -31,38 +31,38 @@ export function KanbanCard({ ordem, isOverlay }: KanbanCardProps) {
         <div
             ref={setNodeRef}
             style={style}
-            className={`glass-panel p-4 flex flex-col gap-3 group relative overflow-hidden transition-all ${isOverlay ? 'scale-105 shadow-[0_20px_40px_rgba(0,0,0,0.8)] border-blue-500 ring-2 ring-blue-500 z-50' : 'hover:border-blue-500/50 hover:shadow-[0_5px_15px_rgba(0,0,0,0.4)]'} cursor-grab active:cursor-grabbing`}
+            className={`bg-white p-4 flex flex-col gap-3 group relative overflow-hidden transition-all rounded-xl ${isOverlay ? 'scale-105 shadow-xl border-blue-500 ring-2 ring-blue-500 z-50' : 'border border-slate-200 hover:border-blue-300 hover:shadow-md'} cursor-grab active:cursor-grabbing`}
             {...attributes}
             {...listeners}
         >
             {/* Decal Background */}
-            <div className="absolute -bottom-4 -right-4 opacity-5 pointer-events-none">
+            <div className="absolute -bottom-4 -right-4 opacity-5 pointer-events-none text-slate-400">
                 <Box size={80} />
             </div>
 
             <div className="flex justify-between items-start">
                 <div className="flex items-center gap-2">
-                    <GripVertical size={16} className="text-slate-600 group-hover:text-blue-400 transition-colors" />
+                    <GripVertical size={16} className="text-slate-300 group-hover:text-blue-400 transition-colors" />
                     <div>
-                        <div className="text-xs font-bold text-blue-400 flex items-center gap-1">
+                        <div className="text-xs font-bold text-blue-600 flex items-center gap-1">
                             <Hash size={12} /> {ordem.op_numero}
                         </div>
-                        <h3 className="font-extrabold text-white">{ordem.modelo}</h3>
+                        <h3 className="font-extrabold text-slate-800">{ordem.modelo}</h3>
                     </div>
                 </div>
 
                 {/* Indicador Numérico de Linha */}
-                <div className="w-8 h-8 rounded-full bg-black/50 border border-white/10 flex items-center justify-center text-xs font-mono font-bold text-slate-400">
+                <div className="w-8 h-8 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center text-xs font-mono font-bold text-slate-600">
                     {ordem.linha || '-'}
                 </div>
             </div>
 
             {ordem.hin_hull_id ? (
-                <div className="text-xs text-slate-400 bg-white/5 px-2 py-1 rounded inline-block self-start font-mono border border-white/5">
+                <div className="text-xs text-slate-500 bg-slate-50 px-2 py-1 rounded inline-block self-start font-mono border border-slate-200">
                     HIN: {ordem.hin_hull_id}
                 </div>
             ) : (
-                <div className="text-[10px] text-amber-500/70 uppercase font-bold tracking-widest pl-6">
+                <div className="text-[10px] text-amber-600 bg-amber-50 px-2 py-0.5 rounded uppercase font-bold tracking-widest border border-amber-200 inline-block self-start mt-1">
                     MOLDE POR ALOCAR
                 </div>
             )}

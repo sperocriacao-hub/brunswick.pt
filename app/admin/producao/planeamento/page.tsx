@@ -23,15 +23,15 @@ export default async function PlaneamentoPage() {
     }
 
     return (
-        <div className="min-h-screen bg-slate-950 p-4 sm:p-8 dashboard-layout relative z-20 flex flex-col h-screen overflow-hidden">
+        <div className="min-h-screen bg-slate-50 p-4 sm:p-8 relative z-20 flex flex-col h-screen overflow-hidden">
             {/* Header Area */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 gap-4">
                 <div>
-                    <h1 className="text-2xl md:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white to-slate-400 flex items-center gap-3">
-                        <CalendarDays className="text-blue-500" /> Planeamento & Escalonamento
+                    <h1 className="text-2xl md:text-3xl font-extrabold text-blue-900 flex items-center gap-3">
+                        <CalendarDays className="text-blue-500" /> Planeamento & Escalonamento Limitado
                     </h1>
-                    <p className="text-slate-400 mt-1">
-                        Arraste os barcos do Backlog para os dias e linhas desejadas para gerir a produção agregada.
+                    <p className="text-slate-500 mt-1">
+                        (Versão Legado/Simples) Arraste os barcos do Backlog para os dias e linhas desejadas para gerir a alocação semanal básica.
                     </p>
                 </div>
             </div>
