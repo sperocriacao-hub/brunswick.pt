@@ -5,7 +5,7 @@ import { Play, Pause, CheckCircle, AlertTriangle, ChevronRight, Filter, GripVert
 import { useState, useMemo, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { DndContext, useDraggable, useDroppable, DragEndEvent, closestCenter } from '@dnd-kit/core';
-import { salvarPlaneamentoAPS } from "./actions";
+import { salvarPlaneamentoAPS, concluirOperacaoWorkcenter } from "./actions";
 
 // --- Custom Draggable for Orders ---
 function DraggableOrder({ order, children, className }: { order: any, children: React.ReactNode, className?: string }) {
@@ -114,7 +114,6 @@ export default function ApsBoard({
         // Optimistic hide
         setLiveRfids(prev => prev?.filter(r => r.id !== rfidId));
         // Server Action
-        const { concluirOperacaoWorkcenter } = await import('./actions');
         await concluirOperacaoWorkcenter(rfidId);
     }
 
