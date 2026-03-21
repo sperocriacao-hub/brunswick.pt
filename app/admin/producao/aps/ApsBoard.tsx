@@ -41,9 +41,35 @@ function DroppableDate({ dateStr, children, className }: { dateStr: string, chil
     );
 }
 
-export default function ApsBoard({ inicialOrdens = [], historicoAps = [], moldesPlan = [] }: { inicialOrdens: any[], historicoAps: any[], moldesPlan?: any[] }) {
+// --- Custom Droppable for Backlog ---
+function DroppableBacklog({ children, className }: { children: React.ReactNode, className?: string }) {
+    const { isOver, setNodeRef } = useDroppable({
+        id: `backlog`
+    });
+
+    return (
+        <div ref={setNodeRef} className={cn(className, isOver && "bg-slate-200 ring-2 ring-inset ring-slate-400")}>
+            {children}
+        </div>
+    );
+}
+
+export default function ApsBoard({ 
+    inicialOrdens = [], 
+    historicoAps = [], 
+    moldesPlan = [],
+    estacoes = [],
+    activeRfids = []
+}: { 
+    inicialOrdens: any[], 
+    historicoAps: any[], 
+    moldesPlan?: any[],
+    estacoes?: any[],
+    activeRfids?: any[]
+}) {
     const [viewMode, setViewMode] = useState<"timeline" | "workcenter" | "analytics">("timeline");
     const [ordersState, setOrdersState] = useState(inicialOrdens);
+    const [liveRfids, setLiveRfids] = useState(activeRfids);
 
     const bottlenecks = historicoAps.sort((a, b) => b.tempo_medio_real_minutos - a.tempo_medio_real_minutos);
     const moldesEmRisco = moldesPlan.filter(m => m.status === 'Em Manutenção' || m.ciclos_estimados >= m.manutenir_em - 5);
@@ -77,8 +103,20 @@ export default function ApsBoard({ inicialOrdens = [], historicoAps = [], moldes
                 // Server persist
                 await salvarPlaneamentoAPS(orderId, novaDataStr);
             }
+        } else if (droppableId === 'backlog') {
+            // Undo scheduling
+            setOrdersState(prev => prev.map(o => o.id === orderId ? { ...o, data_prevista_inicio: null, status: 'Draft' } : o));
+            await salvarPlaneamentoAPS(orderId, null);
         }
     };
+
+    const handleConcluir = async (rfidId: string) => {
+        // Optimistic hide
+        setLiveRfids(prev => prev?.filter(r => r.id !== rfidId));
+        // Server Action
+        const { concluirOperacaoWorkcenter } = await import('./actions');
+        await concluirOperacaoWorkcenter(rfidId);
+    }
 
     return (
         <div className="space-y-6">
@@ -134,7 +172,7 @@ export default function ApsBoard({ inicialOrdens = [], historicoAps = [], moldes
                 <div className="flex flex-col xl:flex-row gap-6 items-start">
                     {/* BACKLOG COLUMN */}
                     <div className="w-full xl:w-64 shrink-0 space-y-3">
-                        <div className="bg-slate-100 rounded-lg p-3 border shadow-sm">
+                        <DroppableBacklog className="bg-slate-100 rounded-lg p-3 border shadow-sm min-h-[300px] transition-colors">
                             <h3 className="font-bold text-slate-700 text-sm mb-3 flex items-center justify-between">
                                 Por Planear (Backlog)
                                 <span className="bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full text-xs">{backlogOrders.length}</span>
@@ -164,7 +202,7 @@ export default function ApsBoard({ inicialOrdens = [], historicoAps = [], moldes
                                     </div>
                                 )}
                             </div>
-                        </div>
+                        </DroppableBacklog>
                     </div>
 
                     {/* GANTT AREA */}
@@ -279,40 +317,62 @@ export default function ApsBoard({ inicialOrdens = [], historicoAps = [], moldes
                 </div>
             ) : viewMode === "workcenter" ? (
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                    <Card>
-                        <CardHeader className="bg-blue-50/50 pb-4 border-b">
-                            <CardTitle className="text-lg flex justify-between items-center">
-                                Estação: Laminação
-                                <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs">Ativa</span>
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="pt-4 space-y-4">
-                            <div className="border rounded-lg p-3 bg-white shadow-sm flex flex-col space-y-3">
-                                <div className="flex justify-between">
-                                    <span className="font-bold text-sm">Interceptor 40 (PO-1001)</span>
-                                    <span className="text-xs text-orange-600 font-bold bg-orange-100 px-2 rounded-full flex items-center">Em Atraso</span>
-                                </div>
-                                <div className="text-xs text-slate-500 space-y-1">
-                                    <div className="flex justify-between">
-                                        <span>Tempo Previsto (Padrão):</span>
-                                        <span className="font-mono">08h 30m</span>
-                                    </div>
-                                    <div className="flex justify-between font-medium text-orange-700">
-                                        <span>Tempo Previsto (IA):</span>
-                                        <span className="font-mono text-orange-700">10h 15m (+1h 45m)</span>
-                                    </div>
-                                </div>
-                                <div className="flex gap-2 mt-2">
-                                    <button className="w-full flex items-center justify-center h-8 text-xs bg-green-600 text-white rounded hover:bg-green-700 transition">
-                                        <CheckCircle className="w-3 h-3 mr-1"/> Concluir
-                                    </button>
-                                    <button className="w-full flex items-center justify-center h-8 text-xs text-orange-600 border border-orange-200 rounded hover:bg-orange-50 transition">
-                                        <Pause className="w-3 h-3 mr-1"/>Pausa
-                                    </button>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
+                    {estacoes?.map(estacao => {
+                        const rfidsInStation = liveRfids?.filter(r => r.estacao_id === estacao.id) || [];
+                        if (rfidsInStation.length === 0) return null; // Apenas renderizar estações locais com OPs ativas
+
+                        return (
+                            <Card key={estacao.id} className="border-t-4 border-t-blue-500 shadow-md">
+                                <CardHeader className="bg-slate-50 border-b pb-3">
+                                    <CardTitle className="text-lg flex justify-between items-center text-slate-800">
+                                        {estacao.nome_estacao}
+                                        <Badge variant="secondary" className="bg-blue-100 text-blue-800">{rfidsInStation.length} Ativas</Badge>
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="pt-4 space-y-4 max-h-[400px] overflow-y-auto">
+                                    {rfidsInStation.map(rfid => {
+                                        const opDetails = ordersState.find(op => op.id === rfid.op_id);
+                                        const startTime = new Date(rfid.timestamp_inicio);
+                                        const elapsedHours = ((new Date().getTime() - startTime.getTime()) / (1000 * 60 * 60)).toFixed(1);
+                                        
+                                        return (
+                                            <div key={rfid.id} className="border rounded px-3 py-3 bg-white shadow-sm hover:border-blue-200 transition-colors">
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <div>
+                                                        <h4 className="font-bold text-sm text-slate-700">{opDetails?.modelos?.nome_modelo || 'Modelo Desconhecido'} ({opDetails?.op_numero || 'OP-???'})</h4>
+                                                        <p className="text-xs text-slate-500 mt-0.5">Tipo: {opDetails?.op_tipo}</p>
+                                                    </div>
+                                                    <Badge className="bg-blue-500 hover:bg-blue-600">Em curso: {elapsedHours}h</Badge>
+                                                </div>
+                                                <div className="text-xs text-slate-600 space-y-1 mb-3 bg-slate-50 p-2 rounded border">
+                                                    <div className="flex justify-between"><span className="text-slate-400">Iniciou às:</span> <span className="font-mono">{startTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span></div>
+                                                    <div className="flex justify-between"><span className="text-slate-400">Prioridade:</span> <span className="font-medium text-amber-600">{opDetails?.prioridade || 'Normal'}</span></div>
+                                                </div>
+                                                <div className="flex gap-2 mt-2">
+                                                    <button className="w-full flex items-center justify-center h-8 text-xs text-orange-600 border border-orange-200 rounded hover:bg-orange-50 transition">
+                                                        <Pause className="w-3 h-3 mr-1"/>Pausa (Andon)
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => handleConcluir(rfid.id)}
+                                                        className="w-full flex items-center justify-center h-8 text-xs bg-green-600 text-white rounded hover:bg-green-700 transition shadow-sm"
+                                                    >
+                                                        <CheckCircle className="w-3 h-3 mr-1"/> Concluir
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </CardContent>
+                            </Card>
+                        );
+                    })}
+                    
+                    {estacoes?.length && !liveRfids?.length && (
+                        <div className="col-span-full py-12 text-center text-slate-500 bg-slate-50 rounded-lg border border-dashed">
+                            <h3 className="text-lg font-medium text-slate-700 mb-1">Todas as Estações Livres</h3>
+                            <p className="text-sm">Não existem leituras de RFID com operações em curso no chão de fábrica neste momento.</p>
+                        </div>
+                    )}
                 </div>
             ) : viewMode === "analytics" ? (
                 <div className="space-y-6">

@@ -31,20 +31,34 @@ export async function buscarDadosAPS() {
 
         if (errMoldes) throw errMoldes;
 
-        return { success: true, ordens, bottlenecks, moldes: moldesRaw };
+        const { data: estacoes, error: errEst } = await supabase
+            .from('estacoes')
+            .select('id, nome_estacao')
+            .order('nome_estacao');
+
+        const { data: activeRfids, error: errRfid } = await supabase
+            .from('registos_rfid_realtime')
+            .select('id, op_id, estacao_id, timestamp_inicio')
+            .is('timestamp_fim', null);
+
+        return { success: true, ordens, bottlenecks, moldes: moldesRaw, estacoes: estacoes || [], activeRfids: activeRfids || [] };
     } catch (e: any) {
         return { success: false, error: e.message };
     }
 }
 
-export async function salvarPlaneamentoAPS(orderId: string, novaDataStr: string) {
+export async function salvarPlaneamentoAPS(orderId: string, novaDataStr: string | null) {
     try {
         const cookieStore = cookies() as any;
         const supabase = createClient(cookieStore);
 
+        const payload = novaDataStr 
+            ? { data_prevista_inicio: novaDataStr, status: 'PLANNED' }
+            : { data_prevista_inicio: null, status: 'Draft' };
+
         const { error } = await supabase
             .from('ordens_producao')
-            .update({ data_prevista_inicio: novaDataStr, status: 'PLANNED' })
+            .update(payload)
             .eq('id', orderId);
 
         if (error) throw error;

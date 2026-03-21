@@ -5,7 +5,7 @@ import { AlertCircle } from 'lucide-react';
 export const metadata = { title: 'Control Tower (APS) | Brunswick M.E.S' };
 
 export default async function APSPage() {
-    const { success, ordens, bottlenecks, moldes, error } = await buscarDadosAPS();
+    const { success, ordens, bottlenecks, moldes, estacoes, activeRfids, error } = await buscarDadosAPS();
 
     if (!success) {
         return (
@@ -17,5 +17,5 @@ export default async function APSPage() {
         );
     }
 
-    return <ApsBoard inicialOrdens={ordens || []} historicoAps={bottlenecks || []} moldesPlan={moldes || []} />;
+    return <ApsBoard inicialOrdens={ordens || []} historicoAps={bottlenecks || []} moldesPlan={moldes || []} estacoes={estacoes || []} activeRfids={activeRfids || []} />;
 }
