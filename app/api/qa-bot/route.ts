@@ -40,6 +40,17 @@ export async function POST(req: Request) {
              return NextResponse.json({ success: false, error: "Sem roteiro", logs: [...logs, "❌ O Modelo do barco não tem Roteiro."] });
         }
 
+        // Excluir ou limpar barcos não virgens (que já foram processados numa run anterior)
+        const { data: concluidas } = await supabase.from('log_estacao_conclusao').select('op_id').eq('estacao_id', estacaoId).in('op_id', ordens.map((o:any) => o.id));
+        const idsConcluidos = (concluidas || []).map((c: any) => c.op_id);
+        const freshOrdens = ordens.filter((o:any) => !idsConcluidos.includes(o.id));
+
+        if (freshOrdens.length === 0) {
+            return NextResponse.json({ success: false, error: "Barcos Usados", logs: [...logs, "❌ Todos os 20 Barcos QA na DB já foram processados na Estação M - Preparação! Clica no Botão Verde para injetar novo lote de navios virgens."]});
+        }
+
+        ordem = freshOrdens[0]; // Restabelecer a ordem base caso a 0 fosse suja
+
         const host = req.headers.get('host');
         const protocol = host?.includes('localhost') ? 'http' : 'https';
         const apiUrl = `${protocol}://${host}/api/mes/iot`;
@@ -90,10 +101,10 @@ export async function POST(req: Request) {
 
         if (phase === 'MASS_TEST') {
             simLog("☢️ HYPER STRESS TEST ATIVADO ☢️");
-            simLog(`   -> Disparando o Ciclo Produtivo Assíncrono para ${ordens.length} Navios simultaneamente, distribuídos pelos ${operadores.length} Operadores QA.`);
+            simLog(`   -> Disparando o Ciclo Produtivo Assíncrono para ${freshOrdens.length} Navios Virgens simultaneamente, distribuídos pelos ${operadores.length} Operadores QA.`);
             
             const operatorQueues: any[][] = operadores.map(() => []);
-            ordens.forEach((o, i) => operatorQueues[i % operadores.length].push(o));
+            freshOrdens.forEach((o:any, i:number) => operatorQueues[i % operadores.length].push(o));
 
             let allErrors: string[] = [];
 
@@ -118,7 +129,7 @@ export async function POST(req: Request) {
             const results = await Promise.all(operatorPromises);
             const fails = results.reduce((acc, curr) => acc + curr, 0);
             
-            simLog(`🔥 Cluster de Operadores Autônomos Resolvido. Total Navios Emulados: ${ordens.length}. Transações Perdidas: ${fails}.`);
+            simLog(`🔥 Cluster de Operadores Autônomos Resolvido. Total Navios Emulados: ${freshOrdens.length}. Transações Perdidas: ${fails}.`);
             if (fails > 0) simLog(`⚠️ Amostra do Erro detetado: ${allErrors[0] || 'Unknown HTTP/DB Error'}`);
             else simLog("🏁 CORE STRESS TEST SYSTEM SOBREVIVEU A 100%!");
             
