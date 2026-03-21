@@ -19,15 +19,16 @@ export async function GET(req: Request) {
 
         // 1. Criar Molde
         const { data: molde, error: errMolde } = await supabase.from('moldes').insert({
-            nome: 'Molde Golden X-Pro',
-            estado: 'Disponível',
-            localizacao: 'Armazém A',
+            nome_parte: 'Molde Golden X-Pro',
+            status: 'Ativo',
+            estado_molde: 'Disponível',
+            categoria: 'BIG_PART',
             ciclos_estimados: 0,
             limite_ciclos: 50
         }).select().single();
         
         if (errMolde) logs.push(`❌ Erro Molde: ${errMolde.message}`);
-        else logs.push(`✅ Molde Criado: ${molde.nome}`);
+        else logs.push(`✅ Molde Criado: ${molde.nome_parte}`);
 
         // 3. Criar Modelo (Barco)
         const { data: modelo, error: errModelo } = await supabase.from('modelos').insert({
@@ -42,8 +43,8 @@ export async function GET(req: Request) {
 
             // 2. Criar Peças/BOM (Composição Modelo) e Opcionais
             const pecasModeloData = [
-                { modelo_id: modelo.id, nome_parte: 'Fibras Vidro Premium', num_molde: molde ? molde.id : null, categoria: 'Casco' },
-                { modelo_id: modelo.id, nome_parte: 'Gelcoat Branco Neve', num_molde: null, categoria: 'Química' }
+                { modelo_id: modelo.id, nome_parte: 'Fibras Vidro Premium', num_molde: molde ? molde.id : null, categoria: 'BIG_PART' },
+                { modelo_id: modelo.id, nome_parte: 'Gelcoat Branco Neve', num_molde: null, categoria: 'SMALL_PART' }
             ];
             const { error: errPecas } = await supabase.from('composicao_modelo').insert(pecasModeloData);
             if (errPecas) logs.push(`❌ Erro Peças: ${errPecas.message}`);
@@ -67,9 +68,9 @@ export async function GET(req: Request) {
             
             if (estacoes && estacoes.length >= 3) {
                 const roteiros = [
-                    { modelo_id: modelo.id, estacao_id: estacoes[0].id, sequencia: 1, tempo_estimado_minutos: 120, instrucoes_especificas: 'Aplicar Gelcoat Branco Neve uniformemente.' },
-                    { modelo_id: modelo.id, estacao_id: estacoes[1].id, sequencia: 2, tempo_estimado_minutos: 240, instrucoes_especificas: 'Laminação Estrutural com Fibras Premium.' },
-                    { modelo_id: modelo.id, estacao_id: estacoes[2].id, sequencia: 3, tempo_estimado_minutos: 360, instrucoes_especificas: 'Montagem Final do Motor Mercury V8 300hp.' }
+                    { modelo_id: modelo.id, estacao_id: estacoes[0].id, sequencia: 1, tempo_estimado_minutos: 120 },
+                    { modelo_id: modelo.id, estacao_id: estacoes[1].id, sequencia: 2, tempo_estimado_minutos: 240 },
+                    { modelo_id: modelo.id, estacao_id: estacoes[2].id, sequencia: 3, tempo_estimado_minutos: 360 }
                 ];
                 
                 const { error: errRot } = await supabase.from('roteiros_producao').insert(roteiros);
