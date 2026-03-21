@@ -67,3 +67,20 @@ export async function salvarPlaneamentoAPS(orderId: string, novaDataStr: string 
         return { success: false, error: e.message };
     }
 }
+
+export async function concluirOperacaoWorkcenter(rfidId: string) {
+    try {
+        const cookieStore = cookies() as any;
+        const supabase = createClient(cookieStore);
+
+        const { error } = await supabase
+            .from('registos_rfid_realtime')
+            .update({ timestamp_fim: new Date().toISOString() })
+            .eq('id', rfidId);
+
+        if (error) throw error;
+        return { success: true };
+    } catch (e: any) {
+        return { success: false, error: e.message };
+    }
+}
