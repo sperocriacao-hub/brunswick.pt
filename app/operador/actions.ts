@@ -351,7 +351,7 @@ export async function getUpcomingQueue(estacaoId: string) {
         const { data: pendentes, error: errPend } = await supabase
             .from('ordens_producao')
             .select('id, op_numero, status, modelos!inner(nome_modelo), clientes!left(nome)')
-            .in('status', ['PLANNED', 'Planeada', 'IN_PROGRESS', 'Em Produção'])
+            .in('status', ['PLANNED', 'IN_PROGRESS'])
             .order('data_prevista_inicio', { ascending: true, nullsFirst: false });
 
         if (errPend) throw errPend;

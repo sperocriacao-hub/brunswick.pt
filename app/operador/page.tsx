@@ -33,8 +33,11 @@ export default function InteractiveTabletPage() {
     const [upcomingQueue, setUpcomingQueue] = useState<any[]>([]);
     const [selectedPdf, setSelectedPdf] = useState<string | null>(null);
 
+    // Visual Feedback State
+    const [flashState, setFlashState] = useState<'IDLE' | 'SUCCESS' | 'ERROR'>('IDLE');
+
     // Pausa & Turno Options
-    const pausaOptions = ['Almoco', 'Jantar', 'WC', 'Formacao', 'Clinica', 'Falta_Material'];
+    const pausaOptions = ['Regressar (Trabalho)', 'Almoco', 'Jantar', 'WC', 'Formacao', 'Clinica', 'Falta_Material'];
     const [pausaIndex, setPausaIndex] = useState(0);
 
     const turnoOptions = ['PONTO ENTRADA', 'PONTO SAIDA'];
@@ -249,6 +252,8 @@ export default function InteractiveTabletPage() {
                 catch (e) { data = { success: false, display: 'ERRO JSON' }; }
 
                 if (res.ok && data.success) {
+                    setFlashState('SUCCESS');
+                    setTimeout(() => setFlashState('IDLE'), 800);
                     setLcdLine1(data.display?.substring(0, 16) || 'SUCESSO');
                     setLcdLine2(data.display_2?.substring(0, 16) || '');
 
@@ -260,6 +265,8 @@ export default function InteractiveTabletPage() {
                         setMode('IDLE'); // Clear Turno mode
                     }, 3000);
                 } else {
+                    setFlashState('ERROR');
+                    setTimeout(() => setFlashState('IDLE'), 800);
                     setLcdLine1(data.display?.substring(0, 16) || '! ACESSO NEGADO');
                     setLcdLine2(data.display_2?.substring(0, 16) || data.error?.substring(0, 16) || '');
                     setTimeout(() => {
@@ -284,8 +291,12 @@ export default function InteractiveTabletPage() {
             let pauseReason = undefined;
 
             if (mode === 'MENU_PAUSA') {
-                actionName = 'REGISTAR_PAUSA';
-                pauseReason = pausaOptions[pausaIndex];
+                if (pausaOptions[pausaIndex] === 'Regressar (Trabalho)') {
+                    actionName = 'FIM_PAUSA';
+                } else {
+                    actionName = 'REGISTAR_PAUSA';
+                    pauseReason = pausaOptions[pausaIndex];
+                }
             } else if (mode === 'MENU_FIM') {
                 actionName = 'FECHAR_ESTACAO';
             } else if (mode === 'IDLE') {
@@ -320,6 +331,8 @@ export default function InteractiveTabletPage() {
             catch (e) { data = { success: false, display: 'ERRO JSON', display_2: rawText.substring(0, 12) }; }
 
             if (res.ok && data.success) {
+                setFlashState('SUCCESS');
+                setTimeout(() => setFlashState('IDLE'), 800);
                 setLcdLine1(data.display?.substring(0, 16) || 'SUCESSO');
                 setLcdLine2(data.display_2?.substring(0, 16) || '');
                 if (actionName === 'FECHAR_ESTACAO') {
@@ -328,6 +341,8 @@ export default function InteractiveTabletPage() {
                 // Refresh HR states
                 refreshStationData();
             } else {
+                setFlashState('ERROR');
+                setTimeout(() => setFlashState('IDLE'), 800);
                 setLcdLine1(data.display?.substring(0, 16) || '! ACESSO NEGADO');
                 setLcdLine2(data.display_2?.substring(0, 16) || data.error?.substring(0, 16) || '');
             }
@@ -418,7 +433,11 @@ export default function InteractiveTabletPage() {
     };
 
     return (
-        <div className="min-h-screen bg-[#0a0a0a] text-slate-200 flex flex-col font-sans">
+        <div className="min-h-screen bg-[#0a0a0a] text-slate-200 flex flex-col font-sans relative">
+            
+            {/* Visual Flash Overlays */}
+            <div className={`absolute inset-0 z-50 pointer-events-none transition-opacity duration-300 ${flashState === 'SUCCESS' ? 'opacity-100 bg-green-500/30' : flashState === 'ERROR' ? 'opacity-100 bg-red-600/40' : 'opacity-0'}`}></div>
+
             {/* 1. GLOBAL HEADER BAR */}
             <header className="bg-slate-900 border-b border-slate-800 p-4 flex flex-col gap-4 shadow-xl z-20">
                 <div className="flex flex-col md:flex-row items-center justify-between gap-4">

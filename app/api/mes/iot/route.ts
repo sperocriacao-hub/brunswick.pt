@@ -151,6 +151,16 @@ export async function POST(req: Request) {
             return NextResponse.json({ success: true, display: 'PAUSA INICIADA', display_2: validMotivo });
         }
 
+        // 2.6 AÇÃO: FIM DE PAUSA DIRETO (Novo Botão HMI)
+        if (action === 'FIM_PAUSA') {
+            await supabase.from('log_pausas_operador')
+                .update({ timestamp_fim: new Date().toISOString() })
+                .eq('operador_rfid', operador_rfid)
+                .is('timestamp_fim', null);
+            
+            return NextResponse.json({ success: true, display: 'PAUSA TERMINADA', display_2: 'BOM TRABALHO' });
+        }
+
         // 3. AÇÃO: MACRO-OEE (FECHAR A ESTAÇÃO APÓS BOTÃO FÍSICO UP+SELECT)
         if (action === 'FECHAR_ESTACAO') {
             if (!op_id || !estacao_id) {
@@ -166,23 +176,35 @@ export async function POST(req: Request) {
                 return NextResponse.json({ success: false, error: errFecho.message, display: 'JA FECHADO' });
             }
 
-            // [FASE 44.1] KITTING LOGÍSTICO J.I.T. (TRIGGER COM OFFSET CONFIGURÁVEL)
+            // [FASE 44.1] KITTING LOGÍSTICO J.I.T. (TRIGGER Dinâmico Baseado no Roteiro do Barco)
             try {
-                const { data: seq } = await supabase
-                    .from('estacoes_sequencia')
-                    .select('estacao_sucessora_id, requer_kitting, kitting_offset_horas')
-                    .eq('estacao_predecessora_id', estacao_id)
-                    .limit(1)
+                // Descobrir qual é o Roteiro atual desta estação para o Modelo do Barco
+                const { data: routeInfo } = await supabase
+                    .from('roteiros_producao')
+                    .select('sequencia, modelo_id')
+                    .eq('modelo_id', (await supabase.from('ordens_producao').select('modelo_id').eq('id', op_id).single()).data?.modelo_id)
+                    .eq('estacao_id', estacao_id)
                     .single();
 
-                if (seq && seq.estacao_sucessora_id && seq.requer_kitting) {
-                    await supabase.from('logistica_pedidos').insert({
-                        ordem_producao_id: op_id,
-                        estacao_destino_id: seq.estacao_sucessora_id,
-                        status: 'Pendente',
-                        prioridade: 'Normal', // Ou cruzar com offset para urgência matemática
-                        peca_solicitada: `Kit Previsto (Ofst: ${seq.kitting_offset_horas}h)`
-                    });
+                if (routeInfo) {
+                    // Descobrir a próxima estação no roteiro deste modelo (sequencia atual + 1)
+                    const { data: nextRoute } = await supabase
+                        .from('roteiros_producao')
+                        .select('estacao_id')
+                        .eq('modelo_id', routeInfo.modelo_id)
+                        .eq('sequencia', routeInfo.sequencia + 1)
+                        .single();
+
+                    if (nextRoute && nextRoute.estacao_id) {
+                        // Inserir logistica para a próxima estação!
+                        await supabase.from('logistica_pedidos').insert({
+                            ordem_producao_id: op_id,
+                            estacao_destino_id: nextRoute.estacao_id,
+                            status: 'Pendente',
+                            prioridade: 'Normal',
+                            peca_solicitada: `Kitting Automático JIT (Preparar Próxima Estação)`
+                        });
+                    }
                 }
             } catch (kittingErr) {
                 console.error("Falha ao gerar Kitting Logistico:", kittingErr);
@@ -200,7 +222,7 @@ export async function POST(req: Request) {
             const { data: pendentes, error: errPend } = await supabase
                 .from('ordens_producao')
                 .select('id, op_numero, modelos!inner(nome_modelo)')
-                .in('status', ['PLANNED', 'Planeada', 'IN_PROGRESS', 'Em Produção'])
+                .in('status', ['PLANNED', 'IN_PROGRESS'])
                 .order('data_prevista_inicio', { ascending: true, nullsFirst: false }); // Fila Lógica
 
             if (errPend || !pendentes || pendentes.length === 0) {
