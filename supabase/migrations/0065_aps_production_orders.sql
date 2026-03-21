@@ -20,13 +20,16 @@ CREATE TABLE IF NOT EXISTS public.op_scenarios (
 );
 
 -- Trigger auto update
+DROP TRIGGER IF EXISTS update_op_scenarios_updated_at ON public.op_scenarios;
 CREATE TRIGGER update_op_scenarios_updated_at 
 BEFORE UPDATE ON public.op_scenarios 
 FOR EACH ROW EXECUTE FUNCTION set_current_timestamp_updated_at();
 
 -- RLS
 ALTER TABLE public.op_scenarios ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Leitura_Scenarios" ON public.op_scenarios;
 CREATE POLICY "Leitura_Scenarios" ON public.op_scenarios FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "CRUD_Scenarios" ON public.op_scenarios;
 CREATE POLICY "CRUD_Scenarios" ON public.op_scenarios FOR ALL TO authenticated USING (true);
 
 -- --------------------------------------------------------------------------------------
@@ -45,6 +48,9 @@ ALTER TABLE public.ordens_producao
     -- Estimated Delivery Time (Calculado ativamente pelo algoritmo com base em tempos históricos e offset)
     ADD COLUMN IF NOT EXISTS edt_estimado TIMESTAMPTZ,
     
+    -- Correção de Segurança: Restaurar columns caso o admin não tenha corrido a migração 0008 de planeamento base
+    ADD COLUMN IF NOT EXISTS data_prevista_inicio TIMESTAMPTZ,
+
     -- Tipo da OP ('Master' para o produto final, 'Sub-OP' para componentes dependentes)
     ADD COLUMN IF NOT EXISTS op_tipo VARCHAR(50) DEFAULT 'Master' CHECK (op_tipo IN ('Master', 'Sub-OP', 'Draft'));
 

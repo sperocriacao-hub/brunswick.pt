@@ -24,7 +24,31 @@ export async function buscarDadosAPS() {
 
         if (errBtl) throw errBtl;
 
-        return { success: true, ordens, bottlenecks };
+        const { data: moldesRaw, error: errMoldes } = await supabase
+            .from('moldes')
+            .select('id, nome_parte, rfid, ciclos_estimados, manutenir_em, status')
+            .neq('status', 'Retirado');
+
+        if (errMoldes) throw errMoldes;
+
+        return { success: true, ordens, bottlenecks, moldes: moldesRaw };
+    } catch (e: any) {
+        return { success: false, error: e.message };
+    }
+}
+
+export async function salvarPlaneamentoAPS(orderId: string, novaDataStr: string) {
+    try {
+        const cookieStore = cookies() as any;
+        const supabase = createClient(cookieStore);
+
+        const { error } = await supabase
+            .from('ordens_producao')
+            .update({ data_prevista_inicio: novaDataStr, status: 'PLANNED' })
+            .eq('id', orderId);
+
+        if (error) throw error;
+        return { success: true };
     } catch (e: any) {
         return { success: false, error: e.message };
     }

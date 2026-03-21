@@ -1,22 +1,84 @@
 "use client";
 
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Play, Pause, CheckCircle, AlertTriangle, ChevronRight, Filter } from "lucide-react";
-import { useState, useMemo } from "react";
+import { Play, Pause, CheckCircle, AlertTriangle, ChevronRight, Filter, GripVertical } from "lucide-react";
+import { useState, useMemo, useEffect } from "react";
 import { cn } from "@/lib/utils";
+import { DndContext, useDraggable, useDroppable, DragEndEvent, closestCenter } from '@dnd-kit/core';
+import { salvarPlaneamentoAPS } from "./actions";
 
-export default function ApsBoard({ inicialOrdens = [], historicoAps = [] }: { inicialOrdens: any[], historicoAps: any[] }) {
+// --- Custom Draggable for Orders ---
+function DraggableOrder({ order, children, className }: { order: any, children: React.ReactNode, className?: string }) {
+    const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+        id: order.id,
+        data: { order }
+    });
+
+    const style = transform ? {
+        transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+        zIndex: isDragging ? 50 : undefined,
+        opacity: isDragging ? 0.8 : 1
+    } : undefined;
+
+    return (
+        <div ref={setNodeRef} style={style} {...listeners} {...attributes} className={cn("cursor-grab active:cursor-grabbing", className)}>
+            {children}
+        </div>
+    );
+}
+
+// --- Custom Droppable for Dates ---
+function DroppableDate({ dateStr, children, className }: { dateStr: string, children: React.ReactNode, className?: string }) {
+    const { isOver, setNodeRef } = useDroppable({
+        id: `date-${dateStr}`,
+        data: { dateStr }
+    });
+
+    return (
+        <div ref={setNodeRef} className={cn(className, isOver && "bg-blue-50 ring-2 ring-inset ring-blue-400")}>
+            {children}
+        </div>
+    );
+}
+
+export default function ApsBoard({ inicialOrdens = [], historicoAps = [], moldesPlan = [] }: { inicialOrdens: any[], historicoAps: any[], moldesPlan?: any[] }) {
     const [viewMode, setViewMode] = useState<"timeline" | "workcenter" | "analytics">("timeline");
+    const [ordersState, setOrdersState] = useState(inicialOrdens);
 
-    const activeOrders = inicialOrdens;
     const bottlenecks = historicoAps.sort((a, b) => b.tempo_medio_real_minutos - a.tempo_medio_real_minutos);
+    const moldesEmRisco = moldesPlan.filter(m => m.status === 'Em Manutenção' || m.ciclos_estimados >= m.manutenir_em - 5);
 
     const today = new Date();
+    today.setHours(0, 0, 0, 0); // Normalize to local midnight
+    
     const daysArray = Array.from({ length: 14 }, (_, i) => {
         const d = new Date(today);
         d.setDate(today.getDate() + i);
         return d;
     });
+
+    // Split orders
+    const scheduledOrders = ordersState.filter(o => o.data_prevista_inicio);
+    const backlogOrders = ordersState.filter(o => !o.data_prevista_inicio);
+
+    const handleDragEnd = async (event: DragEndEvent) => {
+        const { active, over } = event;
+        if (!over) return;
+
+        const orderId = active.id as string;
+        const droppableId = over.id as string;
+
+        if (droppableId.startsWith('date-')) {
+            const novaDataStr = over.data.current?.dateStr;
+            if (novaDataStr) {
+                // Optimistic update
+                setOrdersState(prev => prev.map(o => o.id === orderId ? { ...o, data_prevista_inicio: novaDataStr, status: 'PLANNED' } : o));
+                
+                // Server persist
+                await salvarPlaneamentoAPS(orderId, novaDataStr);
+            }
+        }
+    };
 
     return (
         <div className="space-y-6">
@@ -49,103 +111,172 @@ export default function ApsBoard({ inicialOrdens = [], historicoAps = [] }: { in
             </div>
 
             {viewMode === "timeline" ? (
-                <Card className="overflow-hidden border-blue-200 shadow-sm">
-                    <CardHeader className="bg-slate-50 border-b pb-4">
-                        <div className="flex justify-between items-center">
-                            <CardTitle className="text-lg text-blue-900">Timeline de Ordens de Produção</CardTitle>
-                            <div className="flex space-x-4 text-sm text-slate-500 hidden md:flex">
-                                <span className="flex items-center"><span className="w-3 h-3 rounded-full bg-blue-400 mr-2"></span> No Prazo</span>
-                                <span className="flex items-center"><span className="w-3 h-3 rounded-full bg-orange-400 mr-2"></span> Risco de Atraso</span>
-                                <span className="flex items-center"><span className="w-3 h-3 rounded-full bg-red-500 mr-2"></span> Atrasado</span>
-                            </div>
-                        </div>
-                    </CardHeader>
-                    <CardContent className="p-0 overflow-x-auto">
-                        <div className="min-w-[800px]">
-                            {/* Gantt Header */}
-                            <div className="flex border-b bg-slate-50">
-                                <div className="w-1/4 p-3 font-semibold text-slate-600 border-r flex items-center shrink-0">
-                                    Ordem & Produto
-                                </div>
-                                <div className="w-3/4 flex">
-                                    {daysArray.map((day, i) => (
-                                        <div key={i} className="flex-1 border-r text-center py-2 text-xs text-slate-500 flex flex-col justify-center">
-                                            <span className="font-bold">{day.getDate()}</span>
-                                            <span>{day.toLocaleDateString('pt-PT', { weekday: 'short' })}</span>
+                <div className="space-y-4">
+                    {moldesEmRisco.length > 0 && (
+                        <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-3 shadow-sm">
+                            <AlertTriangle className="text-red-600 shrink-0 mt-0.5" size={18} />
+                            <div className="flex-1">
+                                <h4 className="font-bold text-red-900 text-sm">Alerta de Manutenções Preventivas de Moldes!</h4>
+                                <div className="mt-1 flex flex-wrap gap-2">
+                                    {moldesEmRisco.map(m => (
+                                        <div key={m.id} className="text-xs font-semibold bg-white border border-red-200 text-red-800 px-2 py-1 rounded">
+                                            {m.nome_parte} <span className="opacity-75 font-normal ml-1">({m.ciclos_estimados}/{m.manutenir_em} ciclos) - {m.status}</span>
                                         </div>
                                     ))}
                                 </div>
+                                <p className="text-xs text-red-700 mt-2">
+                                    Não arraste novas Ordens de Produção que dependam destes Moldes para os dias agendados sem validação do departamento de Manutenção.
+                                </p>
                             </div>
-
-                            {/* Gantt Rows */}
-                            <div className="divide-y relative">
-                                {activeOrders.map(order => {
-                                    const productName = order.modelos?.nome_modelo || "Produto Desconhecido";
-                                    const orderStart = new Date(order.data_prevista_inicio || today);
-                                    
-                                    let startOffsetDays = Math.floor((orderStart.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-                                    if (startOffsetDays < 0) startOffsetDays = 0;
-                                    
-                                    const durationDays = 5; // Placeholder temporário até termos o roteiro real mapeado
-                                    let barColor = "bg-blue-400 border-blue-500";
-                                    if (order.status === 'IN_PROGRESS') barColor = "bg-orange-400 border-orange-500"; 
-
-                                    return (
-                                        <div key={order.id} className="flex group hover:bg-slate-50 transition-colors">
-                                            <div className="w-1/4 p-3 border-r relative z-10 bg-white group-hover:bg-slate-50 flex items-center justify-between shrink-0">
-                                                <div>
-                                                    <div className="font-bold text-sm text-blue-900 truncate" title={productName}>
-                                                        {productName}
-                                                    </div>
-                                                    <div className="text-xs text-slate-500">
-                                                        <span>{order.op_numero}</span>
-                                                        <span className="mx-1">•</span>
-                                                        <span className={order.status === 'IN_PROGRESS' ? "text-orange-600 font-semibold" : ""}>
-                                                            {order.status === 'IN_PROGRESS' ? 'Em Progresso' : 'Planeado'}
-                                                        </span>
-                                                    </div>
+                        </div>
+                    )}
+                <DndContext onDragEnd={handleDragEnd} collisionDetection={closestCenter}>
+                <div className="flex flex-col xl:flex-row gap-6 items-start">
+                    {/* BACKLOG COLUMN */}
+                    <div className="w-full xl:w-64 shrink-0 space-y-3">
+                        <div className="bg-slate-100 rounded-lg p-3 border shadow-sm">
+                            <h3 className="font-bold text-slate-700 text-sm mb-3 flex items-center justify-between">
+                                Por Planear (Backlog)
+                                <span className="bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full text-xs">{backlogOrders.length}</span>
+                            </h3>
+                            <div className="space-y-2 max-h-[600px] overflow-y-auto pr-1">
+                                {backlogOrders.map(order => (
+                                    <DraggableOrder key={order.id} order={order} className="bg-white border rounded p-2 shadow-sm relative group flex items-start gap-2">
+                                        <GripVertical className="h-4 w-4 text-slate-300 mt-1 cursor-grab" />
+                                        <div>
+                                            <div className="text-xs font-bold text-blue-900 leading-tight">
+                                                {order.modelos?.nome_modelo || "Produto"}
+                                            </div>
+                                            <div className="text-[10px] text-slate-500 mt-0.5">
+                                                {order.op_numero}
+                                            </div>
+                                            {order.op_tipo === 'Sub-OP' && (
+                                                <div className="text-[9px] mt-1 bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded w-max">
+                                                    Sub-OP de {order.parent_op_id?.substring(0,4)}
                                                 </div>
-                                                <button className="p-1 hover:bg-slate-200 rounded">
-                                                    <ChevronRight className="h-4 w-4" />
-                                                </button>
-                                            </div>
-
-                                            <div className="w-3/4 flex relative">
-                                                {daysArray.map((_, i) => (
-                                                    <div key={i} className="flex-1 border-r h-full"></div>
-                                                ))}
-
-                                                {startOffsetDays < daysArray.length && (
-                                                    <div 
-                                                        className={cn(
-                                                            "absolute top-2 bottom-2 rounded cursor-pointer shadow-sm border flex items-center px-2 z-10 transition-transform hover:scale-[1.01]",
-                                                            barColor
-                                                        )}
-                                                        style={{ 
-                                                            left: ((startOffsetDays / daysArray.length) * 100) + "%",
-                                                            width: ((Math.min(durationDays, daysArray.length - startOffsetDays) / daysArray.length) * 100) + "%"
-                                                        }}
-                                                        title={"Início: " + orderStart.toLocaleDateString() + " | Duração Prev.: " + durationDays + " dias"}
-                                                    >
-                                                        <span className="text-[10px] font-bold text-white truncate drop-shadow-md">
-                                                            {order.op_tipo === 'Sub-OP' ? `Componente filho de ${order.parent_op_id?.substring(0,4)}` : "Montagem Principal"}
-                                                        </span>
-                                                    </div>
-                                                )}
-                                            </div>
+                                            )}
                                         </div>
-                                    );
-                                })}
-                                
-                                {activeOrders.length === 0 && (
-                                    <div className="p-8 text-center text-slate-500">
-                                        Nenhuma ordem ativa.
+                                    </DraggableOrder>
+                                ))}
+                                {backlogOrders.length === 0 && (
+                                    <div className="text-xs text-center text-slate-500 py-4 opacity-60">
+                                        Nenhuma OP pendente.
                                     </div>
                                 )}
                             </div>
                         </div>
-                    </CardContent>
-                </Card>
+                    </div>
+
+                    {/* GANTT AREA */}
+                    <Card className="flex-1 overflow-hidden border-blue-200 shadow-sm w-full">
+                        <CardHeader className="bg-slate-50 border-b pb-4">
+                            <div className="flex justify-between items-center">
+                                <CardTitle className="text-lg text-blue-900">Programação Gantt</CardTitle>
+                                <div className="flex space-x-4 text-sm text-slate-500 hidden xl:flex">
+                                    <span className="flex items-center"><span className="w-3 h-3 rounded-full bg-blue-400 mr-2"></span> No Prazo</span>
+                                    <span className="flex items-center"><span className="w-3 h-3 rounded-full bg-orange-400 mr-2"></span> Risco de Atraso</span>
+                                    <span className="flex items-center"><span className="w-3 h-3 rounded-full bg-red-500 mr-2"></span> Atrasado</span>
+                                </div>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="p-0 overflow-x-auto">
+                            <div className="min-w-[800px] lg:min-w-0">
+                                {/* Gantt Header */}
+                                <div className="flex border-b bg-slate-50">
+                                    <div className="w-1/4 p-3 font-semibold text-slate-600 border-r flex items-center shrink-0">
+                                        Ordem Escalonada
+                                    </div>
+                                    <div className="w-3/4 flex">
+                                        {daysArray.map((day, i) => (
+                                            <div key={i} className="flex-1 border-r text-center py-2 text-xs text-slate-500 flex flex-col justify-center">
+                                                <span className="font-bold">{day.getDate()}</span>
+                                                <span>{day.toLocaleDateString('pt-PT', { weekday: 'short' })}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Gantt Rows */}
+                                <div className="divide-y relative">
+                                    {/* Mapeamento das Ordens já planeadas */}
+                                    {scheduledOrders.map((order, orderIndex) => {
+                                        const productName = order.modelos?.nome_modelo || "Produto Desconhecido";
+                                        const orderStart = new Date(order.data_prevista_inicio);
+                                        orderStart.setHours(0,0,0,0);
+                                        
+                                        let startOffsetDays = Math.floor((orderStart.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                                        
+                                        const durationDays = 5; // Placeholder
+                                        let barColor = "bg-blue-400 border-blue-500";
+                                        if (order.status === 'IN_PROGRESS') barColor = "bg-orange-400 border-orange-500"; 
+
+                                        return (
+                                            <div key={order.id} className="flex group hover:bg-slate-50 transition-colors h-14 relative">
+                                                <DraggableOrder order={order} className="w-1/4 p-2 border-r relative z-20 bg-white group-hover:bg-slate-50 flex items-center justify-between shrink-0 h-full">
+                                                    <div className="flex items-center gap-2 overflow-hidden">
+                                                        <GripVertical className="h-4 w-4 text-slate-200 shrink-0" />
+                                                        <div className="overflow-hidden">
+                                                            <div className="font-bold text-sm text-blue-900 truncate" title={productName}>
+                                                                {productName}
+                                                            </div>
+                                                            <div className="text-xs text-slate-500 truncate">
+                                                                <span>{order.op_numero}</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </DraggableOrder>
+
+                                                <div className="w-3/4 flex relative z-10">
+                                                    {daysArray.map((day, i) => (
+                                                        <DroppableDate key={i} dateStr={day.toISOString()} className="flex-1 border-r h-full relative" />
+                                                    ))}
+
+                                                    {startOffsetDays < daysArray.length && startOffsetDays >= -durationDays && (
+                                                        <div 
+                                                            className={cn(
+                                                                "absolute top-1.5 bottom-1.5 rounded cursor-pointer shadow-sm border flex items-center px-2 z-10 transition-transform hover:scale-[1.01] pointer-events-none",
+                                                                barColor
+                                                            )}
+                                                            style={{ 
+                                                                left: `${Math.max(0, (startOffsetDays / daysArray.length) * 100)}%`,
+                                                                width: `${Math.min((durationDays - (startOffsetDays < 0 ? Math.abs(startOffsetDays) : 0)) / daysArray.length, 1) * 100}%`
+                                                            }}
+                                                            title={`Início: ${orderStart.toLocaleDateString()}`}
+                                                        >
+                                                            <span className="text-[10px] font-bold text-white truncate drop-shadow-md">
+                                                                {order.op_tipo === 'Sub-OP' ? `Cmp ${order.parent_op_id?.substring(0,4)}` : "Montagem"}
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+
+                                    {/* Empty Track row that functions as a wide droppable zone to schedule new backlog items on the first available empty line */}
+                                    <div className="flex h-14 relative opacity-50 bg-slate-50 border-t-2 border-dashed">
+                                        <div className="w-1/4 p-2 border-r flex flex-col justify-center items-center text-slate-400 text-xs text-center px-4 font-medium shrink-0">
+                                            Arraste uma OP do Backlog aqui
+                                        </div>
+                                        <div className="w-3/4 flex">
+                                            {daysArray.map((day, i) => (
+                                                <DroppableDate key={i} dateStr={day.toISOString()} className="flex-1 border-r h-full relative" />
+                                            ))}
+                                        </div>
+                                    </div>
+                                    
+                                    {scheduledOrders.length === 0 && (
+                                        <div className="p-8 text-center text-slate-500 absolute inset-0 flex items-center justify-center bg-white/50 z-0">
+                                            Nenhuma ordem programada no Gantt.
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+                </DndContext>
+                </div>
             ) : viewMode === "workcenter" ? (
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                     <Card>
