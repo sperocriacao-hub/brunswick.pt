@@ -1,22 +1,34 @@
-import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 
-export async function GET(req: NextRequest) {
-  try {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-    const supabaseAdmin = createClient(supabaseUrl, supabaseKey);
+export const dynamic = 'force-dynamic';
 
-    const { data: subsData, error } = await supabaseAdmin
-        .from('qcis_audits')
-        .select('substation_name');
+export async function GET() {
+    try {
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+        
+        const supabase = createClient(supabaseUrl, supabaseKey);
 
-    if (error) return NextResponse.json({ error });
+        const { data: topTalentosData, error: talentErr } = await supabase
+            .from('operadores')
+            .select('id, nome_operador, matriz_talento_media, status')
+            .eq('status', 'Ativo')
+            .not('matriz_talento_media', 'is', null)
+            .order('matriz_talento_media', { ascending: false })
+            .limit(3);
 
-    const subs = Array.from(new Set(subsData.map(d => String(d.substation_name).trim().toLowerCase())));
+        const { data: rawEvals } = await supabase
+            .from('avaliacoes_diarias')
+            .select('*')
+            .limit(5);
 
-    return NextResponse.json({ subs });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
+        return NextResponse.json({ 
+            top_talentos: topTalentosData, 
+            error: talentErr,
+            raw_evals: rawEvals
+        });
+    } catch (e: any) {
+        return NextResponse.json({ error: e.message }, { status: 500 });
+    }
 }
