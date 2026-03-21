@@ -159,7 +159,6 @@ export function Sidebar({
               })}
 
             {(hasAccess("/admin/producao/ordens") ||
-              hasAccess("/admin/producao/planeamento") ||
               hasAccess("/admin/producao/aps") ||
               hasAccess("/admin/producao/live")) && (
                 <div className="mt-8">
@@ -196,25 +195,6 @@ export function Sidebar({
                         </svg>
                         <span className="text-sm border-transparent">
                           Ordens de Produção
-                        </span>
-                      </Link>
-                    )}
-                    {hasAccess("/admin/producao/planeamento") && (
-                      <Link
-                        onClick={() => setIsOpen(false)}
-                        href="/admin/producao/planeamento"
-                        className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes("/admin/producao/planeamento") ? "bg-blue-800 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
-                      >
-                        <CalendarDays
-                          size={18}
-                          className={
-                            pathname.includes("/admin/producao/planeamento")
-                              ? "text-white"
-                              : "text-blue-300"
-                          }
-                        />
-                        <span className="text-sm border-transparent">
-                          Planeamento Semanal
                         </span>
                       </Link>
                     )}

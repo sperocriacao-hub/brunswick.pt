@@ -5,7 +5,6 @@ import { useParams } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
 import { AlertTriangle, Clock, Factory, MonitorPlay, ShieldCheck, Trophy, Target, TrendingUp, Zap, Clock4, CheckCircle2, UserX, Activity, HeartPulse, PackageCheck, Award, Star } from 'lucide-react';
 import { buscarDashboardsTV } from '../../actions';
-import KanbanBoard from '../../../admin/producao/planeamento/components/KanbanBoard';
 
 // Supabase Anon Client for Websockets Listeners ONLY
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -139,8 +138,10 @@ export default function CustomTVDashboardPage() {
                     </div>
                 </header>
                 
-                <div className="flex-1 overflow-hidden p-4 relative kanban-tv-wrapper bg-slate-950">
-                     <KanbanBoard inicialOrdens={planeamentoOrdens} />
+                <div className="flex-1 overflow-hidden p-4 relative flex flex-col items-center justify-center bg-slate-950 text-slate-500">
+                     <AlertTriangle size={80} className="mb-4 text-amber-500 opacity-60" />
+                     <h2 className="text-3xl font-bold tracking-widest uppercase">Visualização Preditiva do APS (Em Breve)</h2>
+                     <p className="max-w-xl text-center mt-4">A visualização do Módulo de Planeamento Antigo foi descontinuada pela nova Torre de Controlo. Altere o "Tipo de Alvo" da TV na gestão de ecrãs.</p>
                 </div>
             </div>
         );

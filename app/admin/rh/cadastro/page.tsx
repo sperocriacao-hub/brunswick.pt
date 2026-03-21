@@ -350,9 +350,9 @@ function FuncionarioFormCore() {
                                     </label>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                                         {[
-                                            { path: "/admin/producao/ordens", label: "Ordens de Produção", group: "Planeamento" },
-                                            { path: "/admin/producao/planeamento", label: "Planeamento Semanal", group: "Planeamento" },
-                                            { path: "/admin/producao/live", label: "Monitorização Live", group: "Planeamento" },
+                                            { path: "/admin/producao/ordens", label: "Gestão de Ordens", group: "Planeamento" },
+                                            { path: "/admin/producao/aps", label: "Control Tower / APS Gantt", group: "Planeamento" },
+                                            { path: "/admin/producao/live", label: "Andon TV & SCADA", group: "Planeamento" },
 
                                             { path: "/operador", label: "Terminal HMI Central", group: "Produção" },
                                             { path: "/admin/producao/andon", label: "Saúde OEE do Andon", group: "Produção" },
