@@ -390,8 +390,9 @@ function FuncionarioFormCore() {
 
                                             { path: "/admin/producao/logs", label: "Auditoria Telemetria", group: "Sistema" },
                                             { path: "/admin/diagnostico", label: "Central Dispositivos", group: "Sistema" },
-                                            { path: "/admin/configuracoes", label: "Configurações Globais", group: "Sistema" },
-                                            { path: "/admin/configuracoes/tvs", label: "Hardware & Displays", group: "Sistema" },
+                                            { path: "/admin/configuracoes/gerais", label: "Gerais da Fábrica", group: "Configuração" },
+                                            { path: "/admin/qa", label: "Laboratório QA (Auto-Tester)", group: "Configuração" },
+                                            { path: "/admin/configuracoes/utilizadores", label: "Níveis de Acesso", group: "Configuração" },
                                         ].map(module => {
                                             const isChecked = formData.permissoes_modulos.includes(module.path);
                                             return (

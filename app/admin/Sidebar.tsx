@@ -22,6 +22,10 @@ import {
   History,
   Award,
   Monitor,
+  Tv,
+  Users,
+  Wifi,
+  FlaskConical
 } from "lucide-react";
 
 export function Sidebar({
@@ -862,6 +866,25 @@ export function Sidebar({
                         />
                         <span className="text-sm border-transparent">
                           Configurações Globais
+                        </span>
+                      </Link>
+                    )}
+                    {hasAccess("/admin/qa") && (
+                      <Link
+                        onClick={() => setIsOpen(false)}
+                        href="/admin/qa"
+                        className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes("/admin/qa") ? "bg-blue-800 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
+                      >
+                        <FlaskConical
+                          size={18}
+                          className={
+                            pathname.includes("/admin/qa")
+                              ? "text-white"
+                              : "text-slate-400"
+                          }
+                        />
+                        <span className="text-sm border-transparent">
+                          Laboratório QA (Auto-Tester)
                         </span>
                       </Link>
                     )}
