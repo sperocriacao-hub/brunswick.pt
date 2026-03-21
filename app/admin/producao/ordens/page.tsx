@@ -47,6 +47,8 @@ export default function GeneralOrdersDashboard() {
             setLinhas(res.linhas || []);
             setAreas(res.areas || []);
             setWips(res.wips || []);
+        } else {
+            alert('🚨 ERRO DB: ' + res.error);
         }
         setIsLoading(false);
     };
@@ -121,12 +123,12 @@ export default function GeneralOrdersDashboard() {
 
         const opsCountByLinha = linhas.map(l => ({
         nome: l.nome_linha,
-        count: orders.filter(o => o.linha_id === l.id).length
+        count: filteredOrders.filter(o => o.linha_id === l.id).length
     })).filter(x => x.count > 0);
 
     const opsCountByArea = areas.map(a => ({
         nome: a.nome_area,
-        count: orders.filter(o => {
+        count: filteredOrders.filter(o => {
             const activeRfid = wips.find(w => w.op_id === o.id);
             return activeRfid?.estacoes?.area_id === a.id;
         }).length
@@ -163,7 +165,7 @@ export default function GeneralOrdersDashboard() {
                         </div>
                         <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total OTs</p>
                     </div>
-                    <p className="text-2xl font-black text-slate-800">{orders.length}</p>
+                    <p className="text-2xl font-black text-slate-800">{filteredOrders.length}</p>
                 </Card>
                 <Card className="p-4 border-slate-200 shadow-sm flex flex-col justify-center">
                     <div className="flex items-center gap-3 mb-2">
@@ -173,7 +175,7 @@ export default function GeneralOrdersDashboard() {
                         <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Em Produção</p>
                     </div>
                     <p className="text-2xl font-black text-emerald-600">
-                        {orders.filter(o => o.status === 'Em Producao').length}
+                        {filteredOrders.filter(o => o.status === 'Em Producao').length}
                     </p>
                 </Card>
                 {/* Indicador OPs por Linha */}

@@ -36,7 +36,10 @@ export async function getProductionOrders() {
                 .is('timestamp_fim', null)
         ]);
 
-        if (ordensResult.error) throw ordensResult.error;
+        if (ordensResult.error) throw new Error("Ordens DB Error: " + JSON.stringify(ordensResult.error));
+        if (linhasResult.error) throw new Error("Linhas DB Error: " + JSON.stringify(linhasResult.error));
+        if (areasResult.error) throw new Error("Areas DB Error: " + JSON.stringify(areasResult.error));
+        if (wipsResult.error) throw new Error("WIP DB Error: " + JSON.stringify(wipsResult.error));
 
         return { 
             success: true, 
@@ -47,7 +50,7 @@ export async function getProductionOrders() {
         };
     } catch (error: any) {
         console.error('Error fetching production orders and filters:', error);
-        return { success: false, error: 'Falha ao carregar o histórico e filtros.' };
+        return { success: false, error: error.message || 'Falha desconhecida.' };
     }
 }
 
