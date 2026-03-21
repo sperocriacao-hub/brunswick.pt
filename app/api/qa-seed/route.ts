@@ -9,7 +9,7 @@ export async function POST() {
         const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
         const supabase = createClient(supabaseUrl, supabaseKey);
 
-        const logs = [];
+        const logs: string[] = [];
         const addToLogs = (msg: string) => logs.push(msg);
         addToLogs("⚙️ Inicializando Motor de Injeção de Massa de Dados...");
 
