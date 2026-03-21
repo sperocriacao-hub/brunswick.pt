@@ -74,8 +74,8 @@ export default function GeneralOrdersDashboard() {
 
         if (filterMes) {
             result = result.filter(o => {
-                if (!o.data_inicio) return false;
-                const d = new Date(o.data_inicio);
+                if (!o.data_fim) return false;
+                const d = new Date(o.data_fim);
                 const monthStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
                 return monthStr === filterMes;
             });
@@ -147,19 +147,36 @@ export default function GeneralOrdersDashboard() {
 
     const calcPerc = (concl: number, tot: number) => tot === 0 ? 0 : Math.round((concl / tot) * 100);
 
-    const totalThisMonth = filteredOrders.length;
-    const concluidasThisMonth = filteredOrders.filter(o => o.status === 'Concluida').length;
+    const activeOrdersMonth = filteredOrders.filter(o => o.status !== 'Cancelada');
+    const totalThisMonth = activeOrdersMonth.length;
+    const concluidasThisMonth = activeOrdersMonth.filter(o => o.status === 'Concluida').length;
     const percentConcluidoFabrica = calcPerc(concluidasThisMonth, totalThisMonth);
 
     const calculateTakt = (linhaId?: string) => {
-        const currentDate = new Date();
-        const currentMonth = currentDate.getMonth();
-        const currentYear = currentDate.getFullYear();
-        const lastDayOfMonth = new Date(currentYear, currentMonth + 1, 0);
+        const today = new Date();
+        today.setHours(0,0,0,0);
+        let startCalcDate = new Date(today);
+        let year = today.getFullYear();
+        let month = today.getMonth();
+
+        if (filterMes) {
+            const [fY, fM] = filterMes.split('-');
+            year = parseInt(fY);
+            month = parseInt(fM) - 1;
+            // Se o mes selecionado for no passado ou futuro, contamos dias inteiros
+            if (year !== today.getFullYear() || month !== today.getMonth()) {
+                startCalcDate = new Date(year, month, 1);
+            }
+        }
+        
+        const lastDayOfMonth = new Date(year, month + 1, 0);
+        if (startCalcDate > lastDayOfMonth) {
+            // Histórico
+            startCalcDate = new Date(year, month, 1);
+        }
 
         let remainingWorkingDays = 0;
-        let d = new Date(currentDate);
-        d.setHours(0,0,0,0);
+        let d = new Date(startCalcDate);
 
         while (d <= lastDayOfMonth) {
             const dayOfWeek = d.getDay();
@@ -179,10 +196,16 @@ export default function GeneralOrdersDashboard() {
 
         let boatsToFinish = filteredOrders.filter(o => {
             if (linhaId && o.linha_id !== linhaId) return false;
+            // Nao conta barcos que estao concluidos ou cancelados (ja nao exigem dias de trabalho)
             if (o.status === 'Cancelada' || o.status === 'Concluida') return false;
-            if (!o.data_fim) return false;
-            const endD = new Date(o.data_fim);
-            return endD.getMonth() === currentMonth && endD.getFullYear() === currentYear;
+            
+            // Se nao preencher o filterMes, deve contar apenas OPs planeadas para acabar este mes alvo
+            if (!filterMes) {
+                if (!o.data_fim) return false;
+                const ed = new Date(o.data_fim);
+                if (ed.getFullYear() !== year || ed.getMonth() !== month) return false;
+            }
+            return true;
         }).length;
 
         if (remainingWorkingDays === 0) return boatsToFinish > 0 ? "⚠️" : "0.0";
@@ -190,7 +213,7 @@ export default function GeneralOrdersDashboard() {
     };
 
     const opsCountByLinha = linhas.map(l => {
-        const opsLinha = filteredOrders.filter(o => o.linha_id === l.id);
+        const opsLinha = filteredOrders.filter(o => o.linha_id === l.id && o.status !== 'Cancelada');
         const concls = opsLinha.filter(o => o.status === 'Concluida').length;
         return {
             nome: "Linha " + l.letra_linha,
