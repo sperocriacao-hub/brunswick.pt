@@ -90,23 +90,30 @@ export async function POST(req: Request) {
 
         if (phase === 'MASS_TEST') {
             simLog("☢️ HYPER STRESS TEST ATIVADO ☢️");
-            simLog(`   -> Disparando ${ordens.length * 4} ações concorrentes na Cloud...`);
+            simLog(`   -> Disparando o Ciclo Produtivo Assíncrono para ${ordens.length} Navios simultaneamente...`);
             
-            const massPromises = [];
-            for (let i = 0; i < ordens.length; i++) {
-                const targetOp = ordens[i];
+            const massPromises = ordens.map(async (targetOp, i) => {
                 const targetOperador = operadores[i % operadores.length];
+                let threadFails = 0;
                 
-                massPromises.push(fireIoT('TOGGLE_TAREFA', { action: 'TOGGLE_TAREFA', operador_rfid: targetOperador.tag_rfid_operador, estacao_id: estacaoId, op_id: targetOp.id }));
-                massPromises.push(fireIoT('TOGGLE_TAREFA', { action: 'TOGGLE_TAREFA', operador_rfid: targetOperador.tag_rfid_operador, estacao_id: estacaoId, op_id: targetOp.id }));
-                massPromises.push(fireIoT('FECHAR_ESTACAO', { action: 'FECHAR_ESTACAO', operador_rfid: targetOperador.tag_rfid_operador, estacao_id: estacaoId, op_id: targetOp.id }));
-            }
+                const r1: any = await fireIoT('TOGGLE_TAREFA', { action: 'TOGGLE_TAREFA', operador_rfid: targetOperador.tag_rfid_operador, estacao_id: estacaoId, op_id: targetOp.id });
+                if (!r1.success) threadFails++;
+                
+                const r2: any = await fireIoT('TOGGLE_TAREFA', { action: 'TOGGLE_TAREFA', operador_rfid: targetOperador.tag_rfid_operador, estacao_id: estacaoId, op_id: targetOp.id });
+                if (!r2.success) threadFails++;
+                
+                const r3: any = await fireIoT('FECHAR_ESTACAO', { action: 'FECHAR_ESTACAO', operador_rfid: targetOperador.tag_rfid_operador, estacao_id: estacaoId, op_id: targetOp.id });
+                if (!r3.success) threadFails++;
+
+                return threadFails;
+            });
             
             const results = await Promise.all(massPromises);
-            const fails = results.filter(r => !r.success).length;
-            simLog(`🔥 Mass Promise Cluster Resolvido. Total Requisições Cump: ${results.length}. Falhas Concorrentes: ${fails}.`);
+            const fails = results.reduce((acc, curr) => acc + curr, 0);
+            
+            simLog(`🔥 Simulação Concorrente Cluster Resolvida. Total Navios Emulados: ${ordens.length}. Falhas Transacionais DB: ${fails}.`);
             simLog("🏁 CORE STRESS TEST SYSTEM SOBREVIVEU!");
-            return NextResponse.json({ success: fails === 0 ? true : false, error: fails > 0 ? "Algumas transações falharam sob carga." : undefined, logs });
+            return NextResponse.json({ success: fails === 0 ? true : false, error: fails > 0 ? "Algumas transações colidiram na base de dados (Row Lock)." : undefined, logs });
         }
 
         return NextResponse.json({ success: false, error: "Phase inválida", logs });
