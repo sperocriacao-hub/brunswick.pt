@@ -15,18 +15,18 @@ export async function POST(req: Request) {
 
         simLog("🤖 INICIANDO QA BOT: Inspeção da Fábrica...");
 
-        // 1. Encontrar um Operador Ativo
-        const { data: operadores } = await supabase.from('operadores').select('*').eq('status', 'Ativo').limit(3);
+        // 1. Encontrar o Operador de QA Ativo
+        const { data: operadores } = await supabase.from('operadores').select('*').like('numero_operador', 'QA-%').eq('status', 'Ativo').limit(1);
         if (!operadores || operadores.length === 0) {
-            return NextResponse.json({ success: false, logs: [...logs, "❌ FALHA: Nenhum Operador 'Ativo' encontrado no sistema."] });
+            return NextResponse.json({ success: false, error: "Sem QA Operador", logs: [...logs, "❌ FALHA: O Operador 'Auditor Chuck Norris' desapareceu."] });
         }
         const op = operadores[0];
         simLog(`✅ Operador Escalonado: ${op.nome_operador} (RFID: ${op.tag_rfid_operador})`);
 
-        // 2. Encontrar uma O.P em Planeamento ou Produção (até 100 recentes para saltar dados antigos sem roteiro)
-        const { data: ordens } = await supabase.from('ordens_producao').select('*').in('status', ['PLANNED', 'IN_PROGRESS']).order('created_at', { ascending: false }).limit(100);
+        // 2. Encontrar uma O.P em Planeamento ou Produção INJETADA PELO QA
+        const { data: ordens } = await supabase.from('ordens_producao').select('*').like('op_numero', 'QA-%').in('status', ['PLANNED', 'IN_PROGRESS']).order('created_at', { ascending: false }).limit(10);
         if (!ordens || ordens.length === 0) {
-            return NextResponse.json({ success: false, error: "Sem ordens", logs: [...logs, "❌ FALHA: Nenhuma OP 'PLANNED' ou 'IN_PROGRESS' encontrada. Crie uma Ordem de Produção no Admin primeiro."] });
+            return NextResponse.json({ success: false, error: "Sem ordens QA", logs: [...logs, "❌ FALHA: Nenhuma OP 'QA-TEST' encontrada. Clica no Botão Verde primeiro!"] });
         }
         
         let ordem = null;

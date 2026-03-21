@@ -81,16 +81,13 @@ export async function POST() {
             if (opRes.error) addToLogs(`❌ Erro BD (Operadores): ${opRes.error.message}`);
         }
         
-        // 5. Injectar OP no Gantt/Backlog
-        const { data: extOpProd } = await supabase.from('ordens_producao').select('id').like('op_numero', 'QA-TEST-%');
-        if (!extOpProd || extOpProd.length === 0) {
-            addToLogs("📦 A Adicionar Ordens de Produção 'QA-TEST-X' ao Backlog...");
-            const orRes = await supabase.from('ordens_producao').insert([
-                { op_numero: `QA-TEST-${Math.floor(Math.random() * 9999)}`, modelo_id: modelosIds[0], status: 'PLANNED', data_prevista_inicio: new Date().toISOString() },
-                { op_numero: `QA-TEST-${Math.floor(Math.random() * 9999)}`, modelo_id: modelosIds[0], status: 'PLANNED', data_prevista_inicio: null }
-            ]);
-            if (orRes.error) addToLogs(`❌ Erro BD (Ordens de Produção): ${orRes.error.message}`);
-        }
+        // 5. Injectar OP no Gantt/Backlog (Forçar criação a cada click)
+        addToLogs("📦 A Adicionar Ordens de Produção 'QA-TEST-X' ao Backlog...");
+        const orRes = await supabase.from('ordens_producao').insert([
+            { op_numero: `QA-TEST-${Math.floor(Math.random() * 99999)}`, modelo_id: modelosIds[0], status: 'PLANNED', data_prevista_inicio: new Date().toISOString() },
+            { op_numero: `QA-TEST-${Math.floor(Math.random() * 99999)}`, modelo_id: modelosIds[0], status: 'PLANNED', data_prevista_inicio: null }
+        ]);
+        if (orRes.error) addToLogs(`❌ Erro BD (Ordens de Produção): ${orRes.error.message}`);
         
         addToLogs("🎉 Injeção concluída. Verifica acima se existem ❌ Erros de Base de Dados.");
 
