@@ -23,8 +23,8 @@ export async function POST(req: Request) {
         const op = operadores[0];
         simLog(`✅ Operador Escalonado: ${op.nome_operador} (RFID: ${op.tag_rfid_operador})`);
 
-        // 2. Encontrar uma O.P em Planeamento ou Produção
-        const { data: ordens } = await supabase.from('ordens_producao').select('*').in('status', ['PLANNED', 'IN_PROGRESS']).limit(10);
+        // 2. Encontrar uma O.P em Planeamento ou Produção (até 100 recentes para saltar dados antigos sem roteiro)
+        const { data: ordens } = await supabase.from('ordens_producao').select('*').in('status', ['PLANNED', 'IN_PROGRESS']).order('created_at', { ascending: false }).limit(100);
         if (!ordens || ordens.length === 0) {
             return NextResponse.json({ success: false, error: "Sem ordens", logs: [...logs, "❌ FALHA: Nenhuma OP 'PLANNED' ou 'IN_PROGRESS' encontrada. Crie uma Ordem de Produção no Admin primeiro."] });
         }
