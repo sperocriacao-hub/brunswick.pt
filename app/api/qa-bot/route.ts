@@ -92,9 +92,10 @@ export async function POST(req: Request) {
             simLog("☢️ HYPER STRESS TEST ATIVADO ☢️");
             simLog(`   -> Disparando o Ciclo Produtivo Assíncrono para ${ordens.length} Navios simultaneamente, distribuídos pelos ${operadores.length} Operadores QA.`);
             
-            // Agrupar Navios por Operador (Simulação Física Correta: Um Operador não pode estar em dois postos no mesmo milisegundo)
             const operatorQueues: any[][] = operadores.map(() => []);
             ordens.forEach((o, i) => operatorQueues[i % operadores.length].push(o));
+
+            let allErrors: string[] = [];
 
             const operatorPromises = operatorQueues.map(async (queue, opIndex) => {
                 const targetOperador = operadores[opIndex];
@@ -102,13 +103,13 @@ export async function POST(req: Request) {
                 
                 for (const targetOp of queue) {
                     const r1: any = await fireIoT('TOGGLE_TAREFA', { action: 'TOGGLE_TAREFA', operador_rfid: targetOperador.tag_rfid_operador, estacao_id: estacaoId, op_id: targetOp.id });
-                    if (!r1.success) threadFails++;
+                    if (!r1.success) { threadFails++; allErrors.push(r1.error || r1.display); }
                     
                     const r2: any = await fireIoT('TOGGLE_TAREFA', { action: 'TOGGLE_TAREFA', operador_rfid: targetOperador.tag_rfid_operador, estacao_id: estacaoId, op_id: targetOp.id });
-                    if (!r2.success) threadFails++;
+                    if (!r2.success) { threadFails++; allErrors.push(r2.error || r2.display); }
                     
                     const r3: any = await fireIoT('FECHAR_ESTACAO', { action: 'FECHAR_ESTACAO', operador_rfid: targetOperador.tag_rfid_operador, estacao_id: estacaoId, op_id: targetOp.id });
-                    if (!r3.success) threadFails++;
+                    if (!r3.success) { threadFails++; allErrors.push(r3.error || r3.display); }
                 }
 
                 return threadFails;
@@ -117,9 +118,11 @@ export async function POST(req: Request) {
             const results = await Promise.all(operatorPromises);
             const fails = results.reduce((acc, curr) => acc + curr, 0);
             
-            simLog(`🔥 Cluster de Operadores Autônomos Resolvido. Total Navios Emulados: ${ordens.length}. Falhas Transacionais DB: ${fails}.`);
-            simLog("🏁 CORE STRESS TEST SYSTEM SOBREVIVEU!");
-            return NextResponse.json({ success: fails === 0 ? true : false, error: fails > 0 ? "Algumas transações colidiram na base de dados (Row Lock)." : undefined, logs });
+            simLog(`🔥 Cluster de Operadores Autônomos Resolvido. Total Navios Emulados: ${ordens.length}. Transações Perdidas: ${fails}.`);
+            if (fails > 0) simLog(`⚠️ Amostra do Erro detetado: ${allErrors[0] || 'Unknown HTTP/DB Error'}`);
+            else simLog("🏁 CORE STRESS TEST SYSTEM SOBREVIVEU A 100%!");
+            
+            return NextResponse.json({ success: fails === 0 ? true : false, error: fails > 0 ? `Transações Rejeitadas (Motivo: ${allErrors[0]})` : undefined, logs });
         }
 
         return NextResponse.json({ success: false, error: "Phase inválida", logs });
