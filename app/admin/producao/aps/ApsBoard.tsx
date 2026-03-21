@@ -133,13 +133,18 @@ export default function ApsBoard({
                 // Optimistic update
                 setOrdersState(prev => prev.map(o => o.id === orderId ? { ...o, data_prevista_inicio: novaDataStr, status: 'PLANNED' } : o));
                 
-                // Server persist
-                await salvarPlaneamentoAPS(orderId, novaDataStr);
+                const res = await salvarPlaneamentoAPS(orderId, novaDataStr);
+                if (!res.success) {
+                    alert("Erro ao agendar ordem: " + res.error);
+                }
             }
         } else if (droppableId === 'backlog') {
             // Undo scheduling
-            setOrdersState(prev => prev.map(o => o.id === orderId ? { ...o, data_prevista_inicio: null, status: 'Draft' } : o));
-            await salvarPlaneamentoAPS(orderId, null);
+            setOrdersState(prev => prev.map(o => o.id === orderId ? { ...o, data_prevista_inicio: null, status: 'PLANNED' } : o));
+            const res = await salvarPlaneamentoAPS(orderId, null);
+            if (!res.success) {
+                alert("Erro ao devolver ordem ao Backlog: " + res.error);
+            }
         }
     };
 

@@ -15,7 +15,7 @@ export async function buscarDadosAPS() {
                 molde_casco_id, molde_coberta_id,
                 modelos ( nome_modelo )
             `)
-            .in('status', ['Draft', 'PLANNED', 'IN_PROGRESS']);
+            .in('status', ['PLANNED', 'IN_PROGRESS']);
             
         if (errOrdens) throw errOrdens;
 
@@ -62,7 +62,7 @@ export async function salvarPlaneamentoAPS(orderId: string, novaDataStr: string 
 
         const payload = novaDataStr 
             ? { data_prevista_inicio: novaDataStr, status: 'PLANNED' }
-            : { data_prevista_inicio: null, status: 'Draft' };
+            : { data_prevista_inicio: null, status: 'PLANNED' };
 
         const { error } = await supabase
             .from('ordens_producao')
