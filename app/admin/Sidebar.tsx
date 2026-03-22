@@ -907,6 +907,25 @@ export function Sidebar({
                         </span>
                       </Link>
                     )}
+                    {hasAccess("/admin/sistema/manual") && (
+                      <Link
+                        onClick={() => setIsOpen(false)}
+                        href="/admin/sistema/manual"
+                        className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes("/admin/sistema/manual") ? "bg-blue-800 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
+                      >
+                        <Settings
+                          size={18}
+                          className={
+                            pathname.includes("/admin/sistema/manual")
+                              ? "text-white"
+                              : "text-amber-400 drop-shadow-[0_0_5px_rgba(251,191,36,0.3)]"
+                          }
+                        />
+                        <span className="text-sm border-transparent text-amber-200">
+                          Manual da Plataforma
+                        </span>
+                      </Link>
+                    )}
                   </nav>
                 </>
               )}
@@ -914,7 +933,14 @@ export function Sidebar({
         </div>
 
         {/* Bottom Section - User Profile / Auth */}
-        <div className="p-4 border-t border-[rgba(255,255,255,0.05)] bg-[rgba(15,23,42,0.6)] mt-auto">
+        <div className="p-4 border-t border-[rgba(255,255,255,0.05)] bg-[rgba(15,23,42,0.6)] mt-auto flex flex-col gap-2">
+          {hasAccess("/admin/sistema/manual") && (
+              <Link href="/admin/sistema/manual" className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-amber-300/80 hover:text-amber-200 hover:bg-amber-900/30 rounded-md transition-colors border border-[rgba(251,191,36,0.1)] mb-1 shadow-sm">
+                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
+                 Guia de Utilizador Interativo
+              </Link>
+          )}
+
           <Link href="/admin/perfil" className="flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-blue-800/50 rounded-lg transition-colors border border-transparent hover:border-[rgba(255,255,255,0.1)] w-full">
             <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold shadow-sm shrink-0">
               {userEmail?.charAt(0).toUpperCase() || "A"}
