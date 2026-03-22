@@ -395,54 +395,6 @@ export default function ManualUtilizador() {
                           </div>
                       </div>
 
-                      {/* FLUXO MACRO / DATA ARCHITECTURE (Wireframe Representation) */}
-                      <div className="mb-14">
-                           <h3 className="text-[12px] font-extrabold text-slate-500 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
-                               <LayoutTemplate size={14}/> Topologia Estrutural
-                           </h3>
-                           <div className="bg-[rgba(15,25,45,0.6)] border border-slate-800 rounded-2xl p-6 sm:p-10 flex flex-col items-center justify-center relative overflow-hidden group hover:border-blue-900/50 transition-all">
-                               
-                               <div className="absolute inset-0 bg-gradient-to-t from-blue-900/5 to-transparent z-0 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                               
-                               {/* ABSTRACT GLOWING WIREFRAME DIAGRAM FOR REPLACEMENT OF IMAGES */}
-                               <div className="w-full flex flex-col gap-6 z-10">
-                                   <div className="flex items-center justify-between opacity-50 px-2 font-mono text-[10px] text-blue-300">
-                                       <span>{`<DATA_IN_PROTO>`}</span>
-                                       <span>PROCESS QUEUE ......................... ESTABLISHED</span>
-                                   </div>
-                                   
-                                   <div className="flex flex-col md:flex-row items-stretch justify-center gap-4">
-                                       <div className="flex-1 border border-dashed border-blue-500/30 rounded-xl p-6 bg-blue-950/20 backdrop-blur-sm flex flex-col items-center justify-center gap-3 text-center">
-                                           <Database size={24} className="text-blue-400 opacity-80" />
-                                           <div>
-                                               <p className="font-bold text-blue-100 text-sm">PostgreSQL Core</p>
-                                               <p className="font-mono text-[10px] text-slate-500 mt-1">Busca Registo Ativo</p>
-                                           </div>
-                                       </div>
-                                       
-                                       <div className="hidden md:flex flex-col justify-center items-center px-2">
-                                           <ArrowRightLeft size={20} className="text-slate-600" />
-                                       </div>
-                                       
-                                       <div className="flex-[2] border border-blue-500/30 rounded-xl p-6 bg-blue-900/10 backdrop-blur-sm flex items-center justify-between shadow-[inset_0_0_30px_rgba(37,99,235,0.05)]">
-                                            <div className="flex flex-col gap-4 w-full">
-                                                <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden flex">
-                                                    <div className="h-full bg-blue-500 w-[65%]"></div>
-                                                </div>
-                                                <div className="flex justify-between items-center text-xs">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
-                                                        <span className="text-emerald-400 font-mono">LIVE / {modData.name.substring(0,8).toUpperCase()}</span>
-                                                    </div>
-                                                    <span className="text-slate-500 font-mono">OK</span>
-                                                </div>
-                                            </div>
-                                       </div>
-                                   </div>
-                               </div>
-
-                           </div>
-                      </div>
 
                       {/* CAPTURA DE ECRÃ DO MÓDULO (SE DISPONÍVEL) */}
                       {modData.image && (
