@@ -18,6 +18,7 @@ const MANUAL_DATA = [
             name: "Modelos & Produtos",
             route: "/admin/modelos",
             description: "O passaporte do Navio. A base estrutural do catálogo construído na Brunswick.",
+            image: "/manual/v2_eng_modelos.png",
             sections: [
                 { title: "1. Criação Base", content: "Clique em 'Novo Modelo'. Defina o Código (ex: CS-25), Nome Comercial e a Família a que pertence (Cruiser, Sport, etc). Cada alteração ao ano/versão deve gerar um novo Modelo na DB para manter o histórico de SLA imutável." },
                 { title: "2. Cadastro PDM", content: "Após criar a base, acesse a configuração Avançada para definir características como o Calado e Boca, atrelando os atributos técnicos que limitam o transporte ou alocação nas baías de montagem." },
@@ -28,6 +29,7 @@ const MANUAL_DATA = [
             name: "Fábrica & Topologia",
             route: "/admin/fabrica",
             description: "O esqueleto físico da unidade industrial.",
+            image: "/manual/v2_fabrica.png",
             sections: [
                 { title: "1. Desenho do Chão", content: "A unidade divide-se em 'Áreas' (Lamination, Assembly, Setup). Crie a Área mestre primeiro." },
                 { title: "2. Adicionar Linhas", content: "Cada Área pode ter N Linhas (Linha A, Linha B). O Balanceamento Laboral é medido por este funil." },
@@ -38,6 +40,7 @@ const MANUAL_DATA = [
             name: "Cadastro de Moldes (Tooling)",
             route: "/admin/engenharia/moldes",
             description: "As ferramentas de injeção e cozedura do barco.",
+            image: "/manual/v2_eng_moldes.png",
             sections: [
                 { title: "1. Mapeamento da Ferramenta", content: "Descreva o Número de Série do molde, as suas tolerâncias térmicas e a que Peças de B.O.M ele serve." },
                 { title: "2. Limites de Engenharia (Preventiva)", content: "Crucial alertar o motor TPM: 'Este molde suporta N extrações antes de polimento obgiratório'. Se for ultrapassado, o APS recusa emitir O.P. para ele." },
@@ -48,6 +51,7 @@ const MANUAL_DATA = [
             name: "Gestão B.O.M & Roteiros OEE",
             route: "/admin/engenharia/roteiros",
             description: "O cordão umbilical que liga Peças a Estações.",
+            image: "/manual/v2_eng_roteiros.png",
             sections: [
                 { title: "1. Injeção de Peças Básicas", content: "Dentro do módulo, selecione o Barco e adicione os Nodos Estruturais associados (ex: 'Convés Principal'). Isto cria o esqueleto Genealógico na DB." },
                 { title: "2. Traçar Diagonais de Processo", content: "Para a Peça B.O.M acabada de criar, clique em 'Adicionar Passo'. Indique que esta peça vai cruzar a Estação X." },
@@ -59,6 +63,7 @@ const MANUAL_DATA = [
             name: "Cérebro APS: Regras de Sequência",
             route: "/admin/engenharia/regras",
             description: "Lógica avançada de Precedências para Automatismos de Escalonamento.",
+            image: "/manual/v2_eng_regras.png",
             sections: [
                 { title: "1. Regras de Offsets", content: "Para evitar estrangulamento de O.P.s, estabeleça folgas: 'O Polimento nunca deve arrancar antes de 2 horas sobre o término da Cura'." },
                 { title: "2. Tipos de Amarração", content: "Estações SS (Start-to-Start) ou FS (Finish-to-Start). Ao desenhar uma regra FS, o Gantt Board travará sempre que o Mestre tentar arrastar barras para a frente violando a física." }
@@ -76,6 +81,7 @@ const MANUAL_DATA = [
             name: "Emissão de Ordens de Produção",
             route: "/admin/producao/ordens",
             description: "O Epicentro onde os Navios Encomendados ganham um número de Chassi.",
+            image: "/manual/v2_producao_ordens.png",
             sections: [
                 { title: "1. Lançamento da O.P.", content: "Selecione o Modelo base e emita uma nova Ordem. Um ID Único será gerado e ficará em modo 'Draft'." },
                 { title: "2. Data Target & Client", content: "Insira a Data Prometida ao Cliente Final. O motor APS utilizará isto para o Cálculo de Atraso e Prioridades." },
@@ -149,6 +155,43 @@ const MANUAL_DATA = [
     ]
   },
   {
+    id: "lean",
+    title: "Lean Manufacture (Gemba)",
+    icon: <Target size={18} />,
+    color: "text-amber-500",
+    modules: [
+        {
+            name: "Comissão Kaizen & Ideias",
+            route: "/admin/lean/kaizen",
+            description: "A rampa de escuta ativa para melhoramentos propostos pelos operários.",
+            image: "/manual/v2_lean_kaizen.png",
+            sections: [
+                { title: "1. Caixa de Sugestões Digital", content: "Operadores submetem ideias de melhoria de fluxo independentemente diretamente do tablet ou PC. A ideia é registada com autor." },
+                { title: "2. Avaliação ROÍ (Return On Investment)", content: "Um comitê (Chefias Lean) atribui 'savings' numéricos à ideia. Se a sugestão poupa 2 minutos por ciclo de montagem, multiplica-se pelo volume de cascos anuais para gerar o P.L.P.R.Q (Payback)." },
+                { title: "3. Aprovação (Standardized Work)", content: "Se aprovada, a secção muda de cor e a ideia torna-se um novo Standard Integrado (Standard Operating Procedure) nas checklists B.O.M. do sistema Engenharia." }
+            ]
+        }
+    ]
+  },
+  {
+    id: "hst",
+    title: "H.S.T. & Saúde Ocupacional",
+    icon: <ShieldAlert size={18} />,
+    color: "text-red-500",
+    modules: [
+        {
+            name: "Cruz de Segurança (Dashboard)",
+            route: "/admin/hst/dashboard",
+            description: "O calendário vivo do L.T.I (Lost Time Injuries) e matriz corporativa.",
+            image: "/manual/v2_hst_dashboard.png",
+            sections: [
+                { title: "1. L.T.I Scorecard", content: "A espinha dorsal das auditorias rigorosas. Contagem ininterrupta de Dias Sem Acidentes com Baixa e Sem Baixa. Uma matriz automatizada que atualiza todos os dias do ano pelas 00H00." },
+                { title: "2. Painel de Alarmísticas", content: "Métricas agregadas sobre Ocorrências Pre-Auditadas. O responsável HST valida o tipo de Lesão ou Quase-Acidente." }
+            ]
+        }
+    ]
+  },
+  {
     id: "rh",
     title: "Capital Humano (Talento)",
     icon: <Users size={18} />,
@@ -158,6 +201,7 @@ const MANUAL_DATA = [
             name: "Cadastro Global SGH",
             route: "/admin/rh",
             description: "A Root base para os colaboradores operacionais.",
+            image: "/manual/v2_rh_cadastro.png",
             sections: [
                 { title: "1. Detalhes Biométricos Virtuais", content: "Insira Nomes, Idades e Cartões de Cidadão mas essencialmente o CÓDIGO DA TAG RFID para o operário conseguir 'Picar' nas máquinas Android/HMI." },
                 { title: "2. Setores de Custos", content: "Alocar operários a Categorias salariais diferentes impacta de forma direta o Custo do Roteiro (OEE Finanças)." }
@@ -167,6 +211,7 @@ const MANUAL_DATA = [
             name: "Avaliação Flexível 360",
             route: "/admin/rh/avaliacoes",
             description: "Tracking contínuo do potencial da equipa.",
+            image: "/manual/v2_rh_avaliacoes.png",
             sections: [
                 { title: "1. Parâmetros Qualitativos", content: "O líder regista feedback (Matriz Polivalência ILUO). Isto dita se um Técnico é classificado como O (Autónomo ensinador) ou I (Aprendiz)." }
             ]
@@ -175,6 +220,7 @@ const MANUAL_DATA = [
             name: "Balanceamento em Tempo Real",
             route: "/admin/rh/assiduidade",
             description: "A defesa contra Falhas de Lotação.",
+            image: "/manual/v2_rh_assiduidade.png",
             sections: [
                 { title: "1. Identificação de Fugas", content: "O sistema percebe que uma Estação de Assemblagem exige SLA = Homem/Hora de 4 pessoas, mas só duas picaram. Destaca a cor vermelha em falta Laboral viva." }
             ]
@@ -191,6 +237,7 @@ const MANUAL_DATA = [
             name: "Genealogia / Traceability Hub",
             route: "/admin/engenharia/genealogia",
             description: "A bíblia central anti-processos civis e avarias. Mapeamento 1:1 Físico-Virtual.",
+            image: "/manual/v2_genealogia.png",
             sections: [
                 { title: "1. Modo Inspecção Descendente", content: "Procura pelo Número do Casco/O.P. e o portal descarrega a Árvore hierárquica completa: Todos os B.O.Ms absorvidos e o Operador que executou a inserção." },
                 { title: "2. Modo Inspecção Ascendente", content: "Dado o Lote de uma Resina, desdobra para o TopLevel em que Navios os lotes defeituosos andam pelo oceano fora. Identifica de imediato a Frota de Call-Back." }
@@ -200,9 +247,20 @@ const MANUAL_DATA = [
             name: "Problemas & RNC (A3/8D)",
             route: "/admin/qualidade/rnc",
             description: "O sistema Iso9001 das N-Conformidades.",
+            image: "/manual/v2_rnc.png",
             sections: [
                 { title: "1. Escalão Andon RNC", content: "Se no Chão o percalço foi gravíssimo, sobe a Relação de RNC. Aqui define-se ações de Limite Temporário e Plano de Prevenção." },
                 { title: "2. Isolamento do Produto", content: "Uma RNC pode ditar o Barco como REJEITADO SCARP (Lixo) forçando reemissão de Gantt, ou como REWORK, pedindo nova passagem pelas estações base." }
+            ]
+        },
+        {
+            name: "QCIS Analytics",
+            route: "/admin/qualidade/qcis",
+            description: "O painel estatístico em Big Data sobre a Qualidade da Fábrica.",
+            image: "/manual/v2_qcis.png",
+            sections: [
+                { title: "1. Defeitos no Pareto Global", content: "Identifica com clareza quais foram os Defeitos mais críticos desta semana (ex: Riscos no Gelcoat, Bolhas P1). A torre principal aglutina todos os dados submetidos pelo tablet dos inspetores da nave." },
+                { title: "2. Heatmaps de Área (D.U.T)", content: "Um mapa térmico de frequências sobre quais áreas (ex: Lamination Room 1 vs Assembly 2) causam os estrangulamentos na política 'Zero Defeitos'." }
             ]
         }
     ]
@@ -242,16 +300,21 @@ const MANUAL_DATA = [
             name: "Feriados e Bloqueios Cíclicos",
             route: "/admin/configuracoes",
             description: "Proteções temporais extremas.",
+            image: "/manual/v2_feriados.png",
             sections: [
                 { title: "1. Adicionar Feriados", content: "Semana Santa na fábrica ou Sairias Municipais? Acrescente as datas no painel e grave. O APS varre todas as O.P.s esticando os atrasos provocados pela isenção laboral nesses dias." }
             ]
         },
         {
-            name: "Broadcast Hardware (TV Live)",
+            name: "Broadcast Hardware & TV Widgets (NASA-Level)",
             route: "/admin/configuracoes/tvs",
             description: "A força IOT - Injetores de URL",
+            image: "/manual/v2_tv_widget_config.png",
             sections: [
-                { title: "1. Registar um Ecrã Físico", content: "TV Samsung da Cantina instalada. Conecte-a à Web, adicione ID aqui e selecione 'Push Andon Report'. A TV muda magicamente num segundo." }
+                { title: "1. Emparelhamento Automático do Hardware (TVs e Displays)", content: "Instalou uma TV Samsung na Parede Norte? Conecte-a à rede Wi-Fi e abra a URL Pública do TV Player. Aparecerá um Código PIN (Ex: 884-A1)." },
+                { title: "2. Injeção de PIN e Criação do Perfil TV", content: "Dentro deste painel, na zona 'Emparelhar Nova Tela', introduza o PIN e dê-lhe um Nome descritivo (ex: 'Monitor de Metas - Linha 2'). O sistema passa imediatamente a controlar remotamente o que surge naquele ecrã." },
+                { title: "3. Layouts de Streaming (Divisão de Tela)", content: "Podes clicar em 'Editar Ecrã' num monitor ativo para lançar o configurador avaçado (NASA-Level UI Modal). Aqui escolhes a Topologia da TV. Queres que o ecrã seja 'Ecrã Único', ou dividido a meio (Split-Screen Vertical)? Se escolheres Meio/Meio, surgem *slots* independentes para atribuíres as *views*." },
+                { title: "4. Configuração dos Widgets (Conteúdo Visível)", content: "Em cada Slot (Painel Esquerdo, Direito ou Único), podes alocar diferentes Módulos. Exemplos de Widgets plug&play: 'Andon da Estação', 'KPIs de Produção OEE', 'Lista de Pausas', 'Feed de Notícias Globais', 'Cruz de Segurança (HST)'. A TV reage nativamente." }
             ]
         }
     ]
