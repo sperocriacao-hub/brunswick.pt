@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { 
   BookOpen, Map, Settings, Users, Activity, Layers, Crosshair, Box, 
   Target, CalendarDays, ShieldAlert, Cpu, CheckCircle2, ChevronRight,
-  Database, Fingerprint, BarChart2, GitBranch, ArrowRightLeft, PenTool, LayoutTemplate, Link2
+  Database, Fingerprint, BarChart2, GitBranch, ArrowRightLeft, PenTool, LayoutTemplate, Link2, Monitor
 } from 'lucide-react';
 
 const MANUAL_DATA = [
@@ -87,6 +87,7 @@ const MANUAL_DATA = [
             name: "Torre de Controlo: APS Gantt Chart",
             route: "/admin/producao/aps",
             description: "The God View. Onde os gestores de fluxo interagem com a cronologia.",
+            image: "/manual/v2_aps_gantt.png",
             sections: [
                 { title: "1. Visão Temporal (Time Scale)", content: "Navegue pelo painel Gantt interativo por Dia/Semana/Mês. Cada barra colorida representa o SLA de uma O.P. trancada naquela data." },
                 { title: "2. Drag and Drop Dinâmico", content: "Apanhe uma barra (Barco A, Estação de Polimento) e arraste-a horizontalmente para um Novo Dia." },
@@ -115,6 +116,7 @@ const MANUAL_DATA = [
             name: "Tablet Armazém (Kitting)",
             route: "/logistica/picking",
             description: "O pull-system que avisa o Empilhador para entregar material.",
+            image: "/manual/v2_picking.png",
             sections: [
                 { title: "1. Receção do Call-to-Action", content: "O sistema não é Push. O operário de logística vê as Ordens de Sub-Tarefas surgirem apenas quando as precedências de O.P. a autorizam." },
                 { title: "2. Ponto de Abastecimento", content: "Verifica-se qual a Estação que pede a fibra, localiza-se na Prateleira e avia-se a Carga Padrão associada na Engenharia de Opcionais." },
@@ -125,6 +127,7 @@ const MANUAL_DATA = [
             name: "Terminal HMI (Operador Shopfloor)",
             route: "/operador",
             description: "A interface reativa sem papel dos laminadores e construtores.",
+            image: "/manual/v2_operador.png",
             sections: [
                 { title: "1. Autenticação Pessoal", content: "O operador escolhe a sua Estação de Trabalho e pica o RFID com o crachá Pessoal (ou introduz email) validando o Timestamp de Ponto Operativo." },
                 { title: "2. Escalonamento Ativo", content: "O HMI mostra exclusivamente as Ordens planeadas pelo APS para *esta* estação neste *turno* e *data*. Os barcos surgem em Cards." },
@@ -214,6 +217,7 @@ const MANUAL_DATA = [
             name: "C-Level Dashboards Aggregator",
             route: "/admin",
             description: "Widget hub.",
+            image: "/manual/v2_dashboard.png",
             sections: [
                 { title: "1. Live Metrics", content: "Mostra total de O.P. Ativas, Barcos Completos esta semana e Eficiência Média Fabril (OEE - Disponibilidade, Qualidade e Performance) de todas as máquinas." }
             ]
@@ -439,6 +443,24 @@ export default function ManualUtilizador() {
 
                            </div>
                       </div>
+
+                      {/* CAPTURA DE ECRÃ DO MÓDULO (SE DISPONÍVEL) */}
+                      {modData.image && (
+                          <div className="mb-14 fade-in slide-in-from-bottom-5">
+                             <h3 className="text-[12px] font-extrabold text-blue-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                                 <Monitor size={14}/> Interface do Sistema M.E.S.
+                             </h3>
+                             <div className="bg-[#0b1121] border border-slate-700/80 rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+                                <div className="bg-[#1e293b] px-4 py-3 flex items-center gap-2 border-b border-slate-700">
+                                    <div className="w-3 h-3 rounded-full bg-rose-500"></div><div className="w-3 h-3 rounded-full bg-amber-500"></div><div className="w-3 h-3 rounded-full bg-emerald-500"></div>
+                                    <span className="ml-2 text-xs font-mono text-slate-400 truncate opacity-70">
+                                        brunswick-pt.vercel.app{modData.route}
+                                    </span>
+                                </div>
+                                <img src={modData.image} alt="System Capture" className="w-full h-auto object-contain block opacity-90 hover:opacity-100 transition-opacity" />
+                             </div>
+                          </div>
+                      )}
 
                       {/* TEXTO DETALHADO EXAUSTIVO */}
                       <div>
