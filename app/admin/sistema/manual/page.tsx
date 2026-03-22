@@ -464,7 +464,7 @@ export default function ManualUtilizador() {
                                         <img 
                                             src={modData.image} 
                                             alt={modData.name} 
-                                            className="w-full h-auto object-cover opacity-90 hover:opacity-100 transition-opacity"
+                                            className="w-full h-auto object-contain object-top opacity-90 hover:opacity-100 transition-opacity"
                                             style={{ display: 'block' }}
                                         />
                                     ) : (
