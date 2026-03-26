@@ -23,7 +23,12 @@ export async function getAndonHistory() {
                 resolvido,
                 operador_rfid,
                 estacao_id,
-                estacoes:estacao_id (
+                local_ocorrencia_id,
+                estacao_causadora:estacao_id (
+                    nome_estacao,
+                    areas_fabrica:area_id ( nome_area )
+                ),
+                estacao_problema:local_ocorrencia_id (
                     nome_estacao,
                     areas_fabrica:area_id ( nome_area )
                 ),
