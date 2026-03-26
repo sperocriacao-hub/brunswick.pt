@@ -39,6 +39,7 @@ export default function AvaliacoesLideranca() {
     const [isLoading, setIsLoading] = useState(true);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+    const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
     const [selectedFuncao, setSelectedFuncao] = useState<string | null>(null);
 
     const [evaluations, setEvaluations] = useState<Record<string, FormEdicao>>({});
@@ -142,6 +143,7 @@ export default function AvaliacoesLideranca() {
         const dto: AvaliacaoDTO = {
             funcionario_id: emp.id,
             nomeFuncionario: emp.nome_operador,
+            data_avaliacao: selectedDate, // Retroativa suportada
             ...form,
             justificacoes
         };
@@ -179,7 +181,14 @@ export default function AvaliacoesLideranca() {
                 </div>
 
                 <div className="flex items-center gap-3 w-full md:w-auto">
-                    <span className="text-xs font-semibold text-indigo-700 uppercase tracking-wider hidden md:block">Filtrar Categoria:</span>
+                    <span className="text-[10px] font-bold text-indigo-700 uppercase tracking-wider hidden md:block">Data Audit:</span>
+                     <input
+                            type="date"
+                            className="h-10 px-3 border border-indigo-200 rounded-md bg-white font-semibold focus:ring-2 focus:ring-indigo-500 w-full text-indigo-900"
+                            value={selectedDate}
+                            onChange={(e) => setSelectedDate(e.target.value)}
+                        />
+                    <span className="text-[10px] font-bold text-indigo-700 uppercase tracking-wider hidden md:block ml-2">Filtrar Categoria:</span>
                     <div className="relative w-full md:w-[300px]">
                         <select
                             className="w-full appearance-none bg-white text-indigo-900 border border-indigo-200 hover:bg-slate-50 shadow-sm rounded-md h-10 px-3 pr-8 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"

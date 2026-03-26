@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { createClient } from '@/utils/supabase/client';
-import { Shield, Activity, TrendingUp, CheckCircle, Save, Check, ChevronsUpDown, Search, UserCircle2, AlertTriangle, UserCheck } from 'lucide-react';
+import { Shield, Activity, TrendingUp, CheckCircle, Save, Check, ChevronsUpDown, Search, UserCheck, Calendar } from 'lucide-react';
 import { AvaliacaoDTO, submeterAvaliacaoDiaria } from './actions';
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
@@ -26,8 +26,8 @@ type OperadorLote = {
     numero_operador: string;
     nome_operador: string;
     funcao: string;
-    area_base_id: number;
     area_nome: string;
+    estacao_nome: string;
 };
 
 type FormEdicao = {
@@ -46,8 +46,11 @@ export default function LoteAvaliacoesDiariasLayout() {
     const [operadores, setOperadores] = useState<OperadorLote[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
-    const [selectedArea, setSelectedArea] = useState<string | null>(null);
-    const [openCombobox, setOpenCombobox] = useState(false);
+    // 4 Filtros Universais M.E.S
+    const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
+    const [selectedArea, setSelectedArea] = useState<string>("");
+    const [selectedEstacao, setSelectedEstacao] = useState<string>("");
+    const [searchQuery, setSearchQuery] = useState<string>("");
 
     // Estado local de formulários e saves
     const [evaluations, setEvaluations] = useState<Record<string, FormEdicao>>({});
@@ -62,7 +65,6 @@ export default function LoteAvaliacoesDiariasLayout() {
     const carregarLista = async () => {
         setIsLoading(true);
 
-        // Fetch estações manually to build a robust dictionary and avoid RLS/Foreign Key relation parsing errors
         const { data: estacoesData } = await supabase.from('estacoes').select('id, nome_estacao');
         const mapEstacoes = new Map(estacoesData?.map(e => [e.id, e.nome_estacao]) || []);
 
@@ -76,41 +78,46 @@ export default function LoteAvaliacoesDiariasLayout() {
             const mapped = data.map(op => {
                 const areaBase = (op.areas_fabrica as any)?.nome_area || 'Geral';
                 const estacaoBase = mapEstacoes.get(op.posto_base_id) || '';
-                
-                let areaFinal = areaBase;
-                if (areaBase.toLowerCase().includes("montagem") && estacaoBase) {
-                    const primeiraLetra = estacaoBase.trim().charAt(0).toUpperCase();
-                    if (['A', 'B', 'C', 'D'].includes(primeiraLetra)) {
-                        areaFinal = `Montagem - Linha ${primeiraLetra}`;
-                    }
-                }
 
                 return {
                     id: op.id,
                     numero_operador: op.numero_operador,
                     nome_operador: op.nome_operador,
                     funcao: op.funcao,
-                    area_base_id: op.area_base_id,
-                    area_nome: areaFinal
+                    area_nome: areaBase,
+                    estacao_nome: estacaoBase
                 };
             });
-            // Ordenação Alfabética Rigorosa (Mesmo após os mapeamentos)
             mapped.sort((a, b) => a.nome_operador.localeCompare(b.nome_operador));
             setOperadores(mapped);
         }
         setIsLoading(false);
     };
 
-    const areas = useMemo(() => {
-        return Array.from(new Set(operadores.map(e => e.area_nome).filter(Boolean))).sort();
-    }, [operadores]);
-
-    const filteredEmployees = useMemo(() => {
-        if (!selectedArea) return [];
-        return operadores.filter(e => e.area_nome === selectedArea);
+    // Arrays de Filtros Dropdowns
+    const areas = useMemo(() => Array.from(new Set(operadores.map(e => e.area_nome).filter(Boolean))).sort(), [operadores]);
+    
+    // As estações disponíveis atualizam consoante a Área selecionada
+    const estacoesDisponiveis = useMemo(() => {
+        let ops = operadores;
+        if (selectedArea) ops = ops.filter(e => e.area_nome === selectedArea);
+        return Array.from(new Set(ops.map(e => e.estacao_nome).filter(Boolean))).sort();
     }, [operadores, selectedArea]);
 
-    // Ao mudar de área, garantimos que cada funcionário tem um Form pré-preenchido
+    // Motor de Filtragem Ativa
+    const filteredEmployees = useMemo(() => {
+        return operadores.filter(e => {
+            const matchArea = selectedArea ? e.area_nome === selectedArea : true;
+            const matchEstacao = selectedEstacao ? e.estacao_nome === selectedEstacao : true;
+            const matchSearch = searchQuery ? 
+                e.nome_operador.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                e.numero_operador.toLowerCase().includes(searchQuery.toLowerCase()) : true;
+            
+            return matchArea && matchEstacao && matchSearch;
+        });
+    }, [operadores, selectedArea, selectedEstacao, searchQuery]);
+
+    // Ao mudar os filtros, garantimos que cada funcionário filtrado tem um Form pré-preenchido
     useEffect(() => {
         if (filteredEmployees.length === 0) return;
 
@@ -135,7 +142,7 @@ export default function LoteAvaliacoesDiariasLayout() {
                 [pillarKey]: value
             }
         }));
-        setSavedStates(prev => ({ ...prev, [empId]: false }));
+        setSavedStates(prev => ({ ...prev, [empId]: false })); // Liberta o botão "Salvar" se houver alterações
     };
 
     const calculateDailyScore = (evalData: FormEdicao | undefined) => {
@@ -155,7 +162,6 @@ export default function LoteAvaliacoesDiariasLayout() {
         const form = evaluations[emp.id];
         if (!form) return;
 
-        // Auto Justificações para notas < 2.0 (Simplificado para Bulk, usa as Notes)
         const justificacoes: Record<string, string> = {};
         let needsJustification = false;
 
@@ -177,6 +183,7 @@ export default function LoteAvaliacoesDiariasLayout() {
         const dto: AvaliacaoDTO = {
             funcionario_id: emp.id,
             nomeFuncionario: emp.nome_operador,
+            data_avaliacao: selectedDate, // Retroativa suportada!
             ...form,
             justificacoes
         };
@@ -197,152 +204,191 @@ export default function LoteAvaliacoesDiariasLayout() {
 
     return (
         <div className="p-6 space-y-6 max-w-[1400px] mx-auto pb-32 animate-in fade-in duration-500">
-            {/* Header Flutuante / Fixo */}
-            <div className="flex flex-col md:flex-row justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-slate-200 gap-4 sticky top-4 z-40">
-                <div className="flex items-center gap-4">
-                    <UserCheck className="w-8 h-8 text-blue-600" />
+            {/* Header Flutuante / Comando Central */}
+            <div className="flex flex-col xl:flex-row justify-between xl:items-center bg-white p-5 rounded-xl shadow-sm border border-slate-200 gap-6 sticky top-4 z-40">
+                <div className="flex items-center gap-4 shrink-0">
+                    <UserCheck className="w-10 h-10 text-blue-600" />
                     <div>
-                        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Avaliação Diária de Turno</h1>
-                        <p className="text-slate-500 text-sm">Selecione uma Área Logística para carregar os seus Operadores.</p>
+                        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Avaliações 360</h1>
+                        <p className="text-slate-500 text-sm">Controle as camadas operacionais.</p>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-3 w-full md:w-auto">
-                    <span className="text-xs font-semibold text-slate-700 uppercase tracking-wider hidden md:block">Filtrar por Área:</span>
-                    <div className="relative w-full md:w-[300px]">
-                        <select
-                            className="w-full appearance-none bg-white text-slate-900 border border-slate-300 hover:bg-slate-50 shadow-sm rounded-md h-10 px-3 pr-8 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            value={selectedArea || ""}
-                            onChange={(e) => setSelectedArea(e.target.value || null)}
-                        >
-                            <option value="">Selecione uma área...</option>
-                            {areas.map((area) => (
-                                <option key={area} value={area}>
-                                    {area}
-                                </option>
-                            ))}
-                        </select>
-                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-500">
-                            <ChevronsUpDown className="h-4 w-4 opacity-50" />
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 w-full">
+                    {/* Filtro 1: Data Retroativa */}
+                    <div className="flex flex-col">
+                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 ml-1 flex items-center gap-1"><Calendar size={12}/> Data Audit</span>
+                        <input
+                            type="date"
+                            className="h-10 px-3 border border-slate-300 rounded-md bg-slate-50 font-semibold focus:ring-2 focus:ring-blue-500 w-full"
+                            value={selectedDate}
+                            onChange={(e) => setSelectedDate(e.target.value)}
+                        />
+                    </div>
+                    {/* Filtro 2: Área Fabril */}
+                    <div className="flex flex-col">
+                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 ml-1">Área Genérica</span>
+                        <div className="relative">
+                            <select
+                                className="h-10 px-3 pr-8 border border-slate-300 rounded-md bg-slate-50 font-semibold focus:ring-2 focus:ring-blue-500 w-full appearance-none"
+                                value={selectedArea}
+                                onChange={(e) => setSelectedArea(e.target.value)}
+                            >
+                                <option value="">Todas as Áreas</option>
+                                {areas.map((area) => <option key={area} value={area}>{area}</option>)}
+                            </select>
+                            <ChevronsUpDown className="absolute right-2 top-3 h-4 w-4 text-slate-400 pointer-events-none" />
+                        </div>
+                    </div>
+                    {/* Filtro 3: Estação Específica (As you wished) */}
+                    <div className="flex flex-col">
+                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 ml-1">Estação / Linha</span>
+                        <div className="relative">
+                            <select
+                                className="h-10 px-3 pr-8 border border-slate-300 rounded-md bg-slate-50 font-semibold focus:ring-2 focus:ring-blue-500 w-full appearance-none"
+                                value={selectedEstacao}
+                                onChange={(e) => setSelectedEstacao(e.target.value)}
+                            >
+                                <option value="">Todas as Estações</option>
+                                {estacoesDisponiveis.map((est) => <option key={est} value={est}>{est}</option>)}
+                            </select>
+                            <ChevronsUpDown className="absolute right-2 top-3 h-4 w-4 text-slate-400 pointer-events-none" />
+                        </div>
+                    </div>
+                    {/* Filtro 4: Search Textual */}
+                    <div className="flex flex-col">
+                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 ml-1">Procurar Nome</span>
+                        <div className="relative">
+                            <input
+                                type="text"
+                                placeholder="Colaborador / OP-XXX"
+                                className="h-10 pl-9 pr-3 border border-slate-300 rounded-md bg-slate-50 font-semibold focus:ring-2 focus:ring-blue-500 w-full"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                            />
+                            <Search className="absolute left-2.5 top-2.5 h-5 w-5 text-slate-400 pointer-events-none" />
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* Layout Vazio */}
-            {!selectedArea && (
+            {/* Layout Vazio Extremo */}
+            {filteredEmployees.length === 0 && (
                 <div className="flex flex-col items-center justify-center py-20 bg-slate-50/50 rounded-xl border border-dashed border-slate-300">
                     <Search className="w-16 h-16 text-slate-300 mb-4" />
-                    <h3 className="text-xl font-semibold text-slate-700">Nenhuma área em seleção</h3>
-                    <p className="text-slate-500 max-w-md text-center">
-                        Para maximizar o Desempenho (Zero-Lag), filtre a Secção exata do seu turno de modo a renderizarmos os cartões iterativos.
+                    <h3 className="text-xl font-semibold text-slate-700">Nenhum Colaborador Encontrado</h3>
+                    <p className="text-slate-500 max-w-md text-center mt-2">
+                        Experimente remover ou alterar os filtros acima. Pode estar a cruzar uma Área com uma Estação que não pertence a ela.
                     </p>
                 </div>
             )}
 
             {/* Grelha de Cartões Multi-Slider */}
-            {selectedArea && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {filteredEmployees.map(emp => {
-                        const form = evaluations[emp.id];
-                        if (!form) return null; // Safety
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredEmployees.map(emp => {
+                    const form = evaluations[emp.id];
+                    if (!form) return null; // Safety
 
-                        const currentScore = calculateDailyScore(form);
-                        const scoreColor = getScoreColor(currentScore);
-                        const isSaved = savedStates[emp.id];
-                        const isSaving = isSubmitting[emp.id];
+                    const currentScore = calculateDailyScore(form);
+                    const scoreColor = getScoreColor(currentScore);
+                    const isSaved = savedStates[emp.id];
+                    const isSaving = isSubmitting[emp.id];
 
-                        return (
-                            <Card key={emp.id} className={cn(
-                                "border-t-4 transition-all duration-300 shadow-sm",
-                                isSaved ? "border-t-green-500 ring-2 ring-green-100 bg-white" : "border-t-blue-500 hover:shadow-lg bg-white"
-                            )}>
-                                <CardHeader className="flex flex-row justify-between items-start pb-2">
-                                    <div>
-                                        <CardTitle className="text-lg font-bold text-slate-800 flex items-center gap-2 line-clamp-1">
-                                            <span className="text-slate-400 font-mono text-sm bg-slate-100 px-1.5 py-0.5 rounded">
-                                                #{emp.numero_operador}
-                                            </span>
-                                            {emp.nome_operador}
-                                        </CardTitle>
-                                        <div className="flex gap-2 mt-2">
-                                            <Badge variant="secondary" className="bg-slate-100 text-slate-600">{emp.funcao}</Badge>
-                                        </div>
+                    return (
+                        <Card key={emp.id} className={cn(
+                            "border-t-4 transition-all duration-300 shadow-sm",
+                            isSaved ? "border-t-green-500 ring-2 ring-green-100 bg-white" : "border-t-blue-500 hover:shadow-lg bg-white"
+                        )}>
+                            <CardHeader className="flex flex-row justify-between items-start pb-2">
+                                <div>
+                                    <CardTitle className="text-lg font-bold text-slate-800 flex items-center gap-2 line-clamp-1">
+                                        <span className="text-slate-400 font-mono text-sm bg-slate-100 px-1.5 py-0.5 rounded">
+                                            #{emp.numero_operador}
+                                        </span>
+                                        {emp.nome_operador}
+                                    </CardTitle>
+                                    <div className="flex gap-2 mt-2">
+                                        <Badge variant="secondary" className="bg-slate-100 text-slate-600">{emp.funcao}</Badge>
+                                        {(emp.area_nome || emp.estacao_nome) && (
+                                            <Badge variant="outline" className="text-slate-400 border-slate-200">
+                                                {emp.area_nome} {emp.estacao_nome && `> ${emp.estacao_nome}`}
+                                            </Badge>
+                                        )}
                                     </div>
-                                    <div className={cn("flex flex-col items-center justify-center h-12 w-12 rounded-full border-2 shadow-sm", scoreColor)}>
-                                        <span className="text-lg font-bold">{currentScore}</span>
-                                    </div>
-                                </CardHeader>
+                                </div>
+                                <div className={cn("flex flex-col items-center justify-center h-12 w-12 rounded-full border-2 shadow-sm shrink-0", scoreColor)}>
+                                    <span className="text-lg font-bold">{currentScore}</span>
+                                </div>
+                            </CardHeader>
 
-                                {/* Bloco dos Sliders */}
-                                <CardContent className="space-y-4 pt-0">
-                                    <div className="grid gap-3 bg-slate-50/50 p-4 rounded-lg border border-slate-100 mt-2">
-                                        {PILLARS.map(pillar => {
-                                            const Icon = pillar.icon;
-                                            const val = form[pillar.key as keyof FormEdicao] as number;
-                                            return (
-                                                <div key={pillar.key} className="space-y-1">
-                                                    <div className="flex justify-between text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                                                        <span className="flex items-center gap-1.5">
-                                                            <Icon className={cn("w-3.5 h-3.5", pillar.color)} /> {pillar.label}
-                                                        </span>
-                                                        <span className={cn(
-                                                            "font-bold text-sm",
-                                                            val < 2.5 ? "text-red-600" : val >= 3.5 ? "text-green-600" : "text-yellow-600"
-                                                        )}>{val.toFixed(1)}</span>
-                                                    </div>
-                                                    <Slider
-                                                        value={[val]} max={4} min={1} step={0.5}
-                                                        onValueChange={(v) => handleScoreChange(emp.id, pillar.key as keyof FormEdicao, v[0])}
-                                                        className="py-1 cursor-pointer"
-                                                        disabled={isSaved}
-                                                    />
+                            {/* Bloco dos Sliders */}
+                            <CardContent className="space-y-4 pt-0">
+                                <div className="grid gap-3 bg-slate-50/50 p-4 rounded-lg border border-slate-100 mt-2">
+                                    {PILLARS.map(pillar => {
+                                        const Icon = pillar.icon;
+                                        const val = form[pillar.key as keyof FormEdicao] as number;
+                                        return (
+                                            <div key={pillar.key} className="space-y-1">
+                                                <div className="flex justify-between text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                                                    <span className="flex items-center gap-1.5">
+                                                        <Icon className={cn("w-3.5 h-3.5", pillar.color)} /> {pillar.label}
+                                                    </span>
+                                                    <span className={cn(
+                                                        "font-bold text-sm",
+                                                        val < 2.5 ? "text-red-600" : val >= 3.5 ? "text-green-600" : "text-yellow-600"
+                                                    )}>{val.toFixed(1)}</span>
                                                 </div>
-                                            )
-                                        })}
-                                    </div>
+                                                <Slider
+                                                    value={[val]} max={4} min={1} step={0.5}
+                                                    onValueChange={(v) => handleScoreChange(emp.id, pillar.key as keyof FormEdicao, v[0])}
+                                                    className="py-1 cursor-pointer"
+                                                    disabled={isSaved}
+                                                />
+                                            </div>
+                                        )
+                                    })}
+                                </div>
 
-                                    {/* Observações / Justificações */}
-                                    <div className="pt-2">
-                                        <Textarea
-                                            placeholder="Observações do labor diário ou Redação de Justificação para Notas Críticas (< 2.0)..."
-                                            className={cn(
-                                                "h-20 text-xs resize-none border-slate-200 focus:border-blue-400 shadow-inner",
-                                                isSaved && "opacity-50 cursor-not-allowed"
-                                            )}
-                                            value={form.notasFinais || ""}
-                                            onChange={(e) => handleScoreChange(emp.id, 'notasFinais', e.target.value as any)}
-                                            readOnly={isSaved}
-                                        />
-                                    </div>
-
-                                    <Button
-                                        disabled={isSaved || isSaving}
+                                {/* Observações / Justificações */}
+                                <div className="pt-2">
+                                    <Textarea
+                                        placeholder="Redação de Justificação p/ Notas Criticas (< 2.0)..."
                                         className={cn(
-                                            "w-full font-semibold shadow-sm transition-all duration-200",
-                                            isSaved
-                                                ? "bg-green-600 hover:bg-green-700 text-white shadow-green-200 disabled:opacity-100"
-                                                : "bg-slate-900 hover:bg-slate-800 text-white shadow-slate-200"
+                                            "h-16 text-xs resize-none border-slate-200 focus:border-blue-400 shadow-inner",
+                                            isSaved && "opacity-50 cursor-not-allowed"
                                         )}
-                                        onClick={() => submitAvaliacao(emp)}
-                                    >
-                                        {isSaving ? "A Processar..." : isSaved ? (
-                                            <span className="flex items-center animate-in zoom-in duration-300">
-                                                <Check className="w-5 h-5 mr-2" /> Avaliação Trancada (Salva)
-                                            </span>
-                                        ) : (
-                                            <span className="flex items-center">
-                                                <Save className="w-4 h-4 mr-2" /> Submeter Avaliação
-                                            </span>
-                                        )}
-                                    </Button>
+                                        value={form.notasFinais || ""}
+                                        onChange={(e) => handleScoreChange(emp.id, 'notasFinais', e.target.value as any)}
+                                        readOnly={isSaved}
+                                    />
+                                </div>
 
-                                </CardContent>
-                            </Card>
-                        )
-                    })}
-                </div>
-            )}
+                                <Button
+                                    disabled={isSaved || isSaving}
+                                    className={cn(
+                                        "w-full font-semibold shadow-sm transition-all duration-200",
+                                        isSaved
+                                            ? "bg-green-600 hover:bg-green-700 text-white shadow-green-200 disabled:opacity-100"
+                                            : "bg-slate-900 hover:bg-slate-800 text-white shadow-slate-200"
+                                    )}
+                                    onClick={() => submitAvaliacao(emp)}
+                                >
+                                    {isSaving ? "A Processar..." : isSaved ? (
+                                        <span className="flex items-center animate-in zoom-in duration-300">
+                                            <Check className="w-5 h-5 mr-2" /> Trancada & Gravada
+                                        </span>
+                                    ) : (
+                                        <span className="flex items-center">
+                                            <Save className="w-4 h-4 mr-2" /> Gravar Seleção
+                                        </span>
+                                    )}
+                                </Button>
+
+                            </CardContent>
+                        </Card>
+                    )
+                })}
+            </div>
         </div>
     );
 }

@@ -14,6 +14,7 @@ export type AvaliacaoDTO = {
     objetivos: number;
     atitude: number;
     justificacoes: Record<string, string>; // ex: { 'hst': 'Sem óculos proteção' }
+    data_avaliacao?: string; // Permitir avaliação retroativa
 };
 
 export async function carregarEquipaAvaliavel() {
@@ -47,7 +48,7 @@ export async function submeterAvaliacaoDiaria(avaliacao: AvaliacaoDTO, autoSuper
             .insert({
                 funcionario_id: avaliacao.funcionario_id,
                 supervisor_nome: autoSupervisorNome,
-                data_avaliacao: new Date().toISOString().split('T')[0],
+                data_avaliacao: avaliacao.data_avaliacao || new Date().toISOString().split('T')[0],
                 nota_hst: avaliacao.hst,
                 nota_epi: avaliacao.epi,
                 nota_5s: avaliacao.limpeza,
