@@ -272,9 +272,10 @@ export default function NotificacoesPage() {
                                             value={editingRegra.evento_gatilho || ''}
                                             onChange={e => setEditingRegra({ ...editingRegra, evento_gatilho: e.target.value })}
                                         >
-                                            <option value="HEARTBEAT_LOSS">Corte Coneção IoT (Heartbeat Loss)</option>
+                                            <option value="HEARTBEAT_LOSS">Corte Conexão IoT (Heartbeat Loss)</option>
                                             <option value="OP_COMPLETED">Fim da Ordem Produção (Saída)</option>
                                             <option value="NEW_EVALUATION">Nova Avaliação RH Abaixo Média</option>
+                                            <option value="ANDON_TRIGGER">Paragem de Linha Andon (Tablet)</option>
                                         </select>
                                     </div>
                                     <div>
