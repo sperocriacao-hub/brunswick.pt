@@ -1,10 +1,10 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { createClient } from '@/utils/supabase/client';
-import { Shield, Activity, TrendingUp, CheckCircle, Save, Check, ChevronsUpDown, Search, UserCircle2, AlertTriangle, UserCheck } from 'lucide-react';
-import { AvaliacaoDTO, submeterAvaliacaoDiaria } from './actions';
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
+import { Shield, Activity, TrendingUp, CheckCircle, Save, Check, ChevronsUpDown, Search, Briefcase, UserCheck } from 'lucide-react';
+import { submeterAvaliacaoDiaria, AvaliacaoDTO } from '../avaliacoes/actions';
+import { carregarEquipaLideranca } from './actions';
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
@@ -21,91 +21,62 @@ const PILLARS = [
     { key: 'atitude', label: 'Atitude', icon: Activity, color: 'text-pink-500' },
 ] as const;
 
-type OperadorLote = {
+type OperadorLideranca = {
     id: string;
     numero_operador: string;
     nome_operador: string;
     funcao: string;
-    area_base_id: number;
     area_nome: string;
 };
 
 type FormEdicao = {
-    hst: number;
-    epi: number;
-    limpeza: number;
-    qualidade: number;
-    eficiencia: number;
-    objetivos: number;
-    atitude: number;
-    notasFinais: string;
+    hst: number; epi: number; limpeza: number; qualidade: number;
+    eficiencia: number; objetivos: number; atitude: number; notasFinais: string;
 };
 
-export default function LoteAvaliacoesDiariasLayout() {
-    const supabase = createClient();
-    const [operadores, setOperadores] = useState<OperadorLote[]>([]);
+export default function AvaliacoesLideranca() {
+    const [operadores, setOperadores] = useState<OperadorLideranca[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-    const [selectedArea, setSelectedArea] = useState<string | null>(null);
-    const [openCombobox, setOpenCombobox] = useState(false);
+    const [selectedFuncao, setSelectedFuncao] = useState<string | null>(null);
 
-    // Estado local de formulários e saves
     const [evaluations, setEvaluations] = useState<Record<string, FormEdicao>>({});
     const [savedStates, setSavedStates] = useState<Record<string, boolean>>({});
     const [isSubmitting, setIsSubmitting] = useState<Record<string, boolean>>({});
 
     useEffect(() => {
-        carregarLista();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [supabase]);
-
-    const carregarLista = async () => {
-        setIsLoading(true);
-        const { data } = await supabase
-            .from('operadores')
-            .select('id, numero_operador, nome_operador, funcao, area_base_id, areas_fabrica(nome_area), estacoes_fabrica(nome_estacao)')
-            .eq('status', 'Ativo')
-            .order('nome_operador');
-
-        if (data) {
-            const mapped = data.map(op => {
-                const areaBase = (op.areas_fabrica as any)?.nome_area || 'Geral';
-                const estacaoBase = (op.estacoes_fabrica as any)?.nome_estacao || '';
-                
-                let areaFinal = areaBase;
-                if (areaBase.toLowerCase().includes("montagem") && estacaoBase) {
-                    const primeiraLetra = estacaoBase.trim().charAt(0).toUpperCase();
-                    if (['A', 'B', 'C', 'D'].includes(primeiraLetra)) {
-                        areaFinal = `Montagem - Linha ${primeiraLetra}`;
-                    }
-                }
-
-                return {
+        const fetchEquipa = async () => {
+            setIsLoading(true);
+            const res = await carregarEquipaLideranca();
+            if (res.success && res.operadores) {
+                const mapped = res.operadores.map((op: any) => ({
                     id: op.id,
                     numero_operador: op.numero_operador,
                     nome_operador: op.nome_operador,
                     funcao: op.funcao,
-                    area_base_id: op.area_base_id,
-                    area_nome: areaFinal
-                };
-            });
-            // Ordenação Alfabética Rigorosa (Mesmo após os mapeamentos)
-            mapped.sort((a, b) => a.nome_operador.localeCompare(b.nome_operador));
-            setOperadores(mapped);
-        }
-        setIsLoading(false);
-    };
+                    area_nome: (op.areas_fabrica as any)?.nome_area || 'Geral'
+                }));
+                // Sort by name
+                mapped.sort((a: any, b: any) => a.nome_operador.localeCompare(b.nome_operador));
+                setOperadores(mapped);
+            } else {
+                setErrorMsg(res.error || "Acesso Negado");
+            }
+            setIsLoading(false);
+        };
+        fetchEquipa();
+    }, []);
 
-    const areas = useMemo(() => {
-        return Array.from(new Set(operadores.map(e => e.area_nome).filter(Boolean))).sort();
+    const funcoesDisponiveis = useMemo(() => {
+        return Array.from(new Set(operadores.map(e => e.funcao).filter(Boolean))).sort();
     }, [operadores]);
 
     const filteredEmployees = useMemo(() => {
-        if (!selectedArea) return [];
-        return operadores.filter(e => e.area_nome === selectedArea);
-    }, [operadores, selectedArea]);
+        if (!selectedFuncao) return [];
+        return operadores.filter(e => e.funcao === selectedFuncao);
+    }, [operadores, selectedFuncao]);
 
-    // Ao mudar de área, garantimos que cada funcionário tem um Form pré-preenchido
     useEffect(() => {
         if (filteredEmployees.length === 0) return;
 
@@ -146,18 +117,17 @@ export default function LoteAvaliacoesDiariasLayout() {
         return "bg-red-100 text-red-700 border-red-300";
     };
 
-    const submitAvaliacao = async (emp: OperadorLote) => {
+    const submitAvaliacao = async (emp: OperadorLideranca) => {
         const form = evaluations[emp.id];
         if (!form) return;
 
-        // Auto Justificações para notas < 2.0 (Simplificado para Bulk, usa as Notes)
         const justificacoes: Record<string, string> = {};
         let needsJustification = false;
 
         PILLARS.forEach(p => {
             const grade = Number(form[p.key as keyof FormEdicao]);
             if (grade < 2.0) {
-                justificacoes[p.key] = form.notasFinais || "Anotação rápida registada em Lote (Líder)";
+                justificacoes[p.key] = form.notasFinais || "Anotação rápida registada em Lote (Gestão)";
                 if (!form.notasFinais) needsJustification = true;
             }
         });
@@ -176,7 +146,7 @@ export default function LoteAvaliacoesDiariasLayout() {
             justificacoes
         };
 
-        const res = await submeterAvaliacaoDiaria(dto, "Supervisor Logado");
+        const res = await submeterAvaliacaoDiaria(dto, "Gestor Logado");
 
         if (res.success) {
             setSavedStates(prev => ({ ...prev, [emp.id]: true }));
@@ -186,38 +156,44 @@ export default function LoteAvaliacoesDiariasLayout() {
         setIsSubmitting(prev => ({ ...prev, [emp.id]: false }));
     };
 
-    if (isLoading) {
-        return <div className="p-10 text-center animate-pulse text-slate-500 font-mono">A carregar registos ativos da fábrica...</div>;
-    }
+    if (isLoading) return <div className="p-10 text-center animate-pulse text-slate-500 font-mono">Verificando hierarquia e permissões RLS...</div>;
+    
+    if (errorMsg) return (
+        <div className="flex flex-col items-center justify-center p-20 text-center">
+            <Shield className="w-16 h-16 text-rose-500 mb-4" />
+            <h1 className="text-2xl font-bold text-slate-900">Acesso Restrito</h1>
+            <p className="text-slate-500 max-w-md mt-2">{errorMsg}</p>
+        </div>
+    );
 
     return (
         <div className="p-6 space-y-6 max-w-[1400px] mx-auto pb-32 animate-in fade-in duration-500">
             {/* Header Flutuante / Fixo */}
-            <div className="flex flex-col md:flex-row justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-slate-200 gap-4 sticky top-4 z-40">
+            <div className="flex flex-col md:flex-row justify-between items-center bg-indigo-50 p-4 rounded-xl shadow-sm border border-indigo-100 gap-4 sticky top-4 z-40">
                 <div className="flex items-center gap-4">
-                    <UserCheck className="w-8 h-8 text-blue-600" />
+                    <Briefcase className="w-8 h-8 text-indigo-600" />
                     <div>
-                        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Avaliação Diária de Turno</h1>
-                        <p className="text-slate-500 text-sm">Selecione uma Área Logística para carregar os seus Operadores.</p>
+                        <h1 className="text-2xl font-bold text-indigo-950 tracking-tight">Avaliação da Liderança (Hierárquico)</h1>
+                        <p className="text-indigo-600/70 text-sm">Selecione o Cargo Subordinado para avaliação (Apenas Cargos sob sua Gestão Diretiva).</p>
                     </div>
                 </div>
 
                 <div className="flex items-center gap-3 w-full md:w-auto">
-                    <span className="text-xs font-semibold text-slate-700 uppercase tracking-wider hidden md:block">Filtrar por Área:</span>
+                    <span className="text-xs font-semibold text-indigo-700 uppercase tracking-wider hidden md:block">Filtrar Categoria:</span>
                     <div className="relative w-full md:w-[300px]">
                         <select
-                            className="w-full appearance-none bg-white text-slate-900 border border-slate-300 hover:bg-slate-50 shadow-sm rounded-md h-10 px-3 pr-8 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            value={selectedArea || ""}
-                            onChange={(e) => setSelectedArea(e.target.value || null)}
+                            className="w-full appearance-none bg-white text-indigo-900 border border-indigo-200 hover:bg-slate-50 shadow-sm rounded-md h-10 px-3 pr-8 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            value={selectedFuncao || ""}
+                            onChange={(e) => setSelectedFuncao(e.target.value || null)}
                         >
-                            <option value="">Selecione uma área...</option>
-                            {areas.map((area) => (
-                                <option key={area} value={area}>
-                                    {area}
+                            <option value="">Selecione uma Função...</option>
+                            {funcoesDisponiveis.map((funcao) => (
+                                <option key={funcao} value={funcao}>
+                                    {funcao}
                                 </option>
                             ))}
                         </select>
-                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-500">
+                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-indigo-400">
                             <ChevronsUpDown className="h-4 w-4 opacity-50" />
                         </div>
                     </div>
@@ -225,22 +201,22 @@ export default function LoteAvaliacoesDiariasLayout() {
             </div>
 
             {/* Layout Vazio */}
-            {!selectedArea && (
+            {!selectedFuncao && (
                 <div className="flex flex-col items-center justify-center py-20 bg-slate-50/50 rounded-xl border border-dashed border-slate-300">
                     <Search className="w-16 h-16 text-slate-300 mb-4" />
-                    <h3 className="text-xl font-semibold text-slate-700">Nenhuma área em seleção</h3>
+                    <h3 className="text-xl font-semibold text-slate-700">Selecione uma Função Hierárquica</h3>
                     <p className="text-slate-500 max-w-md text-center">
-                        Para maximizar o Desempenho (Zero-Lag), filtre a Secção exata do seu turno de modo a renderizarmos os cartões iterativos.
+                        Ao selecionar uma camada (Ex: Líder de Equipa), carregaremos os profissionais disponíveis ao seu nível de Autoridade.
                     </p>
                 </div>
             )}
 
             {/* Grelha de Cartões Multi-Slider */}
-            {selectedArea && (
+            {selectedFuncao && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {filteredEmployees.map(emp => {
                         const form = evaluations[emp.id];
-                        if (!form) return null; // Safety
+                        if (!form) return null;
 
                         const currentScore = calculateDailyScore(form);
                         const scoreColor = getScoreColor(currentScore);
@@ -250,7 +226,7 @@ export default function LoteAvaliacoesDiariasLayout() {
                         return (
                             <Card key={emp.id} className={cn(
                                 "border-t-4 transition-all duration-300 shadow-sm",
-                                isSaved ? "border-t-green-500 ring-2 ring-green-100 bg-white" : "border-t-blue-500 hover:shadow-lg bg-white"
+                                isSaved ? "border-t-green-500 ring-2 ring-green-100 bg-white" : "border-t-indigo-500 hover:shadow-lg bg-white"
                             )}>
                                 <CardHeader className="flex flex-row justify-between items-start pb-2">
                                     <div>
@@ -261,7 +237,8 @@ export default function LoteAvaliacoesDiariasLayout() {
                                             {emp.nome_operador}
                                         </CardTitle>
                                         <div className="flex gap-2 mt-2">
-                                            <Badge variant="secondary" className="bg-slate-100 text-slate-600">{emp.funcao}</Badge>
+                                            <Badge variant="secondary" className="bg-indigo-100 text-indigo-700 border-indigo-200">{emp.funcao}</Badge>
+                                            <Badge variant="outline" className="text-slate-500">{emp.area_nome}</Badge>
                                         </div>
                                     </div>
                                     <div className={cn("flex flex-col items-center justify-center h-12 w-12 rounded-full border-2 shadow-sm", scoreColor)}>
@@ -302,7 +279,7 @@ export default function LoteAvaliacoesDiariasLayout() {
                                         <Textarea
                                             placeholder="Observações do labor diário ou Redação de Justificação para Notas Críticas (< 2.0)..."
                                             className={cn(
-                                                "h-20 text-xs resize-none border-slate-200 focus:border-blue-400 shadow-inner",
+                                                "h-20 text-xs resize-none border-slate-200 focus:border-indigo-400 shadow-inner",
                                                 isSaved && "opacity-50 cursor-not-allowed"
                                             )}
                                             value={form.notasFinais || ""}
@@ -317,7 +294,7 @@ export default function LoteAvaliacoesDiariasLayout() {
                                             "w-full font-semibold shadow-sm transition-all duration-200",
                                             isSaved
                                                 ? "bg-green-600 hover:bg-green-700 text-white shadow-green-200 disabled:opacity-100"
-                                                : "bg-slate-900 hover:bg-slate-800 text-white shadow-slate-200"
+                                                : "bg-indigo-700 hover:bg-indigo-600 text-white shadow-indigo-200"
                                         )}
                                         onClick={() => submitAvaliacao(emp)}
                                     >

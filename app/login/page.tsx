@@ -62,9 +62,6 @@ function LoginForm() {
                         <button formAction={login} className="btn btn-primary" style={{ width: '100%', padding: '0.85rem' }}>
                             Aceder ao Painel (Login)
                         </button>
-                        <button formAction={signup} className="btn btn-outline" style={{ width: '100%', padding: '0.7rem', fontSize: '0.85rem', opacity: 0.8 }}>
-                            (1º Passo) Criar Conta Master
-                        </button>
                     </div>
                 </form>
 

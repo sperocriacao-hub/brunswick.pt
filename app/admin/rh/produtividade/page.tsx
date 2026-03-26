@@ -25,7 +25,7 @@ export default async function ProdutividadeRH({ searchParams }: { searchParams: 
     let queryOps = supabase
         .from('operadores')
         .select(`
-            id, tag_rfid_operador, nome_operador, status, area_base_id,
+            id, tag_rfid_operador, nome_operador, funcao, status, area_base_id,
             areas_fabrica(id, nome_area)
         `)
         .eq('status', 'Ativo');
@@ -36,7 +36,8 @@ export default async function ProdutividadeRH({ searchParams }: { searchParams: 
 
     const { data: rawOperadores } = await queryOps;
 
-    const operadores = rawOperadores?.map(op => ({
+    const LEADERSHIP_ROLES = ["Gestor", "Supervisor", "Coordenador de Grupo", "Líder de equipa", "Lider de equipa"];
+    const operadores = rawOperadores?.filter(op => !LEADERSHIP_ROLES.includes(op.funcao)).map(op => ({
         ...op,
         area_nome: (op.areas_fabrica as any)?.nome_area || 'Geral'
     })) || [];

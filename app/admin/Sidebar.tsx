@@ -23,6 +23,7 @@ import {
   Award,
   Monitor,
   Tv,
+  Briefcase,
   Users,
   Wifi,
   FlaskConical
@@ -367,6 +368,25 @@ export function Sidebar({
                       Avaliações Diárias
                     </span>
                   </Link>
+                  {hasAccess("/admin/rh/avaliacoes-lideranca") && (
+                    <Link
+                      onClick={() => setIsOpen(false)}
+                      href="/admin/rh/avaliacoes-lideranca"
+                      className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes("/admin/rh/avaliacoes-lideranca") ? "bg-blue-800 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
+                    >
+                      <Briefcase
+                        size={18}
+                        className={
+                          pathname.includes("/admin/rh/avaliacoes-lideranca")
+                            ? "text-white"
+                            : "text-blue-300"
+                        }
+                      />
+                      <span className="text-sm border-transparent">
+                        Avaliações Liderança
+                      </span>
+                    </Link>
+                  )}
                   <Link
                     onClick={() => setIsOpen(false)}
                     href="/admin/rh/assiduidade"
