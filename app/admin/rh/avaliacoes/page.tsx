@@ -61,16 +61,21 @@ export default function LoteAvaliacoesDiariasLayout() {
 
     const carregarLista = async () => {
         setIsLoading(true);
+
+        // Fetch estações manually to build a robust dictionary and avoid RLS/Foreign Key relation parsing errors
+        const { data: estacoesData } = await supabase.from('estacoes').select('id, nome_estacao');
+        const mapEstacoes = new Map(estacoesData?.map(e => [e.id, e.nome_estacao]) || []);
+
         const { data } = await supabase
             .from('operadores')
-            .select('id, numero_operador, nome_operador, funcao, area_base_id, areas_fabrica(nome_area), estacoes(nome_estacao)')
+            .select('id, numero_operador, nome_operador, funcao, area_base_id, posto_base_id, areas_fabrica(nome_area)')
             .eq('status', 'Ativo')
             .order('nome_operador');
 
         if (data) {
             const mapped = data.map(op => {
                 const areaBase = (op.areas_fabrica as any)?.nome_area || 'Geral';
-                const estacaoBase = (op.estacoes as any)?.nome_estacao || '';
+                const estacaoBase = mapEstacoes.get(op.posto_base_id) || '';
                 
                 let areaFinal = areaBase;
                 if (areaBase.toLowerCase().includes("montagem") && estacaoBase) {
