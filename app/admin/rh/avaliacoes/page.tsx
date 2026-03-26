@@ -63,14 +63,14 @@ export default function LoteAvaliacoesDiariasLayout() {
         setIsLoading(true);
         const { data } = await supabase
             .from('operadores')
-            .select('id, numero_operador, nome_operador, funcao, area_base_id, areas_fabrica(nome_area), estacoes_fabrica(nome_estacao)')
+            .select('id, numero_operador, nome_operador, funcao, area_base_id, areas_fabrica(nome_area), estacoes(nome_estacao)')
             .eq('status', 'Ativo')
             .order('nome_operador');
 
         if (data) {
             const mapped = data.map(op => {
                 const areaBase = (op.areas_fabrica as any)?.nome_area || 'Geral';
-                const estacaoBase = (op.estacoes_fabrica as any)?.nome_estacao || '';
+                const estacaoBase = (op.estacoes as any)?.nome_estacao || '';
                 
                 let areaFinal = areaBase;
                 if (areaBase.toLowerCase().includes("montagem") && estacaoBase) {
