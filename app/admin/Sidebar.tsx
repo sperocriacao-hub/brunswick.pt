@@ -716,6 +716,31 @@ export function Sidebar({
                   </Link>
                 </nav>
 
+                <p className="px-3 text-[10px] font-extrabold text-blue-400 uppercase tracking-widest mb-2">
+                  Setup & Administração
+                </p>
+                <nav className="flex flex-col gap-1 mb-6">
+                  {hasAccess("/admin/configuracoes/notificacoes") && (
+                    <Link
+                      onClick={() => setIsOpen(false)}
+                      href="/admin/configuracoes/notificacoes"
+                      className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes("/admin/configuracoes/notificacoes") ? "bg-blue-800 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
+                    >
+                      <Settings
+                        size={18}
+                        className={
+                          pathname.includes("/admin/configuracoes/notificacoes")
+                            ? "text-white"
+                            : "text-blue-300"
+                        }
+                      />
+                      <span className="text-sm border-transparent">
+                        Motor Notificações
+                      </span>
+                    </Link>
+                  )}
+                </nav>
+
                 <p className="px-3 text-[10px] font-extrabold text-[#f43f5e] uppercase tracking-widest mb-2">
                   Saúde, Seg e Ambiente
                 </p>
