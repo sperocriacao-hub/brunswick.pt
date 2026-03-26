@@ -6,6 +6,12 @@ import { createClient } from '@/utils/supabase/server';
 export type AvaliacaoLiderancaDTO = {
     funcionario_id: string;
     nomeFuncionario: string;
+    hst: number;
+    epi: number;
+    limpeza: number;
+    eficiencia: number;
+    objetivos: number;
+    atitude: number;
     gestao_motivacao: number;
     desenvolvimento: number;
     desperdicios: number;
@@ -71,6 +77,12 @@ export async function submeterAvaliacaoLideranca(avaliacao: AvaliacaoLiderancaDT
                 funcionario_id: avaliacao.funcionario_id,
                 supervisor_nome: autoSupervisorNome,
                 data_avaliacao: avaliacao.data_avaliacao || new Date().toISOString().split('T')[0],
+                nota_hst: avaliacao.hst,
+                nota_epi: avaliacao.epi,
+                nota_5s: avaliacao.limpeza,
+                nota_eficiencia: avaliacao.eficiencia,
+                nota_objetivos: avaliacao.objetivos,
+                nota_atitude: avaliacao.atitude,
                 nota_gestao_motivacao: avaliacao.gestao_motivacao,
                 nota_desenvolvimento: avaliacao.desenvolvimento,
                 nota_desperdicios: avaliacao.desperdicios,

@@ -12,14 +12,20 @@ import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
 
 const PILLARS_LIDERANCA = [
-    { key: 'gestao_motivacao', label: 'Gestão Motivação', icon: Activity, color: 'text-orange-500' },
-    { key: 'desenvolvimento', label: 'Desenv. Habilidades', icon: Users, color: 'text-blue-500' },
-    { key: 'desperdicios', label: 'Gestão Desperdícios', icon: Activity, color: 'text-red-500' },
-    { key: 'qualidade', label: 'Gestão da Qualidade', icon: CheckCircle, color: 'text-purple-500' },
-    { key: 'operacoes', label: 'Gestão Operações', icon: Settings, color: 'text-slate-500' },
-    { key: 'melhoria', label: 'Melhoria Contínua', icon: TrendingUp, color: 'text-green-500' },
-    { key: 'kpis', label: 'Indicadores (KPIs)', icon: Target, color: 'text-indigo-500' },
-    { key: 'cultura', label: 'Guardião da Cultura', icon: HeartHandshake, color: 'text-pink-500' },
+    { key: 'hst', label: 'HST', icon: Shield, color: 'text-orange-500' },
+    { key: 'epi', label: 'EPI', icon: Shield, color: 'text-blue-500' },
+    { key: 'limpeza', label: 'Limpeza (5S)', icon: Activity, color: 'text-green-500' },
+    { key: 'eficiencia', label: 'Eficiência', icon: TrendingUp, color: 'text-red-500' },
+    { key: 'objetivos', label: 'Objetivos', icon: CheckCircle, color: 'text-indigo-500' },
+    { key: 'atitude', label: 'Atitude', icon: Activity, color: 'text-pink-500' },
+    { key: 'gestao_motivacao', label: 'Gestão Motivação', icon: Activity, color: 'text-orange-600' },
+    { key: 'desenvolvimento', label: 'Desenv. Habilidades', icon: Users, color: 'text-blue-600' },
+    { key: 'desperdicios', label: 'Gestão Desperdícios', icon: Activity, color: 'text-red-600' },
+    { key: 'qualidade', label: 'Gestão da Qualidade', icon: CheckCircle, color: 'text-purple-600' },
+    { key: 'operacoes', label: 'Gestão Operações', icon: Settings, color: 'text-slate-600' },
+    { key: 'melhoria', label: 'Melhoria Contínua', icon: TrendingUp, color: 'text-green-600' },
+    { key: 'kpis', label: 'Indicadores (KPIs)', icon: Target, color: 'text-indigo-600' },
+    { key: 'cultura', label: 'Guardião da Cultura', icon: HeartHandshake, color: 'text-pink-600' },
 ] as const;
 
 type OperadorLideranca = {
@@ -31,6 +37,12 @@ type OperadorLideranca = {
 };
 
 type FormEdicao = {
+    hst: number;
+    epi: number;
+    limpeza: number;
+    eficiencia: number;
+    objetivos: number;
+    atitude: number;
     gestao_motivacao: number;
     desenvolvimento: number;
     desperdicios: number;
@@ -93,6 +105,7 @@ export default function AvaliacoesLideranca() {
         filteredEmployees.forEach(emp => {
             if (!newForms[emp.id]) {
                 newForms[emp.id] = {
+                    hst: 3.0, epi: 3.0, limpeza: 3.0, eficiencia: 3.0, objetivos: 3.0, atitude: 3.0,
                     gestao_motivacao: 3.0, desenvolvimento: 3.0, desperdicios: 3.0, qualidade: 3.0,
                     operacoes: 3.0, melhoria: 3.0, kpis: 3.0, cultura: 3.0, notasFinais: ""
                 };
@@ -115,8 +128,8 @@ export default function AvaliacoesLideranca() {
 
     const calculateDailyScore = (evalData: FormEdicao | undefined) => {
         if (!evalData) return "0.0";
-        const sum = evalData.gestao_motivacao + evalData.desenvolvimento + evalData.desperdicios + evalData.qualidade + evalData.operacoes + evalData.melhoria + evalData.kpis + evalData.cultura;
-        return (sum / 8).toFixed(1);
+        const sum = evalData.hst + evalData.epi + evalData.limpeza + evalData.eficiencia + evalData.objetivos + evalData.atitude + evalData.gestao_motivacao + evalData.desenvolvimento + evalData.desperdicios + evalData.qualidade + evalData.operacoes + evalData.melhoria + evalData.kpis + evalData.cultura;
+        return (sum / 14).toFixed(1);
     };
 
     const getScoreColor = (scoreStr: string) => {
