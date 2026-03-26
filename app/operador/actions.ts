@@ -144,12 +144,20 @@ export async function dispararAlertaAndon(estacao_id: string, rf_tag_operador: s
         if (error) throw error;
 
         // 3. Notificar as devidas Lideranças e Supervisores logísticos
-        const { data: estacaoData } = await supabase.from('estacoes').select('nome_estacao').eq('id', estacao_id).single();
-        const strEstacao = estacaoData ? estacaoData.nome_estacao : 'Desconhecida';
+        const { data: estacaoAlvoData } = await supabase.from('estacoes').select('nome_estacao').eq('id', estacao_id).single();
+        const strCausadora = estacaoAlvoData ? estacaoAlvoData.nome_estacao : 'Desconhecida';
+
+        let strLocal = strCausadora;
+        const oLocalId = local_ocorrencia_id || estacao_id;
+        if (oLocalId !== estacao_id) {
+            const { data: estacaoLocalData } = await supabase.from('estacoes').select('nome_estacao').eq('id', oLocalId).single();
+            if (estacaoLocalData) strLocal = estacaoLocalData.nome_estacao;
+        }
 
         await dispatchNotification('ANDON_TRIGGER', {
             op_numero: rf_tag_barco || 'N/A',
-            op_estacao: strEstacao,
+            op_estacao: strLocal,
+            op_estacao_causadora: strCausadora,
             op_tag_operador: rf_tag_operador || 'Anon',
             // Extensões de payload de refinamento
             tipo_alerta: tipo_alerta,

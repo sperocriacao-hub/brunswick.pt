@@ -150,14 +150,79 @@ export async function dispatchNotification(event: string, payload: Record<string
                 let erroDetalhe = null;
 
                 try {
-                    // Aqui entraríamos com a integração real de Twilio / Resend / Webhooks
-                    console.log(`[DISPATCH ${regra.tipo_canal}] A enviar para ${dest} -> ${mensagemFinal}`);
-                    // Simulação
-                    if (regra.tipo_canal === 'EMAIL' && !dest.includes('@')) {
-                        throw new Error('Email inválido formatado');
+                    // Implementação da Integração Real (Fase 14.1)
+                    if (regra.tipo_canal === 'EMAIL') {
+                        if (!dest.includes('@')) throw new Error('Email inválido formatado');
+                        
+                        const resendKey = process.env.RESEND_API_KEY;
+                        if (!resendKey) throw new Error('API Key da Resend não configurada (.env)');
+                        
+                        const payloadResend = {
+                            from: 'Andon Brunswick <onboarding@resend.dev>',
+                            to: dest,
+                            subject: '🚨 ALERTA ANDON OEE',
+                            html: `<div style="font-family: sans-serif; padding: 20px; border-left: 5px solid red; background: #fffaf9; border-radius: 4px;">
+                                    <h2 style="color: #dc2626; margin-top: 0; font-family: monospace;">ALERTA DE SEGURANÇA / PRODUÇÃO</h2>
+                                    <p style="font-size: 16px; color: #333; line-height: 1.5;">${mensagemFinal.replace(/\n/g, '<br/>')}</p>
+                                    <hr style="border: 0; border-top: 1px solid #ccc; margin-top: 40px;" />
+                                    <p style="font-size: 12px; color: #888;">Notificação Automática gerada pelo Brunswick M.E.S</p>
+                                   </div>`
+                        };
+
+                        const resEmail = await fetch('https://api.resend.com/emails', {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `Bearer ${resendKey}`,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(payloadResend)
+                        });
+                        
+                        if (!resEmail.ok) {
+                            const errTexto = await resEmail.text();
+                            throw new Error(`Falha Resend: ${errTexto.substring(0, 100)}`);
+                        }
                     }
+
+                    if (regra.tipo_canal === 'SMS') {
+                        const accountSid = process.env.TWILIO_ACCOUNT_SID;
+                        const authToken = process.env.TWILIO_AUTH_TOKEN;
+                        const twilioNumber = process.env.TWILIO_PHONE_NUMBER;
+                        
+                        if (!accountSid || !authToken || !twilioNumber) {
+                            throw new Error('Credenciais Twilio incompletas no .env');
+                        }
+                        
+                        const url = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`;
+                        const auth = Buffer.from(`${accountSid}:${authToken}`).toString('base64');
+                        
+                        const resSms = await fetch(url, {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `Basic ${auth}`,
+                                'Content-Type': 'application/x-www-form-urlencoded'
+                            },
+                            body: new URLSearchParams({
+                                To: dest,
+                                From: twilioNumber,
+                                Body: `🚨 ANDON ALERT:\n${mensagemFinal}`
+                            })
+                        });
+                        
+                        if (!resSms.ok) {
+                            const errTexto = await resSms.text();
+                            throw new Error(`Falha Twilio API: ${errTexto.substring(0, 100)}`);
+                        }
+                    }
+
                     if (regra.tipo_canal === 'WEBHOOK') {
-                        // fetch(dest, { method: 'POST', body: JSON.stringify({ event, message: mensagemFinal }) })
+                        if (!dest.startsWith('http')) throw new Error('URL Hook inválido');
+                        const resHook = await fetch(dest, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ event, message: mensagemFinal })
+                        });
+                        if (!resHook.ok) throw new Error('Webhook rejeitado pelo destino');
                     }
                 } catch (sendError: unknown) {
                     status = 'FAILED';
