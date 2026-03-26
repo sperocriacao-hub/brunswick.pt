@@ -372,6 +372,7 @@ export function Sidebar({
                     <Link
                       onClick={() => setIsOpen(false)}
                       href="/admin/rh/avaliacoes-lideranca"
+                      prefetch={true}
                       className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes("/admin/rh/avaliacoes-lideranca") ? "bg-blue-800 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
                     >
                       <Briefcase
@@ -384,6 +385,25 @@ export function Sidebar({
                       />
                       <span className="text-sm border-transparent">
                         Avaliações Liderança
+                      </span>
+                    </Link>
+                  )}
+                  {hasAccess("/admin/rh/avaliacoes-lideranca") && (
+                     <Link
+                      onClick={() => setIsOpen(false)}
+                      href="/admin/rh/produtividade-lideranca"
+                      className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes("/admin/rh/produtividade-lideranca") ? "bg-blue-800 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
+                    >
+                      <Activity
+                        size={18}
+                        className={
+                          pathname.includes("/admin/rh/produtividade-lideranca")
+                            ? "text-white"
+                            : "text-blue-300"
+                        }
+                      />
+                      <span className="text-sm border-transparent">
+                        Feedback Liderança
                       </span>
                     </Link>
                   )}
