@@ -3,17 +3,30 @@
 import { cookies } from 'next/headers';
 import { createClient } from '@/utils/supabase/server';
 
+export type AvaliacaoLiderancaDTO = {
+    funcionario_id: string;
+    nomeFuncionario: string;
+    gestao_motivacao: number;
+    desenvolvimento: number;
+    desperdicios: number;
+    qualidade: number;
+    operacoes: number;
+    melhoria: number;
+    kpis: number;
+    cultura: number;
+    justificacoes: Record<string, string>; // ex: { 'kpis': 'Revisão falha' }
+    data_avaliacao?: string; 
+};
+
 export async function carregarEquipaLideranca() {
     try {
         const cookieStore = cookies();
         const supabase = await createClient(cookieStore);
 
-        // Quem está logado?
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
-        if (authError || !user) throw new Error("Não Autorizado");
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return { success: false, error: "Não Autenticado" };
 
-        // Obter função de quem está logado
-        let minLevel = 0; // 0 = nobody, 1 = Supervisor (sees Lider), 2 = Gestor (sees Supervisor, Lider), 3 = Admin (sees all)
+        let minLevel = 0; 
         
         if (user.email === 'master@brunswick.pt') {
              minLevel = 3;
@@ -41,5 +54,45 @@ export async function carregarEquipaLideranca() {
         return { success: true, operadores: data, myLevel: minLevel };
     } catch (err: unknown) {
         return { success: false, error: err instanceof Error ? err.message : "Erro desconhecido" };
+    }
+}
+
+export async function submeterAvaliacaoLideranca(avaliacao: AvaliacaoLiderancaDTO, autoSupervisorNome: string = "Gestão Superior") {
+    try {
+        if (!avaliacao.funcionario_id) throw new Error("ID de Funcionário em falta.");
+
+        const cookieStore = cookies();
+        const supabase = await createClient(cookieStore);
+
+        // 1. Inserir Avaliação na Nova Tabela Dedicada à Liderança
+        const { error: avalError } = await supabase
+            .from('avaliacoes_lideranca')
+            .insert({
+                funcionario_id: avaliacao.funcionario_id,
+                supervisor_nome: autoSupervisorNome,
+                data_avaliacao: avaliacao.data_avaliacao || new Date().toISOString().split('T')[0],
+                nota_gestao_motivacao: avaliacao.gestao_motivacao,
+                nota_desenvolvimento: avaliacao.desenvolvimento,
+                nota_desperdicios: avaliacao.desperdicios,
+                nota_qualidade: avaliacao.qualidade,
+                nota_operacoes: avaliacao.operacoes,
+                nota_melhoria: avaliacao.melhoria,
+                nota_kpis: avaliacao.kpis,
+                nota_cultura: avaliacao.cultura,
+                justificativas: JSON.stringify(avaliacao.justificacoes)
+            });
+
+        if (avalError) {
+            console.error("Erro SQL ao inserir avaliacao liderança", avalError);
+            if (avalError.code === '23505') {
+                throw new Error("Este Operador já foi avaliado nesta data no Portal de Liderança.");
+            }
+            throw avalError;
+        }
+
+        return { success: true };
+
+    } catch (err: unknown) {
+        return { success: false, error: err instanceof Error ? err.message : "Falha na Gravação da Avaliação" };
     }
 }

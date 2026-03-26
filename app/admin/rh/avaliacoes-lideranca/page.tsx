@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Shield, Activity, TrendingUp, CheckCircle, Save, Check, ChevronsUpDown, Search, Briefcase, UserCheck } from 'lucide-react';
-import { submeterAvaliacaoDiaria, AvaliacaoDTO } from '../avaliacoes/actions';
+import { Shield, Activity, TrendingUp, CheckCircle, Save, Check, ChevronsUpDown, Search, UserCheck, Calendar, Users, Settings, Target, HeartHandshake, Briefcase } from 'lucide-react';
+import { AvaliacaoLiderancaDTO, submeterAvaliacaoLideranca } from './actions';
 import { carregarEquipaLideranca } from './actions';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,14 +11,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
 
-const PILLARS = [
-    { key: 'hst', label: 'HST', icon: Shield, color: 'text-orange-500' },
-    { key: 'epi', label: 'EPI', icon: Shield, color: 'text-blue-500' },
-    { key: 'limpeza', label: 'Limpeza (5S)', icon: Activity, color: 'text-green-500' },
-    { key: 'qualidade', label: 'Qualidade', icon: CheckCircle, color: 'text-purple-500' },
-    { key: 'eficiencia', label: 'Eficiência', icon: TrendingUp, color: 'text-red-500' },
-    { key: 'objetivos', label: 'Objetivos', icon: CheckCircle, color: 'text-indigo-500' },
-    { key: 'atitude', label: 'Atitude', icon: Activity, color: 'text-pink-500' },
+const PILLARS_LIDERANCA = [
+    { key: 'gestao_motivacao', label: 'Gestão Motivação', icon: Activity, color: 'text-orange-500' },
+    { key: 'desenvolvimento', label: 'Desenv. Habilidades', icon: Users, color: 'text-blue-500' },
+    { key: 'desperdicios', label: 'Gestão Desperdícios', icon: Activity, color: 'text-red-500' },
+    { key: 'qualidade', label: 'Gestão da Qualidade', icon: CheckCircle, color: 'text-purple-500' },
+    { key: 'operacoes', label: 'Gestão Operações', icon: Settings, color: 'text-slate-500' },
+    { key: 'melhoria', label: 'Melhoria Contínua', icon: TrendingUp, color: 'text-green-500' },
+    { key: 'kpis', label: 'Indicadores (KPIs)', icon: Target, color: 'text-indigo-500' },
+    { key: 'cultura', label: 'Guardião da Cultura', icon: HeartHandshake, color: 'text-pink-500' },
 ] as const;
 
 type OperadorLideranca = {
@@ -30,8 +31,15 @@ type OperadorLideranca = {
 };
 
 type FormEdicao = {
-    hst: number; epi: number; limpeza: number; qualidade: number;
-    eficiencia: number; objetivos: number; atitude: number; notasFinais: string;
+    gestao_motivacao: number;
+    desenvolvimento: number;
+    desperdicios: number;
+    qualidade: number;
+    operacoes: number;
+    melhoria: number;
+    kpis: number;
+    cultura: number;
+    notasFinais: string;
 };
 
 export default function AvaliacoesLideranca() {
@@ -85,8 +93,8 @@ export default function AvaliacoesLideranca() {
         filteredEmployees.forEach(emp => {
             if (!newForms[emp.id]) {
                 newForms[emp.id] = {
-                    hst: 3.0, epi: 3.0, limpeza: 3.0, qualidade: 3.0,
-                    eficiencia: 3.0, objetivos: 3.0, atitude: 3.0, notasFinais: ""
+                    gestao_motivacao: 3.0, desenvolvimento: 3.0, desperdicios: 3.0, qualidade: 3.0,
+                    operacoes: 3.0, melhoria: 3.0, kpis: 3.0, cultura: 3.0, notasFinais: ""
                 };
             }
         });
@@ -107,8 +115,8 @@ export default function AvaliacoesLideranca() {
 
     const calculateDailyScore = (evalData: FormEdicao | undefined) => {
         if (!evalData) return "0.0";
-        const sum = evalData.hst + evalData.epi + evalData.limpeza + evalData.qualidade + evalData.eficiencia + evalData.objetivos + evalData.atitude;
-        return (sum / 7).toFixed(1);
+        const sum = evalData.gestao_motivacao + evalData.desenvolvimento + evalData.desperdicios + evalData.qualidade + evalData.operacoes + evalData.melhoria + evalData.kpis + evalData.cultura;
+        return (sum / 8).toFixed(1);
     };
 
     const getScoreColor = (scoreStr: string) => {
@@ -125,22 +133,22 @@ export default function AvaliacoesLideranca() {
         const justificacoes: Record<string, string> = {};
         let needsJustification = false;
 
-        PILLARS.forEach(p => {
+        PILLARS_LIDERANCA.forEach(p => {
             const grade = Number(form[p.key as keyof FormEdicao]);
-            if (grade < 2.0) {
-                justificacoes[p.key] = form.notasFinais || "Anotação rápida registada em Lote (Gestão)";
+            if (grade < 2.0 || grade > 3.8) {
+                justificacoes[p.key] = form.notasFinais || "Anotação rápida registada em Lote (Líder)";
                 if (!form.notasFinais) needsJustification = true;
             }
         });
 
         if (needsJustification && form.notasFinais.trim() === "") {
-            alert("Existem pilares sob classificação crítica (< 2.0). Tem obrigatoriamente de inserir uma justificativa no bloco inferior antes de gravar.");
+            alert("Existem pilares sob classificação crítica (< 2.0) ou de Excelência (> 3.8). Tem obrigatoriamente de inserir uma justificativa no bloco inferior antes de gravar.");
             return;
         }
 
         setIsSubmitting(prev => ({ ...prev, [emp.id]: true }));
 
-        const dto: AvaliacaoDTO = {
+        const dto: AvaliacaoLiderancaDTO = {
             funcionario_id: emp.id,
             nomeFuncionario: emp.nome_operador,
             data_avaliacao: selectedDate, // Retroativa suportada
@@ -148,7 +156,7 @@ export default function AvaliacoesLideranca() {
             justificacoes
         };
 
-        const res = await submeterAvaliacaoDiaria(dto, "Gestor Logado");
+        const res = await submeterAvaliacaoLideranca(dto, "Supervisor Logado");
 
         if (res.success) {
             setSavedStates(prev => ({ ...prev, [emp.id]: true }));
@@ -258,7 +266,7 @@ export default function AvaliacoesLideranca() {
                                 {/* Bloco dos Sliders */}
                                 <CardContent className="space-y-4 pt-0">
                                     <div className="grid gap-3 bg-slate-50/50 p-4 rounded-lg border border-slate-100 mt-2">
-                                        {PILLARS.map(pillar => {
+                                        {PILLARS_LIDERANCA.map(pillar => {
                                             const Icon = pillar.icon;
                                             const val = form[pillar.key as keyof FormEdicao] as number;
                                             return (
@@ -286,7 +294,7 @@ export default function AvaliacoesLideranca() {
                                     {/* Observações / Justificações */}
                                     <div className="pt-2">
                                         <Textarea
-                                            placeholder="Observações do labor diário ou Redação de Justificação para Notas Críticas (< 2.0)..."
+                                            placeholder="Redação obrigatória de Justificação para Notas (< 2.0) ou (> 3.8)..."
                                             className={cn(
                                                 "h-20 text-xs resize-none border-slate-200 focus:border-indigo-400 shadow-inner",
                                                 isSaved && "opacity-50 cursor-not-allowed"

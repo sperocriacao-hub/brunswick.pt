@@ -79,10 +79,23 @@ export default async function ProdutividadeLiderancaRH({ searchParams }: { searc
     const lastDayStr = new Date(nextMonthDate.getTime() - 1).toISOString().split('T')[0];
 
     const { data: avaliacoesMes } = await supabase
-        .from('avaliacoes_diarias')
+        .from('avaliacoes_lideranca')
         .select('*')
         .gte('data_avaliacao', firstDayStr)
         .lte('data_avaliacao', lastDayStr);
+
+    // Mapper de Compatibilidade para Grelhas V1: Como a Liderança tem Pilares Mapeados, nós fornecemos Aliases 
+    // temporários para que o FactoryHeatmap e o TopPerformers mural não quebrem (eles esperam nota_hst, etc).
+    const fallbackAvaliacoes = (avaliacoesMes || []).map(a => ({
+        ...a,
+        nota_hst: a.nota_cultura,
+        nota_epi: a.nota_gestao_motivacao,
+        nota_5s: a.nota_desperdicios,
+        nota_qualidade: a.nota_qualidade,
+        nota_eficiencia: a.nota_operacoes,
+        nota_objetivos: a.nota_kpis,
+        nota_atitude: a.nota_desenvolvimento
+    }));
 
     // 5. Fetch Tarefas (Value Added Time) do mês
     const { data: rawTarefas } = await supabase
@@ -291,13 +304,13 @@ export default async function ProdutividadeLiderancaRH({ searchParams }: { searc
             {/* Top 3 Performers do Mês */}
             <TopPerformersMural
                 operadores={(operadores as unknown as DB_OperadorArea[])}
-                avaliacoes={(avaliacoesMes as unknown as DB_AvaliacaoDiaria[]) || []}
+                avaliacoes={(fallbackAvaliacoes as unknown as DB_AvaliacaoDiaria[]) || []}
             />
 
             {/* Mapa Longitudinal de Calor (Factory Heatmap) */}
             <div className="mt-8 mb-8">
                 <FactoryHeatmap
-                    avaliacoes={(avaliacoesMes as unknown as DB_AvaliacaoDiaria[]) || []}
+                    avaliacoes={(fallbackAvaliacoes as unknown as DB_AvaliacaoDiaria[]) || []}
                     operadores={(operadores as unknown as DB_OperadorArea[])}
                 />
             </div>

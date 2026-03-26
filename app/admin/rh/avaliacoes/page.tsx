@@ -167,14 +167,15 @@ export default function LoteAvaliacoesDiariasLayout() {
 
         PILLARS.forEach(p => {
             const grade = Number(form[p.key as keyof FormEdicao]);
-            if (grade < 2.0) {
+            // O USER solicitou feedback estrito para Liderança E Operadores em Extremos (>3.8 ou <2.0)
+            if (grade < 2.0 || grade > 3.8) {
                 justificacoes[p.key] = form.notasFinais || "Anotação rápida registada em Lote (Líder)";
                 if (!form.notasFinais) needsJustification = true;
             }
         });
 
         if (needsJustification && form.notasFinais.trim() === "") {
-            alert("Existem pilares sob classificação crítica (< 2.0). Tem obrigatoriamente de inserir uma justificativa no bloco inferior antes de gravar.");
+            alert("Existem pilares sob classificação crítica (< 2.0) ou Excelência (> 3.8). Tem obrigatoriamente de inserir uma justificativa no bloco inferior antes de gravar.");
             return;
         }
 
