@@ -4,12 +4,11 @@ import React, { useState, useEffect } from 'react';
 import { Settings, ShieldAlert, Award, Star, Activity, UserCheck, PartyPopper } from 'lucide-react';
 // import { motion, AnimatePresence } from 'framer-motion';
 
-export function TvRefeitorio({ config, data }: { config: any, data: any }) {
+export function TvRefeitorio({ config, data, embedMode = false }: { config: any, data: any, embedMode?: boolean }) {
     const opcoes = config.opcoes_layout || {};
     const loopTempo = (opcoes.loopTempoSegundos || 15) * 1000;
 
     const [activeIdx, setActiveIdx] = useState(0);
-    const [currentTime, setCurrentTime] = useState(new Date());
 
     // Build the array of active slides
     const slides: { id: string, label: string, render: () => React.ReactNode }[] = [];
@@ -22,14 +21,29 @@ export function TvRefeitorio({ config, data }: { config: any, data: any }) {
     const showOee = opcoes.showRefeitorioOee ?? true;
     const show5s = opcoes.showRefeitorio5S ?? true;
 
+    function splitPages(arr: any[], max: number) {
+        const pages = [];
+        for (let i = 0; i < arr.length; i += max) pages.push(arr.slice(i, i + max));
+        return pages;
+    }
+
     if (showAniv && data.aniversariantes?.length > 0) {
-        slides.push({ id: 'NIVERS', label: 'Aniversariantes do Mês', render: () => <SlideAniversarios aniversariantes={data.aniversariantes} /> });
+        const pages = splitPages(data.aniversariantes, 8);
+        pages.forEach((pageBatch, idx) => {
+            slides.push({ id: `NIVERS_${idx}`, label: `Aniversários ${idx+1}/${pages.length}`, render: () => <SlideAniversarios aniversariantes={pageBatch} /> });
+        });
     }
     if (showAdm && data.admissoes?.length > 0) {
-        slides.push({ id: 'ADMISSAO', label: 'Aniversários de Admissão', render: () => <SlideAdmissoes admissoes={data.admissoes} /> });
+        const pages = splitPages(data.admissoes, 6);
+        pages.forEach((pageBatch, idx) => {
+            slides.push({ id: `ADMISSAO_${idx}`, label: `Mérito ${idx+1}/${pages.length}`, render: () => <SlideAdmissoes admissoes={pageBatch} /> });
+        });
     }
-    if (showHer && data.heroi) {
-        slides.push({ id: 'HEROI', label: 'Herói do Mês', render: () => <SlideHeroi heroi={data.heroi} /> });
+    if (showHer && data.herois?.length > 0) {
+        const pages = splitPages(data.herois, 4);
+        pages.forEach((pageBatch, idx) => {
+            slides.push({ id: `HEROI_${idx}`, label: `Heróis ${idx+1}/${pages.length}`, render: () => <SlideHerois herois={pageBatch} /> });
+        });
     }
     if (showSeg) {
         slides.push({ id: 'SEGURANCA', label: 'Dashboard de Segurança', render: () => <SlideSeguranca safetyCross={data.safetyCross || []} heatmap={data.heatmap || []} /> });
@@ -41,13 +55,8 @@ export function TvRefeitorio({ config, data }: { config: any, data: any }) {
         slides.push({ id: 'OEE', label: 'Eficiência e OEE Global', render: () => <SlideOee oee={data.oee} /> });
     }
     if (show5s) {
-        slides.push({ id: '5S', label: 'Limpeza e 5S', render: () => <Slide5S /> });
+        slides.push({ id: '5S', label: 'Cultura 5S e Limpeza', render: () => <Slide5S heatmap={data.heatmap5s || []} /> });
     }
-
-    useEffect(() => {
-        const timerClock = setInterval(() => setCurrentTime(new Date()), 1000);
-        return () => clearInterval(timerClock);
-    }, []);
 
     useEffect(() => {
         if (slides.length <= 1) return;
@@ -59,7 +68,7 @@ export function TvRefeitorio({ config, data }: { config: any, data: any }) {
 
     if (slides.length === 0) {
         return (
-            <div className="w-screen h-screen flex flex-col items-center justify-center bg-slate-950 text-slate-300">
+            <div className={`flex flex-col items-center justify-center bg-slate-950 text-slate-300 ${embedMode ? 'w-full h-full rounded-[3rem]' : 'w-screen h-screen'}`}>
                 <Settings size={64} className="text-slate-700 mb-4 animate-spin-slow" />
                 <h1 className="text-4xl font-black uppercase tracking-widest text-slate-500">A Aguardar Configuração</h1>
                 <p className="text-xl text-slate-600 mt-2">Nenhum slide ativo no backoffice para este refeitório.</p>
@@ -70,38 +79,38 @@ export function TvRefeitorio({ config, data }: { config: any, data: any }) {
     const currentSlide = slides[activeIdx];
 
     return (
-        <div className="w-screen h-screen flex flex-col overflow-hidden bg-slate-950 text-slate-100 selection:bg-blue-500/30">
-            {/* Cabecalho Minimalista Institucional */}
-            <header className="flex items-center justify-between px-8 py-4 bg-slate-900/80 border-b border-slate-800 shrink-0 shadow-lg">
-                <div className="flex items-center gap-6">
-                    {/* Brunswick Logo Mock */}
-                    <div className="font-black text-3xl tracking-tighter text-white">BRUNSWICK <span className="text-blue-500">•</span> M.E.S.</div>
-                    <div className="h-6 w-px bg-slate-700"></div>
-                    <h2 className="text-xl font-bold uppercase tracking-widest text-slate-400 flex items-center gap-3">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_#10b981] animate-pulse"></span>
-                        {config.nome_tv}
-                    </h2>
-                </div>
-                <div className="flex items-center gap-8">
-                    {/* Carousel Nav Hint */}
-                    <div className="flex items-center gap-2">
-                        {slides.map((s, i) => (
-                            <div key={s.id} className={`h-2 rounded-full transition-all duration-500 ${i === activeIdx ? 'w-8 bg-blue-500' : 'w-2 bg-slate-700'}`}></div>
-                        ))}
+        <div className={`flex flex-col overflow-hidden bg-slate-950 text-slate-100 selection:bg-blue-500/30 ${embedMode ? 'w-full h-full rounded-[3rem]' : 'w-screen h-screen'}`}>
+            
+            {!embedMode && (
+                <header className="flex items-center justify-between px-8 py-4 bg-slate-900/80 border-b border-slate-800 shrink-0 shadow-lg">
+                    <div className="flex items-center gap-6">
+                        <div className="font-black text-3xl tracking-tighter text-white">BRUNSWICK <span className="text-blue-500">•</span> M.E.S.</div>
+                        <div className="h-6 w-px bg-slate-700"></div>
+                        <h2 className="text-xl font-bold uppercase tracking-widest text-slate-400 flex items-center gap-3">
+                            <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_#10b981] animate-pulse"></span>
+                            {config.nome_tv}
+                        </h2>
                     </div>
-                    <div className="text-right">
-                        <div className="text-2xl font-black text-white tracking-widest leading-none" suppressHydrationWarning>
-                            {currentTime.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}
-                        </div>
-                        <div className="text-xs font-bold text-slate-500 mt-1 uppercase tracking-widest" suppressHydrationWarning>
-                            {currentTime.toLocaleDateString('pt-PT', { weekday: 'long', day: '2-digit', month: 'long' })}
-                        </div>
-                    </div>
-                </div>
-            </header>
+                </header>
+            )}
 
             {/* Area de Conteudo Rotativo (O SLIDE EM SI) */}
-            <main className="flex-1 relative w-full h-full overflow-hidden bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black">
+            <main className="flex-1 relative w-full h-full overflow-hidden bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black rounded-[3rem]">
+                
+                {/* Embedded Carousel Hint */}
+                {embedMode && slides.length > 1 && (
+                    <div className="absolute top-6 left-1/2 -translate-x-1/2 flex items-center gap-2 z-50 bg-black/40 px-4 py-2 rounded-full backdrop-blur-sm border border-slate-800">
+                        {slides.map((s, i) => (
+                            <div key={s.id} className={`h-2 rounded-full transition-all duration-500 flex items-center justify-center overflow-hidden
+                                ${i === activeIdx ? 'w-32 bg-blue-500' : 'w-2 bg-slate-700'}`}>
+                                {i === activeIdx && (
+                                    <span className="text-[9px] font-black uppercase tracking-widest text-white whitespace-nowrap opacity-80 px-2">{s.label}</span>
+                                )}    
+                            </div>
+                        ))}
+                    </div>
+                )}
+
                 <div key={currentSlide.id} className="absolute inset-0 w-full h-full flex flex-col animate-in fade-in zoom-in-95 duration-1000 p-8">
                     {currentSlide.render()}
                 </div>
@@ -116,63 +125,31 @@ export function TvRefeitorio({ config, data }: { config: any, data: any }) {
 
 function SlideAniversarios({ aniversariantes }: { aniversariantes: any[] }) {
     return (
-        <div className="w-full h-full flex flex-col items-center justify-center">
-            <PartyPopper size={80} className="text-amber-500 mb-6 animate-bounce" />
-            <h1 className="text-7xl font-black text-amber-400 uppercase tracking-tighter mb-4 text-center" style={{ textShadow: '0 10px 30px rgba(245,158,11,0.3)' }}>
+        <div className="w-full h-full flex flex-col items-center justify-center relative overflow-hidden">
+            <div className="absolute top-0 w-full h-1/2 bg-gradient-to-b from-amber-500/10 to-transparent"></div>
+            
+            <PartyPopper size={80} className="text-amber-400 mb-6 drop-shadow-[0_0_20px_rgba(251,191,36,0.6)] animate-bounce relative z-10" />
+            <h1 className="text-6xl lg:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-yellow-400 to-amber-500 uppercase tracking-tighter mb-4 text-center relative z-10 drop-shadow-[0_5px_15px_rgba(245,158,11,0.2)]">
                 Aniversariantes do Mês
             </h1>
-            <p className="text-3xl text-slate-400 font-bold uppercase tracking-widest mb-12">Muitos Parabéns à Nossa Equipa!</p>
+            <p className="text-2xl lg:text-3xl text-slate-300 font-bold uppercase tracking-widest mb-12 relative z-10">Muitos Parabéns à Nossa Equipa!</p>
             
-            <div className="flex flex-wrap justify-center gap-8 max-w-7xl">
-                {aniversariantes.slice(0, 12).map((a, i) => (
-                    <div key={i} className="bg-slate-900/80 border-2 border-slate-700 p-6 rounded-3xl flex flex-col items-center justify-center min-w-[250px] shadow-2xl">
-                        <div className="w-24 h-24 bg-slate-800 rounded-full border-4 border-amber-500 mb-4 overflow-hidden flex items-center justify-center shadow-[0_0_20px_rgba(245,158,11,0.2)]">
-                            {a.foto ? (
-                                <img src={a.foto} alt={a.nome} className="w-full h-full object-cover" />
-                            ) : (
-                                <UserCheck size={32} className="text-slate-500" />
-                            )}
-                        </div>
-                        <h2 className="text-2xl font-black text-white text-center line-clamp-1 truncate w-full">{a.nome}</h2>
-                        <div className="bg-amber-500 text-black px-4 py-1.5 mt-3 rounded-full text-sm font-black uppercase tracking-widest shadow-lg">
-                            Dia {a.dia}
-                        </div>
-                    </div>
-                ))}
-            </div>
-            {aniversariantes.length > 12 && (
-                <p className="text-amber-500 mt-8 font-bold text-xl animate-pulse">E MAIS {aniversariantes.length - 12} COLEGAS NESTE MÊS!</p>
-            )}
-        </div>
-    );
-}
-
-function SlideAdmissoes({ admissoes }: { admissoes: any[] }) {
-    return (
-        <div className="w-full h-full flex flex-col items-center justify-center">
-            <Award size={80} className="text-blue-500 mb-6 animate-pulse" />
-            <h1 className="text-7xl font-black text-blue-400 uppercase tracking-tighter mb-4 text-center" style={{ textShadow: '0 10px 30px rgba(59,130,246,0.3)' }}>
-                Celebração de Carreira
-            </h1>
-            <p className="text-3xl text-slate-400 font-bold uppercase tracking-widest mb-12">Obrigado pela dedicação contínua!</p>
-            
-            <div className="grid grid-cols-3 gap-8 max-w-6xl w-full">
-                {admissoes.slice(0, 6).map((a, i) => (
-                    <div key={i} className="bg-gradient-to-br from-slate-900 to-slate-950 border-2 border-blue-900/50 p-6 rounded-3xl flex items-center gap-6 shadow-2xl">
-                        <div className="w-20 h-20 bg-slate-800 rounded-2xl border-2 border-blue-400 flex items-center justify-center shrink-0">
-                            {a.foto ? (
-                                <img src={a.foto} alt={a.nome} className="w-full h-full object-cover rounded-xl" />
-                            ) : (
-                                <UserCheck size={32} className="text-blue-500" />
-                            )}
-                        </div>
-                        <div className="flex flex-col flex-1 truncate">
-                            <h2 className="text-2xl font-black text-white truncate">{a.nome}</h2>
-                            <div className="flex items-center gap-3 mt-2">
-                                <span className="bg-blue-600 text-white px-3 py-1 rounded text-xl font-black shadow-[0_0_15px_rgba(37,99,235,0.5)]">
-                                    {a.anos} ANOS
-                                </span>
-                                <span className="text-slate-500 font-bold text-sm uppercase">Dia {a.dia}</span>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-7xl w-full px-12 relative z-10">
+                {aniversariantes.map((a, i) => (
+                    <div key={i} className="group relative bg-slate-900/50 backdrop-blur-md rounded-3xl p-1 shadow-2xl transition-transform duration-500 hover:scale-105">
+                        <div className="absolute inset-0 bg-gradient-to-br from-amber-500/40 to-slate-800 rounded-3xl opacity-50 group-hover:opacity-100 transition-opacity"></div>
+                        <div className="bg-slate-950/90 rounded-[1.4rem] p-6 flex flex-col items-center justify-center relative z-10 border border-slate-700/50 h-full">
+                            <div className="w-28 h-28 bg-slate-800 rounded-full border-[4px] border-amber-400 mb-5 overflow-hidden flex items-center justify-center shadow-[0_0_30px_rgba(251,191,36,0.3)] relative">
+                                {a.foto ? (
+                                    <img src={a.foto} alt={a.nome} className="w-full h-full object-cover" />
+                                ) : (
+                                    <UserCheck size={40} className="text-slate-500" />
+                                )}
+                                <div className="absolute inset-0 rounded-full shadow-[inset_0_4px_10px_rgba(0,0,0,0.6)] pointer-events-none"></div>
+                            </div>
+                            <h2 className="text-2xl font-black text-white text-center leading-tight line-clamp-2 w-full mb-4 px-2">{a.nome}</h2>
+                            <div className="mt-auto flex items-center gap-2 bg-gradient-to-r from-amber-600 to-amber-500 px-6 py-2 rounded-full text-white font-black uppercase tracking-widest shadow-[0_5px_15px_rgba(245,158,11,0.4)]">
+                                Dia {a.dia}
                             </div>
                         </div>
                     </div>
@@ -182,74 +159,165 @@ function SlideAdmissoes({ admissoes }: { admissoes: any[] }) {
     );
 }
 
-function SlideHeroi({ heroi }: { heroi: any }) {
+function SlideAdmissoes({ admissoes }: { admissoes: any[] }) {
     return (
-        <div className="w-full h-full flex gap-12 items-center justify-center">
-            <div className="w-1/3 flex flex-col items-end text-right">
-                <Star size={100} className="text-yellow-400 mb-8 fill-yellow-400 drop-shadow-[0_0_50px_rgba(250,204,21,0.6)]" />
-                <h1 className="text-7xl font-black text-white uppercase tracking-tighter leading-none mb-4">Herói<br/><span className="text-yellow-400">do Mês</span></h1>
-                <p className="text-2xl text-slate-400 font-medium uppercase tracking-widest max-w-sm">Prémio de Excelência e Alta Eficiência Operacional</p>
+        <div className="w-full h-full flex flex-col items-center justify-center relative overflow-hidden">
+            <div className="absolute bottom-0 w-full h-2/3 bg-gradient-to-t from-blue-900/20 to-transparent"></div>
+            
+            <Award size={80} className="text-blue-400 mb-6 drop-shadow-[0_0_20px_rgba(96,165,250,0.6)] animate-pulse relative z-10" />
+            <h1 className="text-6xl lg:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-300 via-blue-500 to-indigo-400 uppercase tracking-tighter mb-4 text-center relative z-10 drop-shadow-[0_5px_15px_rgba(59,130,246,0.2)]">
+                Celebração de Carreira
+            </h1>
+            <p className="text-2xl lg:text-3xl text-slate-300 font-bold uppercase tracking-widest mb-12 relative z-10">Obrigado pela dedicação contínua!</p>
+            
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl w-full px-12 relative z-10">
+                {admissoes.map((a, i) => (
+                    <div key={i} className="group relative bg-slate-900/40 backdrop-blur-sm border border-blue-500/20 p-6 rounded-3xl flex items-center gap-6 shadow-xl transition-all hover:bg-slate-800/80 hover:border-blue-400/50 hover:shadow-[0_0_40px_rgba(59,130,246,0.2)]">
+                        <div className="w-24 h-24 bg-slate-950 rounded-2xl border-2 border-blue-500 flex flex-col items-center justify-center shrink-0 shadow-[0_0_20px_rgba(59,130,246,0.3)] overflow-hidden relative">
+                            {a.foto ? (
+                                <img src={a.foto} alt={a.nome} className="w-full h-full object-cover rounded-xl" />
+                            ) : (
+                                <UserCheck size={36} className="text-blue-500/50" />
+                            )}
+                            <div className="absolute inset-0 shadow-[inset_0_4px_10px_rgba(0,0,0,0.6)] pointer-events-none"></div>
+                        </div>
+                        <div className="flex flex-col flex-1 truncate">
+                            <h2 className="text-2xl font-black text-white truncate drop-shadow-md mb-3">{a.nome}</h2>
+                            <div className="flex items-center gap-4">
+                                <span className="bg-gradient-to-r from-blue-600 to-blue-500 text-white px-4 py-1.5 rounded-lg text-2xl font-black shadow-[0_4px_15px_rgba(37,99,235,0.4)]">
+                                    {a.anos} ANOS
+                                </span>
+                                <span className="text-blue-200/60 font-black text-sm uppercase tracking-widest bg-slate-950 px-3 py-1 rounded-md border border-slate-800">
+                                    Dia {a.dia}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                ))}
             </div>
-            <div className="w-[2px] h-2/3 bg-gradient-to-b from-transparent via-slate-700 to-transparent"></div>
-            <div className="w-1/2 flex flex-col items-start">
-                <div className="relative">
-                    <div className="absolute -inset-4 bg-yellow-500/20 blur-3xl rounded-full"></div>
-                    <div className="w-64 h-64 bg-slate-900 rounded-full border-8 border-yellow-400 mb-8 overflow-hidden relative z-10 shadow-[0_0_60px_rgba(250,204,21,0.3)] flex items-center justify-center">
-                        {heroi.foto ? (
-                            <img src={heroi.foto} alt="Hero" className="w-full h-full object-cover" />
-                        ) : (
-                            <UserCheck size={100} className="text-slate-600" />
-                        )}
+        </div>
+    );
+}
+
+function SlideHerois({ herois }: { herois: any[] }) {
+    return (
+        <div className="w-full h-full flex flex-col items-center justify-center relative overflow-hidden">
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[radial-gradient(ellipse_at_center,rgba(250,204,21,0.15)_0%,transparent_70%)] pointer-events-none"></div>
+
+            <div className="flex flex-col items-center mb-12 relative z-10">
+                <Star size={80} className="text-yellow-400 mb-4 fill-yellow-400 drop-shadow-[0_0_30px_rgba(250,204,21,0.6)] animate-pulse" />
+                <h1 className="text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 via-yellow-400 to-yellow-600 uppercase tracking-tighter text-center leading-none mb-4 drop-shadow-[0_5px_15px_rgba(234,179,8,0.3)]">
+                    Funcionários do Mês<br/><span className="text-3xl text-yellow-500/80">Por Área de Produção</span>
+                </h1>
+            </div>
+            
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-7xl w-full px-8 relative z-10 items-end justify-center">
+                {herois.map((heroi, i) => (
+                    <div key={i} className="flex flex-col items-center group relative">
+                        {/* Area Tag Floating */}
+                        <div className="bg-slate-800 border-2 border-yellow-500/50 px-6 py-1.5 rounded-full text-yellow-400 font-black uppercase tracking-widest text-sm shadow-[0_0_15px_rgba(234,179,8,0.2)] mb-8 whitespace-nowrap z-20 translate-y-4 group-hover:-translate-y-2 transition-transform">
+                            {heroi.area_nome || 'Fábrica'}
+                        </div>
+                        
+                        <div className="relative w-full aspect-[3/4] max-h-[320px] bg-slate-900/60 rounded-[2rem] border border-slate-700/50 flex flex-col items-center justify-end p-6 pb-24 shadow-2xl overflow-visible transition-all duration-500 group-hover:bg-slate-800/80 group-hover:border-yellow-500/30 group-hover:shadow-[0_20px_40px_rgba(250,204,21,0.15)]">
+                            <div className="absolute -top-16 w-36 h-36 bg-slate-950 rounded-full border-[6px] border-yellow-400 overflow-hidden shadow-[0_0_30px_rgba(250,204,21,0.4)] flex items-center justify-center z-10 transition-transform duration-500 group-hover:scale-110">
+                                {heroi.foto ? (
+                                    <img src={heroi.foto} alt="Hero" className="w-full h-full object-cover" />
+                                ) : (
+                                    <UserCheck size={64} className="text-slate-600" />
+                                )}
+                            </div>
+                            
+                            <h2 className="text-2xl font-black text-white mb-2 uppercase text-center leading-tight line-clamp-2 w-full px-2 mt-4 z-10">
+                                {heroi.nome}
+                            </h2>
+                            
+                            <div className="absolute -bottom-6 flex items-center gap-2 bg-gradient-to-r from-yellow-600 to-yellow-400 text-black px-5 py-2 rounded-xl text-xl font-black tracking-widest shadow-[0_10px_20px_rgba(250,204,21,0.4)] z-20 group-hover:scale-110 transition-transform">
+                                ⭐ {(heroi.score || 0).toFixed(1)}%
+                            </div>
+                        </div>
                     </div>
-                </div>
-                <h2 className="text-6xl font-black text-white mb-4 uppercase">{heroi.nome}</h2>
-                <div className="flex items-center gap-4">
-                    <div className="bg-yellow-400 text-black px-6 py-2 rounded-xl text-3xl font-black tracking-widest">
-                        ⭐ {(heroi.score || 0).toFixed(1)}% Efi.
-                    </div>
-                    <span className="text-slate-500 font-bold uppercase tracking-widest">Desempenho Global Excecional</span>
-                </div>
+                ))}
             </div>
         </div>
     );
 }
 
 function SlideQualidade({ qcis }: { qcis: any }) {
-    const safeQcis = qcis || { dateStr: 'A carregar', ftr: 0, dpu: 0, embalados: 0 };
+    const safeQcis = qcis || { dateStr: 'A carregar', ftr: 0, dpu: 0, embalados: 0, categorias: [] };
+    const categoriasVisiveis = safeQcis.categorias || [];
+
     return (
-        <div className="w-full h-full flex flex-col items-center justify-center">
-            <div className="flex items-center justify-center gap-6 mb-8">
+        <div className="w-full h-full flex flex-col items-center justify-center p-8">
+            <div className="flex items-center justify-center gap-6 mb-8 mt-4">
                 <Activity size={60} className="text-indigo-400" />
                 <h1 className="text-6xl font-black text-indigo-400 uppercase tracking-tighter" style={{ textShadow: '0 10px 30px rgba(129,140,248,0.3)' }}>
                     Indicadores de Qualidade QCIS
                 </h1>
             </div>
-            <p className="text-2xl text-slate-400 font-bold uppercase tracking-widest mb-16 border-b border-indigo-900/50 pb-4">
-                Fecho Global Diário ({safeQcis.dateStr})
+            <p className="text-2xl text-slate-400 font-bold uppercase tracking-widest mb-10 border-b border-indigo-900/50 pb-4">
+                Fecho Diário Global ({safeQcis.dateStr})
             </p>
 
-            <div className="grid grid-cols-2 gap-12 max-w-6xl w-full">
-                <div className="bg-indigo-950/40 border border-indigo-500/30 rounded-[3rem] p-12 flex flex-col items-center justify-center shadow-[0_0_50px_rgba(99,102,241,0.1)] relative overflow-hidden">
-                    <div className="absolute -top-20 -right-20 w-64 h-64 bg-indigo-600/20 blur-[100px] rounded-full"></div>
-                    <h2 className="text-3xl font-bold text-indigo-200 uppercase tracking-widest mb-8 text-center">First Time Through<br/><span className="text-sm text-slate-400">Zero Defeitos (Testes Funcionais)</span></h2>
-                    <span className="text-9xl font-black text-white drop-shadow-[0_0_30px_rgba(255,255,255,0.2)] tracking-tighter">
-                        {safeQcis.ftr}%
-                    </span>
-                    <div className="mt-8 bg-black/40 px-6 py-2 rounded-full border border-indigo-500/20">
-                        <span className="text-slate-400 font-bold tracking-widest uppercase">Objetivo Cima de 95%</span>
+            <div className="flex gap-8 max-w-[1400px] w-full h-[65%]">
+                {/* Main Global KPIs */}
+                <div className="w-1/3 flex flex-col gap-6">
+                    <div className="flex-1 bg-indigo-950/40 border border-indigo-500/30 rounded-[2rem] p-8 flex flex-col items-center justify-center shadow-[0_0_50px_rgba(99,102,241,0.1)] relative overflow-hidden">
+                        <div className="absolute -top-20 -right-20 w-64 h-64 bg-indigo-600/20 blur-[100px] rounded-full"></div>
+                        <h2 className="text-2xl font-bold text-indigo-200 uppercase tracking-widest mb-6 text-center">First Time Through<br/><span className="text-sm text-slate-400">Zero Defeitos (Funcionais)</span></h2>
+                        <span className="text-8xl font-black text-white drop-shadow-[0_0_30px_rgba(255,255,255,0.2)] tracking-tighter">
+                            {safeQcis.ftr}%
+                        </span>
+                        <div className="mt-6 bg-black/40 px-6 py-2 rounded-full border border-indigo-500/20">
+                            <span className="text-slate-400 font-bold tracking-widest uppercase text-sm">Meta Cima de 95%</span>
+                        </div>
+                    </div>
+
+                    <div className="flex-1 bg-rose-950/40 border border-rose-500/30 rounded-[2rem] p-8 flex flex-col items-center justify-center shadow-[0_0_50px_rgba(244,63,94,0.1)] relative overflow-hidden">
+                        <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-rose-600/20 blur-[100px] rounded-full"></div>
+                        <h2 className="text-2xl font-bold text-rose-200 uppercase tracking-widest mb-6 text-center">DPU Embalamento<br/><span className="text-sm text-slate-400">Inspeção Final</span></h2>
+                        <span className="text-8xl font-black text-rose-400 drop-shadow-[0_0_30px_rgba(255,255,255,0.2)] tracking-tighter">
+                            {safeQcis.dpu}
+                        </span>
+                        <div className="mt-6 bg-black/40 px-6 py-2 rounded-full border border-rose-500/20">
+                            <span className="text-slate-400 font-bold tracking-widest uppercase text-sm">Total Barcos: {safeQcis.embalados}</span>
+                        </div>
                     </div>
                 </div>
 
-                <div className="bg-rose-950/40 border border-rose-500/30 rounded-[3rem] p-12 flex flex-col items-center justify-center shadow-[0_0_50px_rgba(244,63,94,0.1)] relative overflow-hidden">
-                    <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-rose-600/20 blur-[100px] rounded-full"></div>
-                    <h2 className="text-3xl font-bold text-rose-200 uppercase tracking-widest mb-8 text-center">Defects Per Unit<br/><span className="text-sm text-slate-400">Inspecção Final Embalamento</span></h2>
-                    <span className="text-9xl font-black text-white drop-shadow-[0_0_30px_rgba(255,255,255,0.2)] tracking-tighter">
-                        {safeQcis.dpu}
-                    </span>
-                    <div className="mt-8 bg-black/40 px-6 py-2 rounded-full border border-rose-500/20 flex gap-4">
-                        <span className="text-slate-400 font-bold tracking-widest uppercase">Meta Menor que 0.5</span>
-                        <span className="text-rose-400 font-bold tracking-widest uppercase">| Barcos Embalados: {safeQcis.embalados}</span>
-                    </div>
+                {/* Categorias Grid */}
+                <div className="w-2/3 bg-slate-900/60 rounded-[2rem] border border-slate-700 p-8 flex flex-col shadow-2xl relative">
+                     <h2 className="text-2xl font-black text-white uppercase tracking-widest mb-6 border-b border-slate-800 pb-4">
+                         DPU por Categoria
+                     </h2>
+
+                     {categoriasVisiveis.length === 0 ? (
+                         <div className="flex-1 flex items-center justify-center text-slate-600 font-bold text-xl uppercase tracking-widest border-2 border-dashed border-slate-800 rounded-2xl">
+                             Sem registos de defeitos ontem
+                         </div>
+                     ) : (
+                         <div className="grid grid-cols-2 lg:grid-cols-3 gap-6 flex-1 auto-rows-fr">
+                             {categoriasVisiveis.map((c: any, i: number) => (
+                                 <div key={i} className="bg-slate-950 border border-slate-700/50 rounded-2xl p-5 flex flex-col shadow-inner justify-between transition-transform hover:-translate-y-1 hover:border-indigo-500/50 hover:shadow-[0_10px_30px_rgba(99,102,241,0.15)] group">
+                                     <h3 className="text-xl font-black text-slate-200 uppercase truncate w-full group-hover:text-white transition-colors">
+                                         {c.nome}
+                                     </h3>
+                                     <div className="flex items-end justify-between mt-auto">
+                                         <div className="flex flex-col gap-1">
+                                             <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Defeitos: <span className="text-rose-400 text-sm ml-1">{c.total_defeitos}</span></span>
+                                             <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Amostra: <span className="text-blue-400 text-sm ml-1">{c.unicos} uni</span></span>
+                                         </div>
+                                         <div className="flex flex-col items-end">
+                                             <span className="text-[10px] text-indigo-400 font-bold uppercase tracking-widest mb-0.5">DPUS</span>
+                                             <span className="bg-indigo-500/20 text-indigo-300 font-black text-2xl px-3 py-1 rounded-lg border border-indigo-500/30">
+                                                 {c.dpu.toFixed(2)}
+                                             </span>
+                                         </div>
+                                     </div>
+                                 </div>
+                             ))}
+                         </div>
+                     )}
                 </div>
             </div>
         </div>
@@ -315,21 +383,31 @@ function SlideSeguranca({ safetyCross, heatmap }: { safetyCross: any[], heatmap:
                 {/* Cruz de Seguranca Simplificada */}
                 <div className="w-1/2 flex flex-col items-center">
                     <h2 className="text-2xl font-bold text-slate-400 uppercase tracking-widest mb-8">Cruz de Segurança (Mês Corrente)</h2>
-                    <div className="grid grid-cols-7 gap-1.5 p-6 bg-slate-900 rounded-3xl border border-slate-800 shadow-2xl">
-                        {Array.from({ length: 31 }, (_, i) => {
-                            const dia = i + 1;
-                            const hstDay = safetyCross.find(s => s.dia === dia);
-                            let color = 'bg-slate-800 text-slate-500';
-                            if (hstDay) {
-                                if (hstDay.level === 0) color = 'bg-emerald-500 text-black font-bold shadow-[0_0_15px_rgba(16,185,129,0.4)]';
-                                else if (hstDay.level === 1) color = 'bg-yellow-400 text-black font-bold shadow-[0_0_15px_rgba(250,204,21,0.4)]';
-                                else if (hstDay.level === 2) color = 'bg-orange-500 text-black font-bold';
-                                else if (hstDay.level === 3) color = 'bg-red-600 text-white font-bold animate-pulse shadow-[0_0_20px_rgba(220,38,38,0.8)]';
+                    <div className="grid grid-cols-7 gap-2 p-6 bg-slate-900 rounded-3xl border border-slate-800 shadow-2xl">
+                        {[
+                            null, null, 1, 2, 3, null, null,
+                            null, null, 4, 5, 6, null, null,
+                            7, 8, 9, 10, 11, 12, 13,
+                            14, 15, 16, 17, 18, 19, 20,
+                            21, 22, 23, 24, 25, 26, 27,
+                            null, null, 28, 29, 30, null, null,
+                            null, null, null, 31, null, null, null
+                        ].map((dia, i) => {
+                            if (dia === null) {
+                                return <div key={`empty-${i}`} className="w-14 h-14"></div>;
                             }
-                            // Formato em cruz basic (if we wanted to make it exactly cross shaped, we would need complex grid template areas, 
-                            // but a square 7x5 calendar view is more legible from 10 meters away in a cafeteria)
+
+                            const hstDay = safetyCross.find(s => s.dia === dia);
+                            let color = 'bg-slate-800 text-slate-500 border-slate-700/50';
+                            
+                            if (hstDay) {
+                                if (hstDay.level === 0) color = 'bg-emerald-500 border-emerald-400 text-black shadow-[0_0_20px_rgba(16,185,129,0.5)]';
+                                else if (hstDay.level === 1) color = 'bg-orange-500 border-orange-400 text-black shadow-[0_0_20px_rgba(249,115,22,0.5)] animate-pulse';
+                                else if (hstDay.level >= 2) color = 'bg-red-600 border-red-500 text-white animate-bounce shadow-[0_0_30px_rgba(220,38,38,0.8)] scale-110 z-10';
+                            }
+                            
                             return (
-                                <div key={dia} className={`w-14 h-14 rounded-lg flex items-center justify-center text-xl transition-all ${color} border border-slate-700/50`}>
+                                <div key={dia} className={`w-14 h-14 rounded-xl flex items-center justify-center text-2xl font-black transition-all border-2 ${color}`}>
                                     {dia}
                                 </div>
                             );
@@ -364,23 +442,53 @@ function SlideSeguranca({ safetyCross, heatmap }: { safetyCross: any[], heatmap:
     );
 }
 
-function Slide5S() {
+function Slide5S({ heatmap }: { heatmap: any[] }) {
     return (
-        <div className="w-full h-full flex flex-col items-center justify-center relative">
+        <div className="w-full h-full flex flex-col items-center justify-center relative overflow-hidden">
             <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
             
-            <h1 className="text-8xl font-black text-white uppercase tracking-tighter text-center mb-8 drop-shadow-[0_10px_30px_rgba(0,0,0,0.8)] leading-tight relative z-10">
+            <h1 className="text-6xl font-black text-white uppercase tracking-tighter text-center mb-6 drop-shadow-[0_10px_30px_rgba(0,0,0,0.8)] leading-tight relative z-10">
                 PILARES 5S:<br/>
-                <span className="text-emerald-400">ORGANIZAÇÃO & LIMPEZA</span>
+                <span className="text-emerald-400 text-7xl">ORGANIZAÇÃO & LIMPEZA</span>
             </h1>
             
-            <p className="text-4xl text-slate-300 font-bold uppercase tracking-widest text-center max-w-5xl leading-snug relative z-10">
-                Um posto de trabalho organizado é um posto de trabalho seguro. Mantenha a sua área limpa no final de cada turno!
+            <p className="text-3xl text-slate-300 font-bold uppercase tracking-widest text-center max-w-5xl leading-snug relative z-10 mb-12">
+                Auditorias 5S Diárias: Mapa de Classificação
             </p>
 
-            <div className="mt-16 flex gap-6 relative z-10">
+            <div className="w-full max-w-7xl grid grid-cols-2 lg:grid-cols-4 gap-6 relative z-10 px-8">
+                {heatmap.length === 0 ? (
+                    <div className="col-span-4 text-center text-slate-500 font-bold uppercase tracking-widest py-10 border-2 border-dashed border-slate-700 rounded-3xl">
+                        A Aguardar Dados de Auditorias 5S do Mês
+                    </div>
+                ) : (
+                    heatmap.map((h, i) => (
+                        <div key={i} className={`p-6 rounded-3xl border-2 flex flex-col justify-center items-center shadow-2xl relative overflow-hidden ${h.cor}`}>
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none"></div>
+                            
+                            <span className="text-xl font-black uppercase mb-4 text-center z-10 leading-tight">
+                                {h.nome}
+                            </span>
+
+                            <div className="bg-slate-950/80 px-6 py-2 rounded-2xl flex items-center justify-center border border-white/10 z-10 shadow-inner w-full">
+                                <span className={`text-5xl font-mono font-black tracking-tighter ${h.cor.includes('red') ? 'text-red-400' : h.cor.includes('yellow') ? 'text-yellow-400' : 'text-emerald-400'}`}>
+                                    {h.score}
+                                </span>
+                            </div>
+
+                            {h.cor.includes('red') && (
+                                <div className="absolute top-2 right-2 text-white animate-bounce z-10">
+                                    <ShieldAlert size={24} />
+                                </div>
+                            )}
+                        </div>
+                    ))
+                )}
+            </div>
+
+            <div className="mt-12 flex gap-4 relative z-10 flex-wrap justify-center">
                 {['Seiri (Utilização)', 'Seiton (Organização)', 'Seiso (Limpeza)', 'Seiketsu (Padronização)', 'Shitsuke (Disciplina)'].map((s, i) => (
-                    <div key={i} className="bg-slate-900/90 border border-slate-700 px-6 py-4 rounded-full text-white font-bold uppercase tracking-widest text-lg shadow-xl">
+                    <div key={i} className="bg-slate-900/90 border border-slate-700 px-5 py-2 rounded-full text-slate-400 font-bold uppercase tracking-widest text-sm shadow-xl">
                         {s}
                     </div>
                 ))}

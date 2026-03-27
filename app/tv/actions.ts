@@ -69,6 +69,14 @@ export async function buscarDashboardsTV(tv_id: string) {
             const mesAtual = hoje.getMonth() + 1;
             const anoAtual = hoje.getFullYear();
 
+            const parseDateParts = (dateStr: string) => {
+                if (!dateStr) return null;
+                const p = dateStr.includes('/') ? dateStr.split('/') : dateStr.split('-');
+                if (p.length !== 3) return null;
+                if (p[0].length === 4) return { year: parseInt(p[0]), month: parseInt(p[1]), day: parseInt(p[2]) };
+                return { year: parseInt(p[2]), month: parseInt(p[1]), day: parseInt(p[0]) };
+            };
+
             const showAniv = opcoes.showRefeitorioAniversarios ?? true;
             const showAdm = opcoes.showRefeitorioAdmissao ?? true;
             const showHer = opcoes.showRefeitorioHeroi ?? true;
@@ -82,47 +90,51 @@ export async function buscarDashboardsTV(tv_id: string) {
                 
                 if (opData) {
                     const ativos = opData.filter((o: any) => o.status === 'Ativo' || !o.status);
-                    
                     if (showAniv) {
                         refeitorioData.aniversariantes = ativos.filter((o: any) => {
-                            if (!o.data_nascimento) return false;
-                            const [, month, day] = o.data_nascimento.split('-');
-                            return parseInt(month) === mesAtual;
+                            const d = parseDateParts(o.data_nascimento);
+                            return d && d.month === mesAtual;
                         }).map((o: any) => {
-                            const [, , day] = o.data_nascimento.split('-');
-                            return { nome: o.nome_operador, dia: parseInt(day), foto: o.foto_url };
+                            const d = parseDateParts(o.data_nascimento);
+                            return { nome: o.nome_operador, dia: d?.day, foto: o.foto_url };
                         }).sort((a: any, b: any) => a.dia - b.dia);
                     }
 
                     if (showAdm) {
                         refeitorioData.admissoes = ativos.filter((o: any) => {
-                            if (!o.data_admissao) return false;
-                            const [year, month, day] = o.data_admissao.split('-');
-                            const anosCasa = anoAtual - parseInt(year);
-                            return parseInt(month) === mesAtual && anosCasa >= 3;
+                            const d = parseDateParts(o.data_admissao);
+                            if (!d) return false;
+                            const anos = anoAtual - d.year;
+                            return d.month === mesAtual && anos >= 3;
                         }).map((o: any) => {
-                            const [year, , day] = o.data_admissao.split('-');
-                            return { nome: o.nome_operador, dia: parseInt(day), anos: anoAtual - parseInt(year), foto: o.foto_url };
+                            const d = parseDateParts(o.data_admissao);
+                            return { nome: o.nome_operador, dia: d?.day, anos: anoAtual - d?.year!, foto: o.foto_url };
                         }).sort((a: any, b: any) => b.anos - a.anos);
                     }
                 }
             }
 
-            // 2. Herói do Mês (Semana/Mês Anterior de toda a Fábrica)
+            // 2. Heróis do Mês (Por Área)
             if (showHer) {
                 try {
-                    const { data: topWorker } = await supabase.rpc('get_top_worker_of_month', {
-                        p_tipo_alvo: 'GERAL', p_alvo_id: null
-                    }).single();
-
-                    if (topWorker) {
-                        refeitorioData.heroi = {
-                            nome: (topWorker as any).nome_operador,
-                            score: (topWorker as any).media_eficiencia,
-                            foto: (topWorker as any).foto_url || null
-                        };
+                    const { data: areasRaw } = await supabase.from('areas_fabrica').select('id, nome_area');
+                    const herois: any[] = [];
+                    for (const ar of (areasRaw || [])) {
+                        const { data: topWorker } = await supabase.rpc('get_top_worker_of_month', {
+                            p_tipo_alvo: 'AREA', p_alvo_id: ar.id
+                        }).single();
+                        
+                        if (topWorker && (topWorker as any).media_eficiencia > 0) {
+                            herois.push({
+                                nome: (topWorker as any).nome_operador,
+                                score: (topWorker as any).media_eficiencia,
+                                foto: (topWorker as any).foto_url || null,
+                                area_nome: ar.nome_area
+                            });
+                        }
                     }
-                } catch(e) {}
+                    refeitorioData.herois = herois.sort((a, b) => b.score - a.score);
+                } catch (e) {}
             }
 
             // 3. Segurança Global (Cruz de Segurança & Alertas Ativos por Área)
@@ -152,10 +164,11 @@ export async function buscarDashboardsTV(tv_id: string) {
                     const dataOntemStr = new Date(ontem.getFullYear(), ontem.getMonth(), ontem.getDate()).toISOString().split('T')[0];
 
                     const { data: qcisOntem } = await supabase.from('qcis_audits')
-                        .select('substation_name, boat_id, count_of_defects, seccao')
+                        .select('substation_name, boat_id, count_of_defects, seccao, lista_categoria')
                         .eq('fail_date', dataOntemStr);
 
                     let ftrVal = 0, dpuVal = 0, totalBarcos = 0;
+                    let categorias: any[] = [];
 
                     if (qcisOntem && qcisOntem.length > 0) {
                         // FTR
@@ -166,15 +179,36 @@ export async function buscarDashboardsTV(tv_id: string) {
                             if (tb > 0) ftrVal = Math.round((zb / tb) * 100);
                         }
                         
-                        // DPU
+                        // DPU Embalamento
                         const embAudits = qcisOntem.filter((a: any) => (a.substation_name || '').toLowerCase().includes('inspecção final embalamento'));
                         if (embAudits.length > 0) {
                             totalBarcos = new Set(embAudits.map((a: any) => a.boat_id).filter(Boolean)).size;
                             const totalDefects = embAudits.reduce((acc: number, curr: any) => acc + (curr.count_of_defects || 0), 0);
                             if (totalBarcos > 0) dpuVal = parseFloat((totalDefects / totalBarcos).toFixed(2));
                         }
+
+                        // Agrupar por Categorias
+                        const catMap: Record<string, { defects: number, boats: Set<string> }> = {};
+                        qcisOntem.forEach((a: any) => {
+                            const cat = a.lista_categoria || 'Não Classificado';
+                            if (a.count_of_defects > 0 || cat !== 'Não Classificado') { // Skip zero defects if not classified
+                                if (!catMap[cat]) catMap[cat] = { defects: 0, boats: new Set() };
+                                catMap[cat].defects += (a.count_of_defects || 0);
+                                if (a.boat_id) catMap[cat].boats.add(a.boat_id);
+                            }
+                        });
+
+                        categorias = Object.keys(catMap).map(k => {
+                            const dps = catMap[k].boats.size > 0 ? catMap[k].defects / catMap[k].boats.size : 0;
+                            return {
+                                nome: k,
+                                total_defeitos: catMap[k].defects,
+                                unicos: catMap[k].boats.size,
+                                dpu: parseFloat(dps.toFixed(2))
+                            };
+                        }).filter(c => c.total_defeitos > 0).sort((a: any, b: any) => b.total_defeitos - a.total_defeitos);
                     }
-                    refeitorioData.qcis = { dateStr: dataOntemStr, ftr: ftrVal, dpu: dpuVal, embalados: totalBarcos };
+                    refeitorioData.qcis = { dateStr: dataOntemStr, ftr: ftrVal, dpu: dpuVal, embalados: totalBarcos, categorias: categorias.slice(0, 6) };
                 } catch(e) {}
             }
 
@@ -202,10 +236,46 @@ export async function buscarDashboardsTV(tv_id: string) {
                 } catch (e) {}
             }
 
+            const { data: globalAlertsRaw } = await supabase
+                .from('alertas_andon')
+                .select(`
+                    id, situacao, estacao_id, local_ocorrencia_id, created_at, operador_rfid, op_id, tipo_alerta, descricao_alerta,
+                    causadora:estacao_id ( nome_estacao, area_id, linha_id ),
+                    estacoes:local_ocorrencia_id ( nome_estacao, area_id, linha_id )
+                `)
+                .eq('resolvido', false);
+
+            const alertasGlobais = globalAlertsRaw?.map(al => ({
+                ...al,
+                estacoes: al.estacoes || al.causadora
+            })) || [];
+
+            // Obter radar das Áreas como na vista GERAL
+            const { data: todasEstacoes } = await supabase.from('estacoes').select('id, nome_estacao, area_id').order('nome_estacao');
+            const { data: radarAreasList } = await supabase.from('areas_fabrica').select('id, nome_area').order('nome_area');
+            const stationsList = todasEstacoes || [];
+            
+            const radarEstacoes = (radarAreasList || []).map(area => {
+                const alertasNaArea = alertasGlobais.filter(a => {
+                    const estacaoId = a.local_ocorrencia_id || a.estacao_id;
+                    const estacao = stationsList.find(s => s.id === estacaoId);
+                    return estacao && estacao.area_id === area.id;
+                });
+                const qtdAlertas = alertasNaArea ? alertasNaArea.length : 0;
+                return {
+                    id: area.id,
+                    nome_estacao: area.nome_area,
+                    hasAndon: qtdAlertas > 0,
+                    andonType: qtdAlertas > 0 ? `${qtdAlertas} ALERTA(S)` : null
+                };
+            });
+
             return {
                 success: true,
                 config: configTv,
-                refeitorioData
+                refeitorioData,
+                alertasGlobais,
+                radarEstacoes
             };
         }
 
@@ -665,6 +735,44 @@ export async function buscarDashboardsTV(tv_id: string) {
                     }
                 }
 
+                // 6. Cultura 5S Diária (Limpeza)
+            if (show5s) {
+                try {
+                    const { data: av5s } = await supabase.from('avaliacoes_diarias')
+                        .select(`
+                            nota_5s,
+                            operadores!inner (
+                                area_base_id,
+                                areas_fabrica:area_base_id (
+                                    nome_area
+                                )
+                            )
+                        `)
+                        .gte('data_avaliacao', `${anoAtual}-${String(mesAtual).padStart(2,'0')}-01`);
+
+                    if (av5s) {
+                        const areaMap: any = {};
+                        av5s.forEach((av: any) => {
+                            const nota = Number(av.nota_5s || 0);
+                            // @ts-ignore
+                            const nomeArea = av.operadores?.areas_fabrica?.nome_area || 'Geral';
+                            if (!areaMap[nomeArea]) areaMap[nomeArea] = { sum: 0, count: 0 };
+                            areaMap[nomeArea].sum += nota;
+                            areaMap[nomeArea].count += 1;
+                        });
+
+                        advancedMetrics.heatmap5s = Object.keys(areaMap).map(k => {
+                            const media = areaMap[k].sum / areaMap[k].count;
+                            // Escala 5S tipicamente é 0 a 4 (ou 5). > 3.5 é excelente (verde), > 2.5 é bom (laranja).
+                            let cor = 'bg-emerald-500 text-black border-emerald-400';
+                            if (media < 2.5) cor = 'bg-red-600 text-white animate-pulse border-red-500 shadow-[0_0_20px_rgba(220,38,38,0.5)]';
+                            else if (media < 3.2) cor = 'bg-yellow-400 text-black border-yellow-300';
+                            
+                            return { nome: k, score: media.toFixed(2), cor };
+                        }).sort((a: any, b: any) => parseFloat(a.score) - parseFloat(b.score)); // Menor score primeiro (piores expostos!)
+                    }
+                } catch (e) {}
+            }
                 // 2. Barcos Embalados Ontem (Auditorias QCIS no dia de ontem na Subestação de Embalamento DPU)
                 const ontem = new Date();
                 ontem.setDate(ontem.getDate() - 1);

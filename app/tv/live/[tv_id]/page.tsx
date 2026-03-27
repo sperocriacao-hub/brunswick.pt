@@ -61,6 +61,8 @@ export default function CustomTVDashboardPage() {
                 } else if (res.config.tipo_alvo === 'REFEITORIO') {
                     setRefeitorioData(res.refeitorioData || {});
                     setOpcoesLayout(res.config.opcoes_layout || {});
+                    setAlertas(res.alertasGlobais || []);
+                    setRadarEstacoes(res.radarEstacoes || []);
                 } else {
                     setBarcosAtivos(res.barcos || []);
                     setAlertas(res.alertasGlobais || []);
@@ -153,11 +155,6 @@ export default function CustomTVDashboardPage() {
         );
     }
 
-    if (tipoAlvo === 'REFEITORIO') {
-        const fullConfig = { ...opcoesLayout, nome_tv: nomeTv };
-        return <TvRefeitorio config={fullConfig} data={refeitorioData} />;
-    }
-
     return (
         <div className="w-screen h-screen flex flex-col overflow-hidden selection:bg-rose-500/30 bg-slate-950 text-slate-200">
 
@@ -237,10 +234,17 @@ export default function CustomTVDashboardPage() {
             )}
 
             {/* --- MASTER GRID CONTENT --- */}
-            <main className="flex-1 overflow-hidden flex gap-6 p-6">
+            {tipoAlvo === 'REFEITORIO' ? (
+                <main className="flex-1 overflow-hidden p-6 relative w-full h-full">
+                    <div className="w-full h-full rounded-[3rem] overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.8)] border-4 border-slate-800 bg-slate-950">
+                        <TvRefeitorio config={{...opcoesLayout, nome_tv: nomeTv}} data={refeitorioData} embedMode={true} />
+                    </div>
+                </main>
+            ) : (
+                <main className="flex-1 overflow-hidden flex gap-6 p-6">
 
-                {/* LEFT COL: ORDENS EM CURSO (Production Queue) - Takes 35% */}
-                <section className="w-[35%] flex flex-col gap-6 overflow-hidden">
+                    {/* LEFT COL: ORDENS EM CURSO (Production Queue) - Takes 35% */}
+                    <section className="w-[35%] flex flex-col gap-6 overflow-hidden">
                     <h2 className="text-2xl font-bold uppercase tracking-widest text-slate-500 flex items-center gap-2 border-b-2 border-slate-800 pb-2">
                         <Zap size={24} className="text-blue-500" /> Produção Ativa
                     </h2>
@@ -710,8 +714,8 @@ export default function CustomTVDashboardPage() {
                         </div>
                     )}
                 </section>
-
-            </main>
+                </main>
+            )}
         </div>
     );
 }
