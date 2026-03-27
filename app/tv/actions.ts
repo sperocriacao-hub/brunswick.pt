@@ -121,7 +121,7 @@ export async function buscarDashboardsTV(tv_id: string) {
             // 3. Segurança Global (Cruz de Segurança & Alertas Ativos por Área)
             if (opcoes.showRefeitorioSegurancaGlob) {
                 try {
-                    const scRes = await getSafetyCross(anoAtual, mesAtual, 'GERAL', null, []);
+                    const scRes = await getSafetyCross(anoAtual, mesAtual, 'GERAL', undefined, []);
                     refeitorioData.safetyCross = scRes.success ? scRes.data : [];
 
                     const { data: alerts } = await supabase.from('alertas_andon').select('estacao_id, estacoes(area_id)').eq('resolvido', false);
