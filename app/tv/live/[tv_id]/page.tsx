@@ -150,6 +150,44 @@ export default function CustomTVDashboardPage() {
     return (
         <div className="w-screen h-screen flex flex-col overflow-hidden selection:bg-rose-500/30 bg-slate-950 text-slate-200">
 
+            {/* McDonald's Style Andon Alerts Banner */}
+            {temAlertaCritico && (
+                <div className="w-full bg-red-600 p-6 flex gap-6 overflow-x-auto shadow-[0_15px_50px_rgba(220,38,38,0.8)] animate-pulse-slow shrink-0 z-50 border-b-8 border-red-500/50">
+                    <div className="flex items-center justify-center px-6 border-r-4 border-red-400/30 shrink-0">
+                        <AlertTriangle size={60} className="text-white animate-bounce mr-4" />
+                        <div>
+                            <h2 className="text-4xl font-black text-white uppercase tracking-tighter leading-none mb-1">ANDON</h2>
+                            <p className="text-red-200 font-bold tracking-widest uppercase">Pausa na Linha</p>
+                        </div>
+                    </div>
+                    {alertas.map(al => (
+                        <div key={al.id} className="bg-black/40 border-[4px] border-white/20 rounded-2xl p-4 min-w-[300px] flex flex-col justify-center shadow-inner">
+                            <div className="flex justify-between items-center mb-1">
+                                <span className="text-white font-black text-2xl uppercase truncate">{al.tipo_alerta}</span>
+                                <span className="bg-red-500 text-white px-2 py-1 rounded text-xs font-black uppercase shadow-lg">Aguardar Assistência</span>
+                            </div>
+                            <span className="text-red-200 font-bold uppercase tracking-widest text-sm truncate mb-2">
+                                CAUSA/ALVO: {al.causadora?.nome_estacao || al.estacao_id}
+                            </span>
+                            <div className="flex items-center gap-2 mb-1 border-b border-red-900/30 pb-1">
+                                <span className="text-slate-300 font-bold text-[10px] tracking-widest uppercase">
+                                    📍 EST. LOCAL: <span className="text-white relative top-[0.5px]">{al.estacoes?.nome_estacao || "..."}</span>
+                                </span>
+                            </div>
+                            {al.descricao_alerta && (
+                                <span className="text-white/90 italic text-sm mt-1 line-clamp-2 leading-tight">
+                                    "{al.descricao_alerta}"
+                                </span>
+                            )}
+                            <div className="mt-2 pt-2 border-t border-white/10 opacity-70 flex items-center justify-between">
+                                <span className="text-white font-mono text-xs tracking-widest">FUNC: {al.operador_rfid}</span>
+                                <span className="text-red-200 text-xs font-bold uppercase tracking-widest">{Math.max(0, Math.floor((time.getTime() - new Date(al.created_at).getTime()) / 60000))} MIN.</span>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+
             {/* --- NASA HUD TOP HEADER --- */}
             <header className="flex items-center justify-between border-b-[4px] border-slate-800 bg-slate-900/50 p-3 shadow-md z-10 shrink-0">
                 <div className="flex items-center gap-6">
@@ -320,8 +358,8 @@ export default function CustomTVDashboardPage() {
                     )}
                 </section>
 
-                {/* CENTER COL: NASA WIDGETS (Takes 45%) */}
-                <section className="w-[45%] grid grid-cols-3 auto-rows-min gap-4 overflow-y-auto pr-2 pb-6 relative">
+                {/* CENTER COL: NASA WIDGETS (Takes 65%) */}
+                <section className="w-[65%] grid grid-cols-3 auto-rows-min gap-4 overflow-y-auto pr-2 pb-6 relative">
                     {opcoesLayout.showOeeDay && (
                         <div className="col-span-3 bg-slate-900/80 border border-slate-700/50 rounded-3xl p-4 shadow-2xl relative overflow-hidden flex flex-col gap-3">
                             <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 blur-3xl rounded-full"></div>
@@ -674,82 +712,7 @@ export default function CustomTVDashboardPage() {
                     )}
                 </section>
 
-                {/* RIGHT COL: DEDICATED ANDON SIDEBAR (Takes 20%) */}
-                <section className="w-[20%] flex flex-col h-full bg-slate-900 border-l border-slate-800 rounded-l-3xl overflow-hidden shadow-2xl relative">
 
-                    {!temAlertaCritico ? (
-                        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-black/40">
-                            <div className="w-32 h-32 rounded-full border-4 border-emerald-500/30 flex items-center justify-center mb-6 shadow-[0_0_50px_rgba(16,185,129,0.1)]">
-                                <CheckCircle2 size={64} className="text-emerald-500" />
-                            </div>
-                            <h2 className="text-3xl font-black uppercase text-emerald-500 tracking-widest mb-2">MONITORIZAÇÃO GLOBAL NOMINAL</h2>
-                            <p className="text-emerald-700/80 font-bold uppercase tracking-widest text-lg">SEM ALERTAS OU INTERRUPÇÕES</p>
-                        </div>
-                    ) : (
-                        <div className="flex-1 flex flex-col relative animate-pulse-slow">
-                            {/* Compact Glowing Background Header for Sidebar */}
-                            <div className="bg-red-600 p-3 shadow-[0_5px_30px_rgba(220,38,38,0.4)] relative z-10 flex flex-row items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <AlertTriangle size={32} className="text-white animate-bounce" />
-                                    <div className="flex flex-col text-left">
-                                        <h2 className="text-2xl font-black text-white uppercase tracking-tighter leading-none mb-0.5">ANDON ALARME</h2>
-                                        <p className="text-red-200 font-bold text-[10px] tracking-widest uppercase leading-none">Ações Intervenção</p>
-                                    </div>
-                                </div>
-                                <div className="bg-white/20 px-3 py-1 rounded-full text-white font-black text-lg shadow-inner">
-                                    {alertas.length}
-                                </div>
-                            </div>
-
-                            <div className="flex-1 overflow-y-auto p-2 space-y-2 bg-red-950/20">
-                                {alertas.map(al => {
-                                    const minutesPassed = Math.max(0, Math.floor((time.getTime() - new Date(al.created_at).getTime()) / 60000));
-                                    return (
-                                    <div key={al.id} className="bg-black/60 border border-red-500/30 rounded-xl p-3 shadow-md relative overflow-hidden flex flex-col gap-1.5">
-                                        <div className="absolute top-0 left-0 w-1.5 h-full bg-red-500"></div>
-
-                                        <div className="flex justify-between items-start pl-2">
-                                            <div className="flex flex-col w-full">
-                                                <div className="flex justify-between items-center mb-1">
-                                                    <span className="text-white font-black text-sm uppercase leading-tight truncate">
-                                                        {al.tipo_alerta}
-                                                    </span>
-                                                    <span className="bg-red-500/20 text-red-500 px-1.5 py-[2px] rounded text-[9px] font-black uppercase tracking-widest flex-shrink-0 border border-red-900/50">
-                                                        CAUSADOR: {al.causadora?.nome_estacao || al.estacao_id}
-                                                    </span>
-                                                </div>
-                                                <div className="flex items-center gap-2 mb-1 border-b border-red-900/30 pb-1">
-                                                    <span className="text-slate-300 font-bold text-[10px] tracking-widest uppercase">
-                                                        📍 LOCAL: <span className="text-white relative top-[0.5px]">{al.estacoes?.nome_estacao || "..."}</span>
-                                                    </span>
-                                                </div>
-                                                {al.descricao_alerta && (
-                                                    <span className="text-slate-400 text-xs line-clamp-1 leading-snug mt-1 italic">
-                                                        "{al.descricao_alerta}"
-                                                    </span>
-                                                )}
-                                            </div>
-                                        </div>
-
-                                        <div className="pl-2 pt-1.5 border-t border-red-900/50 flex justify-between items-center mt-0.5">
-                                            <span className="text-slate-500 font-mono text-[10px] tracking-widest flex items-center gap-1.5">
-                                                <UserX size={10} className="text-slate-600" /> ID: {al.operador_rfid}
-                                            </span>
-                                            <div className="flex items-center gap-3">
-                                                <span className="bg-slate-800 text-white px-2 py-0.5 rounded text-[10px] font-black uppercase shadow-[inset_0_1px_3px_rgba(0,0,0,0.5)] flex items-center gap-1 border border-slate-700">
-                                                    <Clock size={10} className="text-slate-400" /> {minutesPassed}M
-                                                </span>
-                                                <span className="bg-red-500/80 text-white px-2 py-0.5 rounded text-[10px] font-black uppercase shadow-sm flex items-center gap-1">
-                                                    Aguardando
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )})}
-                            </div>
-                        </div>
-                    )}
-                </section>
 
             </main>
         </div>
