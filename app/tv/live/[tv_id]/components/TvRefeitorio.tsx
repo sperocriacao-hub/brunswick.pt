@@ -14,25 +14,33 @@ export function TvRefeitorio({ config, data }: { config: any, data: any }) {
     // Build the array of active slides
     const slides: { id: string, label: string, render: () => React.ReactNode }[] = [];
 
-    if (opcoes.showRefeitorioAniversarios && data.aniversariantes?.length > 0) {
+    const showAniv = opcoes.showRefeitorioAniversarios ?? true;
+    const showAdm = opcoes.showRefeitorioAdmissao ?? true;
+    const showHer = opcoes.showRefeitorioHeroi ?? true;
+    const showSeg = opcoes.showRefeitorioSegurancaGlob ?? true;
+    const showQual = opcoes.showRefeitorioQualidade ?? true;
+    const showOee = opcoes.showRefeitorioOee ?? true;
+    const show5s = opcoes.showRefeitorio5S ?? true;
+
+    if (showAniv && data.aniversariantes?.length > 0) {
         slides.push({ id: 'NIVERS', label: 'Aniversariantes do Mês', render: () => <SlideAniversarios aniversariantes={data.aniversariantes} /> });
     }
-    if (opcoes.showRefeitorioAdmissao && data.admissoes?.length > 0) {
+    if (showAdm && data.admissoes?.length > 0) {
         slides.push({ id: 'ADMISSAO', label: 'Aniversários de Admissão', render: () => <SlideAdmissoes admissoes={data.admissoes} /> });
     }
-    if (opcoes.showRefeitorioHeroi && data.heroi) {
+    if (showHer && data.heroi) {
         slides.push({ id: 'HEROI', label: 'Herói do Mês', render: () => <SlideHeroi heroi={data.heroi} /> });
     }
-    if (opcoes.showRefeitorioSegurancaGlob) {
-        slides.push({ id: 'SEGURANCA', label: 'Dashboard de Segurança', render: () => <SlideSeguranca safetyCross={data.safetyCross} heatmap={data.heatmap} /> });
+    if (showSeg) {
+        slides.push({ id: 'SEGURANCA', label: 'Dashboard de Segurança', render: () => <SlideSeguranca safetyCross={data.safetyCross || []} heatmap={data.heatmap || []} /> });
     }
-    if (opcoes.showRefeitorioQualidade && data.qcis) {
+    if (showQual && data.qcis) {
         slides.push({ id: 'QUALIDADE', label: 'Quality Control (QCIS)', render: () => <SlideQualidade qcis={data.qcis} /> });
     }
-    if (opcoes.showRefeitorioOee && data.oee) {
+    if (showOee && data.oee) {
         slides.push({ id: 'OEE', label: 'Eficiência e OEE Global', render: () => <SlideOee oee={data.oee} /> });
     }
-    if (opcoes.showRefeitorio5S) {
+    if (show5s) {
         slides.push({ id: '5S', label: 'Limpeza e 5S', render: () => <Slide5S /> });
     }
 
@@ -82,10 +90,10 @@ export function TvRefeitorio({ config, data }: { config: any, data: any }) {
                         ))}
                     </div>
                     <div className="text-right">
-                        <div className="text-2xl font-black text-white tracking-widest leading-none">
+                        <div className="text-2xl font-black text-white tracking-widest leading-none" suppressHydrationWarning>
                             {currentTime.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}
                         </div>
-                        <div className="text-xs font-bold text-slate-500 mt-1 uppercase tracking-widest">
+                        <div className="text-xs font-bold text-slate-500 mt-1 uppercase tracking-widest" suppressHydrationWarning>
                             {currentTime.toLocaleDateString('pt-PT', { weekday: 'long', day: '2-digit', month: 'long' })}
                         </div>
                     </div>
@@ -207,6 +215,7 @@ function SlideHeroi({ heroi }: { heroi: any }) {
 }
 
 function SlideQualidade({ qcis }: { qcis: any }) {
+    const safeQcis = qcis || { dateStr: 'A carregar', ftr: 0, dpu: 0, embalados: 0 };
     return (
         <div className="w-full h-full flex flex-col items-center justify-center">
             <div className="flex items-center justify-center gap-6 mb-8">
@@ -216,7 +225,7 @@ function SlideQualidade({ qcis }: { qcis: any }) {
                 </h1>
             </div>
             <p className="text-2xl text-slate-400 font-bold uppercase tracking-widest mb-16 border-b border-indigo-900/50 pb-4">
-                Fecho Global Diário ({qcis.dateStr})
+                Fecho Global Diário ({safeQcis.dateStr})
             </p>
 
             <div className="grid grid-cols-2 gap-12 max-w-6xl w-full">
@@ -224,7 +233,7 @@ function SlideQualidade({ qcis }: { qcis: any }) {
                     <div className="absolute -top-20 -right-20 w-64 h-64 bg-indigo-600/20 blur-[100px] rounded-full"></div>
                     <h2 className="text-3xl font-bold text-indigo-200 uppercase tracking-widest mb-8 text-center">First Time Through<br/><span className="text-sm text-slate-400">Zero Defeitos (Testes Funcionais)</span></h2>
                     <span className="text-9xl font-black text-white drop-shadow-[0_0_30px_rgba(255,255,255,0.2)] tracking-tighter">
-                        {qcis.ftr}%
+                        {safeQcis.ftr}%
                     </span>
                     <div className="mt-8 bg-black/40 px-6 py-2 rounded-full border border-indigo-500/20">
                         <span className="text-slate-400 font-bold tracking-widest uppercase">Objetivo Cima de 95%</span>
@@ -235,11 +244,11 @@ function SlideQualidade({ qcis }: { qcis: any }) {
                     <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-rose-600/20 blur-[100px] rounded-full"></div>
                     <h2 className="text-3xl font-bold text-rose-200 uppercase tracking-widest mb-8 text-center">Defects Per Unit<br/><span className="text-sm text-slate-400">Inspecção Final Embalamento</span></h2>
                     <span className="text-9xl font-black text-white drop-shadow-[0_0_30px_rgba(255,255,255,0.2)] tracking-tighter">
-                        {qcis.dpu}
+                        {safeQcis.dpu}
                     </span>
                     <div className="mt-8 bg-black/40 px-6 py-2 rounded-full border border-rose-500/20 flex gap-4">
                         <span className="text-slate-400 font-bold tracking-widest uppercase">Meta Menor que 0.5</span>
-                        <span className="text-rose-400 font-bold tracking-widest uppercase">| Barcos Embalados: {qcis.embalados}</span>
+                        <span className="text-rose-400 font-bold tracking-widest uppercase">| Barcos Embalados: {safeQcis.embalados}</span>
                     </div>
                 </div>
             </div>
@@ -248,6 +257,7 @@ function SlideQualidade({ qcis }: { qcis: any }) {
 }
 
 function SlideOee({ oee }: { oee: any }) {
+    const safeOee = oee || { percentual: 0, horasGanhas: 0, horasTrabalhadas: 0 };
     return (
         <div className="w-full h-full flex flex-col items-center justify-center">
             <h1 className="text-6xl font-black text-emerald-400 uppercase tracking-tighter mb-4" style={{ textShadow: '0 10px 30px rgba(52,211,153,0.3)' }}>
@@ -263,9 +273,9 @@ function SlideOee({ oee }: { oee: any }) {
                     <div className="w-64 h-64 rounded-full border-[12px] border-slate-800 flex flex-col items-center justify-center relative shadow-[inset_0_0_30px_rgba(0,0,0,0.5)]">
                         <svg className="absolute inset-0 w-full h-full -rotate-90">
                             <circle cx="116" cy="116" r="110" fill="none" stroke="rgba(52,211,153,0.2)" strokeWidth="12" />
-                            <circle cx="116" cy="116" r="110" fill="none" stroke="#34d399" strokeWidth="12" strokeDasharray={`${oee.percentual * 6.9} 800`} strokeLinecap="round" className="drop-shadow-[0_0_10px_#10b981]" />
+                            <circle cx="116" cy="116" r="110" fill="none" stroke="#34d399" strokeWidth="12" strokeDasharray={`${safeOee.percentual * 6.9} 800`} strokeLinecap="round" className="drop-shadow-[0_0_10px_#10b981]" />
                         </svg>
-                        <span className="text-6xl font-black text-white">{oee.percentual}%</span>
+                        <span className="text-6xl font-black text-white">{safeOee.percentual}%</span>
                         <span className="text-emerald-500 font-bold tracking-widest uppercase text-sm mt-1">META 75%</span>
                     </div>
                 </div>
@@ -276,14 +286,14 @@ function SlideOee({ oee }: { oee: any }) {
                             <h4 className="text-slate-500 font-bold uppercase tracking-widest mb-1 text-lg">Horas H/H Ganhas</h4>
                             <p className="text-sm text-slate-600 font-medium">Horas de atividade geradas face ao standard de engenharia</p>
                         </div>
-                        <span className="text-5xl font-black text-white group-hover:text-emerald-400 transition-colors">{oee.horasGanhas}</span>
+                        <span className="text-5xl font-black text-white group-hover:text-emerald-400 transition-colors">{safeOee.horasGanhas}</span>
                     </div>
                     <div className="bg-slate-950 rounded-3xl p-8 border border-slate-800 flex justify-between items-center">
                         <div>
                             <h4 className="text-slate-500 font-bold uppercase tracking-widest mb-1 text-lg">Horas Trabalhadas</h4>
                             <p className="text-sm text-slate-600 font-medium">Tempo total de força laboral no pavilhão fabril</p>
                         </div>
-                        <span className="text-5xl font-black text-white">{oee.horasTrabalhadas}</span>
+                        <span className="text-5xl font-black text-white">{safeOee.horasTrabalhadas}</span>
                     </div>
                 </div>
             </div>

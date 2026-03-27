@@ -69,14 +69,21 @@ export async function buscarDashboardsTV(tv_id: string) {
             const mesAtual = hoje.getMonth() + 1;
             const anoAtual = hoje.getFullYear();
 
+            const showAniv = opcoes.showRefeitorioAniversarios ?? true;
+            const showAdm = opcoes.showRefeitorioAdmissao ?? true;
+            const showHer = opcoes.showRefeitorioHeroi ?? true;
+            const showSeg = opcoes.showRefeitorioSegurancaGlob ?? true;
+            const showQual = opcoes.showRefeitorioQualidade ?? true;
+            const showOee = opcoes.showRefeitorioOee ?? true;
+
             // 1. Recursos Humanos (Aniversários e Tempo de Casa)
-            if (opcoes.showRefeitorioAniversarios || opcoes.showRefeitorioAdmissao) {
+            if (showAniv || showAdm) {
                 const { data: opData } = await supabase.from('operadores').select('nome_operador, data_nascimento, data_admissao, foto_url, status');
                 
                 if (opData) {
                     const ativos = opData.filter((o: any) => o.status === 'Ativo' || !o.status);
                     
-                    if (opcoes.showRefeitorioAniversarios) {
+                    if (showAniv) {
                         refeitorioData.aniversariantes = ativos.filter((o: any) => {
                             if (!o.data_nascimento) return false;
                             const [, month, day] = o.data_nascimento.split('-');
@@ -87,7 +94,7 @@ export async function buscarDashboardsTV(tv_id: string) {
                         }).sort((a: any, b: any) => a.dia - b.dia);
                     }
 
-                    if (opcoes.showRefeitorioAdmissao) {
+                    if (showAdm) {
                         refeitorioData.admissoes = ativos.filter((o: any) => {
                             if (!o.data_admissao) return false;
                             const [year, month, day] = o.data_admissao.split('-');
@@ -102,7 +109,7 @@ export async function buscarDashboardsTV(tv_id: string) {
             }
 
             // 2. Herói do Mês (Semana/Mês Anterior de toda a Fábrica)
-            if (opcoes.showRefeitorioHeroi) {
+            if (showHer) {
                 try {
                     const { data: topWorker } = await supabase.rpc('get_top_worker_of_month', {
                         p_tipo_alvo: 'GERAL', p_alvo_id: null
@@ -119,7 +126,7 @@ export async function buscarDashboardsTV(tv_id: string) {
             }
 
             // 3. Segurança Global (Cruz de Segurança & Alertas Ativos por Área)
-            if (opcoes.showRefeitorioSegurancaGlob) {
+            if (showSeg) {
                 try {
                     const scRes = await getSafetyCross(anoAtual, mesAtual, 'GERAL', undefined, []);
                     refeitorioData.safetyCross = scRes.success ? scRes.data : [];
@@ -138,7 +145,7 @@ export async function buscarDashboardsTV(tv_id: string) {
             }
 
             // 4. Qualidade QCIS (Dia Anterior Completo)
-            if (opcoes.showRefeitorioQualidade) {
+            if (showQual) {
                 try {
                     const ontem = new Date();
                     ontem.setDate(ontem.getDate() - 1);
@@ -172,7 +179,7 @@ export async function buscarDashboardsTV(tv_id: string) {
             }
 
             // 5. OEE (Mês Fechado/Corrente)
-            if (opcoes.showRefeitorioOee) {
+            if (showOee) {
                 try {
                     const startOfMonthStr = new Date(Date.UTC(anoAtual, mesAtual - 1, 1, 0, 0, 0)).toISOString();
                     const endOfMonthStr = new Date(Date.UTC(anoAtual, mesAtual, 0, 23, 59, 59)).toISOString();
