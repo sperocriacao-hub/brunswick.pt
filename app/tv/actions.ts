@@ -735,44 +735,6 @@ export async function buscarDashboardsTV(tv_id: string) {
                     }
                 }
 
-                // 6. Cultura 5S Diária (Limpeza)
-            if (show5s) {
-                try {
-                    const { data: av5s } = await supabase.from('avaliacoes_diarias')
-                        .select(`
-                            nota_5s,
-                            operadores!inner (
-                                area_base_id,
-                                areas_fabrica:area_base_id (
-                                    nome_area
-                                )
-                            )
-                        `)
-                        .gte('data_avaliacao', `${anoAtual}-${String(mesAtual).padStart(2,'0')}-01`);
-
-                    if (av5s) {
-                        const areaMap: any = {};
-                        av5s.forEach((av: any) => {
-                            const nota = Number(av.nota_5s || 0);
-                            // @ts-ignore
-                            const nomeArea = av.operadores?.areas_fabrica?.nome_area || 'Geral';
-                            if (!areaMap[nomeArea]) areaMap[nomeArea] = { sum: 0, count: 0 };
-                            areaMap[nomeArea].sum += nota;
-                            areaMap[nomeArea].count += 1;
-                        });
-
-                        advancedMetrics.heatmap5s = Object.keys(areaMap).map(k => {
-                            const media = areaMap[k].sum / areaMap[k].count;
-                            // Escala 5S tipicamente é 0 a 4 (ou 5). > 3.5 é excelente (verde), > 2.5 é bom (laranja).
-                            let cor = 'bg-emerald-500 text-black border-emerald-400';
-                            if (media < 2.5) cor = 'bg-red-600 text-white animate-pulse border-red-500 shadow-[0_0_20px_rgba(220,38,38,0.5)]';
-                            else if (media < 3.2) cor = 'bg-yellow-400 text-black border-yellow-300';
-                            
-                            return { nome: k, score: media.toFixed(2), cor };
-                        }).sort((a: any, b: any) => parseFloat(a.score) - parseFloat(b.score)); // Menor score primeiro (piores expostos!)
-                    }
-                } catch (e) {}
-            }
                 // 2. Barcos Embalados Ontem (Auditorias QCIS no dia de ontem na Subestação de Embalamento DPU)
                 const ontem = new Date();
                 ontem.setDate(ontem.getDate() - 1);
