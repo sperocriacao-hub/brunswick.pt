@@ -40,6 +40,15 @@ export default function TVConfiguracoesPage() {
         qcisLinha?: string;
         qcisSubstationFTR?: string;
         qcisSubstationDPU?: string;
+        // Refeitorio Settings
+        showRefeitorioAniversarios?: boolean;
+        showRefeitorioAdmissao?: boolean;
+        showRefeitorioHeroi?: boolean;
+        showRefeitorioSegurancaGlob?: boolean;
+        showRefeitorioQualidade?: boolean;
+        showRefeitorioOee?: boolean;
+        showRefeitorio5S?: boolean;
+        loopTempoSegundos?: number;
     }
 
     const [opcoesLayout, setOpcoesLayout] = useState<OpcoesLayoutProps>({
@@ -56,7 +65,15 @@ export default function TVConfiguracoesPage() {
         minimiseAndon: true,
         qcisLinha: '',
         qcisSubstationFTR: 'Testes funcionais',
-        qcisSubstationDPU: 'Inspecção Final Embalamento'
+        qcisSubstationDPU: 'Inspecção Final Embalamento',
+        showRefeitorioAniversarios: true,
+        showRefeitorioAdmissao: true,
+        showRefeitorioHeroi: true,
+        showRefeitorioSegurancaGlob: true,
+        showRefeitorioQualidade: true,
+        showRefeitorioOee: true,
+        showRefeitorio5S: true,
+        loopTempoSegundos: 15
     });
 
     // Select Data Options
@@ -104,7 +121,15 @@ export default function TVConfiguracoesPage() {
             minimiseAndon: true,
             qcisLinha: '',
             qcisSubstationFTR: 'Testes funcionais',
-            qcisSubstationDPU: 'Inspecção Final Embalamento'
+            qcisSubstationDPU: 'Inspecção Final Embalamento',
+            showRefeitorioAniversarios: true,
+            showRefeitorioAdmissao: true,
+            showRefeitorioHeroi: true,
+            showRefeitorioSegurancaGlob: true,
+            showRefeitorioQualidade: true,
+            showRefeitorioOee: true,
+            showRefeitorio5S: true,
+            loopTempoSegundos: 15
         });
         setIsAddModalOpen(true);
     }
@@ -123,7 +148,15 @@ export default function TVConfiguracoesPage() {
             showQCISQuality: true, minimiseAndon: true,
             qcisLinha: tv.opcoes_layout?.qcisLinha || '',
             qcisSubstationFTR: tv.opcoes_layout?.qcisSubstationFTR || 'Testes funcionais',
-            qcisSubstationDPU: tv.opcoes_layout?.qcisSubstationDPU || 'Inspecção Final Embalamento'
+            qcisSubstationDPU: tv.opcoes_layout?.qcisSubstationDPU || 'Inspecção Final Embalamento',
+            showRefeitorioAniversarios: tv.opcoes_layout?.showRefeitorioAniversarios ?? true,
+            showRefeitorioAdmissao: tv.opcoes_layout?.showRefeitorioAdmissao ?? true,
+            showRefeitorioHeroi: tv.opcoes_layout?.showRefeitorioHeroi ?? true,
+            showRefeitorioSegurancaGlob: tv.opcoes_layout?.showRefeitorioSegurancaGlob ?? true,
+            showRefeitorioQualidade: tv.opcoes_layout?.showRefeitorioQualidade ?? true,
+            showRefeitorioOee: tv.opcoes_layout?.showRefeitorioOee ?? true,
+            showRefeitorio5S: tv.opcoes_layout?.showRefeitorio5S ?? true,
+            loopTempoSegundos: tv.opcoes_layout?.loopTempoSegundos ?? 15
         });
         setIsAddModalOpen(true);
     }
@@ -312,10 +345,11 @@ export default function TVConfiguracoesPage() {
                                 <option value="AREA">Focar em Diversas Linhas de uma Área</option>
                                 <option value="GERAL">Visão Geral Completa de Fábrica</option>
                                 <option value="PLANEAMENTO">Dashboard de Planeamento Semanal</option>
+                                <option value="REFEITORIO">Ecrã de Refeitório (Digital Signage Rotativo)</option>
                             </select>
                         </div>
 
-                        {tipoAlvo !== 'GERAL' && tipoAlvo !== 'PLANEAMENTO' && (
+                        {tipoAlvo !== 'GERAL' && tipoAlvo !== 'PLANEAMENTO' && tipoAlvo !== 'REFEITORIO' && (
                             <div className="space-y-2 p-4 bg-slate-50 border border-slate-200 rounded-lg">
                                 <Label>Selecione exatamente quem é o Alvo:</Label>
                                 <select
@@ -335,7 +369,7 @@ export default function TVConfiguracoesPage() {
                             </div>
                         )}
 
-                        {tipoAlvo !== 'PLANEAMENTO' && (
+                        {tipoAlvo !== 'PLANEAMENTO' && tipoAlvo !== 'REFEITORIO' && (
                             <div className="space-y-3 pt-4 border-t border-slate-200">
                                 <Label className="text-blue-700 font-bold flex items-center gap-2">
                                     <Settings size={16} /> Widgets NASA-Level (Configuração do Layout)
@@ -404,6 +438,51 @@ export default function TVConfiguracoesPage() {
                                         </div>
                                     </div>
                                 )}
+                            </div>
+                        )}
+
+                        {tipoAlvo === 'REFEITORIO' && (
+                            <div className="space-y-4 pt-4 border-t border-slate-200">
+                                <Label className="text-amber-700 font-bold flex items-center gap-2">
+                                    <Settings size={16} /> Widgets Refeitório (Digital Signage Carousel)
+                                </Label>
+                                
+                                <div className="space-y-2 p-3 bg-slate-50 border border-slate-200 rounded-lg max-w-[250px] shadow-inner">
+                                    <Label className="text-xs font-semibold text-slate-600">Frequência/Tempo de Loop</Label>
+                                    <div className="flex items-center gap-2">
+                                        <Input
+                                            type="number"
+                                            min="5"
+                                            max="120"
+                                            value={opcoesLayout.loopTempoSegundos || 15}
+                                            onChange={(e) => setOpcoesLayout(prev => ({ ...prev, loopTempoSegundos: parseInt(e.target.value) || 15 }))}
+                                            className="h-10 text-center font-bold text-lg"
+                                        />
+                                        <span className="text-xs text-slate-500 font-bold">Segundos</span>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                    {Object.entries({
+                                        showRefeitorioAniversarios: "Lista de Aniversários do Mês",
+                                        showRefeitorioAdmissao: "Celebração 3+ Anos de Casa",
+                                        showRefeitorioHeroi: "Herói do Mês (Mês Anterior)",
+                                        showRefeitorioSegurancaGlob: "Cruz Segurança HST + Mapas",
+                                        showRefeitorioQualidade: "KPIs Qualidade QCIS (Dia Anterior)",
+                                        showRefeitorioOee: "Objetivos OEE e Eficiência",
+                                        showRefeitorio5S: "Destaque 5S e Limpeza"
+                                    }).map(([key, label]) => (
+                                        <label key={key} className="flex flex-row items-start gap-3 cursor-pointer p-3 hover:bg-white rounded-lg border border-transparent hover:border-slate-200 hover:shadow-sm transition-all">
+                                            <input
+                                                type="checkbox"
+                                                checked={!!opcoesLayout[key as keyof OpcoesLayoutProps]}
+                                                onChange={() => setOpcoesLayout(prev => ({ ...prev, [key]: !prev[key as keyof OpcoesLayoutProps] }))}
+                                                className="w-5 h-5 mt-0.5 text-amber-600 rounded border-slate-300 focus:ring-amber-500 shrink-0"
+                                            />
+                                            <span className="text-sm font-semibold text-slate-700 select-none leading-tight">{label}</span>
+                                        </label>
+                                    ))}
+                                </div>
                             </div>
                         )}
 

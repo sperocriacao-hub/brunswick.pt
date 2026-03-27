@@ -61,6 +61,147 @@ export async function buscarDashboardsTV(tv_id: string) {
             };
         }
 
+        // Fast-path: Se for Refeitório, ignora Andons normais e puxa KPIs sociais/corporativos estáticos
+        if (tipoAlvo === 'REFEITORIO') {
+            const opcoes = configTv.opcoes_layout || {};
+            const refeitorioData: any = {};
+            const hoje = new Date();
+            const mesAtual = hoje.getMonth() + 1;
+            const anoAtual = hoje.getFullYear();
+
+            // 1. Recursos Humanos (Aniversários e Tempo de Casa)
+            if (opcoes.showRefeitorioAniversarios || opcoes.showRefeitorioAdmissao) {
+                const { data: opData } = await supabase.from('operadores').select('nome_operador, data_nascimento, data_admissao, foto_url, status');
+                
+                if (opData) {
+                    const ativos = opData.filter((o: any) => o.status === 'Ativo' || !o.status);
+                    
+                    if (opcoes.showRefeitorioAniversarios) {
+                        refeitorioData.aniversariantes = ativos.filter((o: any) => {
+                            if (!o.data_nascimento) return false;
+                            const [, month, day] = o.data_nascimento.split('-');
+                            return parseInt(month) === mesAtual;
+                        }).map((o: any) => {
+                            const [, , day] = o.data_nascimento.split('-');
+                            return { nome: o.nome_operador, dia: parseInt(day), foto: o.foto_url };
+                        }).sort((a: any, b: any) => a.dia - b.dia);
+                    }
+
+                    if (opcoes.showRefeitorioAdmissao) {
+                        refeitorioData.admissoes = ativos.filter((o: any) => {
+                            if (!o.data_admissao) return false;
+                            const [year, month, day] = o.data_admissao.split('-');
+                            const anosCasa = anoAtual - parseInt(year);
+                            return parseInt(month) === mesAtual && anosCasa >= 3;
+                        }).map((o: any) => {
+                            const [year, , day] = o.data_admissao.split('-');
+                            return { nome: o.nome_operador, dia: parseInt(day), anos: anoAtual - parseInt(year), foto: o.foto_url };
+                        }).sort((a: any, b: any) => b.anos - a.anos);
+                    }
+                }
+            }
+
+            // 2. Herói do Mês (Semana/Mês Anterior de toda a Fábrica)
+            if (opcoes.showRefeitorioHeroi) {
+                try {
+                    const { data: topWorker } = await supabase.rpc('get_top_worker_of_month', {
+                        p_tipo_alvo: 'GERAL', p_alvo_id: null
+                    }).single();
+
+                    if (topWorker) {
+                        refeitorioData.heroi = {
+                            nome: (topWorker as any).nome_operador,
+                            score: (topWorker as any).media_eficiencia,
+                            foto: (topWorker as any).foto_url || null
+                        };
+                    }
+                } catch(e) {}
+            }
+
+            // 3. Segurança Global (Cruz de Segurança & Alertas Ativos por Área)
+            if (opcoes.showRefeitorioSegurancaGlob) {
+                try {
+                    const scRes = await getSafetyCross(anoAtual, mesAtual, 'GERAL', null, []);
+                    refeitorioData.safetyCross = scRes.success ? scRes.data : [];
+
+                    const { data: alerts } = await supabase.from('alertas_andon').select('estacao_id, estacoes(area_id)').eq('resolvido', false);
+                    const { data: areasList } = await supabase.from('areas_fabrica').select('id, nome_area');
+                    
+                    const heatmap = (areasList || []).map((area: any) => {
+                        const ocorrencias = (alerts || []).filter((a: any) => a.estacoes?.area_id === area.id).length;
+                        let statusColor = 'emerald';
+                        if (ocorrencias > 0) statusColor = ocorrencias > 2 ? 'red' : 'yellow';
+                        return { nome: area.nome_area, incidentes: ocorrencias, cor: statusColor };
+                    });
+                    refeitorioData.heatmap = heatmap;
+                } catch(e) {}
+            }
+
+            // 4. Qualidade QCIS (Dia Anterior Completo)
+            if (opcoes.showRefeitorioQualidade) {
+                try {
+                    const ontem = new Date();
+                    ontem.setDate(ontem.getDate() - 1);
+                    const dataOntemStr = new Date(ontem.getFullYear(), ontem.getMonth(), ontem.getDate()).toISOString().split('T')[0];
+
+                    const { data: qcisOntem } = await supabase.from('qcis_audits')
+                        .select('substation_name, boat_id, count_of_defects, seccao')
+                        .eq('fail_date', dataOntemStr);
+
+                    let ftrVal = 0, dpuVal = 0, totalBarcos = 0;
+
+                    if (qcisOntem && qcisOntem.length > 0) {
+                        // FTR
+                        const ftrAudits = qcisOntem.filter((a: any) => (a.substation_name || '').toLowerCase().includes('testes funcionais'));
+                        if (ftrAudits.length > 0) {
+                            const tb = new Set(ftrAudits.map((a: any) => a.boat_id).filter(Boolean)).size;
+                            const zb = new Set(ftrAudits.filter((a: any) => ((a.seccao || '').toLowerCase().includes('zero') || (a.seccao || '').toLowerCase().includes('100%'))).map((a: any) => a.boat_id).filter(Boolean)).size;
+                            if (tb > 0) ftrVal = Math.round((zb / tb) * 100);
+                        }
+                        
+                        // DPU
+                        const embAudits = qcisOntem.filter((a: any) => (a.substation_name || '').toLowerCase().includes('inspecção final embalamento'));
+                        if (embAudits.length > 0) {
+                            totalBarcos = new Set(embAudits.map((a: any) => a.boat_id).filter(Boolean)).size;
+                            const totalDefects = embAudits.reduce((acc: number, curr: any) => acc + (curr.count_of_defects || 0), 0);
+                            if (totalBarcos > 0) dpuVal = parseFloat((totalDefects / totalBarcos).toFixed(2));
+                        }
+                    }
+                    refeitorioData.qcis = { dateStr: dataOntemStr, ftr: ftrVal, dpu: dpuVal, embalados: totalBarcos };
+                } catch(e) {}
+            }
+
+            // 5. OEE (Mês Fechado/Corrente)
+            if (opcoes.showRefeitorioOee) {
+                try {
+                    const startOfMonthStr = new Date(Date.UTC(anoAtual, mesAtual - 1, 1, 0, 0, 0)).toISOString();
+                    const endOfMonthStr = new Date(Date.UTC(anoAtual, mesAtual, 0, 23, 59, 59)).toISOString();
+
+                    const { data: efiData } = await supabase.rpc('get_eficiencia_hh', {
+                        p_data_inicio: startOfMonthStr,
+                        p_data_fim: endOfMonthStr,
+                        p_area_id: null,
+                        p_linha_id: null,
+                        p_estacao_id: null
+                    });
+                    
+                    if (efiData && efiData.length > 0) {
+                        refeitorioData.oee = {
+                            percentual: Number(efiData[0].eficiencia_percentual) || 0,
+                            horasGanhas: Number(efiData[0].horas_ganhas) || 0,
+                            horasTrabalhadas: Number(efiData[0].horas_trabalhadas) || 0,
+                        };
+                    }
+                } catch (e) {}
+            }
+
+            return {
+                success: true,
+                config: configTv,
+                refeitorioData
+            };
+        }
+
         // 2. Dependendo do Tipo de Alvo, recolher quais Estações pertencem a esse escopo
         let dictEstacoes: string[] = [];
         let stationsList: any[] = [];

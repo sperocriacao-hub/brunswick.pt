@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
 import { AlertTriangle, Clock, Factory, MonitorPlay, ShieldCheck, Trophy, Target, TrendingUp, Zap, Clock4, CheckCircle2, UserX, Activity, HeartPulse, PackageCheck, Award, Star } from 'lucide-react';
 import { buscarDashboardsTV } from '../../actions';
+import { TvRefeitorio } from './components/TvRefeitorio';
 
 // Supabase Anon Client for Websockets Listeners ONLY
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -27,6 +28,7 @@ export default function CustomTVDashboardPage() {
     const [metrics, setMetrics] = useState<any>({ kpiOee: {}, heroiTurno: null, melhorArea: null, gargalos: [] });
     const [ocorrenciasHoje, setOcorrenciasHoje] = useState<any[]>([]);
     const [planeamentoOrdens, setPlaneamentoOrdens] = useState<any[]>([]);
+    const [refeitorioData, setRefeitorioData] = useState<any>({});
 
     const [refreshTick, setRefreshTick] = useState(0);
     const [time, setTime] = useState(new Date());
@@ -56,6 +58,9 @@ export default function CustomTVDashboardPage() {
                 
                 if (res.config.tipo_alvo === 'PLANEAMENTO') {
                     setPlaneamentoOrdens(res.planeamentoData || []);
+                } else if (res.config.tipo_alvo === 'REFEITORIO') {
+                    setRefeitorioData(res.refeitorioData || {});
+                    setOpcoesLayout(res.config.opcoes_layout || {});
                 } else {
                     setBarcosAtivos(res.barcos || []);
                     setAlertas(res.alertasGlobais || []);
@@ -146,6 +151,11 @@ export default function CustomTVDashboardPage() {
                 </div>
             </div>
         );
+    }
+
+    if (tipoAlvo === 'REFEITORIO') {
+        const fullConfig = { ...opcoesLayout, nome_tv: nomeTv };
+        return <TvRefeitorio config={fullConfig} data={refeitorioData} />;
     }
 
     return (
