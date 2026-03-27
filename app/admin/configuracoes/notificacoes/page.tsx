@@ -353,6 +353,23 @@ export default function NotificacoesPage() {
                                     value={editingRegra.template_mensagem || ''}
                                     onChange={e => setEditingRegra({ ...editingRegra, template_mensagem: e.target.value })}
                                 ></textarea>
+                                
+                                <div className="mt-4 p-4 bg-slate-900/50 border border-slate-700 rounded-xl space-y-2">
+                                    <h4 className="text-sm font-bold text-amber-500 flex items-center gap-2">
+                                        <Lightbulb size={16} /> Como criar um Alerta Andon Perfeito
+                                    </h4>
+                                    <p className="text-xs text-slate-400">Podes copiar e colar o texto abaixo para criar automaticamente SMS ou Emails legíveis com todos os dados da paragem de linha.</p>
+                                    <div className="bg-black/50 p-3 rounded font-mono text-[11px] text-amber-200 border border-slate-800 break-words whitespace-pre-wrap">
+                                        🚨 ALERTA ANDON OEE 🚨{'\n\n'}
+                                        Uma Paragem de Linha foi registada na "{'{'}{'{'}op_estacao{'}'}{'}'}".{'\n'}
+                                        A Estação alvo (Bloqueante) é a: "{'{'}{'{'}op_estacao_causadora{'}'}{'}'}".{'\n\n'}
+                                        Motivo: {'{'}{'{'}tipo_alerta{'}'}{'}'} - {'{'}{'{'}descricao_alerta{'}'}{'}'}{'\n'}
+                                        OP Impactada: {'{'}{'{'}op_numero{'}'}{'}'}
+                                    </div>
+                                    <p className="text-[10px] text-slate-500 mt-2">
+                                        <strong className="text-slate-300">Nota API:</strong> A conta gratuita do Resend só envia para ti próprio. A conta gratuita do Twilio exige que registes os números de destino previamente no painel deles (Verified Caller IDs). Tens tudo detalhado na Vercel (onde configuraste o .env).
+                                    </p>
+                                </div>
                             </div>
 
                             <div className="flex justify-end gap-3 mt-4">
