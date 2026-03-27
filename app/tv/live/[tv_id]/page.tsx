@@ -59,6 +59,7 @@ export default function CustomTVDashboardPage() {
                 } else {
                     setBarcosAtivos(res.barcos || []);
                     setAlertas(res.alertasGlobais || []);
+                    setRadarEstacoes(res.radarEstacoes || []);
                     setOpcoesLayout(res.config.opcoes_layout || {});
                     setMetrics(res.advancedMetrics || {});
                 }
