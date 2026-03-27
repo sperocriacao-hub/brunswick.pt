@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Bell, Plus, Edit2, Trash2, CheckCircle2, XCircle, Mail, MessageSquare, Globe, ArrowLeft, Send } from 'lucide-react';
+import { Bell, Plus, Edit2, Trash2, CheckCircle2, XCircle, Mail, MessageSquare, Globe, ArrowLeft, Send, Lightbulb } from 'lucide-react';
 import Link from 'next/link';
 import {
     fetchRegrasNotificacao,
@@ -47,7 +47,7 @@ export default function NotificacoesPage() {
 
         const res = await saveRegraNotificacao(editingRegra);
         if (res.success) {
-            alert('Regra Guardada!');
+            alert('Regra Guardada com sucesso!');
             setIsModalOpen(false);
             setEditingRegra(null);
             loadData();
@@ -57,7 +57,7 @@ export default function NotificacoesPage() {
     };
 
     const handleDelete = async (id: string) => {
-        if (!confirm('Eliminar esta regra definitivamente?')) return;
+        if (!confirm('Tem a certeza que deseja eliminar esta regra definitivamente?')) return;
         const res = await deleteRegraNotificacao(id);
         if (res.success) loadData();
         else alert('Erro: ' + res.error);
@@ -97,177 +97,235 @@ export default function NotificacoesPage() {
 
     const getCanalIcon = (tipo: string) => {
         switch (tipo) {
-            case 'EMAIL': return <Mail size={16} className="text-blue-400" />;
-            case 'SMS': return <MessageSquare size={16} className="text-emerald-400" />;
-            case 'WEBHOOK': return <Globe size={16} className="text-purple-400" />;
+            case 'EMAIL': return <Mail size={16} className="text-blue-600" />;
+            case 'SMS': return <MessageSquare size={16} className="text-emerald-600" />;
+            case 'WEBHOOK': return <Globe size={16} className="text-purple-600" />;
             default: return <Bell size={16} />;
         }
     };
 
     return (
-        <div className="container mx-auto p-4 sm:p-8 max-w-6xl animate-fade-in relative z-20 dashboard-layout">
+        <div className="p-6 max-w-7xl mx-auto space-y-6">
 
-            <Link href="/admin/configuracoes" className="text-blue-500 hover:text-blue-400 font-medium mb-6 inline-flex items-center gap-2">
-                <ArrowLeft size={16} /> Voltar a Definições
-            </Link>
-
-            <div className="flex flex-col items-start mb-8 text-left border-b border-white/10 pb-6">
-                <h1 className="brand-title flex items-center gap-3" style={{ fontSize: '2rem', margin: 0 }}>
-                    <Bell size={32} color="var(--primary)" /> Motor de Notificações
-                </h1>
-                <p style={{ opacity: 0.7, marginTop: '0.5rem' }}>E-mails Automáticos, SMS e Alertas Webhooks ativados por Eventos do Chão de Fábrica.</p>
+            <div className="mb-4">
+                <Link href="/admin/configuracoes" className="text-blue-600 hover:text-blue-800 font-medium inline-flex items-center gap-2">
+                    <ArrowLeft size={16} /> Voltar a Definições Globais
+                </Link>
             </div>
 
-            <div className="flex gap-4 border-b border-white/10 mb-6">
-                <button
-                    onClick={() => setActiveTab('REGRAS')}
-                    className={`pb-3 px-4 font-bold border-b-2 transition-colors ${activeTab === 'REGRAS' ? 'border-blue-500 text-blue-400' : 'border-transparent text-slate-400 hover:text-slate-300'}`}
-                >
-                    Regras & Gatilhos Ativos
-                </button>
-                <button
-                    onClick={() => setActiveTab('HISTORICO')}
-                    className={`pb-3 px-4 font-bold border-b-2 transition-colors ${activeTab === 'HISTORICO' ? 'border-amber-500 text-amber-400' : 'border-transparent text-slate-400 hover:text-slate-300'}`}
-                >
-                    Auditoria Diária (Logs)
-                </button>
+            <div className="flex items-center justify-between">
+                <div>
+                    <h1 className="text-3xl font-bold tracking-tight text-slate-900 flex items-center gap-3">
+                        <Bell className="text-blue-600" size={32} />
+                        Motor de Notificações
+                    </h1>
+                    <p className="text-slate-500 mt-2">
+                        Configure e-mails automáticos, SMS e Webhooks ativados por eventos do chão de fábrica.
+                    </p>
+                </div>
             </div>
 
-            {loading ? (
-                <div className="text-center p-12 text-slate-500">A carregar motor...</div>
-            ) : activeTab === 'REGRAS' ? (
-                <section className="animate-fade-in">
-                    <div className="flex justify-end mb-4">
-                        <button onClick={() => openModal()} className="btn btn-primary flex items-center gap-2">
-                            <Plus size={18} /> Nova Regra
-                        </button>
-                    </div>
+            <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+                <div className="flex border-b border-slate-200 bg-slate-50/50">
+                    <button
+                        onClick={() => setActiveTab('REGRAS')}
+                        className={`px-6 py-4 font-medium text-sm transition-colors border-b-2 ${activeTab === 'REGRAS' ? 'border-blue-600 text-blue-700 bg-blue-50/50' : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100'}`}
+                    >
+                        Regras & Gatilhos Ativos
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('HISTORICO')}
+                        className={`px-6 py-4 font-medium text-sm transition-colors border-b-2 ${activeTab === 'HISTORICO' ? 'border-amber-500 text-amber-700 bg-amber-50/50' : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100'}`}
+                    >
+                        Auditoria Diária (Logs)
+                    </button>
+                </div>
 
-                    <div className="glass-panel overflow-hidden">
-                        <table className="w-full text-left border-collapse">
-                            <thead>
-                                <tr className="bg-white/5">
-                                    <th className="p-4 border-b border-white/10 text-sm font-semibold opacity-70">Nome da Regra</th>
-                                    <th className="p-4 border-b border-white/10 text-sm font-semibold opacity-70">Gatilho Ocorrência</th>
-                                    <th className="p-4 border-b border-white/10 text-sm font-semibold opacity-70">Canal</th>
-                                    <th className="p-4 border-b border-white/10 text-sm font-semibold opacity-70">Destinatários</th>
-                                    <th className="p-4 border-b border-white/10 text-sm font-semibold opacity-70">Estado</th>
-                                    <th className="p-4 border-b border-white/10 text-sm font-semibold opacity-70 text-right">Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {regras.map(regra => (
-                                    <tr key={regra.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                                        <td className="p-4 font-bold text-sm text-blue-100">{regra.nome_regra}</td>
-                                        <td className="p-4">
-                                            <span className="bg-slate-800 text-slate-300 px-2 py-1 rounded text-xs border border-slate-700 font-mono">
-                                                {regra.evento_gatilho}
-                                            </span>
-                                        </td>
-                                        <td className="p-4 text-sm font-semibold flex items-center gap-2 mt-1">
-                                            {getCanalIcon(regra.tipo_canal)} {regra.tipo_canal}
-                                        </td>
-                                        <td className="p-4">
-                                            <div className="flex flex-wrap gap-1">
-                                                {regra.destinatarios_array.map((d, i) => (
-                                                    <span key={i} className="text-xs bg-blue-900/40 text-blue-200 border border-blue-800/50 px-2 py-1 rounded-full truncate max-w-[120px]" title={d}>
-                                                        {d}
+                <div className="p-6">
+                    {loading ? (
+                        <div className="flex justify-center items-center py-12">
+                            <div className="text-slate-500 text-sm font-medium flex items-center gap-2">
+                                <span className="w-5 h-5 border-2 border-slate-300 border-t-blue-600 rounded-full animate-spin"></span>
+                                A carregar motor...
+                            </div>
+                        </div>
+                    ) : activeTab === 'REGRAS' ? (
+                        <div className="space-y-4">
+                            <div className="flex justify-end">
+                                <button
+                                    onClick={() => openModal()}
+                                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium flex items-center gap-2 transition-colors shadow-sm"
+                                >
+                                    <Plus size={18} /> Nova Regra
+                                </button>
+                            </div>
+
+                            <div className="border border-slate-200 rounded-lg overflow-hidden">
+                                <table className="w-full text-left text-sm whitespace-nowrap">
+                                    <thead className="bg-slate-50 border-b border-slate-200 text-slate-700">
+                                        <tr>
+                                            <th className="px-4 py-3 font-semibold">Nome da Regra</th>
+                                            <th className="px-4 py-3 font-semibold">Gatilho (Ocorrência)</th>
+                                            <th className="px-4 py-3 font-semibold">Canal</th>
+                                            <th className="px-4 py-3 font-semibold">Destinatários</th>
+                                            <th className="px-4 py-3 font-semibold">Estado</th>
+                                            <th className="px-4 py-3 font-semibold text-right">Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100 bg-white">
+                                        {regras.map(regra => (
+                                            <tr key={regra.id} className="hover:bg-slate-50 transition-colors">
+                                                <td className="px-4 py-3 font-medium text-slate-900">{regra.nome_regra}</td>
+                                                <td className="px-4 py-3">
+                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800 border border-slate-200">
+                                                        {regra.evento_gatilho}
                                                     </span>
-                                                ))}
-                                            </div>
-                                        </td>
-                                        <td className="p-4">
-                                            {regra.ativo ? (
-                                                <span className="text-emerald-400 font-bold text-xs flex items-center gap-1"><CheckCircle2 size={14} /> ONLINE</span>
-                                            ) : (
-                                                <span className="text-slate-500 font-bold text-xs flex items-center gap-1"><XCircle size={14} /> PAUSADO</span>
-                                            )}
-                                        </td>
-                                        <td className="p-4 text-right">
-                                            <button onClick={() => openModal(regra)} className="text-blue-400 hover:text-blue-300 p-2"><Edit2 size={16} /></button>
-                                            <button onClick={() => handleDelete(regra.id)} className="text-red-400 hover:text-red-300 p-2"><Trash2 size={16} /></button>
-                                        </td>
-                                    </tr>
-                                ))}
-                                {regras.length === 0 && (
-                                    <tr><td colSpan={6} className="p-8 text-center text-slate-500">Sem regras criadas.</td></tr>
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-                </section>
-            ) : (
-                <section className="animate-fade-in animate-delay-1">
-                    <div className="glass-panel overflow-hidden">
-                        <table className="w-full text-left border-collapse">
-                            <thead>
-                                <tr className="bg-white/5">
-                                    <th className="p-4 border-b border-white/10 text-sm font-semibold opacity-70">Carimbo de Tempo</th>
-                                    <th className="p-4 border-b border-white/10 text-sm font-semibold opacity-70">Regra Associada</th>
-                                    <th className="p-4 border-b border-white/10 text-sm font-semibold opacity-70">Destino (Target)</th>
-                                    <th className="p-4 border-b border-white/10 text-sm font-semibold opacity-70">Sucesso</th>
-                                    <th className="p-4 border-b border-white/10 text-sm font-semibold opacity-70 max-w-[300px]">Logs Adicionais</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {logs.map(log => (
-                                    <tr key={log.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                                        <td className="p-4 text-xs font-mono text-slate-400">{new Date(log.data_envio).toLocaleString()}</td>
-                                        <td className="p-4 text-sm text-blue-200">
-                                            {log.regra?.nome_regra || <span className="text-slate-500 italic">Regra Eliminada</span>}
-                                            <div className="text-[10px] text-slate-500 mt-1">{log.canal_usado}</div>
-                                        </td>
-                                        <td className="p-4 text-sm font-mono text-slate-300">{log.destinatario}</td>
-                                        <td className="p-4">
-                                            {log.status_envio === 'SUCCESS' ? (
-                                                <span className="text-emerald-400 font-bold text-xs bg-emerald-900/40 px-2 py-1 rounded">ENTREGUE</span>
-                                            ) : (
-                                                <span className="text-red-400 font-bold text-xs bg-red-900/40 px-2 py-1 rounded">FALHA</span>
-                                            )}
-                                        </td>
-                                        <td className="p-4 text-xs text-red-300 max-w-[300px] truncate" title={log.erro_detalhe || ''}>
-                                            {log.erro_detalhe || '-'}
-                                        </td>
-                                    </tr>
-                                ))}
-                                {logs.length === 0 && (
-                                    <tr><td colSpan={5} className="p-8 text-center text-slate-500">Nenhum alerta engatilhado até o momento.</td></tr>
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-                </section>
-            )}
+                                                </td>
+                                                <td className="px-4 py-3 font-medium text-slate-700 flex items-center gap-2 mt-0.5">
+                                                    {getCanalIcon(regra.tipo_canal)}
+                                                    {regra.tipo_canal}
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    <div className="flex flex-wrap gap-1.5">
+                                                        {regra.destinatarios_array.map((d, i) => (
+                                                            <span key={i} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200 truncate max-w-[150px]" title={d}>
+                                                                {d}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    {regra.ativo ? (
+                                                        <span className="inline-flex items-center gap-1 text-emerald-600 font-medium text-xs">
+                                                            <CheckCircle2 size={14} /> Ativo
+                                                        </span>
+                                                    ) : (
+                                                        <span className="inline-flex items-center gap-1 text-slate-400 font-medium text-xs">
+                                                            <XCircle size={14} /> Pausado
+                                                        </span>
+                                                    )}
+                                                </td>
+                                                <td className="px-4 py-3 text-right space-x-2">
+                                                    <button onClick={() => openModal(regra)} className="text-slate-400 hover:text-blue-600 transition-colors p-1">
+                                                        <Edit2 size={16} />
+                                                    </button>
+                                                    <button onClick={() => handleDelete(regra.id)} className="text-slate-400 hover:text-red-600 transition-colors p-1">
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                        {regras.length === 0 && (
+                                            <tr>
+                                                <td colSpan={6} className="px-4 py-12 text-center text-slate-500 bg-slate-50/50">
+                                                    Nenhuma regra de notificação configurada.
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="space-y-4">
+                            <div className="border border-slate-200 rounded-lg overflow-hidden">
+                                <table className="w-full text-left text-sm whitespace-nowrap">
+                                    <thead className="bg-slate-50 border-b border-slate-200 text-slate-700">
+                                        <tr>
+                                            <th className="px-4 py-3 font-semibold">Data/Hora Envio</th>
+                                            <th className="px-4 py-3 font-semibold">Regra Disparada</th>
+                                            <th className="px-4 py-3 font-semibold">Destino (Target)</th>
+                                            <th className="px-4 py-3 font-semibold">Estado Envio</th>
+                                            <th className="px-4 py-3 font-semibold">Detalhes/Erro</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100 bg-white">
+                                        {logs.map(log => (
+                                            <tr key={log.id} className="hover:bg-slate-50 transition-colors">
+                                                <td className="px-4 py-3 text-slate-500 font-mono text-xs">
+                                                    {new Date(log.data_envio).toLocaleString()}
+                                                </td>
+                                                <td className="px-4 py-3 text-slate-900 font-medium">
+                                                    {log.regra?.nome_regra || <span className="text-slate-400 italic">Regra Eliminada</span>}
+                                                    <div className="text-[10px] text-slate-500 mt-0.5 bg-slate-100 inline-block px-1.5 rounded border border-slate-200">
+                                                        {log.canal_usado}
+                                                    </div>
+                                                </td>
+                                                <td className="px-4 py-3 text-slate-600 font-mono">
+                                                    {log.destinatario}
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    {log.status_envio === 'SUCCESS' ? (
+                                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                                            Entregue
+                                                        </span>
+                                                    ) : (
+                                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-50 text-red-700 border border-red-200">
+                                                            Falha
+                                                        </span>
+                                                    )}
+                                                </td>
+                                                <td className="px-4 py-3 text-xs text-slate-500 max-w-[250px] truncate" title={log.erro_detalhe || ''}>
+                                                    {log.erro_detalhe ? (
+                                                        <span className="text-red-500">{log.erro_detalhe}</span>
+                                                    ) : (
+                                                        <span className="text-slate-400">-</span>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                        {logs.length === 0 && (
+                                            <tr>
+                                                <td colSpan={5} className="px-4 py-12 text-center text-slate-500 bg-slate-50/50">
+                                                    Nenhum alerta engatilhado até o momento.
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
 
             {/* MODAL EDIÇÃO */}
             {isModalOpen && editingRegra && (
-                <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50 animate-fade-in" style={{ backdropFilter: 'blur(5px)' }}>
-                    <div className="glass-panel max-w-2xl w-full p-8 relative">
-                        <button onClick={() => setIsModalOpen(false)} className="absolute top-4 right-4 text-white/50 hover:text-white p-2">✕</button>
+                <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                    <div className="bg-white rounded-xl shadow-xl max-w-3xl w-full flex flex-col max-h-[90vh]">
+                        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+                            <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                                {editingRegra.id ? <Edit2 className="text-blue-600" size={20} /> : <Plus className="text-blue-600" size={20} />}
+                                {editingRegra.id ? 'Editar Regra de Automação' : 'Nova Automação de Alerta'}
+                            </h2>
+                            <button
+                                onClick={() => setIsModalOpen(false)}
+                                className="text-slate-400 hover:text-slate-600 p-2 rounded-full hover:bg-slate-100 transition-colors"
+                            >
+                                <XCircle size={24} />
+                            </button>
+                        </div>
 
-                        <h2 className="text-2xl font-bold mb-6 text-white flex items-center gap-2">
-                            {editingRegra.id ? <Edit2 size={24} className="text-blue-400" /> : <Plus size={24} className="text-blue-400" />}
-                            {editingRegra.id ? 'Editar Regra Existente' : 'Criador de Template de Alerta'}
-                        </h2>
+                        <div className="p-6 overflow-y-auto NASA-scrollbar">
+                            <form id="regra-form" onSubmit={handleSave} className="space-y-6">
 
-                        <form onSubmit={handleSave} className="flex flex-col gap-5">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-bold opacity-70 mb-2 uppercase tracking-widest text-[#a9b1d6]">Identificador / Descrição</label>
-                                    <input
-                                        type="text"
-                                        className="form-control"
-                                        required
-                                        value={editingRegra.nome_regra || ''}
-                                        onChange={e => setEditingRegra({ ...editingRegra, nome_regra: e.target.value })}
-                                        placeholder="Ex: Falha Diária ESP32"
-                                    />
-                                </div>
-                                <div className="flex gap-4">
-                                    <div className="flex-1">
-                                        <label className="block text-sm font-bold opacity-70 mb-2 uppercase tracking-widest text-[#a9b1d6]">Gatilho Sistémico</label>
+                                {/* Header Info */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-semibold text-slate-700">Nome identificativo</label>
+                                        <input
+                                            type="text"
+                                            className="w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-slate-900"
+                                            required
+                                            value={editingRegra.nome_regra || ''}
+                                            onChange={e => setEditingRegra({ ...editingRegra, nome_regra: e.target.value })}
+                                            placeholder="Ex: Alerta Global de Andon"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-semibold text-slate-700">Evento de Disparo (Gatilho)</label>
                                         <select
-                                            className="form-control font-mono text-sm uppercase"
+                                            className="w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-slate-900 bg-white"
                                             required
                                             value={editingRegra.evento_gatilho || ''}
                                             onChange={e => setEditingRegra({ ...editingRegra, evento_gatilho: e.target.value })}
@@ -278,107 +336,152 @@ export default function NotificacoesPage() {
                                             <option value="ANDON_TRIGGER">Paragem de Linha Andon (Tablet)</option>
                                         </select>
                                     </div>
-                                    <div>
-                                        <label className="block text-sm font-bold opacity-70 mb-2 uppercase tracking-widest text-[#a9b1d6]">Estado</label>
-                                        <label className="flex items-center gap-2 mt-3 cursor-pointer">
+                                </div>
+
+                                <div className="bg-slate-50 p-4 rounded-lg border border-slate-100">
+                                    <label className="flex items-center gap-3 cursor-pointer">
+                                        <div className="relative flex items-center">
                                             <input
                                                 type="checkbox"
                                                 checked={editingRegra.ativo ?? true}
                                                 onChange={e => setEditingRegra({ ...editingRegra, ativo: e.target.checked })}
-                                                className="w-5 h-5 accent-emerald-500"
+                                                className="w-5 h-5 text-blue-600 rounded border-slate-300 focus:ring-blue-500"
                                             />
-                                            <span className="font-bold">Regra Online</span>
-                                        </label>
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <span className="font-semibold text-slate-900">Ativação da Regra</span>
+                                            <span className="text-xs text-slate-500">Se desmarcado, o motor irá ignorar este gatilho.</span>
+                                        </div>
+                                    </label>
+                                </div>
+
+                                {/* Canal Type Options */}
+                                <div className="space-y-3">
+                                    <label className="text-sm font-semibold text-slate-700">Canal de Comunicação (Alvo)</label>
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                        {(['EMAIL', 'SMS', 'WEBHOOK'] as const).map((tipo) => (
+                                            <label
+                                                key={tipo}
+                                                className={`relative flex cursor-pointer p-4 border rounded-lg shadow-sm focus:outline-none ${editingRegra.tipo_canal === tipo
+                                                    ? 'bg-blue-50 border-blue-500 ring-1 ring-blue-500'
+                                                    : 'bg-white border-slate-300 hover:bg-slate-50'
+                                                    }`}
+                                            >
+                                                <input
+                                                    type="radio"
+                                                    name="canal_notificacao"
+                                                    value={tipo}
+                                                    checked={editingRegra.tipo_canal === tipo}
+                                                    onChange={() => setEditingRegra({ ...editingRegra, tipo_canal: tipo })}
+                                                    className="sr-only"
+                                                />
+                                                <span className="flex flex-1 items-center gap-3">
+                                                    <span className="flex flex-col">
+                                                        <span className="block text-sm font-medium text-slate-900 flex items-center gap-2">
+                                                            {getCanalIcon(tipo)} {tipo === 'WEBHOOK' ? 'HTTP Webhook' : tipo}
+                                                        </span>
+                                                    </span>
+                                                </span>
+                                                {editingRegra.tipo_canal === tipo && (
+                                                    <CheckCircle2 className="h-5 w-5 text-blue-600" aria-hidden="true" />
+                                                )}
+                                            </label>
+                                        ))}
                                     </div>
                                 </div>
-                            </div>
 
-                            <hr className="border-white/10 my-2" />
-
-                            <div>
-                                <label className="block text-sm font-bold opacity-70 mb-2 uppercase tracking-widest text-[#a9b1d6]">Canal de Entrega</label>
-                                <div className="flex gap-4">
-                                    {['EMAIL', 'SMS', 'WEBHOOK'].map((tipo) => (
-                                        <button
-                                            key={tipo}
-                                            type="button"
-                                            onClick={() => setEditingRegra({ ...editingRegra, tipo_canal: tipo as 'EMAIL' | 'SMS' | 'WEBHOOK' })}
-                                            className={`flex-1 py-3 px-4 border rounded-xl flex items-center justify-center gap-2 font-bold transition-all ${editingRegra.tipo_canal === tipo
-                                                ? 'bg-blue-600 border-blue-400 text-white shadow-[0_0_15px_rgba(37,99,235,0.4)]'
-                                                : 'bg-black/30 border-white/10 text-slate-400 hover:bg-black/50'
-                                                }`}
-                                        >
-                                            {getCanalIcon(tipo)} {tipo}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-bold opacity-70 mb-2 uppercase tracking-widest text-[#a9b1d6] flex justify-between">
-                                    Destinatários
-                                    <span className="text-[10px] lowercase normal-case opacity-50 font-normal">Pressione &apos;Enter&apos; para inserir</span>
-                                </label>
-                                <div className="bg-black/30 p-2 border border-white/10 rounded-xl min-h-[50px] flex gap-2 flex-wrap items-center focus-within:border-blue-500/50">
-                                    {(editingRegra.destinatarios_array || []).map((dest, i) => (
-                                        <span key={i} className="bg-blue-900/50 text-blue-200 px-3 py-1 rounded-full text-sm flex items-center gap-2 border border-blue-800/50">
-                                            {dest}
-                                            <button type="button" onClick={() => handleRemoveDestinatario(i)} className="hover:text-amber-400 font-bold">×</button>
+                                {/* Destinos */}
+                                <div className="space-y-2">
+                                    <label className="text-sm font-semibold text-slate-700 flex justify-between">
+                                        <span>Lista de Contactos / Destinos</span>
+                                        <span className="text-xs font-normal text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                                            Escreve e pressiona a tecla Enter
                                         </span>
-                                    ))}
-                                    <input
-                                        type="text"
-                                        className="bg-transparent border-none outline-none text-sm text-white flex-1 min-w-[150px] px-2 py-1 placeholder-white/20"
-                                        placeholder={editingRegra.tipo_canal === 'EMAIL' ? 'Ex: dir@fabrica.pt' : (editingRegra.tipo_canal === 'SMS' ? 'Ex: +351910000000' : 'https://api.slack/webhook')}
-                                        value={destinatarioInput}
-                                        onChange={e => setDestinatarioInput(e.target.value)}
-                                        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddDestinatario(); } }}
-                                        onBlur={handleAddDestinatario}
-                                    />
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-bold opacity-70 mb-2 uppercase tracking-widest text-[#a9b1d6]">
-                                    Mensagem Bruta / Body Payload
-                                </label>
-                                <p className="text-xs text-amber-500/80 mb-2 bg-amber-900/20 p-2 rounded border border-amber-900/30">
-                                    <strong>Suporta Interpolação:</strong> Escreva <code>{`{{nome_dispositivo}}`}</code> para ser substituido automaticamente pelo motor dinâmico aquando do alerta.
-                                </p>
-                                <textarea
-                                    className="form-control"
-                                    rows={4}
-                                    required
-                                    placeholder="Ex: A Máquina {{nome_dispositivo}} encontra-se offline..."
-                                    value={editingRegra.template_mensagem || ''}
-                                    onChange={e => setEditingRegra({ ...editingRegra, template_mensagem: e.target.value })}
-                                ></textarea>
-                                
-                                <div className="mt-4 p-4 bg-slate-900/50 border border-slate-700 rounded-xl space-y-2">
-                                    <h4 className="text-sm font-bold text-amber-500 flex items-center gap-2">
-                                        <Lightbulb size={16} /> Como criar um Alerta Andon Perfeito
-                                    </h4>
-                                    <p className="text-xs text-slate-400">Podes copiar e colar o texto abaixo para criar automaticamente SMS ou Emails legíveis com todos os dados da paragem de linha.</p>
-                                    <div className="bg-black/50 p-3 rounded font-mono text-[11px] text-amber-200 border border-slate-800 break-words whitespace-pre-wrap">
-                                        🚨 ALERTA ANDON OEE 🚨{'\n\n'}
-                                        Uma Paragem de Linha foi registada na "{'{'}{'{'}op_estacao{'}'}{'}'}".{'\n'}
-                                        A Estação alvo (Bloqueante) é a: "{'{'}{'{'}op_estacao_causadora{'}'}{'}'}".{'\n\n'}
-                                        Motivo: {'{'}{'{'}tipo_alerta{'}'}{'}'} - {'{'}{'{'}descricao_alerta{'}'}{'}'}{'\n'}
-                                        OP Impactada: {'{'}{'{'}op_numero{'}'}{'}'}
+                                    </label>
+                                    <div className="flex flex-wrap items-center gap-2 p-2 border border-slate-300 rounded-md bg-white focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 min-h-[50px]">
+                                        {(editingRegra.destinatarios_array || []).map((dest, i) => (
+                                            <span key={i} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-slate-100 text-slate-800 text-sm border border-slate-200">
+                                                {dest}
+                                                <button type="button" onClick={() => handleRemoveDestinatario(i)} className="text-slate-400 hover:text-red-500 focus:outline-none">
+                                                    <XCircle size={14} />
+                                                </button>
+                                            </span>
+                                        ))}
+                                        <input
+                                            type="text"
+                                            className="flex-1 bg-transparent border-none outline-none focus:ring-0 text-sm p-1 min-w-[150px] text-slate-900 placeholder:text-slate-400"
+                                            placeholder={
+                                                editingRegra.tipo_canal === 'EMAIL' ? 'Ex: abc@brunswick.pt' :
+                                                    (editingRegra.tipo_canal === 'SMS' ? 'Ex: +351910000000' :
+                                                        'https://hook.url/endpoint')
+                                            }
+                                            value={destinatarioInput}
+                                            onChange={e => setDestinatarioInput(e.target.value)}
+                                            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddDestinatario(); } }}
+                                            onBlur={handleAddDestinatario}
+                                        />
                                     </div>
-                                    <p className="text-[10px] text-slate-500 mt-2">
-                                        <strong className="text-slate-300">Nota API:</strong> A conta gratuita do Resend só envia para ti próprio. A conta gratuita do Twilio exige que registes os números de destino previamente no painel deles (Verified Caller IDs). Tens tudo detalhado na Vercel (onde configuraste o .env).
-                                    </p>
                                 </div>
-                            </div>
 
-                            <div className="flex justify-end gap-3 mt-4">
-                                <button type="button" onClick={() => setIsModalOpen(false)} className="btn btn-outline">Cancelar</button>
-                                <button type="submit" className="btn btn-primary flex items-center gap-2">
-                                    <Send size={18} /> Salvar Automação
-                                </button>
-                            </div>
-                        </form>
+                                {/* Body Payload */}
+                                <div className="space-y-2">
+                                    <label className="text-sm font-semibold text-slate-700">Corpo da Mensagem (Payload)</label>
+                                    <textarea
+                                        className="w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-slate-900 font-mono"
+                                        rows={4}
+                                        required
+                                        placeholder="Ex: A Máquina {{nome_dispositivo}} encontra-se offline..."
+                                        value={editingRegra.template_mensagem || ''}
+                                        onChange={e => setEditingRegra({ ...editingRegra, template_mensagem: e.target.value })}
+                                    ></textarea>
+                                </div>
+
+                                {/* Helper Box */}
+                                <div className="bg-amber-50 rounded-lg p-4 border border-amber-200 shadow-sm mt-4">
+                                    <h4 className="flex items-center gap-2 text-sm font-bold text-amber-800 mb-2">
+                                        <Lightbulb size={18} className="text-amber-500" /> Dicas de Configuração (Manual)
+                                    </h4>
+                                    <p className="text-xs text-amber-700 mb-3 leading-relaxed">
+                                        Tu podes injetar <strong>Variáveis Dinâmicas</strong> dentro da mensagem pondo chaves duplas: <code>{'{'}{'{'} variavel {'}'}{'}'}</code>.<br />
+                                        Se pretendes criar uma Regra de Andon, copia rigorosamente a mensagem abaixo:
+                                    </p>
+
+                                    <div className="bg-amber-100/50 p-3 rounded-md border border-amber-200 font-mono text-xs text-amber-900 whitespace-pre-wrap select-all mb-3 relative group">
+                                        [{'Brunswick MES OEE'}] ALERTA DE ANDON{'\n'}
+                                        OP: {'{'}{'{'}op_numero{'}'}{'}'}{'\n'}
+                                        Estação: {'{'}{'{'}op_estacao{'}'}{'}'}{'\n'}
+                                        Causa Raiz/Alvo: {'{'}{'{'}op_estacao_causadora{'}'}{'}'}{'\n'}
+                                        Motivo: {'{'}{'{'}tipo_alerta{'}'}{'}'} - {'{'}{'{'}descricao_alerta{'}'}{'}'}
+                                    </div>
+
+                                    <ul className="text-[11px] text-amber-700/80 space-y-1 list-disc pl-4">
+                                        <li><strong>Resend API Grátis:</strong> Só consegues enviar e-mail se o destinatário for o teu próprio E-mail (o e-mail que usaste para criar conta na Resend).</li>
+                                        <li><strong>Twilio Grátis:</strong> Tens de registar ("verificar") o número de telefone de destino no painel da Twilio, para evitares medidas Anti-Spam (Verified Caller IDs).</li>
+                                        <li>Tens isso detalhado lá trás no teu manual `Configuracao_SMS_EMAIL.md`. Verificaste os `.env` no teu painel Vercel? Faz um Redeploy!</li>
+                                    </ul>
+                                </div>
+
+                            </form>
+                        </div>
+
+                        {/* Footer Action */}
+                        <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-3 rounded-b-xl">
+                            <button
+                                type="button"
+                                onClick={() => setIsModalOpen(false)}
+                                className="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-md font-medium hover:bg-slate-50 transition-colors shadow-sm"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                type="submit"
+                                form="regra-form"
+                                className="px-5 py-2 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 flex items-center gap-2 transition-colors shadow-sm"
+                            >
+                                <Send size={18} /> Salvar Regra
+                            </button>
+                        </div>
+
                     </div>
                 </div>
             )}
