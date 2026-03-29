@@ -88,6 +88,7 @@ function FuncionarioFormCore() {
                             notas_rh: data.notas_rh || '',
                             possui_acesso_sistema: data.possui_acesso_sistema || false,
                             email_acesso: data.email_acesso || '',
+                            senha_acesso: '', // Valor nunca vem preenchido do DB (fica no Auth)
                             nivel_permissao: data.nivel_permissao || '',
                             permissoes_modulos: data.permissoes_modulos || [],
                             salario_hora: data.salario_hora?.toString() || '10.00'
