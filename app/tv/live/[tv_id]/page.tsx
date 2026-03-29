@@ -237,7 +237,7 @@ export default function CustomTVDashboardPage() {
             {tipoAlvo === 'REFEITORIO' ? (
                 <main className="flex-1 overflow-hidden p-6 relative w-full h-full">
                     <div className="w-full h-full rounded-[3rem] overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.8)] border-4 border-slate-800 bg-slate-950">
-                        <TvRefeitorio config={{...opcoesLayout, nome_tv: nomeTv}} data={refeitorioData} embedMode={true} />
+                        <TvRefeitorio config={{ opcoes_layout: opcoesLayout, nome_tv: nomeTv }} data={refeitorioData} embedMode={true} />
                     </div>
                 </main>
             ) : (
