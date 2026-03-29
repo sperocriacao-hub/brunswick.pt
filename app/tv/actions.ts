@@ -9,7 +9,11 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
 // A TV Cast tem Acessos Super Admin ao nivel da base de dados porque corre como Node Edge
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+    global: {
+        fetch: (url, init) => fetch(url, { ...init, cache: 'no-store' })
+    }
+});
 
 export async function buscarDashboardsTV(tv_id: string) {
     noStore();
