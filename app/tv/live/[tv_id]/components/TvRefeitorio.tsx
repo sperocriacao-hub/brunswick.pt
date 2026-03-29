@@ -39,7 +39,7 @@ export function TvRefeitorio({ config, data, embedMode = false }: { config: any,
     }
     if (showAdm) {
         if (data.admissoes?.length > 0) {
-            const pages = splitPages(data.admissoes, 6);
+            const pages = splitPages(data.admissoes, 8);
             pages.forEach((pageBatch, idx) => {
                 slides.push({ id: `ADMISSAO_${idx}`, label: `Lendas ${idx+1}/${pages.length}`, render: () => <SlideAdmissoes admissoes={pageBatch} /> });
             });

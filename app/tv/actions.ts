@@ -122,13 +122,14 @@ export async function buscarDashboardsTV(tv_id: string) {
                     if (showAdm) {
                         refeitorioData.admissoes = ativos.filter((o: any) => {
                             const d = parseDateParts(o.data_admissao);
-                            if (!d) return false;
-                            const anos = anoAtual - d.year;
-                            return d.month === mesAtual && anos >= 3;
+                            return d && d.month === mesAtual && (anoAtual - d.year >= 3);
                         }).map((o: any) => {
                             const d = parseDateParts(o.data_admissao);
-                            return { nome: o.nome_operador, dia: d?.day, anos: anoAtual - d?.year!, foto: o.foto_url };
-                        }).sort((a: any, b: any) => b.anos - a.anos);
+                            return { nome: o.nome_operador, dia: d?.day, anos: anoAtual - (d?.year || 0) };
+                        }).sort((a: any, b: any) => {
+                            if (a.dia === b.dia) return b.anos - a.anos;
+                            return a.dia - b.dia;
+                        });
                     }
                 }
             }
