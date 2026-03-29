@@ -355,9 +355,10 @@ function FuncionarioFormCore() {
                                 <select required={formData.possui_acesso_sistema} value={formData.nivel_permissao} onChange={e => setFormData({ ...formData, nivel_permissao: e.target.value })} className={`${inputClass} appearance-none border-blue-200 focus:ring-blue-500`}>
                                     <option value="">Selecionar Perfil Cibersegurança...</option>
                                     <option value="Operador">Leitura Básica (Consultas)</option>
-                                    <option value="Supervisor">Chefe / Supervisor (Edita Ordens, Vê KPIs)</option>
-                                    <option value="Planeador">Engenheiro Industrial (Muda Roteiros)</option>
-                                    <option value="Admin">Master Admin (Controlo Total RH/M.E.S)</option>
+                                    <option value="Supervisor">Chefe / Supervisor (Vê Hierarquia Orgânica)</option>
+                                    <option value="Recursos Humanos">RH (Visibilidade Total Master de Operadores)</option>
+                                    <option value="Planeador">Engenheiro Industrial (Muda Roteiros/Modelos)</option>
+                                    <option value="Admin">Master Admin (Controlo Total Sistema)</option>
                                 </select>
                             </div>
 

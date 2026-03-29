@@ -41,11 +41,30 @@ export default function GestaoRHPage() {
 
     const carregarEquipa = async () => {
         setIsLoading(true);
+
+        const { data: userData } = await supabase.auth.getUser();
+        let queryOps = supabase
+            .from('operadores')
+            .select('id, numero_operador, nome_operador, tag_rfid_operador, funcao, status, iluo_nivel, possui_acesso_sistema, posto_base_id, estacao_alocada_temporaria, em_realocacao, permissoes_modulos')
+            .order('nome_operador');
+
+        // Se não for Master Admin fixo, aplicamos as fronteiras de Segurança de Visibilidade
+        if (userData?.user?.email && userData.user.email !== 'master@brunswick.pt') {
+           const { data: myData } = await supabase.from('operadores').select('nome_operador, nivel_permissao').eq('email_acesso', userData.user.email).single();
+           if (myData) {
+               // Apenas HR ou Admins têm acesso a VER/Editar todos os funcionários globalmente.
+               // Outros (ex: Supervisor/Líder) se entrarem neste ecrã, só vêm a sua equipa.
+               if (myData.nivel_permissao !== 'Admin' && myData.nivel_permissao !== 'Recursos Humanos') {
+                   queryOps = queryOps.or(`lider_nome.eq."${myData.nome_operador}",supervisor_nome.eq."${myData.nome_operador}",gestor_nome.eq."${myData.nome_operador}"`);
+               }
+           } else {
+               // Backup Security Nullifier
+               queryOps = queryOps.eq('id', 'codigo-invalido-de-seguranca');
+           }
+        }
+
         const [{ data: ops }, { data: ests }] = await Promise.all([
-            supabase
-                .from('operadores')
-                .select('id, numero_operador, nome_operador, tag_rfid_operador, funcao, status, iluo_nivel, possui_acesso_sistema, posto_base_id, estacao_alocada_temporaria, em_realocacao, permissoes_modulos')
-                .order('nome_operador'),
+            queryOps,
             supabase
                 .from('estacoes')
                 .select('id, nome_estacao')
