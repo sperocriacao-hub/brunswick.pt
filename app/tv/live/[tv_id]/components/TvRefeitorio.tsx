@@ -27,17 +27,25 @@ export function TvRefeitorio({ config, data, embedMode = false }: { config: any,
         return pages;
     }
 
-    if (showAniv && data.aniversariantes?.length > 0) {
-        const pages = splitPages(data.aniversariantes, 8);
-        pages.forEach((pageBatch, idx) => {
-            slides.push({ id: `NIVERS_${idx}`, label: `Aniversários ${idx+1}/${pages.length}`, render: () => <SlideAniversarios aniversariantes={pageBatch} /> });
-        });
+    if (showAniv) {
+        if (data.aniversariantes?.length > 0) {
+            const pages = splitPages(data.aniversariantes, 8);
+            pages.forEach((pageBatch, idx) => {
+                slides.push({ id: `NIVERS_${idx}`, label: `Aniversários ${idx+1}/${pages.length}`, render: () => <SlideAniversarios aniversariantes={pageBatch} /> });
+            });
+        } else {
+            slides.push({ id: 'NIVERS_EMPTY', label: 'Aniversários do Mês', render: () => <SlideAniversarios aniversariantes={[]} /> });
+        }
     }
-    if (showAdm && data.admissoes?.length > 0) {
-        const pages = splitPages(data.admissoes, 6);
-        pages.forEach((pageBatch, idx) => {
-            slides.push({ id: `ADMISSAO_${idx}`, label: `Mérito ${idx+1}/${pages.length}`, render: () => <SlideAdmissoes admissoes={pageBatch} /> });
-        });
+    if (showAdm) {
+        if (data.admissoes?.length > 0) {
+            const pages = splitPages(data.admissoes, 6);
+            pages.forEach((pageBatch, idx) => {
+                slides.push({ id: `ADMISSAO_${idx}`, label: `Lendas ${idx+1}/${pages.length}`, render: () => <SlideAdmissoes admissoes={pageBatch} /> });
+            });
+        } else {
+            slides.push({ id: 'ADMISSAO_EMPTY', label: 'Lendas da Empresa', render: () => <SlideAdmissoes admissoes={[]} /> });
+        }
     }
     if (showHer && data.herois?.length > 0) {
         const pages = splitPages(data.herois, 4);
@@ -138,25 +146,35 @@ function SlideAniversarios({ aniversariantes }: { aniversariantes: any[] }) {
             <p className="text-2xl lg:text-3xl text-slate-300 font-bold uppercase tracking-widest mb-12 relative z-10">Muitos Parabéns à Nossa Equipa!</p>
             
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-7xl w-full px-12 relative z-10">
-                {aniversariantes.map((a, i) => (
-                    <div key={i} className="group relative bg-slate-900/50 backdrop-blur-md rounded-3xl p-1 shadow-2xl transition-transform duration-500 hover:scale-105">
-                        <div className="absolute inset-0 bg-gradient-to-br from-amber-500/40 to-slate-800 rounded-3xl opacity-50 group-hover:opacity-100 transition-opacity"></div>
-                        <div className="bg-slate-950/90 rounded-[1.4rem] p-6 flex flex-col items-center justify-center relative z-10 border border-slate-700/50 h-full">
-                            <div className="w-28 h-28 bg-slate-800 rounded-full border-[4px] border-amber-400 mb-5 overflow-hidden flex items-center justify-center shadow-[0_0_30px_rgba(251,191,36,0.3)] relative">
-                                {a.foto ? (
-                                    <img src={a.foto} alt={a.nome} className="w-full h-full object-cover" />
-                                ) : (
-                                    <UserCheck size={40} className="text-slate-500" />
-                                )}
-                                <div className="absolute inset-0 rounded-full shadow-[inset_0_4px_10px_rgba(0,0,0,0.6)] pointer-events-none"></div>
-                            </div>
-                            <h2 className="text-2xl font-black text-white text-center leading-tight line-clamp-2 w-full mb-4 px-2">{a.nome}</h2>
-                            <div className="mt-auto flex items-center gap-2 bg-gradient-to-r from-amber-600 to-amber-500 px-6 py-2 rounded-full text-white font-black uppercase tracking-widest shadow-[0_5px_15px_rgba(245,158,11,0.4)]">
-                                Dia {a.dia}
+                {aniversariantes.length === 0 ? (
+                    <div className="col-span-4 flex flex-col items-center justify-center py-20 bg-slate-900/40 rounded-[3rem] border-2 border-dashed border-amber-500/30">
+                        <PartyPopper size={60} className="text-amber-600/50 mb-4" />
+                        <h2 className="text-3xl font-black text-amber-500/80 uppercase tracking-widest text-center shadow-black drop-shadow-md">
+                            Nenhum Aniversariante Registado neste Mês
+                        </h2>
+                        <p className="text-slate-400 mt-2 font-bold tracking-wider">Aguardamos as próximas celebrações!</p>
+                    </div>
+                ) : (
+                    aniversariantes.map((a, i) => (
+                        <div key={i} className="group relative bg-slate-900/50 backdrop-blur-md rounded-3xl p-1 shadow-2xl transition-transform duration-500 hover:scale-105">
+                            <div className="absolute inset-0 bg-gradient-to-br from-amber-500/40 to-slate-800 rounded-3xl opacity-50 group-hover:opacity-100 transition-opacity"></div>
+                            <div className="bg-slate-950/90 rounded-[1.4rem] p-6 flex flex-col items-center justify-center relative z-10 border border-slate-700/50 h-full">
+                                <div className="w-28 h-28 bg-slate-800 rounded-full border-[4px] border-amber-400 mb-5 overflow-hidden flex items-center justify-center shadow-[0_0_30px_rgba(251,191,36,0.3)] relative">
+                                    {a.foto ? (
+                                        <img src={a.foto} alt={a.nome} className="w-full h-full object-cover" />
+                                    ) : (
+                                        <UserCheck size={40} className="text-slate-500" />
+                                    )}
+                                    <div className="absolute inset-0 rounded-full shadow-[inset_0_4px_10px_rgba(0,0,0,0.6)] pointer-events-none"></div>
+                                </div>
+                                <h2 className="text-2xl font-black text-white text-center leading-tight line-clamp-2 w-full mb-4 px-2">{a.nome}</h2>
+                                <div className="mt-auto flex items-center gap-2 bg-gradient-to-r from-amber-600 to-amber-500 px-6 py-2 rounded-full text-white font-black uppercase tracking-widest shadow-[0_5px_15px_rgba(245,158,11,0.4)]">
+                                    Dia {a.dia}
+                                </div>
                             </div>
                         </div>
-                    </div>
-                ))}
+                    ))
+                )}
             </div>
         </div>
     );
@@ -174,31 +192,41 @@ function SlideAdmissoes({ admissoes }: { admissoes: any[] }) {
             <p className="text-2xl lg:text-3xl text-slate-300 font-bold uppercase tracking-widest mb-12 relative z-10">Reconhecimento de Antiguidade & Dedicação</p>
             
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl w-full px-12 relative z-10">
-                {admissoes.map((a, i) => (
-                    <div key={i} className="group relative bg-slate-900/40 backdrop-blur-sm border border-blue-500/20 p-6 rounded-3xl flex items-center gap-6 shadow-xl transition-all hover:bg-slate-800/80 hover:border-blue-400/50 hover:shadow-[0_0_40px_rgba(59,130,246,0.2)]">
-                        <div className="w-24 h-24 bg-slate-950 rounded-2xl border-2 border-blue-500 flex flex-col items-center justify-center shrink-0 shadow-[0_0_20px_rgba(59,130,246,0.3)] overflow-hidden relative">
-                            {a.foto ? (
-                                <img src={a.foto} alt={a.nome} className="w-full h-full object-cover rounded-xl" />
-                            ) : (
-                                <UserCheck size={36} className="text-blue-500/50" />
-                            )}
-                            <div className="absolute inset-0 shadow-[inset_0_4px_10px_rgba(0,0,0,0.6)] pointer-events-none"></div>
-                        </div>
-                        <div className="flex flex-col flex-1 truncate">
-                            <h2 className="text-2xl font-black text-white drop-shadow-md mb-2 flex items-center gap-3">
-                                <span className="truncate">{a.nome}</span>
-                                <span className="bg-gradient-to-r from-blue-600 to-blue-500 text-white px-3 py-1 rounded-lg text-lg font-black shadow-[0_4px_10px_rgba(37,99,235,0.4)] shrink-0">
-                                    {a.anos} ANOS
-                                </span>
-                            </h2>
-                            <div className="flex items-center gap-4 mt-2">
-                                <span className="text-blue-200/60 font-black text-sm uppercase tracking-widest bg-slate-950 px-3 py-1 rounded-md border border-slate-800">
-                                    Dia {a.dia}
-                                </span>
+                {admissoes.length === 0 ? (
+                    <div className="col-span-3 flex flex-col items-center justify-center py-20 bg-slate-900/40 rounded-[3rem] border-2 border-dashed border-blue-500/30">
+                        <Award size={60} className="text-blue-600/50 mb-4" />
+                        <h2 className="text-3xl font-black text-blue-500/80 uppercase tracking-widest text-center shadow-black drop-shadow-md">
+                            Nenhum Herói Celebra Antiguidade este Mês
+                        </h2>
+                        <p className="text-slate-400 mt-2 font-bold tracking-wider">Aguardamos os marcos do próximo mês!</p>
+                    </div>
+                ) : (
+                    admissoes.map((a, i) => (
+                        <div key={i} className="group relative bg-slate-900/40 backdrop-blur-sm border border-blue-500/20 p-6 rounded-3xl flex items-center gap-6 shadow-xl transition-all hover:bg-slate-800/80 hover:border-blue-400/50 hover:shadow-[0_0_40px_rgba(59,130,246,0.2)]">
+                            <div className="w-24 h-24 bg-slate-950 rounded-2xl border-2 border-blue-500 flex flex-col items-center justify-center shrink-0 shadow-[0_0_20px_rgba(59,130,246,0.3)] overflow-hidden relative">
+                                {a.foto ? (
+                                    <img src={a.foto} alt={a.nome} className="w-full h-full object-cover rounded-xl" />
+                                ) : (
+                                    <UserCheck size={36} className="text-blue-500/50" />
+                                )}
+                                <div className="absolute inset-0 shadow-[inset_0_4px_10px_rgba(0,0,0,0.6)] pointer-events-none"></div>
+                            </div>
+                            <div className="flex flex-col flex-1 truncate">
+                                <h2 className="text-2xl font-black text-white drop-shadow-md mb-2 flex items-center gap-3">
+                                    <span className="truncate">{a.nome}</span>
+                                    <span className="bg-gradient-to-r from-blue-600 to-blue-500 text-white px-3 py-1 rounded-lg text-lg font-black shadow-[0_4px_10px_rgba(37,99,235,0.4)] shrink-0">
+                                        {a.anos} ANOS
+                                    </span>
+                                </h2>
+                                <div className="flex items-center gap-4 mt-2">
+                                    <span className="text-blue-200/60 font-black text-sm uppercase tracking-widest bg-slate-950 px-3 py-1 rounded-md border border-slate-800">
+                                        Dia {a.dia}
+                                    </span>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                ))}
+                    ))
+                )}
             </div>
         </div>
     );
