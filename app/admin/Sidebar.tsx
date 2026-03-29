@@ -424,6 +424,43 @@ export function Sidebar({
                       Assiduidade Ativa
                     </span>
                   </Link>
+
+                  {hasAccess("/admin/rh/quiz-cultura") && (
+                    <Link
+                      onClick={() => setIsOpen(false)}
+                      href="/admin/rh/quiz-cultura"
+                      className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname === "/admin/rh/quiz-cultura" ? "bg-blue-800 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
+                    >
+                      <ListTodo
+                        size={18}
+                        className={
+                          pathname === "/admin/rh/quiz-cultura"
+                            ? "text-white"
+                            : "text-blue-300"
+                        }
+                      />
+                      <span className="text-sm border-transparent">
+                        Gestão Quiz Cultura
+                      </span>
+                    </Link>
+                  )}
+
+                  {hasAccess("/operador/quiz") && (
+                    <Link
+                      onClick={() => setIsOpen(false)}
+                      href="/operador/quiz"
+                      target="_blank"
+                      className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium text-blue-100 hover:bg-blue-800/50 hover:text-white`}
+                    >
+                      <Crosshair
+                        size={18}
+                        className="text-emerald-400"
+                      />
+                      <span className="text-sm border-transparent text-emerald-100">
+                        Lançar Quiosque RH
+                      </span>
+                    </Link>
+                  )}
                 </nav>
 
                 <p className="px-3 text-[10px] font-extrabold text-blue-400 uppercase tracking-widest mb-2">

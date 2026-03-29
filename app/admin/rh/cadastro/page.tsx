@@ -383,6 +383,8 @@ function FuncionarioFormCore() {
                                             { path: "/admin/rh/avaliacoes-lideranca", label: "Avaliações de Liderança", group: "Equipa & Talento" },
                                             { path: "/admin/rh/produtividade-lideranca", label: "Feedback Liderança", group: "Equipa & Talento" },
                                             { path: "/admin/rh/assiduidade", label: "Assiduidade Ativa", group: "Equipa & Talento" },
+                                            { path: "/admin/rh/quiz-cultura", label: "Gestão Quiz Cultura", group: "Equipa & Talento" },
+                                            { path: "/operador/quiz", label: "Quiosque (Rating Anónimo)", group: "Equipa & Talento" },
 
                                             { path: "/logistica/picking", label: "Tablet Armazém (Picking)", group: "Warehouse" },
                                             { path: "/admin/engenharia/genealogia", label: "Rastreabilidade B.O.M", group: "Warehouse" },
