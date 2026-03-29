@@ -129,8 +129,11 @@ export function TvRefeitorio({ config, data, embedMode = false }: { config: any,
 
             {/* Cache Debug Watermark */}
             {data.serverTimeForDebugging && (
-                <div className="absolute bottom-2 right-4 text-[10px] text-white/20 font-mono tracking-widest z-50 pointer-events-none">
-                    NO-CACHE BUILD: {new Date(data.serverTimeForDebugging).toLocaleTimeString()}
+                <div className="absolute bottom-2 right-4 text-[10px] text-white/20 font-mono tracking-widest z-50 pointer-events-none flex flex-col items-end">
+                    <span>NO-CACHE BUILD: {new Date(data.serverTimeForDebugging).toLocaleTimeString()}</span>
+                    {data.debugErrors && data.debugErrors.length > 0 && (
+                        <span className="text-red-500 font-bold">{data.debugErrors.join(' | ')}</span>
+                    )}
                 </div>
             )}
         </div>

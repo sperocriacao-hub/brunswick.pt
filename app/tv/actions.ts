@@ -68,7 +68,10 @@ export async function buscarDashboardsTV(tv_id: string) {
         // Fast-path: Se for Refeitório, ignora Andons normais e puxa KPIs sociais/corporativos estáticos
         if (tipoAlvo === 'REFEITORIO') {
             const opcoes = configTv.opcoes_layout || {};
-            const refeitorioData: any = {};
+            const refeitorioData: any = {
+                serverTimeForDebugging: new Date().toISOString(),
+                debugErrors: []
+            };
             const hoje = new Date();
             const mesAtual = hoje.getMonth() + 1;
             const anoAtual = hoje.getFullYear();
@@ -84,7 +87,7 @@ export async function buscarDashboardsTV(tv_id: string) {
                     if (p[0].length === 4) { y = p[0]; m = p[1]; d = p[2]; } // ISO YYYY/MM/DD
                     else { d = p[0]; m = p[1]; y = p[2]; } // EURO DD/MM/YYYY
                     
-                    const pY = parseInt(y.substring(0,4)), pM = parseInt(m), pD = parseInt(d);
+                    const pY = parseInt(y.substring(0,4)), pM = parseInt(m, 10), pD = parseInt(d, 10);
                     if (isNaN(pY) || isNaN(pM) || isNaN(pD)) return null;
                     return { year: pY, month: pM, day: pD };
                 } catch { return null; }
@@ -99,11 +102,12 @@ export async function buscarDashboardsTV(tv_id: string) {
 
             // 1. Recursos Humanos (Aniversários e Tempo de Casa)
             if (showAniv || showAdm) {
-                const { data: opData } = await supabase.from('operadores').select('nome_operador, data_nascimento, data_admissao, foto_url, status');
+                const { data: opData, error: opErr } = await supabase.from('operadores').select('nome_operador, data_nascimento, data_admissao, foto_url, status');
                 
-                if (opData) {
+                if (opErr) {
+                    refeitorioData.debugErrors.push(`Operadores Err: ${opErr.message}`);
+                } else if (opData) {
                     const ativos = opData.filter((o: any) => !o.status || o.status.toLowerCase() === 'ativo');
-                    refeitorioData.serverTimeForDebugging = new Date().toISOString();
                     
                     if (showAniv) {
                         refeitorioData.aniversariantes = ativos.filter((o: any) => {
