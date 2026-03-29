@@ -79,7 +79,8 @@ export default function InteractiveTabletPage() {
 
         // Auto-focus no input RFID oculto (ou não oculto)
         const focusInterval = setInterval(() => {
-            if (document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'TEXTAREA') {
+            const activeElem = document.activeElement?.tagName;
+            if (activeElem !== 'INPUT' && activeElem !== 'TEXTAREA' && activeElem !== 'SELECT') {
                 inputRef.current?.focus();
             }
         }, 3000);

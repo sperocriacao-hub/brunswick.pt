@@ -7,8 +7,10 @@ import { Lightbulb, Target, Sparkles, ArrowRight, Loader2, PlaySquare, Search, H
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { getKaizens, convertKaizenToAction, updateKaizenStatus } from './actions';
 import { Label } from '@/components/ui/label';
+import { useRouter } from 'next/navigation';
 
 export default function ComiteKaizenPage() {
+    const router = useRouter();
     const [kaizens, setKaizens] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedKaizen, setSelectedKaizen] = useState<any | null>(null);
@@ -90,21 +92,32 @@ export default function ComiteKaizenPage() {
                     <p className="text-lg text-slate-500 mt-1">Transforme ideias da fábrica em Ações de Melhoria.</p>
                 </div>
 
-                <div className="flex bg-slate-200/50 p-1 rounded-xl w-full md:w-auto">
-                    <button
-                        onClick={() => setActiveTab('pendentes')}
-                        className={`flex-1 md:px-6 py-2.5 rounded-lg font-bold text-sm flex items-center justify-center gap-2 transition-all \${activeTab === 'pendentes' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto mt-4 md:mt-0">
+                    <Button
+                        variant="secondary"
+                        onClick={() => router.push('/operador/ideias')}
+                        className="h-auto py-2.5 px-4 bg-amber-900/80 hover:bg-amber-800 text-amber-100 border border-amber-700/50 font-bold gap-2"
                     >
-                        <LayoutDashboard size={16} />
-                        Por Avaliar
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('historico')}
-                        className={`flex-1 md:px-6 py-2.5 rounded-lg font-bold text-sm flex items-center justify-center gap-2 transition-all \${activeTab === 'historico' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-                    >
-                        <History size={16} />
-                        Histórico
-                    </button>
+                        <Lightbulb size={20} className="text-amber-400" />
+                        Andon Kaizen (HMI)
+                    </Button>
+
+                    <div className="flex bg-slate-200/50 p-1 rounded-xl w-full md:w-auto">
+                        <button
+                            onClick={() => setActiveTab('pendentes')}
+                            className={`flex-1 md:px-6 py-2.5 rounded-lg font-bold text-sm flex items-center justify-center gap-2 transition-all ${activeTab === 'pendentes' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                        >
+                            <LayoutDashboard size={16} />
+                            Por Avaliar
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('historico')}
+                            className={`flex-1 md:px-6 py-2.5 rounded-lg font-bold text-sm flex items-center justify-center gap-2 transition-all ${activeTab === 'historico' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                        >
+                            <History size={16} />
+                            Histórico
+                        </button>
+                    </div>
                 </div>
             </header>
 

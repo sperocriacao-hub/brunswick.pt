@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense } from 'react';
-import { Lock } from 'lucide-react';
+import { Lock, Factory } from 'lucide-react';
 import { login, signup } from './actions';
 import { useSearchParams } from 'next/navigation';
 
@@ -16,11 +16,17 @@ function LoginForm() {
             <div className="glass-panel p-8 animate-fade-in" style={{ width: '100%', maxWidth: '420px', position: 'relative', zIndex: 10 }}>
 
                 <div className="flex flex-col items-center mb-8 text-center">
-                    <div style={{ background: 'linear-gradient(135deg, var(--primary), var(--accent))', padding: '1rem', borderRadius: '50%', marginBottom: '1.2rem', boxShadow: '0 0 20px rgba(59, 130, 246, 0.4)' }}>
-                        <Lock size={28} color="white" />
+                    <div className="flex items-center justify-center gap-3 mb-6">
+                        <div className="bg-blue-600 p-2.5 rounded-xl shadow-lg shadow-blue-500/30">
+                            <Factory size={32} className="text-white" />
+                        </div>
+                        <h1 className="text-3xl font-black tracking-tighter text-slate-800 uppercase">Brunswick</h1>
                     </div>
-                    <h1 className="brand-title" style={{ fontSize: '1.8rem', margin: 0, paddingLeft: 0 }}>Autenticação</h1>
-                    <p style={{ opacity: 0.7, fontSize: '0.875rem', marginTop: '0.5rem' }}>Brunswick.pt - Shopfloor MES</p>
+                    <div style={{ background: 'linear-gradient(135deg, var(--primary), var(--accent))', padding: '0.8rem', borderRadius: '50%', marginBottom: '1rem', boxShadow: '0 0 15px rgba(59, 130, 246, 0.3)' }}>
+                        <Lock size={20} color="white" />
+                    </div>
+                    <h2 className="brand-title" style={{ fontSize: '1.4rem', margin: 0, paddingLeft: 0 }}>Autenticação M.E.S</h2>
+                    <p style={{ opacity: 0.7, fontSize: '0.875rem', marginTop: '0.25rem' }}>Acesso Restrito ao Shopfloor</p>
                 </div>
 
                 <form className="flex flex-col gap-5">
@@ -30,8 +36,7 @@ function LoginForm() {
                             className="form-control"
                             name="email"
                             type="email"
-                            defaultValue="master@brunswick.pt"
-                            placeholder="admin@brunswick.com"
+                            placeholder="seu.nome@brunswick.com"
                             required
                         />
                     </div>
@@ -41,7 +46,6 @@ function LoginForm() {
                             className="form-control"
                             name="password"
                             type="password"
-                            defaultValue="Admin123"
                             placeholder="••••••••"
                             required
                         />

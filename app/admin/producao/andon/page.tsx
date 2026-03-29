@@ -3,11 +3,15 @@
 import React, { useEffect, useState } from 'react';
 import { getAndonHistory, fecharAlertaAndon } from './actions';
 import { getTVConfigs } from '../../configuracoes/tvs/actions';
-import { AlertCircle, Clock, CheckCircle2, Factory, Hammer, Tv, Filter, BarChart2, ListTodo, Activity, Timer } from 'lucide-react';
+import { AlertCircle, Clock, CheckCircle2, Factory, Hammer, Tv, Filter, BarChart2, ListTodo, Activity, Timer, AlertTriangle } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { format, differenceInMinutes } from 'date-fns';
 import Link from 'next/link';
+import { buscarEstacoes, dispararAlertaAndon } from '@/app/operador/actions';
 
 export default function AndonDashPage() {
     const [isLoading, setIsLoading] = useState(true);
@@ -23,13 +27,21 @@ export default function AndonDashPage() {
     const [filterCausadora, setFilterCausadora] = useState<string>('all');
     const [filterDate, setFilterDate] = useState<string>('');
 
+    // ANDON Help Modal State
+    const [estacoes, setEstacoes] = useState<any[]>([]);
+    const [isAndonModalOpen, setIsAndonModalOpen] = useState(false);
+    const [andonType, setAndonType] = useState('Falta de peça');
+    const [andonDesc, setAndonDesc] = useState('');
+    const [causadoraEstacaoId, setCausadoraEstacaoId] = useState('');
+    const [localOcorrenciaId, setLocalOcorrenciaId] = useState('');
+
     useEffect(() => {
         loadData();
     }, []);
 
     async function loadData() {
         setIsLoading(true);
-        const [res, tvsRes] = await Promise.all([getAndonHistory(), getTVConfigs()]);
+        const [res, tvsRes, estsRes] = await Promise.all([getAndonHistory(), getTVConfigs(), buscarEstacoes()]);
 
         if (res.success) {
             setAlertas(res.data || []);
@@ -37,8 +49,29 @@ export default function AndonDashPage() {
         if (tvsRes.success) {
             setTvLinks(tvsRes.data || []);
         }
+        if (estsRes?.success) {
+            setEstacoes(estsRes.estacoes || []);
+        }
         setIsLoading(false);
     }
+
+    const confirmAndonFire = async () => {
+        if (!localOcorrenciaId || !causadoraEstacaoId) {
+            alert("ATENÇÃO: É obrigatório selecionar o Local da Ocorrência e a Estação Causadora.");
+            return;
+        }
+        setIsAndonModalOpen(false);
+        const opRfid = 'BACKOFFICE_MASTER'; 
+        const res = await dispararAlertaAndon(causadoraEstacaoId, opRfid, undefined, andonType, andonDesc, localOcorrenciaId);
+
+        if (res.success) {
+            alert("🚨 Alerta Andon disparado com sucesso!");
+            loadData(); // Recarrega logo o front para aparecer na tabela
+            setAndonDesc('');
+        } else {
+            alert("Erro ao disparar alerta: " + res.error);
+        }
+    };
 
     async function handleResolver(id: string) {
         if (!window.confirm("Confirmar que este problema na Estação foi superado e a produção retomou?")) return;
@@ -114,20 +147,27 @@ export default function AndonDashPage() {
                     </p>
                 </div>
 
-                <Card className="bg-slate-900 border-slate-800 text-white shadow-xl max-w-sm w-full shrink-0">
-                    <CardHeader className="py-3 px-4 bg-slate-950/50 border-b border-slate-800">
-                        <CardTitle className="text-sm font-bold tracking-widest uppercase flex items-center gap-2 text-slate-300">
+                <Card className="bg-slate-900 border-slate-800 text-white shadow-xl max-w-md w-full shrink-0">
+                    <CardHeader className="py-3 px-4 bg-slate-950/50 border-b border-slate-800 flex flex-row items-center justify-between">
+                        <CardTitle className="text-sm font-bold tracking-widest uppercase flex items-center gap-2 text-slate-300 m-0">
                             <Tv size={16} className="text-blue-400" /> Acesso a Ecrãs TV
                         </CardTitle>
+                        <Button
+                            variant="destructive"
+                            onClick={() => setIsAndonModalOpen(true)}
+                            className="bg-red-600 hover:bg-red-700 text-white font-black tracking-widest px-3 py-1.5 h-auto text-xs gap-1 shadow-lg shadow-red-500/20 animate-pulse"
+                        >
+                            <AlertTriangle size={14} /> Andon Help
+                        </Button>
                     </CardHeader>
-                    <CardContent className="p-2">
+                    <CardContent className="p-3">
                         <div className="flex flex-wrap gap-2">
                             {tvLinks.length === 0 ? (
                                 <span className="text-xs text-slate-500 p-2">Nenhum ecrã configurado.</span>
                             ) : (
                                 tvLinks.map(tv => (
                                     <Link key={tv.id} href={`/tv/live/${tv.id}`} target="_blank">
-                                        <Button variant="secondary" size="sm" className="bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700 text-xs">
+                                        <Button variant="secondary" size="sm" className="bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700 text-xs shadow-sm">
                                             {tv.nome_tv}
                                         </Button>
                                     </Link>
@@ -356,6 +396,95 @@ export default function AndonDashPage() {
                     </Card>
                 </div>
             )}
+
+            {/* ANDON MODAL */}
+            <Dialog open={isAndonModalOpen} onOpenChange={setIsAndonModalOpen}>
+                <DialogContent className="bg-slate-900 border-slate-800 text-white sm:max-w-[500px]">
+                    <DialogHeader>
+                        <DialogTitle className="text-3xl font-black text-red-500 uppercase tracking-widest flex items-center gap-4">
+                            <AlertTriangle size={32} />
+                            Disparo Andon
+                        </DialogTitle>
+                        <DialogDescription className="text-slate-400 text-lg">
+                            Esta ação bloqueará de imediato o ecrã na TV selecionada, alertando os supervisores para a falha ou quebra de fluxo.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="py-4 space-y-6">
+                        <div className="space-y-2">
+                            <Label className="text-slate-300 font-bold uppercase tracking-widest mb-2 block">Onde está o problema? (Local Ocorrência)</Label>
+                            <select
+                                value={localOcorrenciaId}
+                                onChange={(e) => {
+                                   setLocalOcorrenciaId(e.target.value);
+                                   if (!causadoraEstacaoId) setCausadoraEstacaoId(e.target.value); // Autopreencher tv alvo para conveniência
+                                }}
+                                className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white focus:ring-red-500 focus:border-red-500"
+                            >
+                                <option value="" disabled>Selecione onde foi detetada a falha...</option>
+                                {estacoes.map(est => (
+                                    <option key={est.id} value={est.id}>{est.nome_estacao}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label className="text-rose-300 font-bold uppercase tracking-widest mb-2 block">Quem Causou? (Bloqueia TV Alvo)</Label>
+                            <select
+                                value={causadoraEstacaoId}
+                                onChange={(e) => setCausadoraEstacaoId(e.target.value)}
+                                className="w-full bg-rose-950/20 border border-rose-900/50 rounded-lg p-3 text-rose-100 focus:ring-red-500 focus:border-red-500"
+                            >
+                                <option value="" disabled>Selecione a Estação Responsável...</option>
+                                {estacoes.map(est => (
+                                    <option key={est.id} value={est.id}>{est.nome_estacao}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label className="text-slate-300 font-bold uppercase tracking-widest mb-2 block">Tipo de Incidência</Label>
+                            <select
+                                value={andonType}
+                                onChange={(e) => setAndonType(e.target.value)}
+                                className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white focus:ring-red-500 focus:border-red-500"
+                            >
+                                <option value="Falta de peça">⚠️ Falta de Peça</option>
+                                <option value="Avaria de equipamento">🔧 Avaria de Equipamento</option>
+                                <option value="Ajuste técnico">⚙️ Ajuste Técnico/Qualidade</option>
+                                <option value="Scrap">🗑️ Defeito / Scrap</option>
+                                <option value="Outros">❓ Outros</option>
+                            </select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label className="text-slate-300 font-bold uppercase tracking-widest block">Observação (Opcional)</Label>
+                            <Textarea
+                                value={andonDesc}
+                                onChange={(e) => setAndonDesc(e.target.value)}
+                                placeholder="Descreva o material em falta ou motivo..."
+                                className="bg-slate-950 border-slate-700 text-white focus-visible:ring-red-500 min-h-[80px]"
+                            />
+                        </div>
+                    </div>
+
+                    <DialogFooter className="sm:justify-between gap-4">
+                        <Button
+                            variant="ghost"
+                            onClick={() => setIsAndonModalOpen(false)}
+                            className="text-slate-400 hover:text-white hover:bg-slate-800"
+                        >
+                            CANCELAR
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            onClick={confirmAndonFire}
+                            disabled={!localOcorrenciaId || !causadoraEstacaoId}
+                            className="bg-red-600 hover:bg-red-700 text-white font-black tracking-widest px-8 shadow-md"
+                        >
+                            DISPARAR ALARME
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
         </div>
     );
 }
