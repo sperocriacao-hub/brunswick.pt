@@ -71,10 +71,19 @@ export async function buscarDashboardsTV(tv_id: string) {
 
             const parseDateParts = (dateStr: string) => {
                 if (!dateStr) return null;
-                const p = dateStr.includes('/') ? dateStr.split('/') : dateStr.split('-');
-                if (p.length !== 3) return null;
-                if (p[0].length === 4) return { year: parseInt(p[0]), month: parseInt(p[1]), day: parseInt(p[2]) };
-                return { year: parseInt(p[2]), month: parseInt(p[1]), day: parseInt(p[0]) };
+                try {
+                    const cleanStr = dateStr.includes('T') ? dateStr.split('T')[0] : dateStr.split(' ')[0];
+                    const p = cleanStr.includes('/') ? cleanStr.split('/') : cleanStr.split('-');
+                    if (p.length < 3) return null;
+                    
+                    let y, m, d;
+                    if (p[0].length === 4) { y = p[0]; m = p[1]; d = p[2]; } // ISO YYYY/MM/DD
+                    else { d = p[0]; m = p[1]; y = p[2]; } // EURO DD/MM/YYYY
+                    
+                    const pY = parseInt(y.substring(0,4)), pM = parseInt(m), pD = parseInt(d);
+                    if (isNaN(pY) || isNaN(pM) || isNaN(pD)) return null;
+                    return { year: pY, month: pM, day: pD };
+                } catch { return null; }
             };
 
             const showAniv = opcoes.showRefeitorioAniversarios ?? true;
