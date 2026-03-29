@@ -102,7 +102,9 @@ export async function buscarDashboardsTV(tv_id: string) {
                 const { data: opData } = await supabase.from('operadores').select('nome_operador, data_nascimento, data_admissao, foto_url, status');
                 
                 if (opData) {
-                    const ativos = opData.filter((o: any) => o.status === 'Ativo' || !o.status);
+                    const ativos = opData.filter((o: any) => !o.status || o.status.toLowerCase() === 'ativo');
+                    refeitorioData.serverTimeForDebugging = new Date().toISOString();
+                    
                     if (showAniv) {
                         refeitorioData.aniversariantes = ativos.filter((o: any) => {
                             const d = parseDateParts(o.data_nascimento);

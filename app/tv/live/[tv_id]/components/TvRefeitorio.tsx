@@ -126,6 +126,13 @@ export function TvRefeitorio({ config, data, embedMode = false }: { config: any,
                     {currentSlide.render()}
                 </div>
             </main>
+
+            {/* Cache Debug Watermark */}
+            {data.serverTimeForDebugging && (
+                <div className="absolute bottom-2 right-4 text-[10px] text-white/20 font-mono tracking-widest z-50 pointer-events-none">
+                    NO-CACHE BUILD: {new Date(data.serverTimeForDebugging).toLocaleTimeString()}
+                </div>
+            )}
         </div>
     );
 }
