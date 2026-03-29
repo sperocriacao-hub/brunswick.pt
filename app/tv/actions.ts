@@ -243,6 +243,46 @@ export async function buscarDashboardsTV(tv_id: string) {
                         };
                     }
                 } catch (e) {}
+            // 6. Cultura 5S (Mês Corrente)
+            const show5s = opcoes.showRefeitorio5S ?? true;
+            if (show5s) {
+                try {
+                    const startOfMonthStr = new Date(Date.UTC(anoAtual, mesAtual - 1, 1, 0, 0, 0)).toISOString().split('T')[0];
+                    const { data: evals } = await supabase.from('avaliacoes_diarias')
+                        .select('nota_5s, operadores!inner(area_base_id)')
+                        .gte('data_avaliacao', startOfMonthStr);
+
+                    const { data: areasRaw } = await supabase.from('areas_fabrica').select('id, nome_area');
+                    const areaMap = new Map((areasRaw || []).map(a => [a.id, a.nome_area]));
+
+                    const scoreMap: Record<string, { sum: number, count: number }> = {};
+
+                    if (evals && evals.length > 0) {
+                        evals.forEach((e: any) => {
+                            const areaId = e.operadores?.area_base_id;
+                            if (areaId && e.nota_5s != null) {
+                                const areaNome = areaMap.get(areaId) || 'Outros';
+                                if (!scoreMap[areaNome]) scoreMap[areaNome] = { sum: 0, count: 0 };
+                                scoreMap[areaNome].sum += Number(e.nota_5s);
+                                scoreMap[areaNome].count += 1;
+                            }
+                        });
+                        
+                        refeitorioData.heatmap5s = Object.entries(scoreMap).map(([nome, { sum, count }]) => {
+                            const maxVal = 4.0; // Assuming 1-4 scale
+                            const pct = Math.round(((sum / count) / maxVal) * 100);
+                            let cor = 'border-emerald-500 bg-emerald-950/40 text-emerald-400';
+                            if (pct < 75) cor = 'border-red-500 bg-red-950/40 text-red-400';
+                            else if (pct < 90) cor = 'border-yellow-500 bg-yellow-950/40 text-yellow-400';
+                            
+                            return { nome, score: `${pct}%`, cor };
+                        }).sort((a, b) => parseInt(b.score) - parseInt(a.score));
+                    } else {
+                        refeitorioData.heatmap5s = [];
+                    }
+                } catch (e) {
+                    refeitorioData.heatmap5s = [];
+                }
             }
 
             const { data: globalAlertsRaw } = await supabase
