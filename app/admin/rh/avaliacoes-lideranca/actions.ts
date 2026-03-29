@@ -117,3 +117,46 @@ export async function submeterAvaliacaoLideranca(avaliacao: AvaliacaoLiderancaDT
         return { success: false, error: err instanceof Error ? err.message : "Falha na Gravação da Avaliação" };
     }
 }
+
+export type QuizFeedbacksAgg = {
+    texto_pergunta: string;
+    media: number;
+    respostas: number;
+};
+
+export async function getFeedbackQuizAggregado(nome_lider: string) {
+    const cookieStore = cookies();
+    const supabase = await createClient(cookieStore);
+
+    const { data: rawRespostas, error } = await supabase
+        .from('quiz_cultura_respostas')
+        .select(`
+            nota,
+            quiz_cultura_perguntas ( texto_pergunta )
+        `)
+        .eq('lider_avaliado_nome', nome_lider);
+
+    if (error || !rawRespostas) return { success: false, data: [] };
+
+    const agrupar: Record<string, { soma: number; count: number }> = {};
+    
+    rawRespostas.forEach((r: any) => {
+        const texto = r.quiz_cultura_perguntas?.texto_pergunta;
+        if (texto) {
+            if (!agrupar[texto]) agrupar[texto] = { soma: 0, count: 0 };
+            agrupar[texto].soma += r.nota;
+            agrupar[texto].count += 1;
+        }
+    });
+
+    const resultado: QuizFeedbacksAgg[] = Object.keys(agrupar).map(k => ({
+        texto_pergunta: k,
+        media: Number((agrupar[k].soma / agrupar[k].count).toFixed(1)),
+        respostas: agrupar[k].count
+    }));
+
+    resultado.sort((a, b) => a.media - b.media);
+
+    return { success: true, data: resultado };
+}
+

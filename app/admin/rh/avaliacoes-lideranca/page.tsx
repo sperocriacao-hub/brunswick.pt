@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Shield, Activity, TrendingUp, CheckCircle, Save, Check, ChevronsUpDown, Search, UserCheck, Calendar, Users, Settings, Target, HeartHandshake, Briefcase, Filter } from 'lucide-react';
-import { AvaliacaoLiderancaDTO, submeterAvaliacaoLideranca } from './actions';
+import { Shield, Activity, TrendingUp, CheckCircle, Save, Check, ChevronsUpDown, Search, UserCheck, Calendar, Users, Settings, Target, HeartHandshake, Briefcase, Filter, X, Star } from 'lucide-react';
+import { AvaliacaoLiderancaDTO, submeterAvaliacaoLideranca, getFeedbackQuizAggregado, QuizFeedbacksAgg } from './actions';
 import { carregarEquipaLideranca } from './actions';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -68,6 +68,11 @@ export default function AvaliacoesLideranca() {
     const [isSubmitting, setIsSubmitting] = useState<Record<string, boolean>>({});
 
     const [showFilters, setShowFilters] = useState(false);
+
+    // States de Feedback Anónimo (Bottom-Up Quiz)
+    const [selectedFeedbackLeader, setSelectedFeedbackLeader] = useState<string | null>(null);
+    const [feedbacksAgregados, setFeedbacksAgregados] = useState<QuizFeedbacksAgg[]>([]);
+    const [isLoadingFeedbacks, setIsLoadingFeedbacks] = useState(false);
 
     useEffect(() => {
         const fetchEquipa = async () => {
@@ -182,6 +187,18 @@ export default function AvaliacoesLideranca() {
         setIsSubmitting(prev => ({ ...prev, [emp.id]: false }));
     };
 
+    const openFeedbackModal = async (nomeLider: string) => {
+        setSelectedFeedbackLeader(nomeLider);
+        setIsLoadingFeedbacks(true);
+        const res = await getFeedbackQuizAggregado(nomeLider);
+        if (res.success && res.data) {
+            setFeedbacksAgregados(res.data);
+        } else {
+            setFeedbacksAgregados([]);
+        }
+        setIsLoadingFeedbacks(false);
+    };
+
     if (isLoading) return <div className="p-10 text-center animate-pulse text-slate-500 font-mono">Verificando hierarquia e permissões RLS...</div>;
     
     if (errorMsg) return (
@@ -278,11 +295,19 @@ export default function AvaliacoesLideranca() {
                             )}>
                                 <CardHeader className="flex flex-row justify-between items-start pb-2">
                                     <div>
-                                        <CardTitle className="text-lg font-bold text-slate-800 flex items-center gap-2 line-clamp-1">
-                                            <span className="text-slate-400 font-mono text-sm bg-slate-100 px-1.5 py-0.5 rounded">
-                                                #{emp.numero_operador}
-                                            </span>
-                                            {emp.nome_operador}
+                                        <CardTitle className="text-lg font-bold text-slate-800 flex flex-col gap-2 items-start w-full">
+                                            <div className="flex gap-2 items-center w-full mt-1">
+                                                <span className="text-slate-400 font-mono text-sm bg-slate-100 px-1.5 py-0.5 rounded">
+                                                    #{emp.numero_operador}
+                                                </span>
+                                                <span className="line-clamp-1">{emp.nome_operador}</span>
+                                            </div>
+                                            <button 
+                                                onClick={() => openFeedbackModal(emp.nome_operador)}
+                                                className="text-xs text-blue-600 font-semibold hover:bg-blue-100 hover:scale-[1.02] transition-transform flex items-center gap-1.5 mt-1 bg-blue-50 px-2 py-1 rounded-md border border-blue-200"
+                                            >
+                                                <Target className="w-3.5 h-3.5"/> Histórico Espião (Feedback Chão de Fábrica)
+                                            </button>
                                         </CardTitle>
                                         <div className="flex gap-2 mt-2">
                                             <Badge variant="secondary" className="bg-indigo-100 text-indigo-700 border-indigo-200">{emp.funcao}</Badge>
@@ -361,6 +386,59 @@ export default function AvaliacoesLideranca() {
                             </Card>
                         )
                     })}
+                </div>
+            )}
+
+            {/* Modal Bottom-up */}
+            {selectedFeedbackLeader && (
+                <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-200 animate-in zoom-in-95 duration-200">
+                        <div className="flex justify-between items-center p-5 border-b bg-indigo-50/50">
+                            <div>
+                                <h3 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                                    <Target className="w-6 h-6 text-indigo-600" />
+                                    Voz do Operador (Anónimo)
+                                </h3>
+                                <p className="text-sm text-slate-500 mt-1">Líder Analisado: <span className="font-bold text-slate-700">{selectedFeedbackLeader}</span></p>
+                            </div>
+                            <Button variant="ghost" size="icon" onClick={() => setSelectedFeedbackLeader(null)} className="rounded-full hover:bg-slate-200">
+                                <X className="w-5 h-5 text-slate-500" />
+                            </Button>
+                        </div>
+                        
+                        <div className="p-6 max-h-[70vh] overflow-y-auto">
+                            {isLoadingFeedbacks ? (
+                                <div className="text-center py-10 text-slate-400 animate-pulse font-mono">
+                                    Desencriptando Avaliações do Cofre 360...
+                                </div>
+                            ) : feedbacksAgregados.length === 0 ? (
+                                <div className="text-center py-12">
+                                    <Shield className="w-16 h-16 text-slate-200 mx-auto mb-4" />
+                                    <h4 className="text-lg font-bold text-slate-600">Nenhum feedback registado</h4>
+                                    <p className="text-slate-500 mt-2 max-w-sm mx-auto">Este líder ainda não recebeu avaliações do chão de fábrica nos Quiosques de Cultura.</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    {feedbacksAgregados.map((fb, i) => (
+                                        <div key={i} className="flex flex-col md:flex-row md:items-center justify-between p-4 bg-slate-50 border border-slate-100 rounded-xl gap-4">
+                                            <div className="flex-1">
+                                                <h5 className="font-semibold text-slate-800 leading-tight">{fb.texto_pergunta}</h5>
+                                                <p className="text-xs text-slate-400 mt-1 font-mono uppercase tracking-widest">Amostra: {fb.respostas} Operadores</p>
+                                            </div>
+                                            <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-lg border border-slate-200 shadow-sm shrink-0">
+                                                <Star className={cn("w-5 h-5", fb.media >= 4 ? "text-green-500 fill-green-500" : fb.media <= 2.5 ? "text-red-500 fill-red-500" : "text-yellow-500 fill-yellow-500")} />
+                                                <span className="text-2xl font-black text-slate-800">{fb.media}</span>
+                                                <span className="text-slate-400 font-bold">/ 5</span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    <div className="mt-6 p-4 bg-blue-50 border border-blue-100 rounded-lg">
+                                        <p className="text-xs text-blue-600 text-center font-semibold">Os dados visíveis são médias exatas submetidas anonimamente a partir da zona fabril.</p>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 </div>
             )}
         </div>
