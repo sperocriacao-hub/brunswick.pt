@@ -2,6 +2,7 @@
 
 import { createClient } from '@/utils/supabase/server';
 import { PerguntaQuiz } from '@/app/admin/rh/quiz-cultura/actions';
+import { cookies } from 'next/headers';
 
 export type IdentidadeAnonima = {
     lider_nome: string | null;
@@ -11,7 +12,8 @@ export type IdentidadeAnonima = {
 };
 
 export async function iniciarSessaoQuiosque(numero_ou_rfid: string): Promise<{ success: boolean; data?: IdentidadeAnonima; error?: string }> {
-    const supabase = await createClient();
+    const cookieStore = cookies();
+    const supabase = await createClient(cookieStore);
 
     // 1. Encontrar o Operador pelo Numero (Simulação de Crachá ou Input Touch)
     const { data: opData, error } = await supabase
@@ -46,7 +48,8 @@ export async function iniciarSessaoQuiosque(numero_ou_rfid: string): Promise<{ s
 }
 
 export async function carregarPerguntasAtivasParaQuiosque() {
-    const supabase = await createClient();
+    const cookieStore = cookies();
+    const supabase = await createClient(cookieStore);
     const { data, error } = await supabase
         .from('quiz_cultura_perguntas')
         .select('*')
@@ -69,7 +72,8 @@ export type RespostaAnonimaDTO = {
 };
 
 export async function submeterQuizAnonimo(respostas: RespostaAnonimaDTO[]) {
-    const supabase = await createClient();
+    const cookieStore = cookies();
+    const supabase = await createClient(cookieStore);
     
     // Inserção em Bulk - Não passamos Quem fez, apenas a data e as notas!
     const payloads = respostas.map(r => ({

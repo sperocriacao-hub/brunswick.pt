@@ -2,6 +2,7 @@
 
 import { createClient } from '@/utils/supabase/server';
 import { revalidatePath } from 'next/cache';
+import { cookies } from 'next/headers';
 
 export type PerguntaQuiz = {
     id: string;
@@ -12,7 +13,8 @@ export type PerguntaQuiz = {
 };
 
 export async function listarPerguntas() {
-    const supabase = await createClient();
+    const cookieStore = cookies();
+    const supabase = await createClient(cookieStore);
     const { data, error } = await supabase
         .from('quiz_cultura_perguntas')
         .select('*')
@@ -26,7 +28,8 @@ export async function listarPerguntas() {
 }
 
 export async function criarPergunta(texto: string, tipo: 'Liderança' | 'Cultura') {
-    const supabase = await createClient();
+    const cookieStore = cookies();
+    const supabase = await createClient(cookieStore);
     const { error } = await supabase
         .from('quiz_cultura_perguntas')
         .insert({
@@ -44,7 +47,8 @@ export async function criarPergunta(texto: string, tipo: 'Liderança' | 'Cultura
 }
 
 export async function alterarStatusPergunta(id: string, novoStatus: 'Ativa' | 'Inativa') {
-    const supabase = await createClient();
+    const cookieStore = cookies();
+    const supabase = await createClient(cookieStore);
     const { error } = await supabase
         .from('quiz_cultura_perguntas')
         .update({ status: novoStatus })
@@ -59,7 +63,8 @@ export async function alterarStatusPergunta(id: string, novoStatus: 'Ativa' | 'I
 }
 
 export async function deletarPergunta(id: string) {
-    const supabase = await createClient();
+    const cookieStore = cookies();
+    const supabase = await createClient(cookieStore);
     const { error } = await supabase
         .from('quiz_cultura_perguntas')
         .delete()
