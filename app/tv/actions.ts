@@ -102,7 +102,7 @@ export async function buscarDashboardsTV(tv_id: string) {
 
             // 1. Recursos Humanos (Aniversários e Tempo de Casa)
             if (showAniv || showAdm) {
-                const { data: opData, error: opErr } = await supabase.from('operadores').select('nome_operador, data_nascimento, data_admissao, foto_url, status');
+                const { data: opData, error: opErr } = await supabase.from('operadores').select('nome_operador, data_nascimento, data_admissao, status');
                 
                 if (opErr) {
                     refeitorioData.debugErrors.push(`Operadores Err: ${opErr.message}`);
