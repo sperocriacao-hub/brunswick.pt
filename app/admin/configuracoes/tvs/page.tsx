@@ -48,6 +48,8 @@ export default function TVConfiguracoesPage() {
         showRefeitorioQualidade?: boolean;
         showRefeitorioOee?: boolean;
         showRefeitorio5S?: boolean;
+        showRefeitorioAcaoMes?: boolean;
+        urlImagemAcaoMes?: string;
         loopTempoSegundos?: number;
     }
 
@@ -73,6 +75,8 @@ export default function TVConfiguracoesPage() {
         showRefeitorioQualidade: true,
         showRefeitorioOee: true,
         showRefeitorio5S: true,
+        showRefeitorioAcaoMes: false,
+        urlImagemAcaoMes: '',
         loopTempoSegundos: 15
     });
 
@@ -156,6 +160,8 @@ export default function TVConfiguracoesPage() {
             showRefeitorioQualidade: tv.opcoes_layout?.showRefeitorioQualidade ?? true,
             showRefeitorioOee: tv.opcoes_layout?.showRefeitorioOee ?? true,
             showRefeitorio5S: tv.opcoes_layout?.showRefeitorio5S ?? true,
+            showRefeitorioAcaoMes: tv.opcoes_layout?.showRefeitorioAcaoMes ?? false,
+            urlImagemAcaoMes: tv.opcoes_layout?.urlImagemAcaoMes || '',
             loopTempoSegundos: tv.opcoes_layout?.loopTempoSegundos ?? 15
         });
         setIsAddModalOpen(true);
@@ -470,7 +476,8 @@ export default function TVConfiguracoesPage() {
                                         showRefeitorioSegurancaGlob: "Cruz Segurança HST + Mapas",
                                         showRefeitorioQualidade: "KPIs Qualidade QCIS (Dia Anterior)",
                                         showRefeitorioOee: "Objetivos OEE e Eficiência",
-                                        showRefeitorio5S: "Destaque 5S e Limpeza"
+                                        showRefeitorio5S: "Destaque 5S e Limpeza",
+                                        showRefeitorioAcaoMes: "Mural Ação do Mês (Imagem Externa)"
                                     }).map(([key, label]) => (
                                         <label key={key} className="flex flex-row items-start gap-3 cursor-pointer p-3 hover:bg-white rounded-lg border border-transparent hover:border-slate-200 hover:shadow-sm transition-all">
                                             <input
@@ -483,6 +490,20 @@ export default function TVConfiguracoesPage() {
                                         </label>
                                     ))}
                                 </div>
+
+                                {opcoesLayout.showRefeitorioAcaoMes && (
+                                    <div className="space-y-1.5 p-4 bg-amber-50 border border-amber-200 rounded-xl shadow-inner mt-4 animate-in fade-in slide-in-from-top-2">
+                                        <Label className="text-xs font-bold text-amber-800">URL da Imagem da Ação do Mês</Label>
+                                        <Input
+                                            value={opcoesLayout.urlImagemAcaoMes || ''}
+                                            onChange={(e) => setOpcoesLayout(prev => ({ ...prev, urlImagemAcaoMes: e.target.value }))}
+                                            placeholder="Ex: https://i.imgur.com/your-image.jpg"
+                                            className="h-10 text-sm border-amber-300"
+                                            title="Insira o link direto para a imagem (terminando em .png, .jpg, etc). O ecrã vai exibir a imagem em Ecrã Inteiro."
+                                        />
+                                        <p className="text-[10px] text-amber-700/80 leading-tight">Recomendado formato 16:9 (Landscape). Pode usar um serviço externo de hosting de imagens (Sharepoint público ou Imgur).</p>
+                                    </div>
+                                )}
                             </div>
                         )}
 

@@ -57,6 +57,9 @@ export function TvRefeitorio({ config, data, embedMode = false }: { config: any,
     if (show5s) {
         slides.push({ id: '5S', label: 'Cultura 5S e Limpeza', render: () => <Slide5S heatmap={data.heatmap5s || []} /> });
     }
+    if (opcoes.showRefeitorioAcaoMes && opcoes.urlImagemAcaoMes) {
+        slides.push({ id: 'ACAO_MES', label: 'Destaque e Ação do Mês', render: () => <SlideAcaoMes urlImagem={opcoes.urlImagemAcaoMes!} /> });
+    }
 
     useEffect(() => {
         if (slides.length <= 1) return;
@@ -166,9 +169,9 @@ function SlideAdmissoes({ admissoes }: { admissoes: any[] }) {
             
             <Award size={80} className="text-blue-400 mb-6 drop-shadow-[0_0_20px_rgba(96,165,250,0.6)] animate-pulse relative z-10" />
             <h1 className="text-6xl lg:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-300 via-blue-500 to-indigo-400 uppercase tracking-tighter mb-4 text-center relative z-10 drop-shadow-[0_5px_15px_rgba(59,130,246,0.2)]">
-                Celebração de Carreira
+                Lendas da Empresa
             </h1>
-            <p className="text-2xl lg:text-3xl text-slate-300 font-bold uppercase tracking-widest mb-12 relative z-10">Obrigado pela dedicação contínua!</p>
+            <p className="text-2xl lg:text-3xl text-slate-300 font-bold uppercase tracking-widest mb-12 relative z-10">Reconhecimento de Antiguidade & Dedicação</p>
             
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl w-full px-12 relative z-10">
                 {admissoes.map((a, i) => (
@@ -182,11 +185,13 @@ function SlideAdmissoes({ admissoes }: { admissoes: any[] }) {
                             <div className="absolute inset-0 shadow-[inset_0_4px_10px_rgba(0,0,0,0.6)] pointer-events-none"></div>
                         </div>
                         <div className="flex flex-col flex-1 truncate">
-                            <h2 className="text-2xl font-black text-white truncate drop-shadow-md mb-3">{a.nome}</h2>
-                            <div className="flex items-center gap-4">
-                                <span className="bg-gradient-to-r from-blue-600 to-blue-500 text-white px-4 py-1.5 rounded-lg text-2xl font-black shadow-[0_4px_15px_rgba(37,99,235,0.4)]">
+                            <h2 className="text-2xl font-black text-white drop-shadow-md mb-2 flex items-center gap-3">
+                                <span className="truncate">{a.nome}</span>
+                                <span className="bg-gradient-to-r from-blue-600 to-blue-500 text-white px-3 py-1 rounded-lg text-lg font-black shadow-[0_4px_10px_rgba(37,99,235,0.4)] shrink-0">
                                     {a.anos} ANOS
                                 </span>
+                            </h2>
+                            <div className="flex items-center gap-4 mt-2">
                                 <span className="text-blue-200/60 font-black text-sm uppercase tracking-widest bg-slate-950 px-3 py-1 rounded-md border border-slate-800">
                                     Dia {a.dia}
                                 </span>
@@ -492,6 +497,30 @@ function Slide5S({ heatmap }: { heatmap: any[] }) {
                         {s}
                     </div>
                 ))}
+            </div>
+        </div>
+    );
+}
+
+function SlideAcaoMes({ urlImagem }: { urlImagem: string }) {
+    return (
+        <div className="w-full h-full flex items-center justify-center bg-black relative overflow-hidden group">
+            {/* The actual image covering everything */}
+            <img 
+                src={urlImagem} 
+                alt="Ação do Mês" 
+                className="w-full h-full object-contain absolute inset-0 z-0 bg-slate-950"
+            />
+            {/* Blurry background version to fill raw screen gaps if not 16:9 */}
+            <div 
+                className="absolute inset-0 z-[-1] opacity-40 blur-3xl scale-110 bg-no-repeat bg-cover bg-center" 
+                style={{ backgroundImage: `url(${urlImagem})` }}
+            ></div>
+            
+            <div className="absolute top-8 left-8 bg-black/60 backdrop-blur-md px-6 py-2 rounded-full border border-white/10 z-10 shadow-lg">
+                <span className="text-white/80 font-bold uppercase tracking-widest text-sm flex items-center gap-2">
+                    <Star size={14} className="text-amber-400" /> Ação Especial do Mês
+                </span>
             </div>
         </div>
     );

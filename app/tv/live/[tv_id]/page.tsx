@@ -181,7 +181,7 @@ export default function CustomTVDashboardPage() {
             </header>
 
             {/* --- AREA ANDON NOTIFICATION BAR (RADAR NASA 3D) --- */}
-            {radarEstacoes.length > 0 && (
+            {tipoAlvo !== 'REFEITORIO' && radarEstacoes.length > 0 && (
                 <div className={`w-full relative shadow-[inset_0_10px_20px_rgba(0,0,0,0.8)] border-b-[3px] border-t-[3px] transition-colors duration-1000 z-10 shrink-0 select-none overflow-hidden ${radarEstacoes.some(a => a.hasAndon) ? 'bg-slate-900 border-y-red-950/80 shadow-[inset_0_0_50px_rgba(220,38,38,0.15)]' : 'bg-slate-900 border-slate-950'} ${tipoAlvo === 'GERAL' ? 'py-5 px-4' : 'py-8 px-8'}`}>
                     
                     {/* The 3D Conveyor Belt (Track Line / Linha Puxada) */}
