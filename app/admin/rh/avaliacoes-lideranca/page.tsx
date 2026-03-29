@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Shield, Activity, TrendingUp, CheckCircle, Save, Check, ChevronsUpDown, Search, UserCheck, Calendar, Users, Settings, Target, HeartHandshake, Briefcase } from 'lucide-react';
+import { Shield, Activity, TrendingUp, CheckCircle, Save, Check, ChevronsUpDown, Search, UserCheck, Calendar, Users, Settings, Target, HeartHandshake, Briefcase, Filter } from 'lucide-react';
 import { AvaliacaoLiderancaDTO, submeterAvaliacaoLideranca } from './actions';
 import { carregarEquipaLideranca } from './actions';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -62,9 +62,12 @@ export default function AvaliacoesLideranca() {
     const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
     const [selectedFuncao, setSelectedFuncao] = useState<string | null>(null);
 
+    // Estado local de formulários e saves
     const [evaluations, setEvaluations] = useState<Record<string, FormEdicao>>({});
     const [savedStates, setSavedStates] = useState<Record<string, boolean>>({});
     const [isSubmitting, setIsSubmitting] = useState<Record<string, boolean>>({});
+
+    const [showFilters, setShowFilters] = useState(false);
 
     useEffect(() => {
         const fetchEquipa = async () => {
@@ -191,40 +194,55 @@ export default function AvaliacoesLideranca() {
 
     return (
         <div className="p-6 space-y-6 max-w-[1400px] mx-auto pb-32 animate-in fade-in duration-500">
-            {/* Header Flutuante / Fixo */}
-            <div className="flex flex-col md:flex-row justify-between items-center bg-indigo-50 p-4 rounded-xl shadow-sm border border-indigo-100 gap-4 sticky top-4 z-40">
-                <div className="flex items-center gap-4">
-                    <Briefcase className="w-8 h-8 text-indigo-600" />
-                    <div>
-                        <h1 className="text-2xl font-bold text-indigo-950 tracking-tight">Avaliação da Liderança (Hierárquico)</h1>
-                        <p className="text-indigo-600/70 text-sm">Selecione o Cargo Subordinado para avaliação (Apenas Cargos sob sua Gestão Diretiva).</p>
+            <div className="flex flex-col md:flex-row justify-between md:items-center bg-indigo-50 p-4 rounded-xl shadow-sm border border-indigo-100 gap-4 sticky top-4 z-40">
+                <div className="flex items-center justify-between w-full md:w-auto shrink-0">
+                    <div className="flex items-center gap-4">
+                        <Briefcase className="w-8 h-8 text-indigo-600 hidden sm:block" />
+                        <div>
+                            <h1 className="text-xl sm:text-2xl font-bold text-indigo-950 tracking-tight">Avaliação da Liderança</h1>
+                            <p className="text-indigo-600/70 text-xs sm:text-sm">Cargo Subordinado (Gestão Diretiva).</p>
+                        </div>
                     </div>
+                    
+                    <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => setShowFilters(!showFilters)} 
+                        className="md:hidden border-indigo-200 text-indigo-600 hover:bg-indigo-100"
+                    >
+                        <Filter className="w-4 h-4 mr-2" />
+                        {showFilters ? "Ocultar" : "Filtros"}
+                    </Button>
                 </div>
 
-                <div className="flex items-center gap-3 w-full md:w-auto">
-                    <span className="text-[10px] font-bold text-indigo-700 uppercase tracking-wider hidden md:block">Data Audit:</span>
-                     <input
-                            type="date"
-                            className="h-10 px-3 border border-indigo-200 rounded-md bg-white font-semibold focus:ring-2 focus:ring-indigo-500 w-full text-indigo-900"
-                            value={selectedDate}
-                            onChange={(e) => setSelectedDate(e.target.value)}
-                        />
-                    <span className="text-[10px] font-bold text-indigo-700 uppercase tracking-wider hidden md:block ml-2">Filtrar Categoria:</span>
-                    <div className="relative w-full md:w-[300px]">
-                        <select
-                            className="w-full appearance-none bg-white text-indigo-900 border border-indigo-200 hover:bg-slate-50 shadow-sm rounded-md h-10 px-3 pr-8 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                            value={selectedFuncao || ""}
-                            onChange={(e) => setSelectedFuncao(e.target.value || null)}
-                        >
-                            <option value="">Selecione uma Função...</option>
-                            {funcoesDisponiveis.map((funcao) => (
-                                <option key={funcao} value={funcao}>
-                                    {funcao}
-                                </option>
-                            ))}
-                        </select>
-                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-indigo-400">
-                            <ChevronsUpDown className="h-4 w-4 opacity-50" />
+                <div className={cn("flex-col sm:flex-row items-center gap-3 w-full md:w-auto", showFilters ? "flex" : "hidden md:flex")}>
+                    <div className="w-full sm:w-auto">
+                        <span className="text-[10px] font-bold text-indigo-700 uppercase tracking-wider block mb-1">Data Audit:</span>
+                         <input
+                                type="date"
+                                className="h-10 px-3 border border-indigo-200 rounded-md bg-white font-semibold focus:ring-2 focus:ring-indigo-500 w-full text-indigo-900"
+                                value={selectedDate}
+                                onChange={(e) => setSelectedDate(e.target.value)}
+                            />
+                    </div>
+                    <div className="w-full sm:w-[300px]">
+                        <span className="text-[10px] font-bold text-indigo-700 uppercase tracking-wider block mb-1">Filtrar Categoria:</span>
+                        <div className="relative">
+                            <select
+                                className="w-full appearance-none bg-white text-indigo-900 border border-indigo-200 hover:bg-slate-50 shadow-sm rounded-md h-10 px-3 pr-8 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                value={selectedFuncao || ""}
+                                onChange={(e) => setSelectedFuncao(e.target.value || null)}
+                            >
+                                <option value="">Selecione uma Função...</option>
+                                {funcoesDisponiveis.map((funcao) => (
+                                    <option key={funcao} value={funcao}>
+                                        {funcao}
+                                    </option>
+                                ))}
+                            </select>
+                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-indigo-400">
+                                <ChevronsUpDown className="h-4 w-4 opacity-50" />
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { createClient } from '@/utils/supabase/client';
-import { Shield, Activity, TrendingUp, CheckCircle, Save, Check, ChevronsUpDown, Search, UserCheck, Calendar } from 'lucide-react';
+import { Shield, Activity, TrendingUp, CheckCircle, Save, Check, ChevronsUpDown, Search, UserCheck, Calendar, Filter } from 'lucide-react';
 import { AvaliacaoDTO, submeterAvaliacaoDiaria } from './actions';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -56,6 +56,8 @@ export default function LoteAvaliacoesDiariasLayout() {
     const [evaluations, setEvaluations] = useState<Record<string, FormEdicao>>({});
     const [savedStates, setSavedStates] = useState<Record<string, boolean>>({});
     const [isSubmitting, setIsSubmitting] = useState<Record<string, boolean>>({});
+
+    const [showFilters, setShowFilters] = useState(false);
 
     useEffect(() => {
         carregarLista();
@@ -207,15 +209,27 @@ export default function LoteAvaliacoesDiariasLayout() {
         <div className="p-6 space-y-6 max-w-[1400px] mx-auto pb-32 animate-in fade-in duration-500">
             {/* Header Flutuante / Comando Central */}
             <div className="flex flex-col xl:flex-row justify-between xl:items-center bg-white p-5 rounded-xl shadow-sm border border-slate-200 gap-6 sticky top-4 z-40">
-                <div className="flex items-center gap-4 shrink-0">
-                    <UserCheck className="w-10 h-10 text-blue-600" />
-                    <div>
-                        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Avaliações 360</h1>
-                        <p className="text-slate-500 text-sm">Controle as camadas operacionais.</p>
+                <div className="flex items-center justify-between w-full xl:w-auto shrink-0">
+                    <div className="flex items-center gap-4">
+                        <UserCheck className="w-10 h-10 text-blue-600 hidden sm:block" />
+                        <div>
+                            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">Avaliações 360</h1>
+                            <p className="text-slate-500 text-xs sm:text-sm">Controle as camadas operacionais.</p>
+                        </div>
                     </div>
+                    
+                    <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => setShowFilters(!showFilters)} 
+                        className="xl:hidden border-blue-200 text-blue-600 hover:bg-blue-50"
+                    >
+                        <Filter className="w-4 h-4 mr-2" />
+                        {showFilters ? "Ocultar" : "Filtros"}
+                    </Button>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 w-full">
+                <div className={cn("grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 w-full", showFilters ? "grid" : "hidden xl:grid")}>
                     {/* Filtro 1: Data Retroativa */}
                     <div className="flex flex-col">
                         <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 ml-1 flex items-center gap-1"><Calendar size={12}/> Data Audit</span>
