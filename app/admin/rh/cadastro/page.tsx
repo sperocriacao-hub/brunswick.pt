@@ -5,6 +5,7 @@ import { createClient } from '@/utils/supabase/client';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader2, Save, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+import { criarContaAcesso } from './actions';
 
 // Componente Core contido em Fallback do Suspense Client
 function FuncionarioFormCore() {
@@ -45,6 +46,7 @@ function FuncionarioFormCore() {
         // 5. Acesso
         possui_acesso_sistema: false,
         email_acesso: '',
+        senha_acesso: '',
         nivel_permissao: '',
         permissoes_modulos: [] as string[],
         // 6. Financeiro OEE
@@ -101,6 +103,8 @@ function FuncionarioFormCore() {
         setIsLoading(true);
 
         const payload: Record<string, unknown> = { ...formData };
+        delete payload.senha_acesso; // Nunca guardar passwords não cifradas na base de dados de RH
+
         if (payload.matriz_talento_media === '') payload.matriz_talento_media = null;
         if (payload.posto_base_id === '') payload.posto_base_id = null;
         if (payload.data_nascimento === '') payload.data_nascimento = null;
@@ -109,6 +113,16 @@ function FuncionarioFormCore() {
 
         // Parse float for DB
         payload.salario_hora = parseFloat(formData.salario_hora) || 0.0;
+
+        // Se ativado e contiver password, criar/vincular a identidade na Supabase Autenticacao Oficial
+        if (formData.possui_acesso_sistema && formData.senha_acesso) {
+            const authRes = await criarContaAcesso(formData.email_acesso, formData.senha_acesso);
+            if (!authRes.success) {
+                setIsLoading(false);
+                alert("Erro ao registar a palavra-passe no Cofre Auth: " + authRes.error);
+                return;
+            }
+        }
 
         let errorObj = null;
 
@@ -332,6 +346,10 @@ function FuncionarioFormCore() {
                                 <input required={formData.possui_acesso_sistema} type="email" value={formData.email_acesso} onChange={e => setFormData({ ...formData, email_acesso: e.target.value })} className={`${inputClass} border-blue-200 focus:ring-blue-500`} placeholder="operador@brunswick.pt" />
                             </div>
                             <div>
+                                <label className="block text-xs font-bold text-blue-900 mb-1">Palavra-passe (Login)</label>
+                                <input type="password" value={formData.senha_acesso} onChange={e => setFormData({ ...formData, senha_acesso: e.target.value })} className={`${inputClass} border-blue-200 focus:ring-blue-500`} placeholder={id ? "(Ocultada). Digite p/ alterar." : "Ex: Brunswick123!"} />
+                            </div>
+                            <div className="md:col-span-2">
                                 <label className="block text-xs font-bold text-blue-900 mb-1">Nível de Permissão (Role)</label>
                                 <select required={formData.possui_acesso_sistema} value={formData.nivel_permissao} onChange={e => setFormData({ ...formData, nivel_permissao: e.target.value })} className={`${inputClass} appearance-none border-blue-200 focus:ring-blue-500`}>
                                     <option value="">Selecionar Perfil Cibersegurança...</option>
@@ -360,6 +378,8 @@ function FuncionarioFormCore() {
                                             { path: "/admin/rh/produtividade", label: "Feedback Produtividade", group: "Equipa & Talento" },
                                             { path: "/admin/rh", label: "Gerir Operadores", group: "Equipa & Talento" },
                                             { path: "/admin/rh/avaliacoes", label: "Avaliações Diárias", group: "Equipa & Talento" },
+                                            { path: "/admin/rh/avaliacoes-lideranca", label: "Avaliações de Liderança", group: "Equipa & Talento" },
+                                            { path: "/admin/rh/produtividade-lideranca", label: "Feedback Liderança", group: "Equipa & Talento" },
                                             { path: "/admin/rh/assiduidade", label: "Assiduidade Ativa", group: "Equipa & Talento" },
 
                                             { path: "/logistica/picking", label: "Tablet Armazém (Picking)", group: "Warehouse" },
@@ -375,6 +395,7 @@ function FuncionarioFormCore() {
 
                                             { path: "/admin/qualidade/rnc", label: "Gestão RNC (8D/A3)", group: "Qualidade" },
                                             { path: "/admin/qualidade/templates", label: "Checklists Qualidade", group: "Qualidade" },
+                                            { path: "/admin/qualidade/qcis", label: "QCIS Analytics", group: "Qualidade" },
 
                                             { path: "/admin/lean/kaizen", label: "Ideias Kaizen", group: "Lean" },
                                             { path: "/admin/lean/gemba", label: "Gemba Walking", group: "Lean" },

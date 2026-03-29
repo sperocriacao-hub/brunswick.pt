@@ -12,6 +12,8 @@ export default function PerfilPage() {
     const [userEmail, setUserEmail] = useState<string>('');
     const [activeTab, setActiveTab] = useState<'pessoais' | 'preferencias' | 'seguranca'>('pessoais');
     const [isLoggingOut, setIsLoggingOut] = useState(false);
+    const [newPassword, setNewPassword] = useState('');
+    const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
 
     useEffect(() => {
         supabase.auth.getUser().then(({ data }) => {
@@ -25,6 +27,22 @@ export default function PerfilPage() {
         setIsLoggingOut(true);
         await supabase.auth.signOut();
         router.push('/login');
+    };
+
+    const handleUpdatePassword = async () => {
+        if (newPassword.length < 6) {
+            alert("A password deve ter pelo menos 6 caracteres.");
+            return;
+        }
+        setIsUpdatingPassword(true);
+        const { error } = await supabase.auth.updateUser({ password: newPassword });
+        setIsUpdatingPassword(false);
+        if (error) {
+            alert("Erro ao atualizar password: " + error.message);
+        } else {
+            alert("Password atualizada com sucesso!");
+            setNewPassword('');
+        }
     };
 
     return (
@@ -153,15 +171,27 @@ export default function PerfilPage() {
                                 </h2>
 
                                 <div className="space-y-6">
-                                    <div className="bg-amber-50 border border-amber-200 p-4 rounded-lg">
-                                        <h3 className="text-sm font-bold text-amber-800">Alteração de Password</h3>
-                                        <p className="text-xs text-amber-700 mt-1 mb-4">
-                                            A funcionalidade de troca rápida de palavra-passe requer um email transacional (SMTP) ativo, que será integrado futuramente no M.E.S.
-                                            Se necessita de reset imediato, peça à Administração de TI.
+                                    <div className="bg-slate-50 border border-slate-200 p-4 rounded-lg shadow-sm">
+                                        <h3 className="text-sm font-bold text-slate-800">Alterar Palavra-passe</h3>
+                                        <p className="text-xs text-slate-500 mt-1 mb-4">
+                                            Defina uma nova palavra-passe forte para o seu acesso constante à plataforma.
                                         </p>
-                                        <button disabled className="px-4 py-2 bg-amber-600 text-white font-bold rounded-md opacity-50 cursor-not-allowed shadow-sm text-sm">
-                                            Solicitar Redefinição de Password
-                                        </button>
+                                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                                            <input 
+                                              type="password" 
+                                              value={newPassword}
+                                              onChange={(e) => setNewPassword(e.target.value)}
+                                              placeholder="Nova Mestra (min. 6 carateres)" 
+                                              className="w-full sm:flex-1 px-3 py-2 text-sm border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none max-w-xs"
+                                            />
+                                            <button 
+                                                onClick={handleUpdatePassword}
+                                                disabled={isUpdatingPassword || newPassword.length < 6} 
+                                                className="px-4 py-2 w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-md shadow-sm text-sm disabled:opacity-50 transition-colors flex gap-2 items-center justify-center">
+                                                {isUpdatingPassword ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                                                Atualizar Password
+                                            </button>
+                                        </div>
                                     </div>
 
                                     <div>

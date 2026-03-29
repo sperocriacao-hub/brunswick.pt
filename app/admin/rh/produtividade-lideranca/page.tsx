@@ -60,6 +60,14 @@ export default async function ProdutividadeLiderancaRH({ searchParams }: { searc
         .eq('status', 'Ativo')
         .in('funcao', permissoesAcesso);
 
+    // Se NÃO for admin (minLevel < 3), restringir pesquisa aos próprios liderados diretos
+    if (minLevel < 3) {
+        const { data: myData } = await supabase.from('operadores').select('nome_operador').eq('email_acesso', user.email).single();
+        if (myData?.nome_operador) {
+            queryOps = queryOps.or(`lider_nome.eq."${myData.nome_operador}",supervisor_nome.eq."${myData.nome_operador}",gestor_nome.eq."${myData.nome_operador}"`);
+        }
+    }
+
     if (selectedArea !== 'Todas') {
         queryOps = queryOps.eq('area_base_id', selectedArea);
     }

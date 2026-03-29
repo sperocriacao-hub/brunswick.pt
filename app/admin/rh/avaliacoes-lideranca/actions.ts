@@ -49,12 +49,21 @@ export async function carregarEquipaLideranca() {
         if (minLevel >= 2) permissoesAcesso.push('Supervisor');
         if (minLevel >= 3) permissoesAcesso.push('Gestor'); // Se for Master
 
-        const { data, error } = await supabase
+        let query = supabase
             .from('operadores')
             .select('id, numero_operador, nome_operador, funcao, status, area_base_id, areas_fabrica(nome_area)')
             .eq('status', 'Ativo')
-            .in('funcao', permissoesAcesso)
-            .order('nome_operador');
+            .in('funcao', permissoesAcesso);
+
+        // Se NÃO for admin (minLevel < 3), garantir acesso APENAS à sua própria equipa hierárquica
+        if (minLevel < 3) {
+            const { data: myData } = await supabase.from('operadores').select('nome_operador').eq('email_acesso', user.email).single();
+            if (myData?.nome_operador) {
+                query = query.or(`lider_nome.eq."${myData.nome_operador}",supervisor_nome.eq."${myData.nome_operador}",gestor_nome.eq."${myData.nome_operador}"`);
+            }
+        }
+
+        const { data, error } = await query.order('nome_operador');
 
         if (error) throw error;
         return { success: true, operadores: data, myLevel: minLevel };
