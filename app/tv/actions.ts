@@ -11,7 +11,7 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.
 // A TV Cast tem Acessos Super Admin ao nivel da base de dados porque corre como Node Edge
 const supabase = createClient(supabaseUrl, supabaseServiceKey, {
     global: {
-        fetch: (url, init) => fetch(url, { ...init, cache: 'no-store' })
+        fetch: (url: any, init?: any) => fetch(url, { ...init, cache: 'no-store' })
     }
 });
 
@@ -247,6 +247,7 @@ export async function buscarDashboardsTV(tv_id: string) {
                         };
                     }
                 } catch (e) {}
+            }
             // 6. Cultura 5S (Mês Corrente)
             const show5s = opcoes.showRefeitorio5S ?? true;
             if (show5s) {
@@ -257,7 +258,7 @@ export async function buscarDashboardsTV(tv_id: string) {
                         .gte('data_avaliacao', startOfMonthStr);
 
                     const { data: areasRaw } = await supabase.from('areas_fabrica').select('id, nome_area');
-                    const areaMap = new Map((areasRaw || []).map(a => [a.id, a.nome_area]));
+                    const areaMap = new Map((areasRaw || []).map((a: any) => [a.id, a.nome_area]));
 
                     const scoreMap: Record<string, { sum: number, count: number }> = {};
 
