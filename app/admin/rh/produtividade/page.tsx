@@ -19,7 +19,7 @@ export default async function ProdutividadeRH({ searchParams }: { searchParams: 
     const selectedArea = SP.area || 'Todas';
 
     // 1. Fetch Todas as Áreas (Para a ComboBox)
-    const { data: areasCatalog } = await supabase.from('areas_fabrica').select('id, nome_area').order('ordenacao');
+    const { data: areasCatalog } = await supabase.from('areas_fabrica').select('id, nome_area').order('nome_area');
 
     // 2. Fetch Operadores (Agora com filtro de área contextual)
     let queryOps = supabase

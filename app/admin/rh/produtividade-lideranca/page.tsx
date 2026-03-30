@@ -42,7 +42,7 @@ export default async function ProdutividadeLiderancaRH({ searchParams }: { searc
     const selectedArea = SP.area || 'Todas';
 
     // 2. Fetch Todas as Áreas (Para a ComboBox)
-    const { data: areasCatalog } = await supabase.from('areas_fabrica').select('id, nome_area').order('ordenacao');
+    const { data: areasCatalog } = await supabase.from('areas_fabrica').select('id, nome_area').order('nome_area');
 
     let queryOps = supabase
         .from('operadores')

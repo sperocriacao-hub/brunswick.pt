@@ -81,7 +81,7 @@ export default function GestaoRHPage() {
             supabase
                 .from('areas_fabrica')
                 .select('id, nome_area')
-                .order('ordenacao')
+                .order('nome_area')
         ]);
 
         if (ops) setOperadores(ops);
