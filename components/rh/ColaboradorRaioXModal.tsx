@@ -144,7 +144,7 @@ export function ColaboradorRaioXModal({ isOpen, onClose, operadorId, operadorRfi
     return (
         <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
             {/* O Trigger foi removido pois abrimos controladamente via state */}
-            <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto p-0 border-none bg-slate-50 shadow-2xl">
+            <DialogContent className="max-w-[1400px] max-h-[90vh] overflow-y-auto p-0 border-none bg-slate-50 shadow-2xl">
                 <div className="sticky top-0 z-10 bg-white border-b border-slate-200 px-8 py-6 shadow-sm">
                     <DialogHeader>
                         <div className="flex items-center gap-4">
@@ -169,12 +169,12 @@ export function ColaboradorRaioXModal({ isOpen, onClose, operadorId, operadorRfi
                             <p className="font-semibold text-sm uppercase tracking-widest">A carregar métricas M.E.S...</p>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        <div className="grid grid-cols-1 xl:grid-cols-5 gap-8">
                             {/* COL 1: O Perfil Estático (Radar Recharts) */}
-                            <div className="lg:col-span-1">
+                            <div className="xl:col-span-2">
                                 <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 h-[460px]">
                                     <h3 className="text-xs uppercase tracking-widest font-extrabold text-slate-500 mb-6 flex items-center gap-2 border-b border-slate-100 pb-3">
-                                        <TrendingUp size={16} className="text-indigo-500" /> Perfil Competências
+                                        <TrendingUp size={16} className="text-indigo-500" /> Perfil Competências {isLeader ? '(Liderança)' : '(Operador)'}
                                     </h3>
                                     <div className="h-[360px] -mx-4 -mt-2">
                                         <RadarClientChart data={historicoRadar} />
@@ -183,10 +183,10 @@ export function ColaboradorRaioXModal({ isOpen, onClose, operadorId, operadorRfi
                             </div>
 
                             {/* COL 2: Trajetória Temporal & Feedbacks (Linear + Lista) */}
-                            <div className="lg:col-span-2 space-y-8">
+                            <div className="xl:col-span-3 space-y-8">
                                 <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 h-[400px]">
                                     <h3 className="text-xs uppercase tracking-widest font-extrabold text-slate-500 mb-6 flex items-center gap-2 border-b border-slate-100 pb-3">
-                                        <Activity size={16} className="text-blue-500" /> Tendência Produtividade (30 Dias)
+                                        <Activity size={16} className="text-blue-500" /> {isLeader ? 'Tendência Eficiência e Gestão' : 'Tendência Produtividade OEE'} (30 Dias)
                                     </h3>
                                     <div className="h-[280px]">
                                         <LineClientChart data={historicoLinha} />
