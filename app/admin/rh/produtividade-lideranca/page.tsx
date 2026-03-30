@@ -50,7 +50,7 @@ export default async function ProdutividadeLiderancaRH({ searchParams }: { searc
         .select(`
             id, tag_rfid_operador, nome_operador, funcao, status, area_base_id, posto_base_id,
             areas_fabrica(id, nome_area),
-            estacoes(id, nome_estacao)
+            estacoes!operadores_posto_base_id_fkey(id, nome_estacao)
         `)
         .eq('status', 'Ativo');
 
