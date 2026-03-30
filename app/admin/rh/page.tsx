@@ -19,11 +19,17 @@ type OperadorInfo = {
     estacao_alocada_temporaria: string | null;
     em_realocacao: boolean;
     permissoes_modulos: string[];
+    area_base_id: string | null;
 };
 
 type EstacaoInfo = {
     id: string;
     nome_estacao: string;
+};
+
+type AreaInfo = {
+    id: string;
+    nome_area: string;
 };
 
 export default function GestaoRHPage() {
@@ -32,7 +38,10 @@ export default function GestaoRHPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [operadores, setOperadores] = useState<OperadorInfo[]>([]);
     const [estacoes, setEstacoes] = useState<EstacaoInfo[]>([]);
+    const [areas, setAreas] = useState<AreaInfo[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
+    const [filterArea, setFilterArea] = useState('Todas');
+    const [filterEstacao, setFilterEstacao] = useState('Todas');
 
     // Relocation Modal State
     const [isRelocateModalOpen, setIsRelocateModalOpen] = useState(false);
@@ -45,7 +54,7 @@ export default function GestaoRHPage() {
         const { data: userData } = await supabase.auth.getUser();
         let queryOps = supabase
             .from('operadores')
-            .select('id, numero_operador, nome_operador, tag_rfid_operador, funcao, status, iluo_nivel, possui_acesso_sistema, posto_base_id, estacao_alocada_temporaria, em_realocacao, permissoes_modulos')
+            .select('id, numero_operador, nome_operador, tag_rfid_operador, funcao, status, iluo_nivel, possui_acesso_sistema, posto_base_id, estacao_alocada_temporaria, em_realocacao, permissoes_modulos, area_base_id')
             .order('nome_operador');
 
         // Se não for Master Admin fixo, aplicamos as fronteiras de Segurança de Visibilidade
@@ -59,20 +68,25 @@ export default function GestaoRHPage() {
                }
            } else {
                // Backup Security Nullifier
-               queryOps = queryOps.eq('id', 'codigo-invalido-de-seguranca');
-           }
+                queryOps = queryOps.eq('id', 'codigo-invalido-de-seguranca');
+            }
         }
 
-        const [{ data: ops }, { data: ests }] = await Promise.all([
+        const [{ data: ops }, { data: ests }, { data: ars }] = await Promise.all([
             queryOps,
             supabase
                 .from('estacoes')
                 .select('id, nome_estacao')
-                .order('nome_estacao')
+                .order('nome_estacao'),
+            supabase
+                .from('areas_fabrica')
+                .select('id, nome_area')
+                .order('ordenacao')
         ]);
 
         if (ops) setOperadores(ops);
         if (ests) setEstacoes(ests);
+        if (ars) setAreas(ars);
         setIsLoading(false);
     };
 
@@ -116,12 +130,17 @@ export default function GestaoRHPage() {
 
     const filtrados = operadores.filter(op => {
         const term = searchQuery.toLowerCase();
-        return (
+        const textMatch = (
             (op.nome_operador?.toLowerCase() || '').includes(term) ||
             (op.numero_operador?.toLowerCase() || '').includes(term) ||
             (op.funcao?.toLowerCase() || '').includes(term) ||
             (op.tag_rfid_operador?.toLowerCase() || '').includes(term)
         );
+
+        const areaMatch = filterArea === 'Todas' || op.area_base_id === filterArea;
+        const estacaoMatch = filterEstacao === 'Todas' || op.posto_base_id === filterEstacao || op.estacao_alocada_temporaria === filterEstacao;
+
+        return textMatch && areaMatch && estacaoMatch;
     });
 
     return (
@@ -139,8 +158,8 @@ export default function GestaoRHPage() {
                 </Link>
             </header>
 
-            <div className="bg-white border border-slate-200 rounded-lg p-6 mb-8 flex gap-4 items-center shadow-sm">
-                <div className="relative flex-1">
+            <div className="bg-white border border-slate-200 rounded-lg p-6 mb-8 flex flex-col md:flex-row gap-4 items-center shadow-sm">
+                <div className="relative flex-1 w-full">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                     <input
                         type="text"
@@ -150,7 +169,28 @@ export default function GestaoRHPage() {
                         className="w-full pl-12 pr-4 py-2 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-slate-50 text-slate-900 placeholder:text-slate-400"
                     />
                 </div>
-                <div className="text-sm text-slate-500 px-4 border-l border-slate-200">
+                
+                <div className="flex w-full md:w-auto gap-3">
+                    <select
+                        value={filterArea}
+                        onChange={(e) => setFilterArea(e.target.value)}
+                        className="flex-1 md:w-[180px] py-2 pl-3 pr-8 border border-slate-200 rounded-md text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 appearance-none bg-slate-50"
+                    >
+                        <option value="Todas">Todas as Áreas</option>
+                        {areas.map(a => <option key={a.id} value={a.id}>{a.nome_area}</option>)}
+                    </select>
+
+                    <select
+                        value={filterEstacao}
+                        onChange={(e) => setFilterEstacao(e.target.value)}
+                        className="flex-1 md:w-[200px] py-2 pl-3 pr-8 border border-slate-200 rounded-md text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 appearance-none bg-slate-50"
+                    >
+                        <option value="Todas">Todas as Estações</option>
+                        {estacoes.map(e => <option key={e.id} value={e.id}>{e.nome_estacao}</option>)}
+                    </select>
+                </div>
+                
+                <div className="text-sm text-slate-500 px-4 border-l border-slate-200 hidden md:block">
                     Total: <strong className="text-slate-900">{filtrados.length}</strong> Registos
                 </div>
             </div>
