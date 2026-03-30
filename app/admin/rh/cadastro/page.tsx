@@ -20,6 +20,12 @@ function FuncionarioFormCore() {
     const [areasDisponiveis, setAreasDisponiveis] = useState<{ id: string, nome_area: string }[]>([]);
     const [originalEmail, setOriginalEmail] = useState('');
 
+    // Novos Dicionários e Listas Hierárquicas
+    const [funcoesDisponiveis, setFuncoesDisponiveis] = useState<{ id: string, nome_funcao: string }[]>([]);
+    const [lideresDisponiveis, setLideresDisponiveis] = useState<{ id: string, nome_operador: string }[]>([]);
+    const [supervisoresDisponiveis, setSupervisoresDisponiveis] = useState<{ id: string, nome_operador: string }[]>([]);
+    const [gestoresDisponiveis, setGestoresDisponiveis] = useState<{ id: string, nome_operador: string }[]>([]);
+
     // State Unificado do Formulário (Os 5 Blocos)
     const [formData, setFormData] = useState({
         // 1. Identificação
@@ -62,6 +68,22 @@ function FuncionarioFormCore() {
         // Carregar Áreas de Fábrica (Para Equipa / Grupo)
         supabase.from('areas_fabrica').select('id, nome_area').order('nome_area')
             .then(({ data }) => setAreasDisponiveis(data || []));
+
+        // Carregar Funções DB
+        supabase.from('funcoes').select('id, nome_funcao').order('nome_funcao')
+            .then(({ data }) => setFuncoesDisponiveis(data || []));
+
+        // Carregar Líderes (Coordenador de Grupo)
+        supabase.from('operadores').select('id, nome_operador').eq('funcao', 'Coordenador de Grupo').order('nome_operador')
+            .then(({ data }) => setLideresDisponiveis(data || []));
+
+        // Carregar Supervisores
+        supabase.from('operadores').select('id, nome_operador').eq('funcao', 'Supervisor').order('nome_operador')
+            .then(({ data }) => setSupervisoresDisponiveis(data || []));
+
+        // Carregar Gestores
+        supabase.from('operadores').select('id, nome_operador').eq('funcao', 'Gestor').order('nome_operador')
+            .then(({ data }) => setGestoresDisponiveis(data || []));
 
         // Carregar Dados se Modo Edição
         if (id) {
@@ -218,7 +240,15 @@ function FuncionarioFormCore() {
                     <div className="grid grid-cols-2 gap-4 mb-4">
                         <div>
                             <label className="block text-xs font-semibold text-slate-600 mb-1">Função / Cargo</label>
-                            <input type="text" value={formData.funcao} onChange={e => setFormData({ ...formData, funcao: e.target.value })} className={inputClass} placeholder="Ex: Laminador Sênior" />
+                            <select value={formData.funcao} onChange={e => setFormData({ ...formData, funcao: e.target.value })} className={`${inputClass} appearance-none`}>
+                                <option value="">Selecionar Função...</option>
+                                {funcoesDisponiveis.map(f => (
+                                    <option key={f.id} value={f.nome_funcao}>{f.nome_funcao}</option>
+                                ))}
+                                {formData.funcao && !funcoesDisponiveis.find(f => f.nome_funcao === formData.funcao) && (
+                                    <option value={formData.funcao}>{formData.funcao} (Antigo)</option>
+                                )}
+                            </select>
                         </div>
                         <div>
                             <label className="block text-xs font-semibold text-slate-600 mb-1">Posto de Trabalho (M.E.S)</label>
@@ -248,15 +278,39 @@ function FuncionarioFormCore() {
                     <div className="pt-4 border-t border-slate-100 grid grid-cols-3 gap-3">
                         <div>
                             <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Líder Equipa</label>
-                            <input type="text" value={formData.lider_nome} onChange={e => setFormData({ ...formData, lider_nome: e.target.value })} className={`${inputClass} text-xs`} />
+                            <select value={formData.lider_nome} onChange={e => setFormData({ ...formData, lider_nome: e.target.value })} className={`${inputClass} text-xs appearance-none`}>
+                                <option value="">Não Aplicável</option>
+                                {lideresDisponiveis.map(l => (
+                                    <option key={l.id} value={l.nome_operador}>{l.nome_operador}</option>
+                                ))}
+                                {formData.lider_nome && !lideresDisponiveis.find(l => l.nome_operador === formData.lider_nome) && (
+                                    <option value={formData.lider_nome}>{formData.lider_nome} (Antigo)</option>
+                                )}
+                            </select>
                         </div>
                         <div>
                             <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Supervisor</label>
-                            <input type="text" value={formData.supervisor_nome} onChange={e => setFormData({ ...formData, supervisor_nome: e.target.value })} className={`${inputClass} text-xs`} />
+                            <select value={formData.supervisor_nome} onChange={e => setFormData({ ...formData, supervisor_nome: e.target.value })} className={`${inputClass} text-xs appearance-none`}>
+                                <option value="">Não Aplicável</option>
+                                {supervisoresDisponiveis.map(s => (
+                                    <option key={s.id} value={s.nome_operador}>{s.nome_operador}</option>
+                                ))}
+                                {formData.supervisor_nome && !supervisoresDisponiveis.find(s => s.nome_operador === formData.supervisor_nome) && (
+                                    <option value={formData.supervisor_nome}>{formData.supervisor_nome} (Antigo)</option>
+                                )}
+                            </select>
                         </div>
                         <div>
                             <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Gestor</label>
-                            <input type="text" value={formData.gestor_nome} onChange={e => setFormData({ ...formData, gestor_nome: e.target.value })} className={`${inputClass} text-xs`} />
+                            <select value={formData.gestor_nome} onChange={e => setFormData({ ...formData, gestor_nome: e.target.value })} className={`${inputClass} text-xs appearance-none`}>
+                                <option value="">Não Aplicável</option>
+                                {gestoresDisponiveis.map(g => (
+                                    <option key={g.id} value={g.nome_operador}>{g.nome_operador}</option>
+                                ))}
+                                {formData.gestor_nome && !gestoresDisponiveis.find(g => g.nome_operador === formData.gestor_nome) && (
+                                    <option value={formData.gestor_nome}>{formData.gestor_nome} (Antigo)</option>
+                                )}
+                            </select>
                         </div>
                     </div>
                 </section>
