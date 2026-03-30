@@ -1,35 +1,64 @@
 'use server';
 
-export async function criarContaAcesso(email: string, password?: string) {
-    if (!email || !password) {
-        return { success: false, error: 'Email e Palavra-passe são obrigatórios para criar Login.' };
+import { createClient } from '@supabase/supabase-js';
+
+export async function criarContaAcesso(email: string, password?: string, oldEmail?: string) {
+    if (!email) {
+        return { success: false, error: 'Email é obrigatório para criar ou alterar o Login.' };
     }
     
+    // Precisamos do Service Role Key para poder alterar emails ou redefinir senhas (Bypass segurança user)
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!serviceKey) {
+        return { success: false, error: 'A variável SUPABASE_SERVICE_ROLE_KEY não está presente no Servidor. Sem ela não é possível gerir as passwords e emails dos funcionários na Vault Auth.' };
+    }
+
     try {
-        // Utiliza Fetch nativo em vez de @supabase/ssr para garantir que a sessão "Admin" 
-        // em vigor não é destruída/sobrescrita magicamente quando criamos o Operador Subalterno.
-        const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/signup`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-            },
-            body: JSON.stringify({ email, password })
-        });
-        
-        const data = await res.json();
-        
-        if (!res.ok) {
-            // Caso 1: O Utilizador já existe no Supabase Auth. Nós permitimos e contornamos com Sucesso,
-            // porque o Operário RH pode ter sido apagado acidentalmente e refeito com o mesmo email.
-            if (data.msg?.includes('already registered') || data.message?.includes('already registered')) {
-                return { success: true, message: 'Utilizador já constava no cofre protegido Auth. Vínculo restaurado.' };
+        const supabaseAdmin = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            serviceKey,
+            { auth: { autoRefreshToken: false, persistSession: false } }
+        );
+
+        // 1. Procurar o utilizador antigo 
+        const { data: usersData, error: listErr } = await supabaseAdmin.auth.admin.listUsers();
+        if (listErr) throw listErr;
+
+        // Verifica se o user já está na BD do Auth (pelo OldEmail se tiver mudado, ou pelo email atual)
+        const targetUser = usersData.users.find(u => u.email === (oldEmail || email));
+
+        if (targetUser) {
+            // O Utilizador existe! Faremos um Update das credenciais
+            const payloadsUpdate: any = {};
+            if (oldEmail && oldEmail !== email) {
+                payloadsUpdate.email = email;
+                payloadsUpdate.email_confirm = true;
             }
-            return { success: false, error: data.msg || data.message || 'Erro inesperado da Supabase API.' };
+            if (password) {
+                payloadsUpdate.password = password;
+            }
+
+            if (Object.keys(payloadsUpdate).length > 0) {
+                const { error: updErr } = await supabaseAdmin.auth.admin.updateUserById(targetUser.id, payloadsUpdate);
+                if (updErr) return { success: false, error: 'Erro a atualizar cofre de Auth: ' + updErr.message };
+            }
+            return { success: true, message: 'Cofre Auth atualizado com sucesso.' };
+        } else {
+            // Conta nunca existiu, vamos criar de raiz
+            if (!password) {
+                return { success: false, error: 'Falta a Palavra-passe para este funcionário ter login pela primeira vez.' };
+            }
+            const { error: insertErr } = await supabaseAdmin.auth.admin.createUser({
+                email,
+                password,
+                email_confirm: true
+            });
+            if (insertErr) return { success: false, error: 'Erro a providenciar acesso inicial: ' + insertErr.message };
+            
+            return { success: true, message: 'Novo utilizador Auth sincronizado com sucesso.' };
         }
-        
-        return { success: true, message: 'Credencial Auth cifrada com sucesso.' };
+
     } catch (e: any) {
-         return { success: false, error: e.message || 'Erro interno de servidor.' };
+         return { success: false, error: e.message || 'Erro interno de servidor RH Auth.' };
     }
 }

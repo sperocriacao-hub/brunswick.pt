@@ -18,6 +18,7 @@ function FuncionarioFormCore() {
     const [isFetchingData, setIsFetchingData] = useState(!!id);
     const [estacoesDisponiveis, setEstacoesDisponiveis] = useState<{ id: string, nome_estacao: string }[]>([]);
     const [areasDisponiveis, setAreasDisponiveis] = useState<{ id: string, nome_area: string }[]>([]);
+    const [originalEmail, setOriginalEmail] = useState('');
 
     // State Unificado do Formulário (Os 5 Blocos)
     const [formData, setFormData] = useState({
@@ -93,6 +94,7 @@ function FuncionarioFormCore() {
                             permissoes_modulos: data.permissoes_modulos || [],
                             salario_hora: data.salario_hora?.toString() || '10.00'
                         });
+                        if (data.email_acesso) setOriginalEmail(data.email_acesso);
                     }
                     setIsFetchingData(false);
                 });
@@ -115,12 +117,19 @@ function FuncionarioFormCore() {
         // Parse float for DB
         payload.salario_hora = parseFloat(formData.salario_hora) || 0.0;
 
-        // Se ativado e contiver password, criar/vincular a identidade na Supabase Autenticacao Oficial
-        if (formData.possui_acesso_sistema && formData.senha_acesso) {
-            const authRes = await criarContaAcesso(formData.email_acesso, formData.senha_acesso);
+        // Se ativado e contiver password (ou mudou de email), criar/vincular a identidade na Supabase Autenticacao Oficial
+        if (formData.possui_acesso_sistema && (formData.senha_acesso || formData.email_acesso !== originalEmail)) {
+            const authRes = await criarContaAcesso(formData.email_acesso, formData.senha_acesso || undefined, originalEmail);
             if (!authRes.success) {
+                // Se avisar que a Service Role Key está em falta, vamos notificar agressivamente o administrador
+                if (authRes.error?.includes('SUPABASE_SERVICE_ROLE_KEY')) {
+                    alert('AVISO CRÍTICO: A chave de Servidor SUPABASE_SERVICE_ROLE_KEY não está presente no Vercel nem no .env.local. Devido a isso, a palavra-passe / E-mail não pode ser sincronizada no Cofre de Cibersegurança Auth. Configure essa variável de ambiente p/ continuar.');
+                    setIsLoading(false);
+                    return;
+                }
+
                 setIsLoading(false);
-                alert("Erro ao registar a palavra-passe no Cofre Auth: " + authRes.error);
+                alert("Erro ao registar credenciais no Cofre Auth: " + authRes.error);
                 return;
             }
         }
