@@ -108,6 +108,8 @@ export default function LoteAvaliacoesDiariasLayout() {
 
     // Motor de Filtragem Ativa
     const filteredEmployees = useMemo(() => {
+        if (!selectedArea && !selectedEstacao && !searchQuery) return [];
+
         return operadores.filter(e => {
             const matchArea = selectedArea ? e.area_nome === selectedArea : true;
             const matchEstacao = selectedEstacao ? e.estacao_nome === selectedEstacao : true;
@@ -119,22 +121,56 @@ export default function LoteAvaliacoesDiariasLayout() {
         });
     }, [operadores, selectedArea, selectedEstacao, searchQuery]);
 
-    // Ao mudar os filtros, garantimos que cada funcionário filtrado tem um Form pré-preenchido
+    // Ao mudar os filtros ou a data específica, garantimos preenchimento do Form (Zero-load ou Retroativo se existir na BD)
     useEffect(() => {
-        if (filteredEmployees.length === 0) return;
+        if (filteredEmployees.length === 0) {
+            if (Object.keys(evaluations).length > 0) setEvaluations({});
+            return;
+        }
 
-        const newForms = { ...evaluations };
-        filteredEmployees.forEach(emp => {
-            if (!newForms[emp.id]) {
-                newForms[emp.id] = {
-                    hst: 3.0, epi: 3.0, limpeza: 3.0, qualidade: 3.0,
-                    eficiencia: 3.0, objetivos: 3.0, atitude: 3.0, notasFinais: ""
-                };
-            }
-        });
-        setEvaluations(newForms);
+        const carregarFormsAntigos = async () => {
+            const ids = filteredEmployees.map(e => e.id);
+            const { data: dbRecords } = await supabase
+                .from('avaliacoes_diarias')
+                .select('*')
+                .eq('data_avaliacao', selectedDate)
+                .in('funcionario_id', ids);
+
+            const dictRemoto = new Map(dbRecords?.map(r => [r.funcionario_id, r]) || []);
+
+            const newForms = { ...evaluations };
+            const newSaved = { ...savedStates };
+
+            filteredEmployees.forEach(emp => {
+                const found = dictRemoto.get(emp.id);
+                if (found) {
+                    newForms[emp.id] = {
+                        hst: found.nota_hst || 3.0,
+                        epi: found.nota_epi || 3.0,
+                        limpeza: found.nota_5s || 3.0,
+                        qualidade: found.nota_qualidade || 3.0,
+                        eficiencia: found.nota_eficiencia || 3.0,
+                        objetivos: found.nota_objetivos || 3.0,
+                        atitude: found.nota_atitude || 3.0,
+                        notasFinais: found.justificacao || ""
+                    };
+                    newSaved[emp.id] = true;
+                } else if (!newForms[emp.id] || newSaved[emp.id]) { // Reset Form if it was dirty from another date
+                    newForms[emp.id] = {
+                        hst: 3.0, epi: 3.0, limpeza: 3.0, qualidade: 3.0,
+                        eficiencia: 3.0, objetivos: 3.0, atitude: 3.0, notasFinais: ""
+                    };
+                    newSaved[emp.id] = false;
+                }
+            });
+
+            setEvaluations(newForms);
+            setSavedStates(newSaved);
+        };
+
+        carregarFormsAntigos();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [filteredEmployees]);
+    }, [filteredEmployees, selectedDate, supabase]);
 
     const handleScoreChange = (empId: string, pillarKey: keyof FormEdicao, value: number) => {
         setEvaluations(prev => ({

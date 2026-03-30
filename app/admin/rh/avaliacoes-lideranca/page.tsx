@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from 'react';
+import { createClient } from '@/utils/supabase/client';
 import { Shield, Activity, TrendingUp, CheckCircle, Save, Check, ChevronsUpDown, Search, UserCheck, Calendar, Users, Settings, Target, HeartHandshake, Briefcase, Filter, X, Star } from 'lucide-react';
 import { AvaliacaoLiderancaDTO, submeterAvaliacaoLideranca, getFeedbackQuizAggregado, QuizFeedbacksAgg } from './actions';
 import { carregarEquipaLideranca } from './actions';
@@ -55,6 +56,7 @@ type FormEdicao = {
 };
 
 export default function AvaliacoesLideranca() {
+    const supabase = createClient();
     const [operadores, setOperadores] = useState<OperadorLideranca[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -107,21 +109,62 @@ export default function AvaliacoesLideranca() {
     }, [operadores, selectedFuncao]);
 
     useEffect(() => {
-        if (filteredEmployees.length === 0) return;
+        if (filteredEmployees.length === 0) {
+            if (Object.keys(evaluations).length > 0) setEvaluations({});
+            return;
+        }
 
-        const newForms = { ...evaluations };
-        filteredEmployees.forEach(emp => {
-            if (!newForms[emp.id]) {
-                newForms[emp.id] = {
-                    hst: 3.0, epi: 3.0, limpeza: 3.0, eficiencia: 3.0, objetivos: 3.0, atitude: 3.0,
-                    gestao_motivacao: 3.0, desenvolvimento: 3.0, desperdicios: 3.0, qualidade: 3.0,
-                    operacoes: 3.0, melhoria: 3.0, kpis: 3.0, cultura: 3.0, notasFinais: ""
-                };
-            }
-        });
-        setEvaluations(newForms);
+        const carregarFormsAntigos = async () => {
+            const ids = filteredEmployees.map(e => e.id);
+            const { data: dbRecords } = await supabase
+                .from('avaliacoes_lideranca')
+                .select('*')
+                .eq('data_avaliacao', selectedDate)
+                .in('funcionario_id', ids);
+
+            const dictRemoto = new Map(dbRecords?.map(r => [r.funcionario_id, r]) || []);
+
+            const newForms = { ...evaluations };
+            const newSaved = { ...savedStates };
+
+            filteredEmployees.forEach(emp => {
+                const found = dictRemoto.get(emp.id);
+                if (found) {
+                    newForms[emp.id] = {
+                        hst: found.nota_hst || 3.0,
+                        epi: found.nota_epi || 3.0,
+                        limpeza: found.nota_5s || 3.0,
+                        eficiencia: found.nota_eficiencia || 3.0,
+                        objetivos: found.nota_objetivos || 3.0,
+                        atitude: found.nota_atitude || 3.0,
+                        gestao_motivacao: found.nota_gestao_motivacao || 3.0,
+                        desenvolvimento: found.nota_desenvolvimento || 3.0,
+                        desperdicios: found.nota_desperdicios || 3.0,
+                        qualidade: found.nota_qualidade || 3.0,
+                        operacoes: found.nota_operacoes || 3.0,
+                        melhoria: found.nota_melhoria || 3.0,
+                        kpis: found.nota_kpis || 3.0,
+                        cultura: found.nota_cultura || 3.0,
+                        notasFinais: found.justificacao || ""
+                    };
+                    newSaved[emp.id] = true;
+                } else if (!newForms[emp.id] || newSaved[emp.id]) {
+                    newForms[emp.id] = {
+                        hst: 3.0, epi: 3.0, limpeza: 3.0, eficiencia: 3.0, objetivos: 3.0, atitude: 3.0,
+                        gestao_motivacao: 3.0, desenvolvimento: 3.0, desperdicios: 3.0, qualidade: 3.0,
+                        operacoes: 3.0, melhoria: 3.0, kpis: 3.0, cultura: 3.0, notasFinais: ""
+                    };
+                    newSaved[emp.id] = false;
+                }
+            });
+
+            setEvaluations(newForms);
+            setSavedStates(newSaved);
+        };
+
+        carregarFormsAntigos();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [filteredEmployees]);
+    }, [filteredEmployees, selectedDate, supabase]);
 
     const handleScoreChange = (empId: string, pillarKey: keyof FormEdicao, value: number) => {
         setEvaluations(prev => ({
