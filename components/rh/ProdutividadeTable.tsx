@@ -23,7 +23,16 @@ export function ProdutividadeTable({ statsOperador, mesIso, areasCatalog = [], e
 
     // Scroll Fix Issue
     useEffect(() => {
-        window.scrollTo(0, 0);
+        const resetScroll = () => {
+            window.scrollTo({ top: 0, behavior: 'auto' });
+            document.documentElement.scrollTop = 0;
+            const mainContainer = document.querySelector('main') || document.getElementById('main-content');
+            if (mainContainer) mainContainer.scrollTop = 0;
+        };
+        // Reset immediately and slightly later for Next.js layout transitions
+        resetScroll();
+        setTimeout(resetScroll, 100);
+        setTimeout(resetScroll, 300);
     }, []);
 
     const filteredWorkers = useMemo(() => {
