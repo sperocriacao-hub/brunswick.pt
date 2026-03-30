@@ -25,6 +25,7 @@ type OperadorInfo = {
 type EstacaoInfo = {
     id: string;
     nome_estacao: string;
+    area_id: string | null;
 };
 
 type AreaInfo = {
@@ -76,7 +77,7 @@ export default function GestaoRHPage() {
             queryOps,
             supabase
                 .from('estacoes')
-                .select('id, nome_estacao')
+                .select('id, nome_estacao, area_id')
                 .order('nome_estacao'),
             supabase
                 .from('areas_fabrica')
@@ -173,7 +174,10 @@ export default function GestaoRHPage() {
                 <div className="flex w-full md:w-auto gap-3">
                     <select
                         value={filterArea}
-                        onChange={(e) => setFilterArea(e.target.value)}
+                        onChange={(e) => {
+                            setFilterArea(e.target.value);
+                            setFilterEstacao('Todas'); // Reseta a sub-estação ao mudar de área
+                        }}
                         className="flex-1 md:w-[180px] py-2 pl-3 pr-8 border border-slate-200 rounded-md text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 appearance-none bg-slate-50"
                     >
                         <option value="Todas">Todas as Áreas</option>
@@ -186,7 +190,9 @@ export default function GestaoRHPage() {
                         className="flex-1 md:w-[200px] py-2 pl-3 pr-8 border border-slate-200 rounded-md text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 appearance-none bg-slate-50"
                     >
                         <option value="Todas">Todas as Estações</option>
-                        {estacoes.map(e => <option key={e.id} value={e.id}>{e.nome_estacao}</option>)}
+                        {estacoes
+                            .filter(e => filterArea === 'Todas' || e.area_id === filterArea)
+                            .map(e => <option key={e.id} value={e.id}>{e.nome_estacao}</option>)}
                     </select>
                 </div>
                 
