@@ -113,6 +113,7 @@ function FuncionarioFormCore() {
         if (payload.data_nascimento === '') payload.data_nascimento = null;
         if (payload.data_admissao === '') payload.data_admissao = null;
         if (payload.data_rescisao === '') payload.data_rescisao = null;
+        if (payload.nivel_permissao === '') payload.nivel_permissao = null;
 
         // Limpeza de Espaços e minúsculas no email para garantir Match com o Cofre Auth
         payload.email_acesso = formData.email_acesso ? formData.email_acesso.trim().toLowerCase() : '';
