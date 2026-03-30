@@ -68,7 +68,9 @@ export default async function ProdutividadeLiderancaRH({ searchParams }: { searc
 
     const { data: rawOperadores } = await queryOps;
 
-    const operadores = rawOperadores?.map(op => ({
+    const LEADERSHIP_ROLES = ["Gestor", "Supervisor", "Coordenador de Grupo", "Líder de equipa", "Lider de equipa", "Manager"];
+    
+    const operadores = rawOperadores?.filter(op => LEADERSHIP_ROLES.includes(op.funcao)).map(op => ({
         ...op,
         area_nome: (op.areas_fabrica as any)?.nome_area || 'Geral',
         estacao_nome: (op.estacoes as any)?.nome_estacao || ''

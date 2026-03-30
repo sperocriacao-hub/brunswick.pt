@@ -1,7 +1,7 @@
 import React from 'react';
 import { createClient } from '@/utils/supabase/server';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Activity, Clock, Coffee, AlertCircle, MapPin, Users, Filter, CalendarDays } from 'lucide-react';
+import { Activity, Clock, Coffee, AlertCircle, MapPin, Users, Filter, CalendarDays, ShieldAlert } from 'lucide-react';
 
 import { cookies } from 'next/headers';
 import { FactoryHeatmap, DB_AvaliacaoDiaria, DB_OperadorArea } from '@/components/rh/FactoryHeatmap';
@@ -13,6 +13,29 @@ export const dynamic = 'force-dynamic';
 export default async function ProdutividadeRH({ searchParams }: { searchParams: Promise<{ mes?: string, area?: string }> }) {
     const cookieStore = cookies();
     const supabase = await createClient(cookieStore);
+
+    // ---- 1. LÓGICA DE AUTORIZAÇÃO E VISIBILIDADE HIERÁRQUICA ----
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return <div className="p-20 text-center font-bold text-red-500">Sessão Expirada / Não Autorizado</div>;
+
+    let minLevel = 0; // 0 = Operador Base, 1 = Lider/Supervisor, 2 = Gestor, 3 = Admin
+    if (user.email === 'master@brunswick.pt' || user.email === 'teste_rh@brunswick.pt' || user.email?.includes('admin')) {
+        minLevel = 3;
+    } else {
+        const { data: myData } = await supabase.from('operadores').select('funcao').eq('email_acesso', user.email).single();
+        if (myData?.funcao === 'Gestor') minLevel = 2;
+        else if (myData?.funcao === 'Supervisor' || myData?.funcao === 'Líder de equipa' || myData?.funcao === 'Lider de equipa' || myData?.funcao === 'Coordenador de Grupo' || myData?.funcao === 'Manager') minLevel = 1;
+    }
+
+    if (minLevel === 0) {
+        return (
+            <div className="flex flex-col items-center justify-center p-20 text-center animate-in fade-in duration-500">
+                <ShieldAlert className="w-16 h-16 text-rose-500 mb-4" />
+                <h1 className="text-2xl font-bold text-slate-900">Acesso Restrito</h1>
+                <p className="text-slate-500 max-w-md mt-2">O seu cargo não possui valências de chefia para aceder ao mapa de produtividade fabril.</p>
+            </div>
+        );
+    }
 
     const SP = await searchParams;
     const currentMonthStr = SP.mes || new Date().toISOString().substring(0, 7); // yyyy-MM
@@ -32,13 +55,21 @@ export default async function ProdutividadeRH({ searchParams }: { searchParams: 
         `)
         .eq('status', 'Ativo');
 
+    // Se NÃO for admin (minLevel < 3), restringir pesquisa aos próprios liderados
+    if (minLevel < 3) {
+        const { data: myData } = await supabase.from('operadores').select('nome_operador').eq('email_acesso', user.email).single();
+        if (myData?.nome_operador) {
+            queryOps = queryOps.or(`lider_nome.eq."${myData.nome_operador}",supervisor_nome.eq."${myData.nome_operador}",gestor_nome.eq."${myData.nome_operador}"`);
+        }
+    }
+
     if (selectedArea !== 'Todas') {
         queryOps = queryOps.eq('area_base_id', selectedArea);
     }
 
     const { data: rawOperadores } = await queryOps;
 
-    const LEADERSHIP_ROLES = ["Gestor", "Supervisor", "Coordenador de Grupo", "Líder de equipa", "Lider de equipa"];
+    const LEADERSHIP_ROLES = ["Gestor", "Supervisor", "Coordenador de Grupo", "Líder de equipa", "Lider de equipa", "Manager"];
     const operadores = rawOperadores?.filter(op => !LEADERSHIP_ROLES.includes(op.funcao)).map(op => ({
         ...op,
         area_nome: (op.areas_fabrica as any)?.nome_area || 'Geral',
