@@ -33,7 +33,7 @@ export default async function AdminLayout({
             const { data: opData } = await supabase
                 .from('operadores')
                 .select('nivel_permissao, permissoes_modulos')
-                .eq('email_acesso', user.email)
+                .ilike('email_acesso', user.email)
                 .single();
 
             if (opData) {

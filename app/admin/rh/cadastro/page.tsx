@@ -114,12 +114,17 @@ function FuncionarioFormCore() {
         if (payload.data_admissao === '') payload.data_admissao = null;
         if (payload.data_rescisao === '') payload.data_rescisao = null;
 
+        // Limpeza de Espaços e minúsculas no email para garantir Match com o Cofre Auth
+        payload.email_acesso = formData.email_acesso ? formData.email_acesso.trim().toLowerCase() : '';
+        const curEmailLimpo = payload.email_acesso as string;
+        const curSenha = formData.senha_acesso ? formData.senha_acesso.trim() : undefined;
+
         // Parse float for DB
         payload.salario_hora = parseFloat(formData.salario_hora) || 0.0;
 
         // Se ativado e contiver password (ou mudou de email), criar/vincular a identidade na Supabase Autenticacao Oficial
-        if (formData.possui_acesso_sistema && (formData.senha_acesso || formData.email_acesso !== originalEmail)) {
-            const authRes = await criarContaAcesso(formData.email_acesso, formData.senha_acesso || undefined, originalEmail);
+        if (formData.possui_acesso_sistema && (curSenha || curEmailLimpo !== originalEmail)) {
+            const authRes = await criarContaAcesso(curEmailLimpo, curSenha, originalEmail);
             if (!authRes.success) {
                 // Se avisar que a Service Role Key está em falta, vamos notificar agressivamente o administrador
                 if (authRes.error?.includes('SUPABASE_SERVICE_ROLE_KEY')) {
