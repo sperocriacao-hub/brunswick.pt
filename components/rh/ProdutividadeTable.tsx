@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useMemo } from 'react';
-import { Search, Activity, AlertCircle } from 'lucide-react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { Search, Activity, AlertCircle, Filter } from 'lucide-react';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { ColaboradorRaioXModal } from './ColaboradorRaioXModal';
@@ -10,21 +10,46 @@ import { ExportRHButton } from './ExportRHButton';
 interface ProdutividadeTableProps {
     statsOperador: any[];
     mesIso: string;
+    areasCatalog?: any[];
+    estacoesCatalog?: any[];
+    isLeader?: boolean;
 }
 
-export function ProdutividadeTable({ statsOperador, mesIso }: ProdutividadeTableProps) {
+export function ProdutividadeTable({ statsOperador, mesIso, areasCatalog = [], estacoesCatalog = [], isLeader = false }: ProdutividadeTableProps) {
     const [searchTerm, setSearchTerm] = useState('');
+    const [filterArea, setFilterArea] = useState('Todas');
+    const [filterEstacao, setFilterEstacao] = useState('Todas');
     const [selectedOperador, setSelectedOperador] = useState<any | null>(null);
 
+    // Scroll Fix Issue
+    useEffect(() => {
+        window.scrollTo(0, 0);
+    }, []);
+
     const filteredWorkers = useMemo(() => {
-        if (!searchTerm) return statsOperador;
-        const lower = searchTerm.toLowerCase();
-        return statsOperador.filter(w =>
-            w.nome_operador?.toLowerCase().includes(lower) ||
-            w.tag_rfid_operador?.toLowerCase().includes(lower) ||
-            w.area_nome?.toLowerCase().includes(lower)
-        );
-    }, [statsOperador, searchTerm]);
+        let result = statsOperador;
+
+        if (filterArea !== 'Todas') {
+            result = result.filter(w => w.area_base_id === filterArea);
+        }
+
+        if (filterEstacao !== 'Todas') {
+            // Verifica posto base OU se trabalhou nesta estacao
+            result = result.filter(w => w.posto_base_id === filterEstacao);
+        }
+
+        if (searchTerm) {
+            const lower = searchTerm.toLowerCase();
+            result = result.filter(w =>
+                w.nome_operador?.toLowerCase().includes(lower) ||
+                w.tag_rfid_operador?.toLowerCase().includes(lower) ||
+                w.area_nome?.toLowerCase().includes(lower) ||
+                (w.estacao_nome && w.estacao_nome.toLowerCase().includes(lower))
+            );
+        }
+
+        return result;
+    }, [statsOperador, searchTerm, filterArea, filterEstacao]);
 
     return (
         <Card className="border-none shadow-xl bg-white overflow-hidden rounded-2xl ring-1 ring-slate-100">
@@ -33,17 +58,42 @@ export function ProdutividadeTable({ statsOperador, mesIso }: ProdutividadeTable
                     <CardTitle className="text-slate-800 flex items-center gap-2">
                         <Activity size={20} className="text-blue-600" /> Rendimento Humano Mensal ({mesIso})
                     </CardTitle>
-                    <div className="flex items-center gap-4 w-full md:w-auto">
-                        <div className="relative w-full md:w-72">
+                    <div className="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
+                        <div className="flex w-full md:w-auto gap-2">
+                            <select
+                                value={filterArea}
+                                onChange={(e) => {
+                                    setFilterArea(e.target.value);
+                                    setFilterEstacao('Todas');
+                                }}
+                                className="w-full md:w-[160px] py-2 pl-3 pr-8 border border-slate-200 rounded-md text-sm text-slate-700 focus:ring-blue-500/20 bg-white"
+                            >
+                                <option value="Todas">Todas Áreas</option>
+                                {areasCatalog.map(a => <option key={a.id} value={a.id}>{a.nome_area}</option>)}
+                            </select>
+
+                            <select
+                                value={filterEstacao}
+                                onChange={(e) => setFilterEstacao(e.target.value)}
+                                className="w-full md:w-[180px] py-2 pl-3 pr-8 border border-slate-200 rounded-md text-sm text-slate-700 focus:ring-blue-500/20 bg-white"
+                            >
+                                <option value="Todas">Todas Estações</option>
+                                {estacoesCatalog
+                                    .filter(e => filterArea === 'Todas' || e.area_id === filterArea)
+                                    .map(e => <option key={e.id} value={e.id}>{e.nome_estacao}</option>)}
+                            </select>
+                        </div>
+
+                        <div className="relative w-full md:w-64">
                             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                             <Input
-                                placeholder="Pesquisar funcionário, ID ou área..."
+                                placeholder="Pesquisar..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 className="pl-9 bg-white border-slate-300 w-full"
                             />
                         </div>
-                        <ExportRHButton data={statsOperador} filename={`Relatorio_Assiduidade_${mesIso}.csv`} />
+                        <ExportRHButton data={filteredWorkers} filename={`Relatorio_Assiduidade_${mesIso}.csv`} />
                     </div>
                 </div>
             </CardHeader>
@@ -137,6 +187,7 @@ export function ProdutividadeTable({ statsOperador, mesIso }: ProdutividadeTable
                     operadorRfid={selectedOperador.tag_rfid_operador}
                     nomeOperador={selectedOperador.nome_operador}
                     funcaoArea={selectedOperador.area_nome}
+                    isLeader={isLeader}
                 />
             )}
         </Card>

@@ -20,9 +20,10 @@ interface ColaboradorRaioXModalProps {
     operadorRfid: string;
     nomeOperador: string;
     funcaoArea: string;
+    isLeader?: boolean;
 }
 
-export function ColaboradorRaioXModal({ isOpen, onClose, operadorId, operadorRfid, nomeOperador, funcaoArea }: ColaboradorRaioXModalProps) {
+export function ColaboradorRaioXModal({ isOpen, onClose, operadorId, operadorRfid, nomeOperador, funcaoArea, isLeader = false }: ColaboradorRaioXModalProps) {
     const supabase = createClient();
     const [isLoading, setIsLoading] = useState(false);
 
@@ -41,34 +42,89 @@ export function ColaboradorRaioXModal({ isOpen, onClose, operadorId, operadorRfi
             dataLimiar.setDate(dataLimiar.getDate() - 30);
             const trintaDiasStr = dataLimiar.toISOString().split('T')[0];
 
-            // 1. Fetch Médias dos 7 Pilares (Radar)
-            const { data: radarMedias } = await supabase.rpc('get_medias_operador_v2', { target_id: operadorId });
+            let formattedRadar = [];
+            let formattedLinha = [];
 
-            const formattedRadar = [
-                { subject: 'EPI & Fardamento', A: radarMedias?.[0]?.med_epi || 0 },
-                { subject: 'Assiduidade (HST)', A: radarMedias?.[0]?.med_hst || 0 },
-                { subject: 'Auditoria Qualidade', A: radarMedias?.[0]?.med_qualidade || 0 },
-                { subject: 'Metodologia 5S', A: radarMedias?.[0]?.med_5s || 0 },
-                { subject: 'Rendimento OEE', A: radarMedias?.[0]?.med_rendimento || 0 },
-                { subject: 'Polivalência', A: radarMedias?.[0]?.med_polivalencia || 0 },
-                { subject: 'Inovação / Kaisen', A: radarMedias?.[0]?.med_kaisen || 0 },
-            ];
-            setHistoricoRadar(formattedRadar);
+            if (isLeader) {
+                // Liderança (Cálculo Front-end 30 dias)
+                const { data: colsRaw } = await supabase.from('avaliacoes_lideranca')
+                    .select('*')
+                    .eq('funcionario_id', operadorId)
+                    .gte('data_avaliacao', trintaDiasStr)
+                    .order('data_avaliacao', { ascending: true });
 
-            // 2. Fetch OEE Timeline (Linha de Progressão) Últimos 30 Dias
-            const { data: linhasRaw } = await supabase.from('avaliacoes_diarias')
-                .select('data_avaliacao, nota_eficiencia')
-                .eq('funcionario_id', operadorId)
-                .gte('data_avaliacao', trintaDiasStr)
-                .order('data_avaliacao', { ascending: true });
+                if (colsRaw && colsRaw.length > 0) {
+                    const count = colsRaw.length;
+                    const sum = colsRaw.reduce((acc, crr) => {
+                        acc.epi += crr.nota_epi || 0;
+                        acc.hst += crr.nota_hst || 0;
+                        acc.qualidade += crr.nota_qualidade || 0;
+                        acc.cinco_s += crr.nota_5s || 0;
+                        acc.trabalho += crr.nota_eficiencia || 0; 
+                        acc.polivalencia += crr.nota_gestao_motivacao || 0;
+                        acc.kaisen += crr.nota_kpis || 0;
+                        return acc;
+                    }, { epi: 0, hst: 0, qualidade: 0, cinco_s: 0, trabalho: 0, polivalencia: 0, kaisen: 0 });
 
-            const formattedLinha = linhasRaw?.map(row => ({
-                date: new Date(row.data_avaliacao).toLocaleDateString('pt-PT', { day: 'numeric', month: 'short' }),
-                score: row.nota_eficiencia
-            })) || [];
-            if (formattedLinha.length === 0) {
-                formattedLinha.push({ date: new Date().toLocaleDateString('pt-PT'), score: 0 });
+                    formattedRadar = [
+                        { subject: 'EPI & Fardamento', A: sum.epi / count },
+                        { subject: 'Assiduidade (HST)', A: sum.hst / count },
+                        { subject: 'Qualidade', A: sum.qualidade / count },
+                        { subject: 'Metodologia 5S', A: sum.cinco_s / count },
+                        { subject: 'Eficiência Lider.', A: sum.trabalho / count },
+                        { subject: 'Gestão/Motivação', A: sum.polivalencia / count },
+                        { subject: 'Gestão de KPIs', A: sum.kaisen / count },
+                    ];
+                } else {
+                    formattedRadar = [
+                        { subject: 'EPI & Fardamento', A: 0 },
+                        { subject: 'Assiduidade (HST)', A: 0 },
+                        { subject: 'Qualidade', A: 0 },
+                        { subject: 'Metodologia 5S', A: 0 },
+                        { subject: 'Eficiência Lider.', A: 0 },
+                        { subject: 'Gestão/Motivação', A: 0 },
+                        { subject: 'Gestão de KPIs', A: 0 },
+                    ];
+                }
+
+                formattedLinha = colsRaw?.map(row => ({
+                    date: new Date(row.data_avaliacao).toLocaleDateString('pt-PT', { day: 'numeric', month: 'short' }),
+                    score: row.nota_eficiencia || 0
+                })) || [];
+                if (formattedLinha.length === 0) {
+                    formattedLinha.push({ date: new Date().toLocaleDateString('pt-PT'), score: 0 });
+                }
+            } else {
+                // 1. Fetch Médias dos 7 Pilares (Radar)
+                const { data: radarMedias } = await supabase.rpc('get_medias_operador_v2', { target_id: operadorId });
+
+                formattedRadar = [
+                    { subject: 'EPI & Fardamento', A: radarMedias?.[0]?.med_epi || 0 },
+                    { subject: 'Assiduidade (HST)', A: radarMedias?.[0]?.med_hst || 0 },
+                    { subject: 'Auditoria Qualidade', A: radarMedias?.[0]?.med_qualidade || 0 },
+                    { subject: 'Metodologia 5S', A: radarMedias?.[0]?.med_5s || 0 },
+                    { subject: 'Rendimento OEE', A: radarMedias?.[0]?.med_rendimento || 0 },
+                    { subject: 'Polivalência', A: radarMedias?.[0]?.med_polivalencia || 0 },
+                    { subject: 'Inovação / Kaisen', A: radarMedias?.[0]?.med_kaisen || 0 },
+                ];
+
+                // 2. Fetch OEE Timeline (Linha de Progressão) Últimos 30 Dias
+                const { data: linhasRaw } = await supabase.from('avaliacoes_diarias')
+                    .select('data_avaliacao, nota_eficiencia')
+                    .eq('funcionario_id', operadorId)
+                    .gte('data_avaliacao', trintaDiasStr)
+                    .order('data_avaliacao', { ascending: true });
+
+                formattedLinha = linhasRaw?.map(row => ({
+                    date: new Date(row.data_avaliacao).toLocaleDateString('pt-PT', { day: 'numeric', month: 'short' }),
+                    score: row.nota_eficiencia
+                })) || [];
+                if (formattedLinha.length === 0) {
+                    formattedLinha.push({ date: new Date().toLocaleDateString('pt-PT'), score: 0 });
+                }
             }
+
+            setHistoricoRadar(formattedRadar);
             setHistoricoLinha(formattedLinha);
 
             // 3. Fetch Apontamentos Negativos Recentes (Abaixo de 2)
@@ -116,11 +172,11 @@ export function ColaboradorRaioXModal({ isOpen, onClose, operadorId, operadorRfi
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                             {/* COL 1: O Perfil Estático (Radar Recharts) */}
                             <div className="lg:col-span-1">
-                                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 h-[400px]">
+                                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 h-[460px]">
                                     <h3 className="text-xs uppercase tracking-widest font-extrabold text-slate-500 mb-6 flex items-center gap-2 border-b border-slate-100 pb-3">
                                         <TrendingUp size={16} className="text-indigo-500" /> Perfil Competências
                                     </h3>
-                                    <div className="h-[300px] -mx-4">
+                                    <div className="h-[360px] -mx-4 -mt-2">
                                         <RadarClientChart data={historicoRadar} />
                                     </div>
                                 </div>

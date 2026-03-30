@@ -41,14 +41,16 @@ export default async function ProdutividadeLiderancaRH({ searchParams }: { searc
     const currentMonthStr = SP.mes || new Date().toISOString().substring(0, 7); // yyyy-MM
     const selectedArea = SP.area || 'Todas';
 
-    // 2. Fetch Todas as Áreas (Para a ComboBox)
+    // 2. Fetch Todas as Áreas e Estações (Para a ComboBox)
     const { data: areasCatalog } = await supabase.from('areas_fabrica').select('id, nome_area').order('nome_area');
+    const { data: estacoesCatalog } = await supabase.from('estacoes').select('id, nome_estacao, area_id').order('nome_estacao');
 
     let queryOps = supabase
         .from('operadores')
         .select(`
-            id, tag_rfid_operador, nome_operador, funcao, status, area_base_id,
-            areas_fabrica(id, nome_area)
+            id, tag_rfid_operador, nome_operador, funcao, status, area_base_id, posto_base_id,
+            areas_fabrica(id, nome_area),
+            estacoes(id, nome_estacao)
         `)
         .eq('status', 'Ativo');
 
@@ -68,7 +70,8 @@ export default async function ProdutividadeLiderancaRH({ searchParams }: { searc
 
     const operadores = rawOperadores?.map(op => ({
         ...op,
-        area_nome: (op.areas_fabrica as any)?.nome_area || 'Geral'
+        area_nome: (op.areas_fabrica as any)?.nome_area || 'Geral',
+        estacao_nome: (op.estacoes as any)?.nome_estacao || ''
     })) || [];
 
     // 4. Fetch Avaliações Diárias do Mês Corrente (Para Heatmap e Top 3)
@@ -303,7 +306,13 @@ export default async function ProdutividadeLiderancaRH({ searchParams }: { searc
             </div>
 
             {/* Painel Central das Tabelas OEE RH */}
-            <ProdutividadeTable statsOperador={statsOperador} mesIso={currentMonthStr} />
+            <ProdutividadeTable 
+                statsOperador={statsOperador} 
+                mesIso={currentMonthStr} 
+                areasCatalog={areasCatalog || []} 
+                estacoesCatalog={estacoesCatalog || []} 
+                isLeader={true}
+            />
         </div>
     );
 }
