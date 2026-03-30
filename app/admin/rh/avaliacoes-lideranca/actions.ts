@@ -44,16 +44,10 @@ export async function carregarEquipaLideranca() {
 
         if (minLevel === 0) return { success: false, error: "Nível hierárquico insuficiente para avaliar liderança." };
 
-        let permissoesAcesso: string[] = [];
-        if (minLevel >= 1) permissoesAcesso.push('Coordenador de Grupo', 'Líder de equipa', 'Lider de equipa');
-        if (minLevel >= 2) permissoesAcesso.push('Supervisor');
-        if (minLevel >= 3) permissoesAcesso.push('Gestor'); // Se for Master
-
         let query = supabase
             .from('operadores')
             .select('id, numero_operador, nome_operador, funcao, status, area_base_id, areas_fabrica(nome_area)')
-            .eq('status', 'Ativo')
-            .in('funcao', permissoesAcesso);
+            .eq('status', 'Ativo');
 
         // Se NÃO for admin (minLevel < 3), garantir acesso APENAS à sua própria equipa hierárquica
         if (minLevel < 3) {

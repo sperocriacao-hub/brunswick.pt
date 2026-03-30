@@ -20,12 +20,19 @@ export async function criarContaAcesso(email: string, password?: string, oldEmai
             { auth: { autoRefreshToken: false, persistSession: false } }
         );
 
-        // 1. Procurar o utilizador antigo 
-        const { data: usersData, error: listErr } = await supabaseAdmin.auth.admin.listUsers();
-        if (listErr) throw listErr;
+        // 1. Procurar o utilizador antigo com Paginação Robusta (até 2000 users) para garantir que é encontrado
+        let allUsers: any[] = [];
+        let page = 1;
+        while (page <= 2) {
+            const { data: pageData, error: listErr } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 1000 });
+            if (listErr) throw listErr;
+            allUsers = allUsers.concat(pageData.users);
+            if (pageData.users.length < 1000) break;
+            page++;
+        }
 
         // Verifica se o user já está na BD do Auth (pelo OldEmail se tiver mudado, ou pelo email atual)
-        const targetUser = usersData.users.find(u => u.email === (oldEmail || email));
+        const targetUser = allUsers.find(u => u.email === (oldEmail || email));
 
         if (targetUser) {
             // O Utilizador existe! Faremos um Update das credenciais

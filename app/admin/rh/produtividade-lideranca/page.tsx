@@ -37,12 +37,6 @@ export default async function ProdutividadeLiderancaRH({ searchParams }: { searc
         );
     }
 
-    let permissoesAcesso: string[] = [];
-    if (minLevel >= 1) permissoesAcesso.push('Coordenador de Grupo', 'Líder de equipa', 'Lider de equipa');
-    if (minLevel >= 2) permissoesAcesso.push('Supervisor');
-    if (minLevel >= 3) permissoesAcesso.push('Gestor');
-    // ------------------------------------------------------------------
-
     const SP = await searchParams;
     const currentMonthStr = SP.mes || new Date().toISOString().substring(0, 7); // yyyy-MM
     const selectedArea = SP.area || 'Todas';
@@ -50,15 +44,13 @@ export default async function ProdutividadeLiderancaRH({ searchParams }: { searc
     // 2. Fetch Todas as Áreas (Para a ComboBox)
     const { data: areasCatalog } = await supabase.from('areas_fabrica').select('id, nome_area').order('ordenacao');
 
-    // 3. Fetch Lideranças (Aplicando filtro Hierárquico)
     let queryOps = supabase
         .from('operadores')
         .select(`
             id, tag_rfid_operador, nome_operador, funcao, status, area_base_id,
             areas_fabrica(id, nome_area)
         `)
-        .eq('status', 'Ativo')
-        .in('funcao', permissoesAcesso);
+        .eq('status', 'Ativo');
 
     // Se NÃO for admin (minLevel < 3), restringir pesquisa aos próprios liderados diretos
     if (minLevel < 3) {
