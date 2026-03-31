@@ -402,7 +402,7 @@ export async function buscarDashboardsTV(tv_id: string) {
             `)
             .eq('resolvido', false);
 
-        if (tipoAlvo !== 'GERAL') {
+        if (tipoAlvo !== 'GERAL' && tipoAlvo !== 'ENGENHARIA') {
             if (dictEstacoes.length > 0) {
                 alertasQuery = alertasQuery.or(`estacao_id.in.(${dictEstacoes.join(',')}),local_ocorrencia_id.in.(${dictEstacoes.join(',')})`);
             } else {
@@ -461,7 +461,7 @@ export async function buscarDashboardsTV(tv_id: string) {
 
             if (opcoesLayout.showSafeArea) {
                 // If TV is scoped (Area/Linha), we find the safest Station. If General, we find safest Area.
-                const isGeneralScope = configTv.tipo_alvo === 'GERAL';
+                const isGeneralScope = configTv.tipo_alvo === 'GERAL' || configTv.tipo_alvo === 'ENGENHARIA';
                 
                 let targetEntities: any[] = [];
                 let alertCounts = new Map();
@@ -528,7 +528,7 @@ export async function buscarDashboardsTV(tv_id: string) {
                     .order('criado_em', { ascending: false })
                     .limit(3);
 
-                if (dictEstacoes.length > 0 && configTv.tipo_alvo !== 'GERAL') {
+                if (dictEstacoes.length > 0 && configTv.tipo_alvo !== 'GERAL' && configTv.tipo_alvo !== 'ENGENHARIA') {
                     gargalosQuery = gargalosQuery.in('estacao_id', dictEstacoes);
                 }
 
@@ -657,7 +657,7 @@ export async function buscarDashboardsTV(tv_id: string) {
                         .eq('data_avaliacao', localHojeStr);
 
                     // Re-utilizar os UUIDs dos operadores ativos filtrados pelo Escopo local
-                    if (opsUuidsForKpis.length > 0 && configTv.tipo_alvo !== 'GERAL') {
+                    if (opsUuidsForKpis.length > 0 && configTv.tipo_alvo !== 'GERAL' && configTv.tipo_alvo !== 'ENGENHARIA') {
                         evalsQuery = evalsQuery.in('funcionario_id', opsUuidsForKpis);
                     }
 
@@ -840,7 +840,7 @@ export async function buscarDashboardsTV(tv_id: string) {
         // 6. Build Radar Estacoes Array
         let radarEstacoes: any[] = [];
 
-        if (tipoAlvo === 'GERAL') {
+        if (tipoAlvo === 'GERAL' || tipoAlvo === 'ENGENHARIA') {
             radarEstacoes = radarAreasList.map(area => {
                 const alertasNaArea = alertas?.filter(a => {
                     const estacaoId = a.local_ocorrencia_id || a.estacao_id;
@@ -873,7 +873,8 @@ export async function buscarDashboardsTV(tv_id: string) {
             barcos: barcos,
             alertasGlobais: alertas || [],
             radarEstacoes,
-            advancedMetrics
+            advancedMetrics,
+            radarAreasList: radarAreasList || []
         };
     } catch (err: unknown) {
         let msg = "Erro Técnico TV.";

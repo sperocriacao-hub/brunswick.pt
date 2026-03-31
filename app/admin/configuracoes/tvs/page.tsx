@@ -174,7 +174,7 @@ export default function TVConfiguracoesPage() {
         const payload = {
             nome_tv: nomeTv,
             tipo_alvo: tipoAlvo,
-            alvo_id: tipoAlvo === 'GERAL' ? null : alvoId,
+            alvo_id: tipoAlvo === 'GERAL' || tipoAlvo === 'ENGENHARIA' ? null : alvoId,
             layout_preferencial: layout,
             opcoes_layout: opcoesLayout
         };
@@ -276,8 +276,9 @@ export default function TVConfiguracoesPage() {
                                     <span className={`px-2.5 py-1 rounded-full text-xs font-bold leading-none capitalize 
                                         ${tv.tipo_alvo === 'LINHA' ? 'bg-indigo-100 text-indigo-700' :
                                             tv.tipo_alvo === 'AREA' ? 'bg-emerald-100 text-emerald-700' :
-                                                tv.tipo_alvo === 'PLANEAMENTO' ? 'bg-blue-100 text-blue-700' :
-                                                'bg-purple-100 text-purple-700'}`}>
+                                                tv.tipo_alvo === 'ENGENHARIA' ? 'bg-amber-100 text-amber-700' :
+                                                    tv.tipo_alvo === 'PLANEAMENTO' ? 'bg-blue-100 text-blue-700' :
+                                                        'bg-purple-100 text-purple-700'}`}>
                                         {tv.tipo_alvo}
                                     </span>
                                 </div>
@@ -350,12 +351,13 @@ export default function TVConfiguracoesPage() {
                                 <option value="LINHA">Focar numa Linha de Produção Singular</option>
                                 <option value="AREA">Focar em Diversas Linhas de uma Área</option>
                                 <option value="GERAL">Visão Geral Completa de Fábrica</option>
+                                <option value="ENGENHARIA">Visão de Engenharia (Andon Áreas)</option>
                                 <option value="PLANEAMENTO">Dashboard de Planeamento Semanal</option>
                                 <option value="REFEITORIO">Ecrã de Refeitório (Digital Signage Rotativo)</option>
                             </select>
                         </div>
 
-                        {tipoAlvo !== 'GERAL' && tipoAlvo !== 'PLANEAMENTO' && tipoAlvo !== 'REFEITORIO' && (
+                        {tipoAlvo !== 'GERAL' && tipoAlvo !== 'ENGENHARIA' && tipoAlvo !== 'PLANEAMENTO' && tipoAlvo !== 'REFEITORIO' && (
                             <div className="space-y-2 p-4 bg-slate-50 border border-slate-200 rounded-lg">
                                 <Label>Selecione exatamente quem é o Alvo:</Label>
                                 <select
@@ -375,7 +377,7 @@ export default function TVConfiguracoesPage() {
                             </div>
                         )}
 
-                        {tipoAlvo !== 'PLANEAMENTO' && tipoAlvo !== 'REFEITORIO' && (
+                        {tipoAlvo !== 'PLANEAMENTO' && tipoAlvo !== 'ENGENHARIA' && tipoAlvo !== 'REFEITORIO' && (
                             <div className="space-y-3 pt-4 border-t border-slate-200">
                                 <Label className="text-blue-700 font-bold flex items-center gap-2">
                                     <Settings size={16} /> Widgets NASA-Level (Configuração do Layout)
