@@ -264,17 +264,17 @@ export default function CustomTVDashboardPage() {
                             }
 
                             // Dinamismo da grelha: se houver poucas áreas, faz os cards maiores.
-                            const gridCols = activeAreas.length === 1 ? 'grid-cols-1' : 
-                                             activeAreas.length === 2 ? 'grid-cols-2' : 
+                            const isSingle = activeAreas.length === 1;
+                            const gridCols = activeAreas.length <= 2 ? 'grid-cols-2' : 
                                              activeAreas.length === 3 ? 'grid-cols-3' : 'grid-cols-4';
 
                             return (
-                                <div className={`grid ${gridCols} gap-6 content-start min-h-full`}>
+                                <div className={isSingle ? "flex items-start justify-center w-full min-h-full" : `grid ${gridCols} gap-6 content-start min-h-full`}>
                                     {activeAreas.map(area => {
                                         const alertsInArea = area.activeAndons;
                                         
                                         return (
-                                            <div key={area.id} className="rounded-3xl p-6 shadow-2xl relative flex flex-col min-h-[400px] overflow-hidden border bg-gradient-to-br from-red-950/40 to-slate-900 border-red-500/50">
+                                            <div key={area.id} className={`rounded-3xl p-6 shadow-2xl relative flex flex-col min-h-[400px] overflow-hidden border bg-gradient-to-br from-red-950/40 to-slate-900 border-red-500/50 ${isSingle ? 'w-1/2' : ''}`}>
                                                 <div className="absolute top-0 right-0 w-48 h-48 bg-red-500/10 blur-3xl rounded-full"></div>
                                                 
                                                 <h2 className="text-2xl font-black uppercase tracking-widest flex justify-between items-center mb-6 border-b border-red-500/30 pb-4 text-red-400">
