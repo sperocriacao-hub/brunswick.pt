@@ -241,63 +241,83 @@ export default function CustomTVDashboardPage() {
                     </div>
                 </main>
             ) : tipoAlvo === 'ENGENHARIA' ? (
-                <main className="flex-1 overflow-hidden flex p-6">
-                    {/* ENGENHARIA: FULL SCREEN AREA CARDS */}
-                    <section className="w-full grid grid-cols-4 gap-5 overflow-y-auto pr-2 pb-6 relative content-start">
-                        {radarEstacoes.map(area => {
-                            const alertsInArea = area.activeAndons || [];
-                            const hasAlerts = alertsInArea.length > 0;
+                <main className="flex-1 overflow-hidden flex flex-col p-6">
+                    {/* ENGENHARIA: ALERTS ONLY */}
+                    <section className="w-full flex-1 overflow-y-auto pr-2 pb-6 relative">
+                        {(() => {
+                            const activeAreas = radarEstacoes.filter(area => area.activeAndons && area.activeAndons.length > 0);
                             
-                            return (
-                                <div key={area.id} className={`rounded-3xl p-5 shadow-2xl relative flex flex-col h-[320px] overflow-hidden border transition-colors duration-700 ${hasAlerts ? 'bg-gradient-to-br from-red-950/40 to-slate-900 border-red-500/50' : 'bg-slate-900/80 border-slate-700/50'}`}>
-                                    {hasAlerts && <div className="absolute top-0 right-0 w-40 h-40 bg-red-500/10 blur-3xl rounded-full"></div>}
-                                    
-                                    <h2 className={`text-xl font-black uppercase tracking-widest flex justify-between items-center mb-4 border-b pb-2 ${hasAlerts ? 'text-red-400 border-red-500/30' : 'text-slate-400 border-slate-800'}`}>
-                                        <div className="flex flex-col truncate pr-2">
-                                            <span className="truncate">{area.nome_estacao}</span>
+                            if (activeAreas.length === 0) {
+                                return (
+                                    <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900/40 border-2 border-dashed border-emerald-500/20 rounded-[3rem]">
+                                        <div className="bg-emerald-500/10 p-12 rounded-full mb-8 animate-pulse shadow-[0_0_50px_rgba(16,185,129,0.2)]">
+                                            <CheckCircle2 size={120} className="text-emerald-500" />
                                         </div>
-                                        {hasAlerts ? (
-                                            <span className="bg-red-500 text-white rounded-full shrink-0 w-8 h-8 flex items-center justify-center text-sm shadow-[0_0_15px_rgba(220,38,38,0.8)] animate-pulse">{alertsInArea.length}</span>
-                                        ) : (
-                                            <CheckCircle2 size={24} className="text-emerald-500/30 shrink-0" />
-                                        )}
-                                    </h2>
-
-                                    <div className="flex-1 overflow-y-auto pr-2 space-y-3 relative z-10 custom-scrollbar">
-                                        {!hasAlerts ? (
-                                            <div className="flex flex-col h-full items-center justify-center opacity-30 text-emerald-500 py-6">
-                                                <Factory size={56} className="mb-4" />
-                                                <span className="text-sm font-black tracking-widest uppercase">OPERAÇÕES NORMAIS</span>
-                                                <span className="text-[10px] uppercase font-bold text-slate-500 mt-1">Intervenções 0</span>
-                                            </div>
-                                        ) : (
-                                            alertsInArea.map((al: any) => {
-                                                const minutesPassed = Math.max(0, Math.floor((time.getTime() - new Date(al.created_at).getTime()) / 60000));
-                                                return (
-                                                    <div key={al.id} className="bg-black/60 border border-red-500/30 rounded-xl p-3 shadow-md border-l-4 border-l-red-500 relative flex flex-col">
-                                                        <div className="flex justify-between items-start mb-2">
-                                                            <div className="flex flex-col min-w-0 pr-2">
-                                                                <span className="text-white font-black text-sm uppercase leading-tight truncate">{al.tipo_alerta}</span>
-                                                                <span className="text-slate-400 font-bold text-[10px] tracking-widest uppercase mt-0.5 truncate">
-                                                                    📍 {al.estacoes?.nome_estacao || al.causadora?.nome_estacao || "Estação"}
-                                                                </span>
-                                                                {al.descricao_alerta && <span className="text-slate-500 italic text-[10px] mt-1 line-clamp-1">"{al.descricao_alerta}"</span>}
-                                                            </div>
-                                                        </div>
-                                                        <div className="pt-2 border-t border-red-900/50 flex justify-between items-center mt-auto">
-                                                            <span className="text-slate-500 font-mono text-[9px] tracking-widest flex items-center gap-1"><UserX size={10}/> ID: {al.operador_rfid}</span>
-                                                            <span className="bg-red-500/80 text-white px-2 py-0.5 rounded text-[10px] font-black uppercase flex items-center gap-1 shadow-[0_0_8px_rgba(220,38,38,0.5)]">
-                                                                <Clock size={10} /> {minutesPassed}M
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })
-                                        )}
+                                        <h2 className="text-4xl font-black tracking-widest uppercase text-emerald-400 drop-shadow-lg mb-4">
+                                            Operações Normais
+                                        </h2>
+                                        <p className="text-slate-400 font-bold text-xl uppercase tracking-widest flex items-center gap-3">
+                                            <Factory size={24} /> Zero Intervenções Técnicas em Progresso
+                                        </p>
                                     </div>
+                                );
+                            }
+
+                            // Dinamismo da grelha: se houver poucas áreas, faz os cards maiores.
+                            const gridCols = activeAreas.length === 1 ? 'grid-cols-1' : 
+                                             activeAreas.length === 2 ? 'grid-cols-2' : 
+                                             activeAreas.length === 3 ? 'grid-cols-3' : 'grid-cols-4';
+
+                            return (
+                                <div className={`grid ${gridCols} gap-6 content-start min-h-full`}>
+                                    {activeAreas.map(area => {
+                                        const alertsInArea = area.activeAndons;
+                                        
+                                        return (
+                                            <div key={area.id} className="rounded-3xl p-6 shadow-2xl relative flex flex-col min-h-[400px] overflow-hidden border bg-gradient-to-br from-red-950/40 to-slate-900 border-red-500/50">
+                                                <div className="absolute top-0 right-0 w-48 h-48 bg-red-500/10 blur-3xl rounded-full"></div>
+                                                
+                                                <h2 className="text-2xl font-black uppercase tracking-widest flex justify-between items-center mb-6 border-b border-red-500/30 pb-4 text-red-400">
+                                                    <div className="flex flex-col truncate pr-2">
+                                                        <span className="truncate">{area.nome_estacao}</span>
+                                                    </div>
+                                                    <span className="bg-red-500 text-white rounded-full shrink-0 h-10 px-4 flex items-center justify-center text-lg shadow-[0_0_20px_rgba(220,38,38,0.8)] animate-pulse">
+                                                        {alertsInArea.length} ALERTA{alertsInArea.length > 1 ? 'S' : ''}
+                                                    </span>
+                                                </h2>
+
+                                                <div className="flex-1 overflow-y-auto pr-2 space-y-4 relative z-10 custom-scrollbar">
+                                                    {alertsInArea.map((al: any) => {
+                                                        const minutesPassed = Math.max(0, Math.floor((time.getTime() - new Date(al.created_at).getTime()) / 60000));
+                                                        return (
+                                                            <div key={al.id} className="bg-black/80 border border-red-500/40 rounded-2xl p-4 shadow-lg border-l-4 border-l-red-500 relative flex flex-col">
+                                                                <div className="flex justify-between items-start mb-3">
+                                                                    <div className="flex flex-col min-w-0 pr-2">
+                                                                        <span className="text-white font-black text-lg uppercase leading-tight truncate">{al.tipo_alerta}</span>
+                                                                        <span className="text-slate-400 font-bold text-xs tracking-widest uppercase mt-1 truncate">
+                                                                            📍 {al.estacoes?.nome_estacao || al.causadora?.nome_estacao || "Estação Desconhecida"}
+                                                                        </span>
+                                                                        {al.descricao_alerta && <span className="text-slate-300 italic text-sm mt-2 line-clamp-2">"{al.descricao_alerta}"</span>}
+                                                                    </div>
+                                                                </div>
+                                                                <div className="pt-3 border-t border-red-900/50 flex justify-between items-center mt-auto">
+                                                                    <span className="text-slate-500 font-mono text-xs tracking-widest flex items-center gap-1">
+                                                                        <UserX size={14}/> ID: {al.operador_rfid}
+                                                                    </span>
+                                                                    <span className="bg-red-500/90 text-white px-3 py-1 rounded text-xs font-black uppercase flex items-center gap-1.5 shadow-[0_0_10px_rgba(220,38,38,0.6)]">
+                                                                        <Clock size={12} /> {minutesPassed} MINUTOS
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             );
-                        })}
+                        })()}
                     </section>
                 </main>
             ) : (
