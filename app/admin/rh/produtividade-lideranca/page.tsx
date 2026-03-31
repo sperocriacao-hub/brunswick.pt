@@ -6,7 +6,6 @@ import { Activity, Clock, Coffee, MapPin, Users, Filter, CalendarDays, ShieldAle
 import { cookies } from 'next/headers';
 import { FactoryHeatmap, DB_AvaliacaoDiaria, DB_OperadorArea } from '@/components/rh/FactoryHeatmap';
 import { TopPerformersMural } from '@/components/rh/TopPerformersMural';
-import { LowPerformersPDI, DB_AvaliacaoLideranca } from '@/components/rh/LowPerformersPDI';
 import { ProdutividadeTable } from '@/components/rh/ProdutividadeTable';
 
 export const dynamic = 'force-dynamic';
@@ -298,12 +297,6 @@ export default async function ProdutividadeLiderancaRH({ searchParams }: { searc
             <TopPerformersMural
                 operadores={(operadores as unknown as DB_OperadorArea[])}
                 avaliacoes={(avaliacoesMes as unknown as DB_AvaliacaoDiaria[]) || []}
-            />
-
-            {/* Focos PDI Liderança */}
-            <LowPerformersPDI
-                operadores={(operadores as unknown as DB_OperadorArea[])}
-                avaliacoes={(avaliacoesMes as unknown as DB_AvaliacaoLideranca[]) || []}
             />
 
             {/* Mapa Longitudinal de Calor (Factory Heatmap) */}
