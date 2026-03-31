@@ -1,6 +1,8 @@
 'use server';
 
 import { createClient } from '@supabase/supabase-js';
+import { cookies } from 'next/headers';
+import { createClient as createServerClient } from '@/utils/supabase/server';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
@@ -8,8 +10,10 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.
 // Ação de backend privilegiada para ler/escrever históricos do Andon
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-export async function getAndonHistory() {
+export async function getAndonHistory(mesesAtras: number = 6) {
     try {
+        const minDate = new Date();
+        minDate.setMonth(minDate.getMonth() - mesesAtras);
 
         const { data, error } = await supabase
             .from('alertas_andon')
@@ -38,6 +42,7 @@ export async function getAndonHistory() {
                     modelos:modelo_id ( nome_modelo )
                 )
             `)
+            .gte('created_at', minDate.toISOString())
             .order('created_at', { ascending: false });
 
         if (error) throw error;
@@ -80,5 +85,60 @@ export async function getAreasTVLinks() {
         return { success: true, data: data || [] };
     } catch (err: any) {
         return { success: false, error: err.message, data: [] };
+    }
+}
+
+export async function getLoggedOperadorRfid() {
+    try {
+        const cookieStore = cookies();
+        const serverSupabase = createServerClient(cookieStore);
+        
+        const { data: { user } } = await serverSupabase.auth.getUser();
+        if (!user || !user.email) return 'BACKOFFICE_MASTER';
+
+        const { data } = await supabase
+            .from('operadores')
+            .select('numero_identificacao')
+            .ilike('email_acesso', user.email)
+            .single();
+            
+        return data?.numero_identificacao || 'BACKOFFICE_MASTER';
+    } catch (err) {
+        return 'BACKOFFICE_MASTER';
+    }
+}
+
+export async function clonarAlertaAndon(alerta_id: string, operador_rfid: string) {
+    try {
+        const { data: oldAlert, error } = await supabase
+            .from('alertas_andon')
+            .select('*')
+            .eq('id', alerta_id)
+            .single();
+
+        if (error) throw error;
+        if (!oldAlert) throw new Error("Alerta não encontrado");
+
+        // Clone row but keeping it active
+        const { data: newAlert, error: insertError } = await supabase
+            .from('alertas_andon')
+            .insert([{
+                tipo_alerta: oldAlert.tipo_alerta,
+                descricao_alerta: `[REINCIDÊNCIA] ${oldAlert.descricao_alerta || ''}`.trim(),
+                operador_rfid: operador_rfid,
+                estacao_id: oldAlert.estacao_id,
+                local_ocorrencia_id: oldAlert.local_ocorrencia_id,
+                op_id: oldAlert.op_id,
+                resolvido: false,
+                notificacao_enviada: false,
+                situacao: 'NOVO'
+            }])
+            .select()
+            .single();
+
+        if (insertError) throw insertError;
+        return { success: true, data: newAlert };
+    } catch (err: any) {
+        return { success: false, error: err.message };
     }
 }
