@@ -842,18 +842,28 @@ export async function buscarDashboardsTV(tv_id: string) {
 
         if (tipoAlvo === 'GERAL' || tipoAlvo === 'ENGENHARIA') {
             radarEstacoes = radarAreasList.map(area => {
-                const alertasNaArea = alertas?.filter(a => {
+                // 3D Radar Light uses occurrence location
+                const alertasOcorrencia = alertas?.filter(a => {
                     const estacaoId = a.local_ocorrencia_id || a.estacao_id;
                     const estacao = stationsList.find(s => s.id === estacaoId);
                     return estacao && estacao.area_id === area.id;
                 });
-                const qtdAlertas = alertasNaArea ? alertasNaArea.length : 0;
+                
+                // Engineering Body text uses causal location
+                const alertasCausadora = alertas?.filter(a => {
+                    const estacaoId = a.estacao_id || a.local_ocorrencia_id;
+                    const estacao = stationsList.find(s => s.id === estacaoId);
+                    return estacao && estacao.area_id === area.id;
+                });
+
+                const qtdAlertas = alertasOcorrencia ? alertasOcorrencia.length : 0;
+                
                 return {
                     id: area.id,
                     nome_estacao: area.nome_area, // Retain uniform key names for generic page UI
                     hasAndon: qtdAlertas > 0,
                     andonType: qtdAlertas > 0 ? `${qtdAlertas} ALERTA(S)` : null,
-                    activeAndons: alertasNaArea || []
+                    activeAndons: alertasCausadora || []
                 };
             });
         } else {

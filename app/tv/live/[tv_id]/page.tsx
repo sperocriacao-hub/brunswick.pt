@@ -289,24 +289,15 @@ export default function CustomTVDashboardPage() {
                                                 <div className="flex-1 overflow-y-auto pr-2 space-y-4 relative z-10 custom-scrollbar">
                                                     {alertsInArea.map((al: any) => {
                                                         const minutesPassed = Math.max(0, Math.floor((time.getTime() - new Date(al.created_at).getTime()) / 60000));
-                                                        
-                                                        const causadoraAreaId = al.causadora?.area_id || al.estacoes?.area_id;
-                                                        const causadoraAreaName = radarEstacoes.find(r => r.id === causadoraAreaId)?.nome_estacao || "Fábrica";
-                                                        const causadoraEstacaoName = al.causadora?.nome_estacao || al.estacoes?.nome_estacao || "Estação";
-
                                                         return (
                                                             <div key={al.id} className="bg-black/80 border border-red-500/40 rounded-2xl p-4 shadow-lg border-l-4 border-l-red-500 relative flex flex-col">
-                                                                <div className="flex justify-between items-start mb-3 gap-3">
-                                                                    <div className="flex flex-col min-w-0 flex-1">
-                                                                        <span className="text-white font-black text-lg uppercase leading-tight line-clamp-1" title={al.tipo_alerta}>
-                                                                            {al.tipo_alerta}
+                                                                <div className="flex justify-between items-start mb-3">
+                                                                    <div className="flex flex-col min-w-0 pr-2">
+                                                                        <span className="text-white font-black text-lg uppercase leading-tight truncate">{al.tipo_alerta}</span>
+                                                                        <span className="text-slate-400 font-bold text-xs tracking-widest uppercase mt-1 truncate">
+                                                                            📍 {al.estacoes?.nome_estacao || al.causadora?.nome_estacao || "Estação Desconhecida"}
                                                                         </span>
                                                                         {al.descricao_alerta && <span className="text-slate-300 italic text-sm mt-2 line-clamp-2">"{al.descricao_alerta}"</span>}
-                                                                    </div>
-                                                                    <div className="flex flex-col shrink-0 items-end max-w-[50%]">
-                                                                        <span className="text-white font-black text-lg uppercase leading-tight text-right line-clamp-2">
-                                                                            {causadoraAreaName} <br className="hidden lg:block"/> {causadoraEstacaoName}
-                                                                        </span>
                                                                     </div>
                                                                 </div>
                                                                 <div className="pt-3 border-t border-red-900/50 flex justify-between items-center mt-auto">
