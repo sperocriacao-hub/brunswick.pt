@@ -241,11 +241,11 @@ export default function CustomTVDashboardPage() {
                     </div>
                 </main>
             ) : tipoAlvo === 'ENGENHARIA' ? (
-                <main className="flex-1 overflow-hidden flex gap-6 p-6">
-                    {/* ENGENHARIA: LEFT COL (Takes 75%) - AREA CARDS */}
-                    <section className="w-[75%] grid grid-cols-3 gap-5 overflow-y-auto pr-2 pb-6 relative content-start">
+                <main className="flex-1 overflow-hidden flex p-6">
+                    {/* ENGENHARIA: FULL SCREEN AREA CARDS */}
+                    <section className="w-full grid grid-cols-4 gap-5 overflow-y-auto pr-2 pb-6 relative content-start">
                         {radarEstacoes.map(area => {
-                            const alertsInArea = alertas.filter(a => (a.estacoes?.area_id || a.causadora?.area_id) === area.id);
+                            const alertsInArea = area.activeAndons || [];
                             const hasAlerts = alertsInArea.length > 0;
                             
                             return (
@@ -271,14 +271,16 @@ export default function CustomTVDashboardPage() {
                                                 <span className="text-[10px] uppercase font-bold text-slate-500 mt-1">Intervenções 0</span>
                                             </div>
                                         ) : (
-                                            alertsInArea.map(al => {
+                                            alertsInArea.map((al: any) => {
                                                 const minutesPassed = Math.max(0, Math.floor((time.getTime() - new Date(al.created_at).getTime()) / 60000));
                                                 return (
                                                     <div key={al.id} className="bg-black/60 border border-red-500/30 rounded-xl p-3 shadow-md border-l-4 border-l-red-500 relative flex flex-col">
                                                         <div className="flex justify-between items-start mb-2">
                                                             <div className="flex flex-col min-w-0 pr-2">
                                                                 <span className="text-white font-black text-sm uppercase leading-tight truncate">{al.tipo_alerta}</span>
-                                                                <span className="text-slate-400 font-bold text-[10px] tracking-widest uppercase mt-0.5 truncate">📍 {al.estacoes?.nome_estacao || "Estação"}</span>
+                                                                <span className="text-slate-400 font-bold text-[10px] tracking-widest uppercase mt-0.5 truncate">
+                                                                    📍 {al.estacoes?.nome_estacao || al.causadora?.nome_estacao || "Estação"}
+                                                                </span>
                                                                 {al.descricao_alerta && <span className="text-slate-500 italic text-[10px] mt-1 line-clamp-1">"{al.descricao_alerta}"</span>}
                                                             </div>
                                                         </div>
@@ -296,94 +298,6 @@ export default function CustomTVDashboardPage() {
                                 </div>
                             );
                         })}
-                    </section>
-
-                    {/* ENGENHARIA: RIGHT COL (Takes 25%) - HST WIDGETS */}
-                    <section className="w-[25%] flex flex-col gap-4 overflow-y-auto pr-2 pb-6">
-                        {opcoesLayout.showSafeArea && metrics.melhorArea && (
-                            <div className="bg-gradient-to-bl from-emerald-500/10 to-slate-900/80 border border-emerald-500/30 rounded-3xl p-5 shadow-2xl relative flex flex-col overflow-hidden">
-                                <div className="absolute -right-4 -bottom-4 text-emerald-500/5 rotate-[-15deg]">
-                                    <ShieldCheck size={100} />
-                                </div>
-                                <h2 className="text-xs font-black uppercase tracking-widest text-emerald-500 mb-3 flex items-center gap-2 relative z-10">
-                                    <ShieldCheck size={16} /> Zero Acidentes
-                                </h2>
-                                <div className="relative z-10">
-                                    <p className="text-slate-400 text-[10px] font-bold tracking-widest uppercase mb-1 drop-shadow-sm w-full truncate border-b border-emerald-500/20 pb-1">
-                                        Destaque Segurança ({metrics.melhorArea.tipo || 'Área'})
-                                    </p>
-                                    <p className="text-2xl font-black text-white leading-tight line-clamp-2 mt-1">{metrics.melhorArea.nome}</p>
-                                </div>
-                                <div className="mt-4 flex items-center gap-2 relative z-10 bg-black/40 rounded-xl p-2 border border-slate-800 self-start">
-                                    <span className="text-emerald-400 text-xl font-black ml-1">{metrics.melhorArea.score}%</span>
-                                    <span className="text-slate-500 text-[9px] uppercase font-bold w-[60px] leading-tight text-center">Score HSE</span>
-                                </div>
-                            </div>
-                        )}
-                        {opcoesLayout.showHstKpis && metrics.hstKpis && (
-                            <div className="bg-gradient-to-br from-slate-900/90 to-cyan-950/30 border border-slate-700/50 rounded-3xl p-5 shadow-2xl relative flex flex-col overflow-hidden group">
-                                <h2 className="text-xs font-black uppercase tracking-widest text-cyan-400 mb-4 flex items-center gap-2 relative z-10 border-b border-cyan-500/20 pb-2">
-                                    <ShieldCheck size={16} /> Auditorias & Diário
-                                </h2>
-                                <div className="space-y-4 relative z-10 flex-1 flex flex-col justify-center">
-                                    <div className="bg-slate-950/50 border border-slate-800/80 rounded-2xl p-3 shadow-inner relative overflow-hidden">
-                                        <div className="flex justify-between items-end mb-2">
-                                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 leading-tight">Conformidade Global</span>
-                                            <span className={`text-2xl font-black leading-none drop-shadow-md ${metrics.hstKpis.conformidadeFabril < 90 ? 'text-rose-400' : 'text-emerald-400'}`}>
-                                                {metrics.hstKpis.conformidadeFabril}%
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div className="bg-slate-950/50 border border-slate-800/80 rounded-2xl p-3 shadow-inner relative overflow-hidden">
-                                        <div className="flex justify-between items-end mb-2">
-                                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 leading-tight">Segurança Diária</span>
-                                            <span className={`text-2xl font-black leading-none drop-shadow-md ${metrics.hstKpis.segurancaDiaria < 95 ? 'text-amber-400' : 'text-emerald-400'}`}>
-                                                {metrics.hstKpis.segurancaDiaria}%
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                        {opcoesLayout.showSafetyCross && (
-                            <div className="bg-slate-900/80 border border-slate-700/50 rounded-3xl p-5 shadow-2xl relative flex flex-col items-center bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]">
-                                <h2 className="text-xs font-black uppercase tracking-widest text-emerald-500 mb-4 flex items-center gap-2 self-start w-full border-b border-slate-800 pb-3">
-                                    <HeartPulse size={16} /> Cruz Segurança
-                                </h2>
-                                <div className="grid grid-cols-7 gap-1 w-full max-w-[200px]">
-                                    {[
-                                        null, null, 1, 2, 3, null, null,
-                                        null, null, 4, 5, 6, null, null,
-                                        7, 8, 9, 10, 11, 12, 13,
-                                        14, 15, 16, 17, 18, 19, 20,
-                                        21, 22, 23, 24, 25, 26, 27,
-                                        null, null, 28, 29, 30, null, null,
-                                        null, null, 31, null, null, null, null
-                                    ].map((dayNum, i) => {
-                                        if (dayNum === null) return <div key={`empty-${i}`} className="w-full aspect-square"></div>;
-                                        const dayInfo = metrics.safetyCrossDays?.find((d: any) => d.day === dayNum);
-                                        if (!dayInfo) return <div key={`hide-${dayNum}`} className="w-full aspect-square"></div>;
-                                        const isToday = dayInfo.day === new Date().getDate();
-                                        let bgClass = 'bg-slate-800/50 border border-slate-700 text-slate-600';
-                                        let pulse = false;
-                                        if (dayInfo.level === 0) {
-                                            bgClass = isToday ? 'bg-emerald-400 border-2 border-emerald-300 text-black' : 'bg-emerald-500/80 border border-emerald-400/50 text-emerald-900';
-                                            if (isToday) pulse = true;
-                                        } else if (dayInfo.level === 1) bgClass = 'bg-yellow-400 text-black border-2 border-yellow-500';
-                                        else if (dayInfo.level === 2) bgClass = 'bg-orange-500 text-black border-2 border-orange-600';
-                                        else if (dayInfo.level === 3) {
-                                            bgClass = 'bg-red-600 text-white border-2 border-red-400';
-                                            pulse = true;
-                                        }
-                                        return (
-                                            <div key={dayNum} className={`flex items-center justify-center rounded-sm font-black text-[9px] transition-all duration-1000 aspect-square ${bgClass} ${pulse ? 'animate-pulse' : ''}`}>
-                                                {dayNum}
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        )}
                     </section>
                 </main>
             ) : (

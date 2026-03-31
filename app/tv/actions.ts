@@ -852,7 +852,8 @@ export async function buscarDashboardsTV(tv_id: string) {
                     id: area.id,
                     nome_estacao: area.nome_area, // Retain uniform key names for generic page UI
                     hasAndon: qtdAlertas > 0,
-                    andonType: qtdAlertas > 0 ? `${qtdAlertas} ALERTA(S)` : null
+                    andonType: qtdAlertas > 0 ? `${qtdAlertas} ALERTA(S)` : null,
+                    activeAndons: alertasNaArea || []
                 };
             });
         } else {
