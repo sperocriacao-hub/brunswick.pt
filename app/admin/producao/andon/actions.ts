@@ -30,11 +30,11 @@ export async function getAndonHistory(mesesAtras: number = 6) {
                 local_ocorrencia_id,
                 estacao_causadora:estacao_id (
                     nome_estacao,
-                    areas_fabrica:area_id ( nome_area )
+                    areas_fabrica:area_id ( id, nome_area )
                 ),
                 estacao_problema:local_ocorrencia_id (
                     nome_estacao,
-                    areas_fabrica:area_id ( nome_area )
+                    areas_fabrica:area_id ( id, nome_area )
                 ),
                 ordens_producao:op_id (
                     op_numero,
