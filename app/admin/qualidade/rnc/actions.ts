@@ -108,6 +108,31 @@ export async function create8d(payload: any) {
 }
 
 // ---- METODOLOGIA A3 ----
+export async function get8d(id: string) {
+    try {
+        const { data: report, error } = await supabase
+            .from("qualidade_8d")
+            .select(`*, qualidade_rnc(numero_rnc, descricao_problema)`)
+            .eq("id", id)
+            .single();
+
+        if (error) throw error;
+        return { success: true, report };
+    } catch (err: any) {
+        return { success: false, error: err.message };
+    }
+}
+
+export async function update8d(id: string, payload: any) {
+    try {
+        const { error } = await supabase.from("qualidade_8d").update(payload).eq("id", id);
+        if (error) throw error;
+        return { success: true };
+    } catch (err: any) {
+        return { success: false, error: err.message };
+    }
+}
+
 export async function createA3(payload: any) {
     try {
         const { error } = await supabase.from("qualidade_a3").insert(payload);
@@ -123,6 +148,31 @@ export async function createA3(payload: any) {
 }
 
 // ---- METHODOLOGY HISTORY FETCH ----
+export async function getA3(id: string) {
+    try {
+        const { data: report, error } = await supabase
+            .from("qualidade_a3")
+            .select(`*, qualidade_rnc(numero_rnc, descricao_problema)`)
+            .eq("id", id)
+            .single();
+
+        if (error) throw error;
+        return { success: true, report };
+    } catch (err: any) {
+        return { success: false, error: err.message };
+    }
+}
+
+export async function updateA3(id: string, payload: any) {
+    try {
+        const { error } = await supabase.from("qualidade_a3").update(payload).eq("id", id);
+        if (error) throw error;
+        return { success: true };
+    } catch (err: any) {
+        return { success: false, error: err.message };
+    }
+}
+
 export async function getQualityActions() {
     try {
         const { data: d8, error: err8 } = await supabase
