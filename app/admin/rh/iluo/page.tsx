@@ -15,6 +15,7 @@ export default function IluoMatrixPage() {
     
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedArea, setSelectedArea] = useState('all');
+    const [selectedEstacao, setSelectedEstacao] = useState('all');
 
     useEffect(() => {
         loadData();
@@ -45,6 +46,7 @@ export default function IluoMatrixPage() {
     const validEstacoes = estacoes.filter(e => {
         if (!e.areas_fabrica) return false;
         if (selectedArea !== 'all' && e.areas_fabrica.id !== selectedArea) return false;
+        if (selectedEstacao !== 'all' && e.id !== selectedEstacao) return false;
         return true;
     }).sort((a, b) => {
         // Agrupar primeiro por Área, depois por Nome
@@ -60,6 +62,11 @@ export default function IluoMatrixPage() {
         op.nome_operador.toLowerCase().includes(searchTerm.toLowerCase()) || 
         (op.funcao && op.funcao.toLowerCase().includes(searchTerm.toLowerCase()))
     );
+
+    const estacoesDropdownOptions = estacoes.filter(e => {
+        if (selectedArea === 'all') return true;
+        return e.areas_fabrica?.id === selectedArea;
+    }).sort((a, b) => a.nome_estacao.localeCompare(b.nome_estacao));
 
     const getIluoTag = (opId: string, estId: string) => {
         const found = matriz.find(m => m.operador_id === opId && m.estacao_id === estId);
@@ -96,18 +103,38 @@ export default function IluoMatrixPage() {
                         className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                     />
                 </div>
-                <div className="flex-1 w-full">
-                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Filtrar Célula/Área Fabril</label>
-                    <div className="relative">
-                        <Filter className="absolute left-3 top-[10px] text-slate-400" size={16} />
-                        <select 
-                            value={selectedArea}
-                            onChange={(e) => setSelectedArea(e.target.value)}
-                            className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm appearance-none focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                        >
-                            <option value="all">Visão Total - Fábrica Completa</option>
-                            {areas.map(a => <option key={a.id} value={a.id}>{a.nome_area}</option>)}
-                        </select>
+                <div className="flex-[2] w-full flex flex-col md:flex-row gap-4">
+                    <div className="flex-1">
+                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Filtrar Célula/Área Fabril</label>
+                        <div className="relative">
+                            <Filter className="absolute left-3 top-[10px] text-slate-400" size={16} />
+                            <select 
+                                value={selectedArea}
+                                onChange={(e) => {
+                                    setSelectedArea(e.target.value);
+                                    setSelectedEstacao('all'); // Reseta a dependência
+                                }}
+                                className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm appearance-none focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                            >
+                                <option value="all">Visão Total - Fábrica Completa</option>
+                                {areas.map(a => <option key={a.id} value={a.id}>{a.nome_area}</option>)}
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div className="flex-1">
+                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Filtrar por Estação</label>
+                        <div className="relative">
+                            <Filter className="absolute left-3 top-[10px] text-slate-400" size={16} />
+                            <select 
+                                value={selectedEstacao}
+                                onChange={(e) => setSelectedEstacao(e.target.value)}
+                                className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm appearance-none focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                            >
+                                <option value="all">Todas as Estações...</option>
+                                {estacoesDropdownOptions.map(est => <option key={est.id} value={est.id}>{est.nome_estacao}</option>)}
+                            </select>
+                        </div>
                     </div>
                 </div>
                 <div className="hidden md:flex flex-row items-center gap-4 px-4 py-2 bg-blue-50 border border-blue-100 rounded-lg">
