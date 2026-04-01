@@ -181,47 +181,98 @@ export function ColaboradorRaioXModal({ isOpen, onClose, operadorId, operadorRfi
                                     </div>
                                 </div>
 
-                                {historicoRadar.length > 0 && Math.min(...historicoRadar.map(r => r.A)) < 3.5 && (
-                                    <div className="bg-gradient-to-br from-indigo-50 to-white rounded-xl shadow-sm border border-indigo-100 p-6 relative overflow-hidden">
-                                        <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-100 rounded-full blur-2xl -mr-10 -mt-10 opacity-60"></div>
-                                        <h3 className="text-xs uppercase tracking-widest font-extrabold text-indigo-800 mb-4 flex items-center gap-2 border-b border-indigo-100 pb-3 relative z-10">
-                                            <Lightbulb size={16} className="text-indigo-600" /> PDI (Plano Desenvolvimento) Sugerido
-                                        </h3>
-                                        
-                                        {(() => {
-                                            const worstSubjectObj = [...historicoRadar].sort((a,b) => a.A - b.A)[0];
-                                            const SUGGESTIONS: Record<string, string> = {
-                                                'EPI & Fardamento': 'Baixa adesão a EPIs. Recomendado "Safety Walk" diário no início do turno focado em calçado e óculos de proteção. Validar desgaste de material atual.',
-                                                'Assiduidade (HST)': 'Problemas de consistência nas horas base. Avaliar motivos de absentismo em check-in matinal e verificar flexibilidade.',
-                                                'Qualidade': 'Elevado rácio de não-conformidades. Sugerir auditorias cruzadas na linha ("Shadowing") com inspetores experientes para calibrar os gabaritos visuais.',
-                                                'Auditoria Qualidade': 'Elevado rácio de não-conformidades. Sugerir rutinas ("Shadowing") para calibrar gabaritos.',
-                                                'Metodologia 5S': 'Desordem estrutural no posto. Recomendado "Momento 5S" - alocar 10 minutos finais de cada turno exclusivamente à limpeza e organização de ferramentas.',
-                                                'Eficiência Lider.': 'Dificuldades com OEE/Takt time. Recomendada formação Lean em "Value Stream Mapping" e revisão diária da folha de tempos.',
-                                                'Gestão/Motivação': 'Falhas na dinâmica de equipa. Recomendado capacitação em "Liderança Situacional" e adoção de reuniões stand-up diárias breves (5 min).',
-                                                'Gestão de KPIs': 'Pouca tração com os dados M.E.S. Sugerido workshop prático de "Leitura Tática de Painéis" e rotina diária com o Manager na leitura dos Andons.',
-                                                'Rendimento OEE': 'Estudar The Brunswick Standard Operating Procedures (SOPs) no posto de forma a sincronizar o ritmo global de montagem.',
-                                                'Polivalência': 'Lento crescimento tático e incapacidade de cobrir pares. Inserir no plano de treino cruzado (Cross-Training) noutra estação de montagem adjacente.',
-                                                'Inovação / Kaisen': 'Pouca iniciativa processual. Encorajar ao depósito de cartões de ideias no módulo eletrónico M.E.S IDEAS.'
-                                            };
-                                            const suggestion = SUGGESTIONS[worstSubjectObj?.subject] || 'Identificada baixa proficiência. Aconselha-se intervenção ativa 1-on-1 com o Gestor de secção.';
+                                {(() => {
+                                    const validScores = historicoRadar.filter(r => r.A > 0 && r.A <= 3.2);
+                                    if (validScores.length === 0) return null;
 
-                                            return (
-                                                <div className="relative z-10">
-                                                    <div className="flex items-center gap-2 mb-2">
-                                                        <span className="text-[10px] bg-red-100 text-red-700 px-2 py-0.5 rounded font-black uppercase">Gargalo Crítico</span>
-                                                        <span className="text-xs font-bold text-slate-700">{worstSubjectObj.subject} ({worstSubjectObj.A.toFixed(1)})</span>
-                                                    </div>
-                                                    <p className="text-sm text-indigo-900 leading-relaxed font-medium bg-white/60 p-3 rounded-lg border border-indigo-50 shadow-[inset_0_1px_2px_rgba(0,0,0,0.02)]">
-                                                        "{suggestion}"
-                                                    </p>
-                                                    <div className="mt-3 text-[10px] text-indigo-400 font-bold uppercase tracking-wider text-right">
-                                                        Recomendação Automática M.E.S
-                                                    </div>
+                                    const worstSubjectObj = validScores.sort((a,b) => a.A - b.A)[0];
+                                    const score = worstSubjectObj.A;
+                                    
+                                    const aiEngine = (subject: string, nota: number) => {
+                                        const severity = nota < 2.5 ? 'Crítico' : 'Atenção';
+                                        
+                                        const database: Record<string, {crit: string, aten: string}> = {
+                                            'EPI & Fardamento': { 
+                                                crit: 'Abaixo do limite legal de HST. Necessário realizar um Safety Walk imediato na linha, validar entrega de fardamento e aplicar medida imperativa disciplinar/educativa.',
+                                                aten: 'Desvio ao standard visual de fardamento/EPIs. Recomendado "Momento 5 min HST" antes do turno arrancar focando nas regras base.'
+                                            },
+                                            'Assiduidade (HST)': {
+                                                crit: 'Rácio de ausências altamente prejudicial para o balanceamento logístico. Liderança tem de coordenar com RH avaliação de bem-estar.',
+                                                aten: 'Ausências parciais recorrentes a afetar o OEE. Recomenda-se um check-in de mentoria (1-on-1) de 15 minutos para avaliar desmotivações logísticas.'
+                                            },
+                                            'Qualidade': {
+                                                crit: 'Intervenção técnica imediata obrigatória. O colaborador está a injetar falhas crónicas na linha OEE. Requer shadowing (sombreamento) 100% do tempo.',
+                                                aten: 'Aumento do rácio estatístico de retrabalho registado. Aconselha-se nova sessão de calibração técnica usando os standards visuais (Gabaritos Brunswick).'
+                                            },
+                                            'Auditoria Qualidade': {
+                                                crit: 'Intervenção técnica imediata obrigatória. Injeções contínuas de retrabalho detetadas nas avaliações cruzadas.',
+                                                aten: 'Pequenos desvios crónicos no acabamento. Recomendável rotina de aferimento diário com um elemento sénior da equipa de Auditoria.'
+                                            },
+                                            'Metodologia 5S': {
+                                                crit: 'Caos estatístico no posto comprometendo eficiência produtiva. Implementar "Blitz 5S" emergencial com linha parada para o recuperar.',
+                                                aten: 'Degradação progressiva da organização do layout de linha. Incluir rotinas "Muda" de 10 minutos finais exclusivos para limpeza.'
+                                            },
+                                            'Eficiência Lider.': {
+                                                crit: 'Gestão de linha ineficaz e TAKT Time perdido severamente. O líder requer acompanhamento sénior em Lean VSM e revisão da folha Standard Work.',
+                                                aten: 'OEE intermitente denota falta de standardização de ritmos operacionais. Recomendável rever com a equipa o cronograma diário.'
+                                            },
+                                            'Gestão/Motivação': {
+                                                crit: 'Indicadores apontam para quebra moral aguda ou micro-gestão extrema. Sugerida intervenção direta de RH para desanuviar o grupo de imediato.',
+                                                aten: 'Déficit no engagement tático da equipa. A Liderança tem de receber formação situacional e começar rotinas de Daily Standup.'
+                                            },
+                                            'Gestão de KPIs': {
+                                                crit: 'Liderança ignora Andons e M.E.S de forma sistemática. Exige reciclagem obrigatória no uso dos écrans industriais e interpretação métrica.',
+                                                aten: 'Reatividade tardia aos alertas na Nuvem. Aconselha-se mentoria focada para utilização preditiva de dashboards, alertando a manutenção com avanço.'
+                                            },
+                                            'Rendimento OEE': {
+                                                crit: 'Produtividade sistematicamente abaixo da margem bruta projetada. Ler guias Standard Operating Procedures (SOPs) e avaliar barreiras físicas.',
+                                                aten: 'Inconsistência de ritmo de montagem denota necessidade de calibrar micro-tempos nas folhas Standard Work.'
+                                            },
+                                            'Polivalência': {
+                                                crit: 'Zero flexibilidade e recusa de cross-training. Representa um risco de estrangulamento. Impor matriz de contingência obrigatória noutro posto.',
+                                                aten: 'Lento desenrolar tático em rotações. Colocar como Operador Sombra de técnicos experientes em postos limítrofes 2 dias por mês.'
+                                            },
+                                            'Inovação / Kaisen': {
+                                                crit: 'Apatia total à Cultura Lean Brunswick ou comportamentos reativos ao Kaizen.',
+                                                aten: 'Pouca contribuição sistémica de melhoria contínua. Gestor deve incitar a submissão formal ao M.E.S IDEAS Módulo.'
+                                            }
+                                        };
+
+                                        const defaultMsg = 'Recomenda-se acompanhamento presencial do Gestor nos postos (Gemba Walk) embasado nesta divergência de scores.';
+                                        const advice = database[subject] ? (severity === 'Crítico' ? database[subject].crit : database[subject].aten) : defaultMsg;
+                                        
+                                        return { suggestion: advice, severity };
+                                    };
+
+                                    const analysis = aiEngine(worstSubjectObj.subject, score);
+
+                                    return (
+                                        <div className="bg-gradient-to-br from-indigo-50 to-white rounded-xl shadow-sm border border-indigo-100 p-6 relative overflow-hidden mt-8">
+                                            <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-100 rounded-full blur-2xl -mr-10 -mt-10 opacity-60"></div>
+                                            <h3 className="text-xs uppercase tracking-widest font-extrabold text-indigo-800 mb-4 flex items-center gap-2 border-b border-indigo-100 pb-3 relative z-10">
+                                                <Lightbulb size={16} className="text-indigo-600" /> Analítica PDI: Assistente Tático Baseado na Avaliação
+                                            </h3>
+                                            
+                                            <div className="relative z-10">
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <span className={`text-[10px] px-2 py-0.5 rounded font-black uppercase tracking-wider ${analysis.severity === 'Crítico' ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'}`}>
+                                                        Detetado Desvio: Nível {analysis.severity}
+                                                    </span>
+                                                    <span className="text-xs font-bold text-slate-700">{worstSubjectObj.subject} (Score Base de Dados: {score.toFixed(1)})</span>
                                                 </div>
-                                            );
-                                        })()}
-                                    </div>
-                                )}
+                                                <div className="bg-white/90 p-4 rounded-lg border border-indigo-50 shadow-sm relative mt-3 transition-all hover:border-indigo-200">
+                                                    <div className="absolute left-0 top-0 w-1 h-full bg-indigo-400 rounded-l-lg"></div>
+                                                    <p className="text-[13px] text-slate-800 leading-relaxed font-semibold italic pl-2">
+                                                        "{analysis.suggestion}"
+                                                    </p>
+                                                </div>
+                                                <div className="mt-3 text-[9px] text-indigo-400 font-bold uppercase tracking-widest text-right flex items-center justify-end gap-1">
+                                                    <Activity size={10} /> Consultoria IA M.E.S / Exposição Confidencial Liderança
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })()}
                             </div>
 
                             {/* COL 2: Trajetória Temporal & Feedbacks (Linear + Lista) */}

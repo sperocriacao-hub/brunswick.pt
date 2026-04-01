@@ -38,8 +38,18 @@ export default async function ProdutividadeLiderancaRH({ searchParams }: { searc
     }
 
     const SP = await searchParams;
-    const currentMonthStr = SP.mes || new Date().toISOString().substring(0, 7); // yyyy-MM
+    let currentMonthStr: string = SP.mes || "";
     const selectedArea = SP.area || 'Todas';
+
+    if (!currentMonthStr) {
+        // Auto-detect last month with data to prevent empty screens on month rollover
+        const { data: lastEval } = await supabase.from('avaliacoes_lideranca').select('data_avaliacao').order('data_avaliacao', { ascending: false }).limit(1);
+        if (lastEval && lastEval.length > 0 && lastEval[0].data_avaliacao) {
+            currentMonthStr = lastEval[0].data_avaliacao.substring(0, 7);
+        } else {
+            currentMonthStr = new Date().toISOString().substring(0, 7);
+        }
+    }
 
     // 2. Fetch Todas as Áreas e Estações (Para a ComboBox)
     const { data: areasCatalog } = await supabase.from('areas_fabrica').select('id, nome_area').order('nome_area');
