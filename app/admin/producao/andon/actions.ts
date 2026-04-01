@@ -94,15 +94,31 @@ export async function getLoggedOperadorRfid() {
         const serverSupabase = createServerClient(cookieStore);
         
         const { data: { user } } = await serverSupabase.auth.getUser();
-        if (!user || !user.email) return 'BACKOFFICE_MASTER';
+        if (!user) return 'BACKOFFICE_MASTER';
 
-        const { data } = await supabase
-            .from('operadores')
-            .select('numero_identificacao')
-            .ilike('email_acesso', user.email)
-            .single();
-            
-        return data?.numero_identificacao || 'BACKOFFICE_MASTER';
+        // Tentar obter da tabela de operadores primeiro (Caso seja um Lider de Linha a usar o BO)
+        if (user.email) {
+            const { data } = await supabase
+                .from('operadores')
+                .select('nome_operador, numero_identificacao')
+                .ilike('email_acesso', user.email)
+                .single();
+                
+            if (data?.numero_identificacao) return data.numero_identificacao;
+            if (data?.nome_operador) return data.nome_operador;
+        }
+
+        // Se for um administrador puramente de Backoffice (sem cadastro em Operadores)
+        // Usamos o User Metadata (nome do AD/Supabase) ou o próprio Email 
+        const adminName = user.user_metadata?.full_name || user.user_metadata?.name;
+        if (adminName) return adminName;
+        
+        if (user.email) {
+             const userPrefix = user.email.split('@')[0];
+             return userPrefix.toUpperCase();
+        }
+
+        return 'BACKOFFICE_MASTER';
     } catch (err) {
         return 'BACKOFFICE_MASTER';
     }
