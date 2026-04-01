@@ -57,11 +57,27 @@ export default function IluoMatrixPage() {
         return a.nome_estacao.localeCompare(b.nome_estacao);
     });
 
-    // Preparar os Operadores a apresentar (Search)
-    const validOp = operadores.filter(op => 
-        op.nome_operador.toLowerCase().includes(searchTerm.toLowerCase()) || 
-        (op.funcao && op.funcao.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
+    // Preparar os Operadores a apresentar (Filtrados por Search e por skills existentes)
+    const validOp = operadores.filter(op => {
+        // 1. Filtro Manual de Pesquisa de Texto
+        if (searchTerm.trim() !== '') {
+            const matchSearch = op.nome_operador.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                                (op.funcao && op.funcao.toLowerCase().includes(searchTerm.toLowerCase()));
+            if (!matchSearch) return false;
+        }
+
+        // 2. Otimização Monstruosa: Só apresentar operários que tenham de facto uma skill algures nas `validEstacoes` que estamos a processar
+        // Se a pessoa procurou por um nome específico (searchTerm), nós ignoramos esta regra e mostramos a linha de qualquer forma 
+        // para ela confirmar que a pessoa tem um quadro vazio "--".
+        if (searchTerm.trim() === '') {
+            const hasAnySkillInVisibleStations = validEstacoes.some(est => {
+                return matriz.some(m => m.operador_id === op.id && m.estacao_id === est.id);
+            });
+            if (!hasAnySkillInVisibleStations) return false;
+        }
+
+        return true;
+    });
 
     const estacoesDropdownOptions = estacoes.filter(e => {
         if (selectedArea === 'all') return true;
