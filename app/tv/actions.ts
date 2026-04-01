@@ -841,7 +841,11 @@ export async function buscarDashboardsTV(tv_id: string) {
         let radarEstacoes: any[] = [];
 
         if (tipoAlvo === 'GERAL' || tipoAlvo === 'ENGENHARIA') {
-            radarEstacoes = radarAreasList.map(area => {
+            const areasParaMostrar = opcoesLayout.areasSelecionadas && opcoesLayout.areasSelecionadas.length > 0
+                ? radarAreasList.filter(a => opcoesLayout.areasSelecionadas.includes(a.id))
+                : radarAreasList;
+
+            radarEstacoes = areasParaMostrar.map(area => {
                 // 3D Radar Light uses occurrence location
                 const alertasOcorrencia = alertas?.filter(a => {
                     const estacaoId = a.local_ocorrencia_id || a.estacao_id;
