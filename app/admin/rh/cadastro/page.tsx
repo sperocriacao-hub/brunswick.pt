@@ -59,6 +59,9 @@ function FuncionarioFormCore() {
         // 6. Financeiro OEE
         salario_hora: '10.00'
     });
+    
+    // Novo State para ILUO Relacional Múltiplo
+    const [iluoList, setIluoList] = useState<{estacao_id: string, nivel_iluo: string, avaliador_nome: string, data_avaliacao: string}[]>([]);
 
     useEffect(() => {
         // Carregar Estações (Para Alocação do Posto de Trabalho M.E.S)
@@ -120,6 +123,19 @@ function FuncionarioFormCore() {
                     }
                     setIsFetchingData(false);
                 });
+                
+            // Carregar Matrizes Relacionais ILUO do Colaborador
+            supabase.from('operador_iluo_matriz').select('*').eq('operador_id', id)
+                .then(({ data }) => {
+                    if (data && data.length > 0) {
+                        setIluoList(data.map((item: any) => ({
+                            estacao_id: item.estacao_id,
+                            nivel_iluo: item.nivel_iluo,
+                            avaliador_nome: item.avaliador_nome || '',
+                            data_avaliacao: item.data_avaliacao ? item.data_avaliacao.substring(0, 10) : ''
+                        })));
+                    }
+                });
         }
     }, [id, supabase]);
 
@@ -163,13 +179,15 @@ function FuncionarioFormCore() {
         }
 
         let errorObj = null;
+        let finalOpId: string | null = id;
 
         if (id) {
             const { error } = await supabase.from('operadores').update(payload).eq('id', id);
             errorObj = error;
         } else {
-            const { error } = await supabase.from('operadores').insert([payload]);
+            const { data, error } = await supabase.from('operadores').insert([payload]).select();
             errorObj = error;
+            if (data && data.length > 0) finalOpId = data[0].id;
         }
 
         setIsLoading(false);
@@ -177,6 +195,21 @@ function FuncionarioFormCore() {
         if (errorObj) {
             alert("Erro ao gravar ficha cadastral: " + errorObj.message);
         } else {
+            // Sincronizar Relacionamentos ILUO
+            if (finalOpId) {
+                await supabase.from('operador_iluo_matriz').delete().eq('operador_id', finalOpId);
+                if (iluoList.length > 0) {
+                    const mappedIluoRows = iluoList.map(i => ({
+                        operador_id: finalOpId,
+                        estacao_id: i.estacao_id,
+                        nivel_iluo: i.nivel_iluo,
+                        avaliador_nome: i.avaliador_nome,
+                        data_avaliacao: i.data_avaliacao || new Date().toISOString()
+                    }));
+                    await supabase.from('operador_iluo_matriz').insert(mappedIluoRows);
+                }
+            }
+
             router.push('/admin/rh');
             router.refresh();
         }
@@ -364,31 +397,110 @@ function FuncionarioFormCore() {
                 </section>
 
                 {/* BLOCO 4: TALENTO E DESENVOLVIMENTO (ILUO) */}
-                <section className="bg-white p-6 shadow-sm border border-slate-200 rounded-lg">
-                    <h2 className="text-sm uppercase tracking-widest font-bold mb-6 text-slate-800 border-b border-slate-100 pb-3">IV. Avaliação e Talento</h2>
+                <section className="bg-white p-6 shadow-sm border border-slate-200 rounded-lg lg:col-span-2">
+                    <h2 className="text-sm uppercase tracking-widest font-bold mb-6 text-slate-800 border-b border-slate-100 pb-3">IV. Habilidades Fabris & Matriz Polivalência (ILUO)</h2>
 
-                    <div className="grid grid-cols-2 gap-4 mb-4">
-                        <div>
-                            <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1" title="I (Trainee), L (Autónomo), U (Especialista), O (Formador)">Matriz Polivalência (ILUO)</label>
-                            <select value={formData.iluo_nivel} onChange={e => setFormData({ ...formData, iluo_nivel: e.target.value })} className={`${inputClass} appearance-none font-bold text-indigo-700`}>
-                                <option value="" className="text-slate-900 font-normal">Desconhecido</option>
-                                <option value="I">I - Em Formação (Trainee)</option>
-                                <option value="L">L - Autónomo (Executa)</option>
-                                <option value="U">U - Especialista (Resolve)</option>
-                                <option value="O">O - Formador (Ensina/Lidera)</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Performance (Meta)</label>
-                            <div className="flex items-center gap-2">
-                                <input type="number" step="0.1" min="0" max="100" value={formData.matriz_talento_media} onChange={e => setFormData({ ...formData, matriz_talento_media: e.target.value })} className={inputClass} placeholder="0 - 100" />
-                                <span className="font-bold text-slate-400 text-sm">%</span>
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        {/* ILUO Multi-Skills Matrix Section */}
+                        <div className="lg:col-span-2 space-y-4">
+                            <h3 className="text-xs font-bold text-slate-500 uppercase">Cartão de Habilidades (Certificações Validadas)</h3>
+                            
+                            <div className="bg-slate-50/50 p-4 rounded-xl border border-slate-200 grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
+                                <div className="md:col-span-2">
+                                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Máquina / Estação</label>
+                                    <select id="iluo_estacao" className={inputClass}>
+                                        <option value="">(Selecione)</option>
+                                        {estacoesDisponiveis.map(e => <option key={e.id} value={e.id}>{e.nome_estacao}</option>)}
+                                    </select>
+                                </div>
+                                <div className="md:col-span-1">
+                                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Proficiência</label>
+                                    <select id="iluo_nivel" className={`${inputClass} font-bold text-indigo-700`}>
+                                        <option value="I">I - Trainee</option>
+                                        <option value="L">L - Autónomo</option>
+                                        <option value="U">U - Especialista</option>
+                                        <option value="O">O - Formador</option>
+                                    </select>
+                                </div>
+                                <div className="md:col-span-1">
+                                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Instrutor (Avaliador)</label>
+                                    <input type="text" id="iluo_avaliador" className={inputClass} placeholder="Nome..." />
+                                </div>
+                                <div className="md:col-span-1">
+                                    <button 
+                                        type="button"
+                                        className="w-full bg-slate-800 text-white font-bold py-2 px-3 rounded-md text-xs hover:bg-slate-900 transition-colors shadow-sm"
+                                        onClick={() => {
+                                            const e = document.getElementById('iluo_estacao') as HTMLSelectElement;
+                                            const l = document.getElementById('iluo_nivel') as HTMLSelectElement;
+                                            const a = document.getElementById('iluo_avaliador') as HTMLInputElement;
+                                            if(!e.value) return;
+                                            
+                                            setIluoList(prev => {
+                                                const cleaned = prev.filter(item => item.estacao_id !== e.value);
+                                                return [...cleaned, {
+                                                    estacao_id: e.value,
+                                                    nivel_iluo: l.value,
+                                                    avaliador_nome: a.value,
+                                                    data_avaliacao: new Date().toISOString().substring(0, 10)
+                                                }];
+                                            });
+                                            e.value = '';
+                                            a.value = '';
+                                        }}
+                                    >Adicionar</button>
+                                </div>
+                            </div>
+
+                            <div className="space-y-2 mt-4 max-h-[250px] overflow-y-auto pr-2 custom-scrollbar">
+                                {iluoList.map(skill => {
+                                    const estacaoNome = estacoesDisponiveis.find(e => e.id === skill.estacao_id)?.nome_estacao || 'Desconhecida';
+                                    const cores: Record<string, string> = {
+                                        'I': 'bg-slate-100 text-slate-600 border-slate-300',
+                                        'L': 'bg-amber-100 text-amber-700 border-amber-300',
+                                        'U': 'bg-blue-100 text-blue-700 border-blue-300',
+                                        'O': 'bg-emerald-100 text-emerald-700 border-emerald-300'
+                                    };
+                                    return (
+                                        <div key={skill.estacao_id} className="flex items-center justify-between p-3 border border-slate-200 rounded-lg bg-white shadow-sm hover:border-slate-300 transition-colors">
+                                            <div className="flex items-center gap-4">
+                                                <div className={`w-9 h-9 rounded-full border-2 shadow-inner flex items-center justify-center font-black ${cores[skill.nivel_iluo] || cores['I']}`}>
+                                                    {skill.nivel_iluo}
+                                                </div>
+                                                <div>
+                                                    <div className="text-sm font-bold text-slate-800">{estacaoNome}</div>
+                                                    <div className="text-[10px] text-slate-400 font-medium">Avaliado por {skill.avaliador_nome || 'Sistema'} em {skill.data_avaliacao}</div>
+                                                </div>
+                                            </div>
+                                            <button type="button" onClick={() => setIluoList(prev => prev.filter(i => i.estacao_id !== skill.estacao_id))} className="text-xs font-bold text-red-500 hover:bg-red-50 px-3 py-1.5 rounded-md border border-transparent hover:border-red-100 transition-colors">Retirar</button>
+                                        </div>
+                                    )
+                                })}
+                                {iluoList.length === 0 && (
+                                    <div className="p-6 text-center border-2 border-dashed border-slate-200 rounded-lg">
+                                        <p className="text-slate-500 font-medium text-sm">Operário sem portefólio ILUO.</p>
+                                        <p className="text-[10px] text-slate-400 mt-1">Este funcionário não tem permissão matriculada em nenhuma máquina/estação produtiva.</p>
+                                    </div>
+                                )}
                             </div>
                         </div>
-                    </div>
-                    <div>
-                        <label className="block text-xs font-semibold text-slate-600 mb-1">Anotações RH</label>
-                        <textarea rows={3} value={formData.notas_rh} onChange={e => setFormData({ ...formData, notas_rh: e.target.value })} className={`${inputClass} resize-none`} placeholder="Registo de ausências, feedbacks disciplinares ou elogios..." />
+
+                        {/* Meta and Legacy */}
+                        <div className="lg:col-span-1 space-y-5 border-l border-slate-100 lg:pl-8">
+                            <div>
+                                <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Performance Histórica (Meta)</label>
+                                <div className="flex items-center gap-2">
+                                    <input type="number" step="0.1" min="0" max="100" value={formData.matriz_talento_media} onChange={e => setFormData({ ...formData, matriz_talento_media: e.target.value })} className={`${inputClass} border-indigo-200 bg-indigo-50/50 text-indigo-700 font-bold`} placeholder="Ex: 85" />
+                                    <span className="font-bold text-slate-400 text-sm">%</span>
+                                </div>
+                                <p className="text-[10px] text-slate-400 mt-1 italic leading-tight">Valor OEE calculado. Permanece associado passivamente.</p>
+                            </div>
+
+                            <div className="relative">
+                                <label className="block text-xs font-semibold text-slate-600 mb-1">Anotações da Liderança Fabril / RH</label>
+                                <textarea rows={5} value={formData.notas_rh} onChange={e => setFormData({ ...formData, notas_rh: e.target.value })} className={`${inputClass} resize-none h-32 focus:bg-white`} placeholder="Registo de advertências, progressões ou absentismo grave..." />
+                            </div>
+                        </div>
                     </div>
                 </section>
 

@@ -353,6 +353,23 @@ export function Sidebar({
                   </Link>
                   <Link
                     onClick={() => setIsOpen(false)}
+                    href="/admin/rh/iluo"
+                    className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname === "/admin/rh/iluo" ? "bg-blue-800 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
+                  >
+                    <Layers
+                      size={18}
+                      className={
+                        pathname === "/admin/rh/iluo"
+                          ? "text-white"
+                          : "text-blue-300"
+                      }
+                    />
+                    <span className="text-sm border-transparent">
+                      Matriz ILUO (Skills)
+                    </span>
+                  </Link>
+                  <Link
+                    onClick={() => setIsOpen(false)}
                     href="/admin/rh/avaliacoes"
                     className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname === "/admin/rh/avaliacoes" ? "bg-blue-800 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
                   >
