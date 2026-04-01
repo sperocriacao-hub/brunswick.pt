@@ -451,35 +451,36 @@ export default function TVConfiguracoesPage() {
                                     </div>
                                 )}
 
-                                {(tipoAlvo === 'ENGENHARIA' || tipoAlvo === 'GERAL') && (
-                                    <div className="space-y-3 pt-4 border-t border-slate-200">
-                                        <h3 className="text-sm font-bold uppercase tracking-widest text-slate-700">Áreas em Foco (Filtro Especial)</h3>
-                                        <p className="text-[10px] text-slate-500 font-medium">Selecione as áreas que deseja visualizar nesta TV. Se não selecionar nenhuma, a TV mostrará todas as áreas detetadas.</p>
-                                        <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 max-h-40 overflow-y-auto bg-slate-50 p-2 border border-slate-200 rounded-lg custom-scrollbar shadow-inner">
-                                            {areas.map(area => {
-                                                const isSelected = opcoesLayout.areasSelecionadas?.includes(area.id) || false;
-                                                return (
-                                                    <label key={area.id} className="flex items-center gap-2 cursor-pointer p-1.5 rounded hover:bg-white border border-transparent hover:border-slate-200 hover:shadow-sm transition-all">
-                                                        <input 
-                                                            type="checkbox" 
-                                                            checked={isSelected}
-                                                            onChange={(e) => {
-                                                                const checked = e.target.checked;
-                                                                setOpcoesLayout(prev => {
-                                                                    const cur = prev.areasSelecionadas || [];
-                                                                    if (checked) return { ...prev, areasSelecionadas: [...cur, area.id] };
-                                                                    else return { ...prev, areasSelecionadas: cur.filter(id => id !== area.id) };
-                                                                });
-                                                            }}
-                                                            className="w-3.5 h-3.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer shrink-0" 
-                                                        />
-                                                        <span className="text-[11px] font-bold text-slate-700 truncate uppercase tracking-widest select-none">{area.nome_area}</span>
-                                                    </label>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-                                )}
+                            </div>
+                        )}
+
+                        {(tipoAlvo === 'ENGENHARIA' || tipoAlvo === 'GERAL') && (
+                            <div className="space-y-3 pt-4 border-t border-slate-200">
+                                <h3 className="text-sm font-bold uppercase tracking-widest text-slate-700">Áreas em Foco (Filtro Especial)</h3>
+                                <p className="text-[10px] text-slate-500 font-medium">Selecione as áreas que deseja visualizar nesta TV. Se não selecionar nenhuma, a TV mostrará todas as áreas detetadas.</p>
+                                <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 max-h-40 overflow-y-auto bg-slate-50 p-2 border border-slate-200 rounded-lg custom-scrollbar shadow-inner">
+                                    {areas.map(area => {
+                                        const isSelected = opcoesLayout.areasSelecionadas?.includes(area.id) || false;
+                                        return (
+                                            <label key={area.id} className="flex items-center gap-2 cursor-pointer p-1.5 rounded hover:bg-white border border-transparent hover:border-slate-200 hover:shadow-sm transition-all">
+                                                <input 
+                                                    type="checkbox" 
+                                                    checked={isSelected}
+                                                    onChange={(e) => {
+                                                        const checked = e.target.checked;
+                                                        setOpcoesLayout(prev => {
+                                                            const cur = prev.areasSelecionadas || [];
+                                                            if (checked) return { ...prev, areasSelecionadas: [...cur, area.id] };
+                                                            else return { ...prev, areasSelecionadas: cur.filter(id => id !== area.id) };
+                                                        });
+                                                    }}
+                                                    className="w-3.5 h-3.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer shrink-0" 
+                                                />
+                                                <span className="text-[11px] font-bold text-slate-700 truncate uppercase tracking-widest select-none">{area.nome_area}</span>
+                                            </label>
+                                        );
+                                    })}
+                                </div>
                             </div>
                         )}
 

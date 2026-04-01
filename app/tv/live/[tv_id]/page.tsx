@@ -243,7 +243,7 @@ export default function CustomTVDashboardPage() {
             ) : tipoAlvo === 'ENGENHARIA' ? (
                 <main className="flex-1 overflow-hidden flex flex-col p-6">
                     {/* ENGENHARIA: ALERTS ONLY */}
-                    <section className="w-full flex-1 overflow-y-auto pr-2 pb-6 relative">
+                    <section className="w-full flex-1 overflow-hidden pr-2 pb-6 relative">
                         {(() => {
                             const activeAreas = radarEstacoes.filter(area => area.activeAndons && area.activeAndons.length > 0);
                             

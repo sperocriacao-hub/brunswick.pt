@@ -78,21 +78,21 @@ export default async function HSTBanner() {
             </div>
 
             {/* Centro: Ticker Dinâmico (Expande ao máximo) */}
-            {ocorrenciasHoje.length > 0 && (
-                <div className="flex-1 h-full flex items-center overflow-hidden border-l border-amber-500/30 pl-4 bg-slate-900/50 relative">
-                    <style dangerouslySetInnerHTML={{__html: `
-                        @keyframes ticker {
-                            0% { transform: translateX(100vw); }
-                            100% { transform: translateX(-100%); }
-                        }
-                        .animate-ticker-fast {
-                            animation: ticker 25s linear infinite;
-                            display: inline-flex;
-                            will-change: transform;
-                        }
-                    `}} />
-                    <div className="animate-ticker-fast whitespace-nowrap">
-                        {ocorrenciasHoje.map((occ: any, i: number) => (
+            <div className={`flex-1 h-full flex items-center overflow-hidden border-l ${ocorrenciasHoje.length > 0 ? 'border-amber-500/30' : 'border-emerald-500/30'} pl-4 bg-slate-900/50 relative`}>
+                <style dangerouslySetInnerHTML={{__html: `
+                    @keyframes ticker {
+                        0% { transform: translateX(100vw); }
+                        100% { transform: translateX(-100%); }
+                    }
+                    .animate-ticker-fast {
+                        animation: ticker 25s linear infinite;
+                        display: inline-flex;
+                        will-change: transform;
+                    }
+                `}} />
+                <div className="animate-ticker-fast whitespace-nowrap">
+                    {ocorrenciasHoje.length > 0 ? (
+                        ocorrenciasHoje.map((occ: any, i: number) => (
                             <div key={i} className="inline-flex items-center font-black uppercase tracking-widest text-lg mr-24">
                                 <span className="font-mono text-red-500 bg-red-950 px-2 py-0.5 rounded border border-red-800 mr-3 shadow-md">
                                     {new Date(occ.data_hora_ocorrencia).toLocaleTimeString('pt-PT', {hour: '2-digit', minute:'2-digit'})}
@@ -109,12 +109,17 @@ export default async function HSTBanner() {
                                     </span>
                                 )}
                             </div>
-                        ))}
-                    </div>
+                        ))
+                    ) : (
+                        <div className="inline-flex items-center font-black uppercase tracking-widest text-lg mr-24 text-emerald-400 drop-shadow-md">
+                            <ShieldCheck size={20} className="mr-3 text-emerald-500" />
+                            [ MENSAGEM HST ] ESTAMOS SEM ACIDENTES NESTE MOMENTO! OBRIGADO POR MANTER A FÁBRICA SEGURA!
+                        </div>
+                    )}
+                </div>
                     {/* Shadow Fade Effect */}
                     <div className="absolute left-0 top-0 w-8 h-full bg-gradient-to-r from-slate-900 to-transparent pointer-events-none z-10"></div>
                 </div>
-            )}
 
             {/* Direita: Meta (Permanece encostada à direita se não houver ocorrências, empurrada se houver Ticker vazio) */}
             <div className={`text-slate-500 text-xs font-mono font-bold uppercase flex gap-4 shrink-0 bg-slate-900 z-20 h-full items-center px-6 ${ocorrenciasHoje.length === 0 ? 'ml-auto' : 'border-l border-slate-800'}`}>
