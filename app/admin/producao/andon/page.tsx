@@ -162,9 +162,7 @@ export default function AndonDashPage() {
 
     const mttr = resolvidos > 0 ? Math.round(totalMinutosPerdidos / resolvidos) : 0;
 
-    const TAKT_TIME_HOURS = 40; // baseline 
-    const TAKT_TIME_MINUTES = TAKT_TIME_HOURS * 60;
-    const barcosPerdidos = (totalMinutosPerdidos / TAKT_TIME_MINUTES).toFixed(1);
+    // Takt Time UI removed upon request (keep pure total time)
 
     const mttrPorArea: Record<string, { resolvidos: number, minutos: number }> = {};
     const causadorasPerdaCount: Record<string, number> = {};
@@ -198,14 +196,16 @@ export default function AndonDashPage() {
         .sort((a,b) => b.horas - a.horas)
         .slice(0,5);
 
-    // Pareto Causas
-    const causasCount: Record<string, number> = {};
+    // Pareto Causas (Tipologia vs Horas Perdidas)
+    const causasPerdaCount: Record<string, number> = {};
     kpisCurrentMonth.forEach(a => {
-        causasCount[a.tipo_alerta] = (causasCount[a.tipo_alerta] || 0) + 1;
+        const loss = differenceInMinutes(a.resolvido_at ? new Date(a.resolvido_at) : new Date(), new Date(a.created_at));
+        causasPerdaCount[a.tipo_alerta] = (causasPerdaCount[a.tipo_alerta] || 0) + loss;
     });
-    const topCausas = Object.entries(causasCount)
-        .sort((a,b) => b[1] - a[1])
-        .map(([name, count]) => ({ name, count }));
+    const topCausas = Object.entries(causasPerdaCount)
+        .map(([name, loss]) => ({ name, horas: Math.round(loss/60) }))
+        .sort((a,b) => b.horas - a.horas)
+        .slice(0, 5);
 
     // Tendência últimos 4 meses (Baseado na selectedArea, ignora selectedMonth)
     const last4MonthsStr = Array.from({ length: 4 }).map((_, i) => {
@@ -494,7 +494,7 @@ export default function AndonDashPage() {
                             <CardContent className="relative z-10">
                                 <div className="text-4xl font-black text-white">{Math.floor(totalMinutosPerdidos / 60)}<span className="text-lg text-slate-400">h</span> {totalMinutosPerdidos % 60}<span className="text-lg text-slate-400">m</span></div>
                                 <div className="mt-3 text-xs text-red-300 font-bold bg-red-950/80 p-2 rounded border border-red-900/50 flex items-center gap-2 shadow-inner">
-                                    <TrendingDown size={14} className="animate-pulse" /> Equivale a ~{barcosPerdidos} Barcos perdidos (Takt: 40h)
+                                    <TrendingDown size={14} className="animate-pulse" /> Impacto direto na eficiência ({totalMinutosPerdidos} min)
                                 </div>
                             </CardContent>
                         </Card>
@@ -603,10 +603,10 @@ export default function AndonDashPage() {
                         </Card>
                     </div>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         <Card className="border-slate-200 shadow-sm">
                             <CardHeader>
-                                <CardTitle className="text-slate-800 text-sm font-bold uppercase tracking-widest">Volume Reportes (Cultivo Oculto)</CardTitle>
+                                <CardTitle className="text-slate-800 text-sm font-bold uppercase tracking-widest">Volume Reportes</CardTitle>
                             </CardHeader>
                             <CardContent className="h-[250px]">
                                 <ResponsiveContainer width="100%" height="100%">
@@ -623,7 +623,7 @@ export default function AndonDashPage() {
 
                         <Card className="border-slate-200 shadow-sm">
                             <CardHeader>
-                                <CardTitle className="text-slate-800 text-sm font-bold uppercase tracking-widest">Tendência Agilidade MTTR (Lean)</CardTitle>
+                                <CardTitle className="text-slate-800 text-sm font-bold uppercase tracking-widest">Tendência MTTR</CardTitle>
                             </CardHeader>
                             <CardContent className="h-[250px]">
                                 <ResponsiveContainer width="100%" height="100%">
@@ -635,6 +635,33 @@ export default function AndonDashPage() {
                                         <Line type="monotone" dataKey="MTTR" stroke="#10b981" strokeWidth={3} dot={{r:4, fill: '#10b981'}} activeDot={{r:6}} name="Média Resposta (min)" />
                                     </LineChart>
                                 </ResponsiveContainer>
+                            </CardContent>
+                        </Card>
+
+                        <Card className="border-slate-200 shadow-sm">
+                            <CardHeader>
+                                <CardTitle className="text-slate-800 text-sm flex items-center gap-2 font-bold uppercase tracking-widest">
+                                    <ListTodo size={16} className="text-indigo-500" /> Top Tempos p/ Incidência
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="h-[250px]">
+                                {topCausas.length > 0 ? (
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <BarChart data={topCausas} layout="vertical" margin={{ left: -10, right: 20 }}>
+                                            <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" />
+                                            <XAxis type="number" hide />
+                                            <YAxis dataKey="name" type="category" width={110} fontSize={10} tickLine={false} axisLine={false} />
+                                            <RechartsTooltip cursor={{fill: '#f8fafc'}} formatter={(val) => [`${val} horas`, 'Tempo Perdido']} />
+                                            <Bar dataKey="horas" fill="#8b5cf6" radius={[0, 4, 4, 0]}>
+                                                {topCausas.map((entry, index) => (
+                                                    <Cell key={`cell-${index}`} fill={index === 0 ? '#7c3aed' : '#a78bfa'} />
+                                                ))}
+                                            </Bar>
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                ) : (
+                                    <div className="h-full flex items-center justify-center text-slate-400 text-sm">Sem dados suficientes.</div>
+                                )}
                             </CardContent>
                         </Card>
                     </div>
