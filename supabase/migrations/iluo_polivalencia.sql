@@ -32,12 +32,12 @@ ON public.operador_iluo_matriz FOR DELETE USING (true);
 INSERT INTO public.operador_iluo_matriz (operador_id, estacao_id, nivel_iluo, avaliador_nome, data_avaliacao)
 SELECT 
     id as operador_id, 
-    estacao_id, 
-    nivel_iluo, 
+    posto_base_id as estacao_id, 
+    iluo_nivel as nivel_iluo, 
     'Migração Automática (Seed)' as avaliador_nome, 
     NOW() as data_avaliacao
 FROM public.operadores
-WHERE estacao_id IS NOT NULL 
-AND nivel_iluo IS NOT NULL 
-AND nivel_iluo IN ('I', 'L', 'U', 'O')
+WHERE posto_base_id IS NOT NULL 
+AND iluo_nivel IS NOT NULL 
+AND iluo_nivel IN ('I', 'L', 'U', 'O')
 ON CONFLICT (operador_id, estacao_id) DO NOTHING;
