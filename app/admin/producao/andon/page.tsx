@@ -108,24 +108,27 @@ export default function AndonDashPage() {
         return `${differenceInMinutes(new Date(end), new Date(start))} min`;
     };
 
-    // Calculate unique stations for filter dropdowns
-    const uniqueEstacoesProblema = Array.from(new Set(alertas.map(a => a.local_ocorrencia_id))).filter(Boolean);
-    const uniqueEstacoesCausadora = Array.from(new Set(alertas.map(a => a.estacao_id))).filter(Boolean);
-    
-    function getStationName(id: string, type: 'problema' | 'causadora') {
-        const al = alertas.find(a => type === 'problema' ? a.local_ocorrencia_id === id : a.estacao_id === id);
-        if (!al) return id;
-        return type === 'problema' 
-            ? (al.estacao_problema?.nome_estacao || 'Desconhecida') 
-            : (al.estacao_causadora?.nome_estacao || 'Desconhecida');
-    }
+    // Calculate unique AREAS for filter dropdowns
+    const mapAreasProblema = new Map<string, string>();
+    const mapAreasCausadora = new Map<string, string>();
+    alertas.forEach(a => {
+        if (a.estacao_problema?.areas_fabrica) {
+            mapAreasProblema.set(a.estacao_problema.areas_fabrica.id, a.estacao_problema.areas_fabrica.nome_area);
+        }
+        if (a.estacao_causadora?.areas_fabrica) {
+            mapAreasCausadora.set(a.estacao_causadora.areas_fabrica.id, a.estacao_causadora.areas_fabrica.nome_area);
+        }
+    });
+
+    const uniqueAreasProblema = Array.from(mapAreasProblema.entries()).map(([id, nome]) => ({id, nome}));
+    const uniqueAreasCausadora = Array.from(mapAreasCausadora.entries()).map(([id, nome]) => ({id, nome}));
 
     // Apply Filters
     const filteredAlertas = alertas.filter(al => {
         if (filterStatus === 'em_alerta' && al.resolvido) return false;
         if (filterStatus === 'solucionado' && !al.resolvido) return false;
-        if (filterProblema !== 'all' && al.local_ocorrencia_id !== filterProblema) return false;
-        if (filterCausadora !== 'all' && al.estacao_id !== filterCausadora) return false;
+        if (filterProblema !== 'all' && al.estacao_problema?.areas_fabrica?.id !== filterProblema) return false;
+        if (filterCausadora !== 'all' && al.estacao_causadora?.areas_fabrica?.id !== filterCausadora) return false;
         if (filterDate) {
             const alDate = new Date(al.created_at).toISOString().split('T')[0];
             if (alDate !== filterDate) return false;
@@ -294,15 +297,15 @@ export default function AndonDashPage() {
                                 <option value="solucionado">Solucionados</option>
                             </select>
                             <select value={filterProblema} onChange={e => setFilterProblema(e.target.value)} className="border border-slate-300 rounded-md px-3 py-1.5 focus:border-blue-500 focus:outline-none max-w-[150px] truncate">
-                                <option value="all">Qualquer Estação Problema</option>
-                                {uniqueEstacoesProblema.map(id => (
-                                    <option key={id as string} value={id as string}>{getStationName(id as string, 'problema')}</option>
+                                <option value="all">Qualquer Área Problema</option>
+                                {uniqueAreasProblema.map(area => (
+                                    <option key={area.id} value={area.id}>{area.nome}</option>
                                 ))}
                             </select>
                             <select value={filterCausadora} onChange={e => setFilterCausadora(e.target.value)} className="border border-slate-300 rounded-md px-3 py-1.5 focus:border-blue-500 focus:outline-none max-w-[150px] truncate">
-                                <option value="all">Qualquer Estação Causadora</option>
-                                {uniqueEstacoesCausadora.map(id => (
-                                    <option key={id as string} value={id as string}>{getStationName(id as string, 'causadora')}</option>
+                                <option value="all">Qualquer Área Causadora</option>
+                                {uniqueAreasCausadora.map(area => (
+                                    <option key={area.id} value={area.id}>{area.nome}</option>
                                 ))}
                             </select>
                             <Button variant="outline" size="sm" onClick={() => {
