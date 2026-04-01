@@ -1,7 +1,7 @@
 "use server";
 
 import { createClient } from '@/utils/supabase/server';
-import { PerguntaQuiz } from '@/app/admin/rh/quiz-cultura/actions';
+import { PerguntaQuizGroup } from '@/app/admin/rh/gestao-quizzes/actions';
 import { cookies } from 'next/headers';
 
 export type IdentidadeAnonima = {

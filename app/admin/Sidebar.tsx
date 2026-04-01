@@ -441,23 +441,50 @@ export function Sidebar({
                       Assiduidade Ativa
                     </span>
                   </Link>
+                </nav>
 
-                  {hasAccess("/admin/rh/quiz-cultura") && (
+                {/* MODULO 3: CLIMA E ACADEMIA */}
+                <p className="px-3 text-[10px] font-extrabold text-blue-400 uppercase tracking-widest mb-2 mt-4">
+                  Clima & Academia
+                </p>
+                <nav className="flex flex-col gap-1 mb-6">
+                  
+                  {hasAccess("/admin/rh/formacoes") && (
                     <Link
                       onClick={() => setIsOpen(false)}
-                      href="/admin/rh/quiz-cultura"
-                      className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname === "/admin/rh/quiz-cultura" ? "bg-blue-800 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
+                      href="/admin/rh/formacoes"
+                      className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname === "/admin/rh/formacoes" ? "bg-blue-800 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
                     >
-                      <ListTodo
+                      <GraduationCap
                         size={18}
                         className={
-                          pathname === "/admin/rh/quiz-cultura"
+                          pathname === "/admin/rh/formacoes"
                             ? "text-white"
                             : "text-blue-300"
                         }
                       />
                       <span className="text-sm border-transparent">
-                        Gestão Quiz Cultura
+                        Academia Fabril
+                      </span>
+                    </Link>
+                  )}
+
+                  {hasAccess("/admin/rh/gestao-quizzes") && (
+                    <Link
+                      onClick={() => setIsOpen(false)}
+                      href="/admin/rh/gestao-quizzes"
+                      className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname === "/admin/rh/gestao-quizzes" ? "bg-blue-800 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
+                    >
+                      <ListTodo
+                        size={18}
+                        className={
+                          pathname === "/admin/rh/gestao-quizzes"
+                            ? "text-white"
+                            : "text-blue-300"
+                        }
+                      />
+                      <span className="text-sm border-transparent">
+                        Gestão de Quizzes (360)
                       </span>
                     </Link>
                   )}
