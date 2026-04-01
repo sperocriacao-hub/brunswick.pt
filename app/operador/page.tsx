@@ -49,7 +49,7 @@ export default function InteractiveTabletPage() {
 
     // Andon State
     const [isAndonModalOpen, setIsAndonModalOpen] = useState(false);
-    const [andonType, setAndonType] = useState('Falta de peça');
+    const [andonType, setAndonType] = useState('Ajuste técnico');
     const [andonDesc, setAndonDesc] = useState('');
     const [causadoraEstacaoId, setCausadoraEstacaoId] = useState('');
 
@@ -768,10 +768,16 @@ export default function InteractiveTabletPage() {
                                 onChange={(e) => setAndonType(e.target.value)}
                                 className="w-full bg-slate-950 border border-slate-700 rounded-lg p-4 text-white text-lg font-medium focus:ring-red-500 focus:border-red-500"
                             >
-                                <option value="Falta de peça">⚠️ Falta de Peça</option>
+                                <option value="Ajuste técnico">⚙️ Ajuste Técnico</option>
                                 <option value="Avaria de equipamento">🔧 Avaria de Equipamento</option>
-                                <option value="Ajuste técnico">⚙️ Ajuste Técnico/Qualidade</option>
-                                <option value="Scrap">🗑️ Defeito / Scrap</option>
+                                <option value="Defeito">📉 Defeito</option>
+                                <option value="Falta">⚠️ Falta</option>
+                                <option value="Fornecimento">📦 Fornecimento</option>
+                                <option value="Mal ligado">🔌 Mal ligado</option>
+                                <option value="Mal montado">🔨 Mal montado</option>
+                                <option value="Pick">🛒 Pick</option>
+                                <option value="Qualidade">🔎 Qualidade</option>
+                                <option value="Scrap">🗑️ Scrap</option>
                                 <option value="Outros">❓ Outros</option>
                             </select>
                         </div>
