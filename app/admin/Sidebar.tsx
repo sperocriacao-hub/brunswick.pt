@@ -26,7 +26,16 @@ import {
   Briefcase,
   Users,
   Wifi,
-  FlaskConical
+  FlaskConical,
+  UserCheck,
+  Search,
+  Frown,
+  Meh,
+  Smile,
+  Heart,
+  ThumbsDown,
+  Star,
+  GraduationCap
 } from "lucide-react";
 
 export function Sidebar({
