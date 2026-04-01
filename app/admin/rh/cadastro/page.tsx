@@ -136,6 +136,34 @@ function FuncionarioFormCore() {
                         })));
                     }
                 });
+
+            // Carregar e calcular Média Histórica de Avaliações em tempo real (Garante a precisão)
+            Promise.all([
+                supabase.from('avaliacoes_diarias').select('*').eq('funcionario_id', id),
+                supabase.from('avaliacoes_lideranca').select('*').eq('funcionario_id', id)
+            ]).then(([diariasRes, liderancaRes]) => {
+                let totalScore = 0;
+                let numMetrics = 0;
+
+                if (diariasRes.data && !diariasRes.error) {
+                    diariasRes.data.forEach((av: any) => {
+                        totalScore += Number(av.nota_hst||0) + Number(av.nota_epi||0) + Number(av.nota_5s||0) + Number(av.nota_qualidade||0) + Number(av.nota_eficiencia||0) + Number(av.nota_objetivos||0) + Number(av.nota_atitude||0);
+                        numMetrics += 7;
+                    });
+                }
+
+                if (liderancaRes.data && !liderancaRes.error) {
+                    liderancaRes.data.forEach((av: any) => {
+                        totalScore += Number(av.nota_hst||0) + Number(av.nota_epi||0) + Number(av.nota_5s||0) + Number(av.nota_eficiencia||0) + Number(av.nota_objetivos||0) + Number(av.nota_atitude||0) + Number(av.nota_gestao_motivacao||0) + Number(av.nota_desenvolvimento||0) + Number(av.nota_desperdicios||0) + Number(av.nota_qualidade||0) + Number(av.nota_operacoes||0) + Number(av.nota_melhoria||0) + Number(av.nota_kpis||0) + Number(av.nota_cultura||0);
+                        numMetrics += 14;
+                    });
+                }
+
+                if (numMetrics > 0) {
+                    const avg = totalScore / numMetrics;
+                    setFormData(prev => ({ ...prev, matriz_talento_media: avg.toFixed(1) }));
+                }
+            });
         }
     }, [id, supabase]);
 
@@ -550,11 +578,16 @@ function FuncionarioFormCore() {
                                         <div className="text-[9px] font-bold text-slate-500 uppercase">ILUO Habilidades</div>
                                         <div className="text-xl font-black text-slate-800">{iluoCoefficient.toFixed(1)} <span className="text-[10px] text-slate-400 font-medium">/ 4.0</span></div>
                                     </div>
-                                    <div className="bg-white p-2 border border-slate-200 rounded-lg text-center shadow-sm">
-                                        <div className="text-[9px] font-bold text-slate-500 uppercase">Avaliações Diárias</div>
+                                    <div className="bg-white p-2 border border-slate-200 rounded-lg text-center shadow-sm relative group cursor-help">
+                                        <div className="text-[9px] font-bold text-slate-500 uppercase">Avaliações Históricas</div>
                                         <div className="flex items-center justify-center">
-                                            <input type="number" step="0.1" min="0" max="4" value={formData.matriz_talento_media} onChange={e => setFormData({ ...formData, matriz_talento_media: e.target.value })} className="w-16 text-center text-xl font-black text-blue-700 bg-transparent focus:outline-none focus:bg-blue-50 rounded" placeholder="0.0" />
-                                            <span className="text-[10px] text-slate-400 font-medium">/ 4.0</span>
+                                            <span className="text-xl font-black text-blue-700">{evalCoefficient.toFixed(1)}</span>
+                                            <span className="text-[10px] text-slate-400 font-medium ml-1">/ 4.0</span>
+                                        </div>
+                                        {/* Tooltip */}
+                                        <div className="hidden group-hover:block absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-slate-900 shadow-xl rounded-md p-2 text-left z-50">
+                                            <div className="text-white text-xs font-medium">Extraído em tempo real das tabelas de Avaliações Diárias e de Liderança.</div>
+                                            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-slate-900 rotate-45"></div>
                                         </div>
                                     </div>
                                 </div>
