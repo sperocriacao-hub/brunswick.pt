@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { getAndonHistory, fecharAlertaAndon, clonarAlertaAndon, getLoggedOperadorRfid } from './actions';
 import { getTVConfigs } from '../../configuracoes/tvs/actions';
-import { AlertCircle, Clock, CheckCircle2, Factory, Hammer, Tv, Filter, BarChart2, ListTodo, Activity, Timer, AlertTriangle } from 'lucide-react';
+import { AlertCircle, Clock, CheckCircle2, Factory, Hammer, Tv, Filter, BarChart2, ListTodo, Activity, Timer, AlertTriangle, TrendingDown, TrendingUp, Trophy, ShieldCheck, Ship } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -162,18 +162,41 @@ export default function AndonDashPage() {
 
     const mttr = resolvidos > 0 ? Math.round(totalMinutosPerdidos / resolvidos) : 0;
 
-    // Pareto Area/Causadoras
-    const causadorasCount: Record<string, number> = {};
+    const TAKT_TIME_HOURS = 40; // baseline 
+    const TAKT_TIME_MINUTES = TAKT_TIME_HOURS * 60;
+    const barcosPerdidos = (totalMinutosPerdidos / TAKT_TIME_MINUTES).toFixed(1);
+
+    const mttrPorArea: Record<string, { resolvidos: number, minutos: number }> = {};
+    const causadorasPerdaCount: Record<string, number> = {};
+    const heatmapAreasCount: Record<string, number> = {};
+
     kpisCurrentMonth.forEach(a => {
-        const nome = selectedArea === 'all' 
-            ? (a.estacao_causadora?.areas_fabrica?.nome_area || 'Área Desconhecida') 
-            : (a.estacao_causadora?.nome_estacao || 'Desconhecida');
-        causadorasCount[nome] = (causadorasCount[nome] || 0) + 1;
+        const areaName = a.estacao_causadora?.areas_fabrica?.nome_area || 'Desconhecida';
+        heatmapAreasCount[areaName] = (heatmapAreasCount[areaName] || 0) + 1;
+
+        const loss = differenceInMinutes(a.resolvido_at ? new Date(a.resolvido_at) : new Date(), new Date(a.created_at));
+        causadorasPerdaCount[areaName] = (causadorasPerdaCount[areaName] || 0) + loss;
+
+        if (a.resolvido && a.resolvido_at) {
+            if (!mttrPorArea[areaName]) mttrPorArea[areaName] = { resolvidos: 0, minutos: 0 };
+            mttrPorArea[areaName].resolvidos++;
+            mttrPorArea[areaName].minutos += loss;
+        }
     });
-    const topCausadoras = Object.entries(causadorasCount)
-        .sort((a,b) => b[1] - a[1])
-        .slice(0,5)
-        .map(([name, count]) => ({ name, count }));
+
+    const rankingMttrData = Object.entries(mttrPorArea)
+        .map(([name, data]) => ({
+            name,
+            mttr: data.resolvidos > 0 ? Math.round(data.minutos / data.resolvidos) : 0
+        }))
+        .filter(item => item.mttr > 0)
+        .sort((a, b) => a.mttr - b.mttr)
+        .slice(0, 5); // top 5 mais ágeis
+
+    const topViloes = Object.entries(causadorasPerdaCount)
+        .map(([name, loss]) => ({ name, horas: Math.round(loss/60) }))
+        .sort((a,b) => b.horas - a.horas)
+        .slice(0,5);
 
     // Pareto Causas
     const causasCount: Record<string, number> = {};
@@ -202,13 +225,6 @@ export default function AndonDashPage() {
         };
     });
 
-    // Helper for Heatmap Factory
-    const heatmapAreasCount: Record<string, number> = {};
-    kpisCurrentMonth.forEach(a => {
-        const aname = a.estacao_causadora?.areas_fabrica?.nome_area;
-        if (aname) heatmapAreasCount[aname] = (heatmapAreasCount[aname] || 0) + 1;
-    });
-
     // Generate unique areas for filter
     const uniqueAreaList = Array.from(new Set(
         alertas.map(a => {
@@ -216,6 +232,14 @@ export default function AndonDashPage() {
             return ar ? JSON.stringify({id: ar.id, nome: ar.nome_area}) : null;
         }).filter(Boolean)
     )).map(s => JSON.parse(s as string));
+
+    // Heróis da fiabilidade
+    const allAreasNames = uniqueAreaList.map((a: any) => a.nome);
+    const areasComFalhas = new Set(kpisCurrentMonth.map(a => a.estacao_causadora?.areas_fabrica?.nome_area).filter(Boolean));
+    const areasLivresDeFalhas = allAreasNames.filter(a => !areasComFalhas.has(a));
+    const topFiaveis = areasLivresDeFalhas.length > 0 
+        ? areasLivresDeFalhas.map(name => ({name, alertas: 0})) 
+        : Object.entries(heatmapAreasCount).map(([name, count]) => ({name, alertas: count as number})).sort((a,b) => a.alertas - b.alertas).slice(0,3);
 
     return (
         <div className="p-8 pb-32 max-w-7xl mx-auto space-y-6 animate-in fade-in duration-500">
@@ -458,15 +482,20 @@ export default function AndonDashPage() {
                             </CardContent>
                         </Card>
 
-                        <Card className="border-slate-200 shadow-sm">
-                            <CardHeader className="pb-2">
-                                <CardTitle className="text-sm font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                                    <Clock size={16} className="text-red-500" /> Tempo Total Perdido
+                        <Card className="border-slate-200 shadow-sm relative overflow-hidden bg-gradient-to-br from-slate-900 to-slate-800 text-white border-none">
+                            <div className="absolute top-0 right-0 p-4 opacity-10">
+                                <AlertTriangle size={64} />
+                            </div>
+                            <CardHeader className="pb-2 relative z-10">
+                                <CardTitle className="text-sm font-bold text-slate-300 uppercase tracking-widest flex items-center gap-2">
+                                    <Clock size={16} className="text-red-400" /> Impacto OEE (Tempo Perdido)
                                 </CardTitle>
                             </CardHeader>
-                            <CardContent>
-                                <div className="text-4xl font-black text-slate-800">{Math.floor(totalMinutosPerdidos / 60)}<span className="text-lg text-slate-400">h</span> {totalMinutosPerdidos % 60}<span className="text-lg text-slate-400">m</span></div>
-                                <p className="text-xs text-slate-400 mt-1">Impacto direto no OEE</p>
+                            <CardContent className="relative z-10">
+                                <div className="text-4xl font-black text-white">{Math.floor(totalMinutosPerdidos / 60)}<span className="text-lg text-slate-400">h</span> {totalMinutosPerdidos % 60}<span className="text-lg text-slate-400">m</span></div>
+                                <div className="mt-3 text-xs text-red-300 font-bold bg-red-950/80 p-2 rounded border border-red-900/50 flex items-center gap-2 shadow-inner">
+                                    <TrendingDown size={14} className="animate-pulse" /> Equivale a ~{barcosPerdidos} Barcos perdidos (Takt: 40h)
+                                </div>
                             </CardContent>
                         </Card>
 
@@ -485,58 +514,26 @@ export default function AndonDashPage() {
                         </Card>
                     </div>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <Card className="border-slate-200 shadow-sm">
+                    {/* SEGUNDA LINHA: OS NOVOS RANKINGS DE MATURIDADE (LEAN) */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        {/* WINNERS: MTTR */}
+                        <Card className="border-slate-200 shadow-sm lg:col-span-1 border-t-4 border-t-emerald-500">
                             <CardHeader>
-                                <CardTitle className="text-slate-800 text-sm font-bold uppercase tracking-widest">Tendência Ocorrências (Últ. 4 Meses)</CardTitle>
-                            </CardHeader>
-                            <CardContent className="h-[250px]">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={trendData}>
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                                        <XAxis dataKey="name" fontSize={11} tickLine={false} axisLine={false} />
-                                        <YAxis fontSize={11} tickLine={false} axisLine={false} />
-                                        <RechartsTooltip cursor={{fill: '#f8fafc'}} />
-                                        <Bar dataKey="Ocorrências" fill="#ef4444" radius={[4, 4, 0, 0]} />
-                                    </BarChart>
-                                </ResponsiveContainer>
-                            </CardContent>
-                        </Card>
-
-                        <Card className="border-slate-200 shadow-sm">
-                            <CardHeader>
-                                <CardTitle className="text-slate-800 text-sm font-bold uppercase tracking-widest">Evolução MTTR (Últ. 4 Meses)</CardTitle>
-                            </CardHeader>
-                            <CardContent className="h-[250px]">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <LineChart data={trendData}>
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                                        <XAxis dataKey="name" fontSize={11} tickLine={false} axisLine={false} />
-                                        <YAxis fontSize={11} tickLine={false} axisLine={false} />
-                                        <RechartsTooltip />
-                                        <Line type="monotone" dataKey="MTTR" stroke="#f59e0b" strokeWidth={3} dot={{r:4, fill: '#f59e0b'}} activeDot={{r:6}} />
-                                    </LineChart>
-                                </ResponsiveContainer>
-                            </CardContent>
-                        </Card>
-
-                        <Card className="border-slate-200 shadow-sm">
-                            <CardHeader>
-                                <CardTitle className="text-slate-800 text-sm flex items-center gap-2">
-                                    <AlertCircle size={16} className="text-red-500" /> Pareto de {selectedArea === 'all' ? 'Áreas Causadoras' : 'Estações Causadoras'} (Top 5)
+                                <CardTitle className="text-slate-800 text-sm font-bold uppercase tracking-widest flex items-center gap-2">
+                                    <TrendingUp size={16} className="text-emerald-500" /> Top Áreas (Agilidade Resposta)
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="h-[250px]">
-                                {topCausadoras.length > 0 ? (
+                                {rankingMttrData.length > 0 ? (
                                     <ResponsiveContainer width="100%" height="100%">
-                                        <BarChart data={topCausadoras} layout="vertical" margin={{ left: -10, right: 20 }}>
+                                        <BarChart data={rankingMttrData} layout="vertical" margin={{ left: -10, right: 20 }}>
                                             <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" />
                                             <XAxis type="number" hide />
-                                            <YAxis dataKey="name" type="category" width={110} fontSize={10} tickLine={false} axisLine={false} />
-                                            <RechartsTooltip cursor={{fill: '#f8fafc'}} />
-                                            <Bar dataKey="count" fill="#3b82f6" radius={[0, 4, 4, 0]}>
-                                                {topCausadoras.map((entry, index) => (
-                                                    <Cell key={`cell-${index}`} fill={index === 0 ? '#ef4444' : '#60a5fa'} />
+                                            <YAxis dataKey="name" type="category" width={100} fontSize={10} tickLine={false} axisLine={false} />
+                                            <RechartsTooltip cursor={{fill: '#f8fafc'}} formatter={(val) => [`${val} min`, 'MTTR Médio']} />
+                                            <Bar dataKey="mttr" fill="#10b981" radius={[0, 4, 4, 0]}>
+                                                {rankingMttrData.map((entry, index) => (
+                                                    <Cell key={`cell-${index}`} fill={index === 0 ? '#059669' : '#34d399'} />
                                                 ))}
                                             </Bar>
                                         </BarChart>
@@ -547,26 +544,97 @@ export default function AndonDashPage() {
                             </CardContent>
                         </Card>
 
-                        <Card className="border-slate-200 shadow-sm">
+                        {/* LOSERS: VILÕES DA PRODUÇÃO */}
+                        <Card className="border-slate-200 shadow-sm lg:col-span-1 border-t-4 border-t-red-500">
                             <CardHeader>
-                                <CardTitle className="text-slate-800 text-sm flex items-center gap-2">
-                                    <ListTodo size={16} className="text-indigo-500" /> Pareto de Causas Naturais
+                                <CardTitle className="text-slate-800 text-sm flex items-center gap-2 font-bold uppercase tracking-widest">
+                                    <AlertCircle size={16} className="text-red-500" /> Ofensores da Produção (Pareto)
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="h-[250px]">
-                                {topCausas.length > 0 ? (
+                                {topViloes.length > 0 ? (
                                     <ResponsiveContainer width="100%" height="100%">
-                                        <BarChart data={topCausas} layout="vertical" margin={{ left: -10, right: 20 }}>
+                                        <BarChart data={topViloes} layout="vertical" margin={{ left: -10, right: 20 }}>
                                             <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" />
                                             <XAxis type="number" hide />
-                                            <YAxis dataKey="name" type="category" width={110} fontSize={10} tickLine={false} axisLine={false} />
-                                            <RechartsTooltip cursor={{fill: '#f8fafc'}} />
-                                            <Bar dataKey="count" fill="#8b5cf6" radius={[0, 4, 4, 0]} />
+                                            <YAxis dataKey="name" type="category" width={100} fontSize={10} tickLine={false} axisLine={false} />
+                                            <RechartsTooltip cursor={{fill: '#f8fafc'}} formatter={(val) => [`${val} horas`, 'Tempo Destruído']} />
+                                            <Bar dataKey="horas" fill="#ef4444" radius={[0, 4, 4, 0]}>
+                                                {topViloes.map((entry, index) => (
+                                                    <Cell key={`cell-${index}`} fill={index === 0 ? '#b91c1c' : '#f87171'} />
+                                                ))}
+                                            </Bar>
                                         </BarChart>
                                     </ResponsiveContainer>
                                 ) : (
-                                    <div className="h-full flex items-center justify-center text-slate-400 text-sm">Sem dados.</div>
+                                    <div className="h-full flex items-center justify-center text-slate-400 text-sm">Sem dados suficientes.</div>
                                 )}
+                            </CardContent>
+                        </Card>
+
+                        {/* WINNERS: PÓDIO FIABILIDADE */}
+                        <Card className="border-slate-200 shadow-sm lg:col-span-1 bg-slate-50 border-t-4 border-t-amber-500">
+                            <CardHeader>
+                                <CardTitle className="text-slate-800 text-sm font-bold uppercase tracking-widest flex items-center gap-2">
+                                    <ShieldCheck size={16} className="text-amber-500" /> Pódio de Fiabilidade
+                                </CardTitle>
+                                <p className="text-xs text-slate-500 m-0">Áreas com ZERO ou menores níveis de falhas.</p>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="space-y-4 mt-2">
+                                    {topFiaveis.map((area, idx) => (
+                                        <div key={idx} className="flex items-center gap-3 bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
+                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black ${idx === 0 ? 'bg-amber-100 text-amber-600' : idx === 1 ? 'bg-slate-200 text-slate-600' : 'bg-orange-100 text-orange-700'}`}>
+                                                {idx === 0 ? <Trophy size={16} /> : idx + 1}
+                                            </div>
+                                            <div className="flex-1">
+                                                <div className="font-bold text-slate-700 text-sm">{area.name}</div>
+                                                <div className="text-[10px] text-slate-400 uppercase tracking-widest">
+                                                    {area.alertas === 0 ? '🏆 100% Livre de Falhas' : `${area.alertas} Ocorrências (Top Fabril)`}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {topFiaveis.length === 0 && (
+                                        <div className="text-center p-4 text-slate-400 italic text-sm">A analisar dados históricos...</div>
+                                    )}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <Card className="border-slate-200 shadow-sm">
+                            <CardHeader>
+                                <CardTitle className="text-slate-800 text-sm font-bold uppercase tracking-widest">Volume Reportes (Cultivo Oculto)</CardTitle>
+                            </CardHeader>
+                            <CardContent className="h-[250px]">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={trendData}>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                                        <XAxis dataKey="name" fontSize={11} tickLine={false} axisLine={false} />
+                                        <YAxis fontSize={11} tickLine={false} axisLine={false} />
+                                        <RechartsTooltip cursor={{fill: '#f8fafc'}} />
+                                        <Bar dataKey="Ocorrências" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </CardContent>
+                        </Card>
+
+                        <Card className="border-slate-200 shadow-sm">
+                            <CardHeader>
+                                <CardTitle className="text-slate-800 text-sm font-bold uppercase tracking-widest">Tendência Agilidade MTTR (Lean)</CardTitle>
+                            </CardHeader>
+                            <CardContent className="h-[250px]">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <LineChart data={trendData}>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                                        <XAxis dataKey="name" fontSize={11} tickLine={false} axisLine={false} />
+                                        <YAxis fontSize={11} tickLine={false} axisLine={false} />
+                                        <RechartsTooltip />
+                                        <Line type="monotone" dataKey="MTTR" stroke="#10b981" strokeWidth={3} dot={{r:4, fill: '#10b981'}} activeDot={{r:6}} name="Média Resposta (min)" />
+                                    </LineChart>
+                                </ResponsiveContainer>
                             </CardContent>
                         </Card>
                     </div>
