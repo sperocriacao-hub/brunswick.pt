@@ -16,7 +16,7 @@ function FuncionarioFormCore() {
 
     const [isLoading, setIsLoading] = useState(false);
     const [isFetchingData, setIsFetchingData] = useState(!!id);
-    const [estacoesDisponiveis, setEstacoesDisponiveis] = useState<{ id: string, nome_estacao: string }[]>([]);
+    const [estacoesDisponiveis, setEstacoesDisponiveis] = useState<any[]>([]);
     const [areasDisponiveis, setAreasDisponiveis] = useState<{ id: string, nome_area: string }[]>([]);
     const [originalEmail, setOriginalEmail] = useState('');
 
@@ -65,7 +65,7 @@ function FuncionarioFormCore() {
 
     useEffect(() => {
         // Carregar Estações (Para Alocação do Posto de Trabalho M.E.S)
-        supabase.from('estacoes').select('id, nome_estacao').order('nome_estacao')
+        supabase.from('estacoes').select('id, nome_estacao, areas_fabrica(id)').order('nome_estacao')
             .then(({ data }) => setEstacoesDisponiveis(data || []));
 
         // Carregar Áreas de Fábrica (Para Equipa / Grupo)
@@ -214,6 +214,61 @@ function FuncionarioFormCore() {
             router.refresh();
         }
     };
+
+    const getIluoPoints = (nivel: string) => {
+        if (nivel === 'I') return 1;
+        if (nivel === 'L') return 2;
+        if (nivel === 'U') return 3;
+        if (nivel === 'O') return 4;
+        return 0;
+    };
+
+    const getIluoCoefficient = () => {
+        if (!formData.posto_base_id || iluoList.length === 0) return 0;
+        
+        // Find Area of the Primary Station
+        const estacaoPrincipalInfo = estacoesDisponiveis.find(e => e.id === formData.posto_base_id);
+        const areaId = estacaoPrincipalInfo?.areas_fabrica?.id;
+
+        if (!areaId) return 0;
+
+        let totalPoints = 0;
+        iluoList.forEach(iluo => {
+            const pts = getIluoPoints(iluo.nivel_iluo);
+            const estInfo = estacoesDisponiveis.find(e => e.id === iluo.estacao_id);
+            if (estInfo && estInfo.areas_fabrica?.id === areaId) {
+                totalPoints += pts; // Mesma área
+            } else {
+                totalPoints += pts * 1.25; // Bonus polivalência externa
+            }
+        });
+
+        // Benchmark Excelência (12 Pontos na Área = Max 4.0)
+        const BENCHMARK = 12.0;
+        let coeff = (totalPoints / BENCHMARK) * 4.0;
+        if (coeff > 4.0) coeff = 4.0;
+        
+        return Math.round(coeff * 10) / 10;
+    };
+
+    const iluoCoefficient = getIluoCoefficient();
+    const evalCoefficientStr = formData.matriz_talento_media || '0';
+    let evalCoefficient = parseFloat(evalCoefficientStr);
+    if (isNaN(evalCoefficient)) evalCoefficient = 0;
+    
+    // Coeficiente Real
+    const realCoefficient = Math.round(((iluoCoefficient + evalCoefficient) / 2) * 10) / 10;
+
+    const getBadgeInfo = (coeff: number) => {
+        if (coeff > 3.8) return { label: 'Super Estrela', classes: 'bg-emerald-100 text-emerald-800 border-emerald-400 font-extrabold animate-pulse shadow-[0_0_15px_rgba(16,185,129,0.5)]' };
+        if (coeff >= 3.5) return { label: 'Estrela', classes: 'bg-sky-100 text-sky-800 border-sky-400 font-bold' };
+        if (coeff >= 3.0) return { label: 'Potencial', classes: 'bg-fuchsia-100 text-fuchsia-800 border-fuchsia-400 font-bold' };
+        if (coeff >= 2.5) return { label: 'Contribuidor', classes: 'bg-amber-100 text-amber-800 border-amber-400 font-bold' };
+        if (coeff >= 2.0) return { label: 'Passageiro', classes: 'bg-orange-100 text-orange-800 border-orange-400 font-bold' };
+        return { label: 'Alerta RH', classes: 'bg-red-100 text-red-800 border-red-500 font-extrabold' };
+    };
+    
+    const badge = getBadgeInfo(realCoefficient);
 
     if (isFetchingData) {
         return <div className="p-20 flex justify-center opacity-50"><Loader2 className="animate-spin" size={40} /></div>;
@@ -487,13 +542,39 @@ function FuncionarioFormCore() {
 
                         {/* Meta and Legacy */}
                         <div className="lg:col-span-1 space-y-5 border-l border-slate-100 lg:pl-8">
-                            <div>
-                                <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Performance Histórica (Meta)</label>
-                                <div className="flex items-center gap-2">
-                                    <input type="number" step="0.1" min="0" max="100" value={formData.matriz_talento_media} onChange={e => setFormData({ ...formData, matriz_talento_media: e.target.value })} className={`${inputClass} border-indigo-200 bg-indigo-50/50 text-indigo-700 font-bold`} placeholder="Ex: 85" />
-                                    <span className="font-bold text-slate-400 text-sm">%</span>
+                            <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl shadow-inner relative overflow-hidden">
+                                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center mb-4">Motor Dinâmico de Talentos</h4>
+                                
+                                <div className="grid grid-cols-2 gap-3 mb-4 relative z-10">
+                                    <div className="bg-white p-2 border border-slate-200 rounded-lg text-center shadow-sm">
+                                        <div className="text-[9px] font-bold text-slate-500 uppercase">ILUO Habilidades</div>
+                                        <div className="text-xl font-black text-slate-800">{iluoCoefficient.toFixed(1)} <span className="text-[10px] text-slate-400 font-medium">/ 4.0</span></div>
+                                    </div>
+                                    <div className="bg-white p-2 border border-slate-200 rounded-lg text-center shadow-sm">
+                                        <div className="text-[9px] font-bold text-slate-500 uppercase">Avaliações Diárias</div>
+                                        <div className="flex items-center justify-center">
+                                            <input type="number" step="0.1" min="0" max="4" value={formData.matriz_talento_media} onChange={e => setFormData({ ...formData, matriz_talento_media: e.target.value })} className="w-16 text-center text-xl font-black text-blue-700 bg-transparent focus:outline-none focus:bg-blue-50 rounded" placeholder="0.0" />
+                                            <span className="text-[10px] text-slate-400 font-medium">/ 4.0</span>
+                                        </div>
+                                    </div>
                                 </div>
-                                <p className="text-[10px] text-slate-400 mt-1 italic leading-tight">Valor OEE calculado. Permanece associado passivamente.</p>
+                                
+                                <div className="bg-white border border-indigo-100 rounded-lg p-3 text-center shadow-[0_2px_10px_rgba(79,70,229,0.06)] relative z-10">
+                                    <div className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-1">Coeficiente Real</div>
+                                    <div className="flex items-center justify-center gap-3">
+                                        <span className="text-3xl font-black text-indigo-900">{realCoefficient.toFixed(1)}</span>
+                                        <div className={`px-2 py-1 rounded text-xs uppercase tracking-tight border ${badge.classes} min-w-[100px]`}>
+                                            {badge.label}
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                {/* Background Decorative Element */}
+                                <div className="absolute -right-6 -bottom-6 opacity-5 pointer-events-none">
+                                    <svg width="100" height="100" viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                                    </svg>
+                                </div>
                             </div>
 
                             <div className="relative">
