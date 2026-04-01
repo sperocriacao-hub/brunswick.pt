@@ -55,8 +55,8 @@ export async function iniciarSessaoFormacao(rfid_ou_numero: string) {
         nome_operador: opData.nome_operador,
         funcao_ativa: isFormador ? 'Formador' : 'Formando',
         formacao_id: formacao.id,
-        alvo_nome: isFormador ? formacao.formando?.nome_operador : formacao.formador?.nome_operador,
-        estacao_nome: formacao.estacao?.nome_estacao || 'Desconhecida'
+        alvo_nome: isFormador ? (formacao.formando as any)?.nome_operador : (formacao.formador as any)?.nome_operador,
+        estacao_nome: (formacao.estacao as any)?.nome_estacao || 'Desconhecida'
     };
 
     return { success: true, data: payload };
