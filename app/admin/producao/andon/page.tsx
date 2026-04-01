@@ -31,6 +31,7 @@ export default function AndonDashPage() {
 
     // Filters (KPIs)
     const [selectedMonth, setSelectedMonth] = useState<string>(format(new Date(), 'yyyy-MM'));
+    const [selectedDayKpi, setSelectedDayKpi] = useState<string>('');
     const [selectedArea, setSelectedArea] = useState<string>('all');
 
     // ANDON Help Modal State
@@ -142,10 +143,18 @@ export default function AndonDashPage() {
         return true;
     });
 
-    // Sub-filter for Current Month Selection
+    // Sub-filter for Current Month and optionally Day Selection
     const kpisCurrentMonth = kpisFilteredByArea.filter(a => {
-        const alMonth = format(new Date(a.created_at), 'yyyy-MM');
-        return alMonth === selectedMonth;
+        const alDateObj = new Date(a.created_at);
+        const alMonth = format(alDateObj, 'yyyy-MM');
+        if (alMonth !== selectedMonth) return false;
+        
+        if (selectedDayKpi) {
+            const alDayDate = format(alDateObj, 'yyyy-MM-dd');
+            if (alDayDate !== selectedDayKpi) return false;
+        }
+
+        return true;
     });
 
     // Key Base KPIs (based on filtered month + area)
@@ -438,7 +447,19 @@ export default function AndonDashPage() {
                             <input 
                                 type="month" 
                                 value={selectedMonth} 
-                                onChange={e => setSelectedMonth(e.target.value)}
+                                onChange={e => {
+                                    setSelectedMonth(e.target.value);
+                                    setSelectedDayKpi('');
+                                }}
+                                className="w-full mt-1 border border-slate-300 rounded-md px-3 py-2 bg-white focus:border-blue-500 focus:outline-none"
+                            />
+                        </div>
+                        <div className="flex-1">
+                            <label className="text-xs font-bold text-slate-500 uppercase">Filtro por Dia (Opcional)</label>
+                            <input 
+                                type="date" 
+                                value={selectedDayKpi} 
+                                onChange={e => setSelectedDayKpi(e.target.value)}
                                 className="w-full mt-1 border border-slate-300 rounded-md px-3 py-2 bg-white focus:border-blue-500 focus:outline-none"
                             />
                         </div>
