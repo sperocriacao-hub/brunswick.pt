@@ -61,7 +61,7 @@ export async function carregarPerguntasAtivasParaQuiosque() {
         return { success: false, data: [] };
     }
     
-    return { success: true, data: data as PerguntaQuiz[] };
+    return { success: true, data: data as PerguntaQuizGroup[] };
 }
 
 export type RespostaAnonimaDTO = {

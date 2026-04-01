@@ -1,0 +1,9 @@
+app/admin/Sidebar.tsx(458,24): error TS2304: Cannot find name 'GraduationCap'.
+app/operador/quiz/formacao/actions.ts(58,52): error TS2339: Property 'nome_operador' does not exist on type '{ nome_operador: any; }[]'.
+app/operador/quiz/formacao/actions.ts(58,87): error TS2339: Property 'nome_operador' does not exist on type '{ nome_operador: any; }[]'.
+app/operador/quiz/formacao/actions.ts(59,41): error TS2339: Property 'nome_estacao' does not exist on type '{ nome_estacao: any; }[]'.
+npm notice
+npm notice New minor version of npm available! 11.6.2 -> 11.12.1
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.12.1
+npm notice To update run: npm install -g npm@11.12.1
+npm notice
