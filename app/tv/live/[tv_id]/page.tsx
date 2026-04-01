@@ -182,7 +182,7 @@ export default function CustomTVDashboardPage() {
 
             {/* --- AREA ANDON NOTIFICATION BAR (RADAR NASA 3D) --- */}
             {tipoAlvo !== 'REFEITORIO' && radarEstacoes.length > 0 && (
-                <div className={`w-full relative shadow-[inset_0_10px_20px_rgba(0,0,0,0.8)] border-b-[3px] border-t-[3px] transition-colors duration-1000 z-10 shrink-0 select-none overflow-hidden ${radarEstacoes.some(a => a.hasAndon) ? 'bg-slate-900 border-y-red-950/80 shadow-[inset_0_0_50px_rgba(220,38,38,0.15)]' : 'bg-slate-900 border-slate-950'} ${tipoAlvo === 'GERAL' ? 'py-5 px-4' : 'py-8 px-8'}`}>
+                <div className={`w-full relative shadow-[inset_0_10px_20px_rgba(0,0,0,0.8)] border-b-[3px] border-t-[3px] transition-colors duration-1000 z-10 shrink-0 select-none overflow-hidden ${radarEstacoes.some(a => a.hasAndon) ? 'bg-slate-900 border-y-red-950/80 shadow-[inset_0_0_50px_rgba(220,38,38,0.15)]' : 'bg-slate-900 border-slate-950'} py-3 px-3 sm:py-4 sm:px-4`}>
                     
                     {/* The 3D Conveyor Belt (Track Line / Linha Puxada) */}
                     <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-8 bg-slate-950 border-y-2 border-slate-800 shadow-[inset_0_3px_8px_rgba(0,0,0,0.9),0_2px_4px_rgba(255,255,255,0.02)] z-0 overflow-hidden flex items-center">
@@ -190,39 +190,39 @@ export default function CustomTVDashboardPage() {
                          <div className="w-full h-1 bg-black/80 shadow-[0_1px_0_rgba(255,255,255,0.05)]"></div>
                     </div>
 
-                    <div className={`relative flex items-center z-10 ${tipoAlvo === 'GERAL' ? 'justify-between flex-nowrap gap-2 max-w-full overflow-hidden' : 'justify-center flex-wrap gap-8'}`}>
+                    <div className="relative flex items-center justify-between flex-wrap gap-2 z-10 max-w-full overflow-hidden">
                         {radarEstacoes.map((station) => (
-                            <div key={station.id} className="flex items-center group relative">
+                            <div key={station.id} className="flex items-center group relative flex-1 min-w-[70px] max-w-[140px]">
                                 
-                                <div className={`flex flex-col items-center justify-center rounded-lg transition-all duration-500 transform ${tipoAlvo === 'GERAL' ? 'flex-1 min-w-0 max-w-[120px] px-2 py-2.5' : 'shrink-0 min-w-[140px] px-3 py-3.5'} ${station.hasAndon ? 'bg-gradient-to-b from-red-500 to-red-800 border-2 border-red-300 shadow-[0_6px_0_#450a0a,0_15px_25px_rgba(220,38,38,0.5)] -translate-y-1.5' : 'bg-gradient-to-b from-slate-600 to-slate-800 border-2 border-slate-500 shadow-[0_5px_0_#020617,0_8px_15px_rgba(0,0,0,0.6)]'}`}>
+                                <div className={`flex flex-col items-center justify-center rounded-lg transition-all duration-500 transform w-full px-1.5 py-2 ${station.hasAndon ? 'bg-gradient-to-b from-red-500 to-red-800 border-2 border-red-300 shadow-[0_6px_0_#450a0a,0_15px_25px_rgba(220,38,38,0.5)] -translate-y-1.5' : 'bg-gradient-to-b from-slate-600 to-slate-800 border-2 border-slate-500 shadow-[0_5px_0_#020617,0_8px_15px_rgba(0,0,0,0.6)]'}`}>
                                     
                                     {/* 3D Top highlight for volumetric effect */}
                                     <div className="absolute top-0 left-0 right-0 h-1.5 bg-white/15 rounded-t-sm"></div>
 
-                                    <div className="flex items-center gap-2 w-full justify-center mt-1">
+                                    <div className="flex flex-col items-center gap-1 w-full justify-center">
                                         {station.hasAndon ? (
-                                            <div className="relative flex justify-center items-center shrink-0 w-6 h-6 mb-1">
+                                            <div className="relative flex justify-center items-center shrink-0 w-5 h-5 mb-0.5">
                                                 {/* Giroflex Core / Base */}
-                                                <div className="absolute w-3 h-3 bg-white rounded-full border-2 border-red-500 z-10 shadow-[0_0_20px_rgba(255,0,0,1),0_0_40px_rgba(255,0,0,0.8)]"></div>
+                                                <div className="absolute w-2.5 h-2.5 bg-white rounded-full border-2 border-red-500 z-10 shadow-[0_0_20px_rgba(255,0,0,1),0_0_40px_rgba(255,0,0,0.8)]"></div>
                                                 {/* Rotating Light Beam (Siren Sweep) */}
-                                                <div className="absolute w-16 h-16 bg-[conic-gradient(from_0deg,transparent_0_300deg,rgba(255,255,255,0.5)_360deg)] rounded-full animate-spin z-0 pointer-events-none origin-center mix-blend-overlay"></div>
+                                                <div className="absolute w-12 h-12 bg-[conic-gradient(from_0deg,transparent_0_300deg,rgba(255,255,255,0.5)_360deg)] rounded-full animate-spin z-0 pointer-events-none origin-center mix-blend-overlay"></div>
                                                 {/* Intense Red Pulse (Siren Volumetric Glow) */}
-                                                <span className="animate-ping absolute inline-flex h-8 w-8 rounded-full bg-red-500 opacity-60 z-0 drop-shadow-[0_0_10px_rgba(220,38,38,0.9)]"></span>
+                                                <span className="animate-ping absolute inline-flex h-6 w-6 rounded-full bg-red-500 opacity-60 z-0 drop-shadow-[0_0_10px_rgba(220,38,38,0.9)]"></span>
                                             </div>
                                         ) : (
-                                            <div className="rounded-full bg-emerald-400 border-2 border-emerald-200 shadow-[0_0_10px_rgba(52,211,153,0.8)] shrink-0 h-3 w-3"></div>
+                                            <div className="rounded-full bg-emerald-400 border-2 border-emerald-200 shadow-[0_0_10px_rgba(52,211,153,0.8)] shrink-0 h-2.5 w-2.5 mb-0.5"></div>
                                         )}
                                         
-                                        <div className="flex flex-col justify-center min-w-0 items-center text-center">
-                                            <span className={`font-black uppercase tracking-widest leading-tight truncate w-full ${tipoAlvo === 'GERAL' ? 'text-[0.6rem]' : 'text-xs'} ${station.hasAndon ? 'text-white' : 'text-slate-100'}`} style={{ textShadow: station.hasAndon ? '0 1px 3px rgba(0,0,0,0.9)' : '0 1px 2px rgba(0,0,0,0.7)' }}>
+                                        <div className="flex flex-col justify-center min-w-0 items-center text-center w-full">
+                                            <span className={`font-black uppercase tracking-widest leading-none truncate w-full text-[0.6rem] sm:text-[0.65rem] ${station.hasAndon ? 'text-white' : 'text-slate-100'}`} style={{ textShadow: station.hasAndon ? '0 1px 3px rgba(0,0,0,0.9)' : '0 1px 2px rgba(0,0,0,0.7)' }}>
                                                 {station.nome_estacao.split('-').pop()?.trim() || station.nome_estacao}
                                             </span>
                                         </div>
                                     </div>
-                                    {station.hasAndon && tipoAlvo !== 'GERAL' && (
-                                        <div className="mt-2.5 w-full bg-black/60 rounded flex items-center justify-center p-1.5 border-t border-red-500/40 shadow-inner">
-                                            <span className="text-[0.6rem] text-red-100 font-bold uppercase truncate text-center leading-none" style={{ textShadow: '0 1px 1px black' }}>
-                                                {station.andonType || 'ALARME ATIVO'}
+                                    {station.hasAndon && (
+                                        <div className="mt-1.5 w-full bg-black/60 rounded flex items-center justify-center p-0.5 sm:p-1 border-t border-red-500/40 shadow-inner">
+                                            <span className="text-[0.5rem] sm:text-[0.55rem] text-red-100 font-bold uppercase truncate text-center leading-none" style={{ textShadow: '0 1px 1px black' }}>
+                                                {station.andonType || 'ALARME'}
                                             </span>
                                         </div>
                                     )}
@@ -286,26 +286,27 @@ export default function CustomTVDashboardPage() {
                                                     </span>
                                                 </h2>
 
-                                                <div className="flex-1 overflow-y-auto pr-2 space-y-4 relative z-10 custom-scrollbar">
+                                                <div className="flex-1 overflow-hidden pr-2 relative z-10 flex flex-wrap gap-2 content-start justify-center">
                                                     {alertsInArea.map((al: any) => {
                                                         const minutesPassed = Math.max(0, Math.floor((time.getTime() - new Date(al.created_at).getTime()) / 60000));
+                                                        // Compact style logic based on number of alerts
+                                                        const isDense = alertsInArea.length > 4;
+                                                        
                                                         return (
-                                                            <div key={al.id} className="bg-black/80 border border-red-500/40 rounded-2xl p-4 shadow-lg border-l-4 border-l-red-500 relative flex flex-col">
-                                                                <div className="flex justify-between items-start mb-3">
-                                                                    <div className="flex flex-col min-w-0 pr-2">
-                                                                        <span className="text-white font-black text-lg uppercase leading-tight truncate">{al.tipo_alerta}</span>
-                                                                        <span className="text-slate-400 font-bold text-xs tracking-widest uppercase mt-1 truncate">
-                                                                            📍 {al.estacoes?.nome_estacao || al.causadora?.nome_estacao || "Estação Desconhecida"}
-                                                                        </span>
-                                                                        {al.descricao_alerta && <span className="text-slate-300 italic text-sm mt-2 line-clamp-2">"{al.descricao_alerta}"</span>}
-                                                                    </div>
-                                                                </div>
-                                                                <div className="pt-3 border-t border-red-900/50 flex justify-between items-center mt-auto">
-                                                                    <span className="text-slate-500 font-mono text-xs tracking-widest flex items-center gap-1">
-                                                                        <UserX size={14}/> ID: {al.operador_rfid}
+                                                            <div key={al.id} className={`bg-black/80 border border-red-500/40 rounded-2xl p-3 shadow-lg border-l-4 border-l-red-500 relative flex flex-col justify-between ${isDense ? 'w-[calc(50%-0.25rem)] min-h-[100px]' : 'w-full min-h-[120px]'}`}>
+                                                                <div className="flex flex-col min-w-0 mb-2">
+                                                                    <span className={`text-white font-black uppercase leading-tight truncate ${isDense ? 'text-sm' : 'text-lg'}`}>{al.tipo_alerta}</span>
+                                                                    <span className="text-slate-400 font-bold text-[0.65rem] tracking-widest uppercase mt-0.5 truncate">
+                                                                        📍 {al.estacoes?.nome_estacao || al.causadora?.nome_estacao || "Estação"}
                                                                     </span>
-                                                                    <span className="bg-red-500/90 text-white px-3 py-1 rounded text-xs font-black uppercase flex items-center gap-1.5 shadow-[0_0_10px_rgba(220,38,38,0.6)]">
-                                                                        <Clock size={12} /> {minutesPassed} MINUTOS
+                                                                    {!isDense && al.descricao_alerta && <span className="text-slate-300 italic text-xs mt-1.5 line-clamp-2">"{al.descricao_alerta}"</span>}
+                                                                </div>
+                                                                <div className="pt-2 border-t border-red-900/50 flex justify-between items-center mt-auto gap-2 flex-wrap">
+                                                                    <span className="text-slate-500 font-mono text-[0.6rem] tracking-widest flex items-center gap-1">
+                                                                        <UserX size={12}/> ID: {al.operador_rfid}
+                                                                    </span>
+                                                                    <span className="bg-red-500/90 text-white px-2 py-0.5 rounded text-[0.6rem] font-black uppercase flex items-center gap-1 shadow-[0_0_10px_rgba(220,38,38,0.6)]">
+                                                                        <Clock size={10} /> {minutesPassed} MIN
                                                                     </span>
                                                                 </div>
                                                             </div>
