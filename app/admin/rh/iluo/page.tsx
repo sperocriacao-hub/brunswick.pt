@@ -148,6 +148,17 @@ export default function IluoMatrixPage() {
             {/* A Matriz Grelha */}
             {isLoading ? (
                 <div className="p-20 flex justify-center opacity-50"><Loader2 className="animate-spin" size={40} /></div>
+            ) : selectedArea === 'all' && selectedEstacao === 'all' && searchTerm.trim() === '' ? (
+                <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-16 text-center flex flex-col items-center justify-center mb-10">
+                    <div className="w-16 h-16 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mb-4">
+                        <Filter size={32} />
+                    </div>
+                    <h2 className="text-xl font-bold text-slate-800 mb-2">Aguardando Parâmetros</h2>
+                    <p className="text-slate-500 max-w-md text-sm">
+                        Para otimizar a performance devido ao elevado número de estações, a matriz está recolhida.
+                        Por favor, use os filtros acima ou pesquise por um operário para gerar a grelha em tempo real.
+                    </p>
+                </div>
             ) : (
                 <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden flex flex-col relative max-h-[800px]">
                     
