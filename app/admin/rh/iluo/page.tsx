@@ -66,10 +66,20 @@ export default function IluoMatrixPage() {
             if (!matchSearch) return false;
         }
 
-        // Removido o bloqueio "Otimização Monstruosa" para permitir que mesmo operários com a matriz limpa (100% vazios) apareçam.
-        // Assim o RH pode ver exatamente quem não tem skills preenchidas e saber que o registo existe.
+        // 2. Filtro inteligente de Matrix (Baseado na Seleção)
+        // Se estivermos na Visão Total da Fábrica e sem pesquisar nome específico, mostramos TODOS
+        // Para que o RH consiga ver quem ainda não tem competências (linha inteira vazia `--`).
+        if (selectedArea === 'all' && selectedEstacao === 'all') {
+            return true;
+        }
 
-        return true;
+        // Se o utilizador selecionou ativamente uma Área ou uma Estação específica,
+        // só queremos ver os operários que efetivamente têm competências registadas nessa zona!
+        const hasAnySkillInVisibleStations = validEstacoes.some(est => {
+            return matriz.some(m => m.operador_id === op.id && m.estacao_id === est.id);
+        });
+        
+        return hasAnySkillInVisibleStations;
     });
 
     const estacoesDropdownOptions = estacoes.filter(e => {
