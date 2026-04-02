@@ -224,16 +224,20 @@ function FuncionarioFormCore() {
             alert("Erro ao gravar ficha cadastral: " + errorObj.message);
         } else {
             // Sincronizar Relacionamentos ILUO
-            if (finalOpId) {
+            if (finalOpId && finalOpId.trim() !== '') {
                 await supabase.from('operador_iluo_matriz').delete().eq('operador_id', finalOpId);
-                if (iluoList.length > 0) {
-                    const mappedIluoRows = iluoList.map(i => ({
+                
+                const validList = iluoList.filter(i => i.estacao_id && i.estacao_id.trim() !== '');
+                
+                if (validList.length > 0) {
+                    const mappedIluoRows = validList.map(i => ({
                         operador_id: finalOpId,
                         estacao_id: i.estacao_id,
-                        nivel_iluo: i.nivel_iluo,
-                        avaliador_nome: i.avaliador_nome,
+                        nivel_iluo: i.nivel_iluo || 'I',
+                        avaliador_nome: i.avaliador_nome || 'Sistema',
                         data_avaliacao: i.data_avaliacao || new Date().toISOString()
                     }));
+                    
                     const { error: iluoError } = await supabase.from('operador_iluo_matriz').insert(mappedIluoRows);
                     if (iluoError) {
                         console.error('Erro detalhado:', iluoError);

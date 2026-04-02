@@ -1,4 +1,6 @@
 -- Tabela Relacional ILUO (Matriz de Polivalência vs Estações)
+DROP TABLE IF EXISTS public.operador_iluo_matriz CASCADE;
+
 CREATE TABLE IF NOT EXISTS public.operador_iluo_matriz (
     id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
     operador_id UUID NOT NULL REFERENCES public.operadores(id) ON DELETE CASCADE,
@@ -31,11 +33,11 @@ ON public.operador_iluo_matriz FOR DELETE USING (true);
 -- Isto varre a tabela de operadores, e se o ILUO não for nulo/estação não for nula, cria a versão relacional
 INSERT INTO public.operador_iluo_matriz (operador_id, estacao_id, nivel_iluo, avaliador_nome, data_avaliacao)
 SELECT 
-    id as operador_id, 
-    posto_base_id as estacao_id, 
-    iluo_nivel as nivel_iluo, 
-    'Migração Automática (Seed)' as avaliador_nome, 
-    NOW() as data_avaliacao
+    id, 
+    posto_base_id, 
+    iluo_nivel, 
+    'Migração Automática (Seed)', 
+    NOW()
 FROM public.operadores
 WHERE posto_base_id IS NOT NULL 
 AND iluo_nivel IS NOT NULL 
