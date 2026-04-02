@@ -229,6 +229,23 @@ function FuncionarioFormCore() {
                 
                 const validList = iluoList.filter(i => i.estacao_id && i.estacao_id.trim() !== '');
                 
+                // UX Auto-FallBack: Capturar valores que o utilizador selecionou mas esqueceu de clicar em "Adicionar"
+                const pendingEstacaoL = document.getElementById('iluo_estacao') as HTMLSelectElement | null;
+                const pendingNivelL = document.getElementById('iluo_nivel') as HTMLSelectElement | null;
+                const pendingAvL = document.getElementById('iluo_avaliador') as HTMLInputElement | null;
+                
+                if (pendingEstacaoL && pendingEstacaoL.value && pendingEstacaoL.value.trim() !== '') {
+                    // Evitar duplicar se já foi adicionado
+                    if (!validList.find(i => i.estacao_id === pendingEstacaoL.value)) {
+                        validList.push({
+                            estacao_id: pendingEstacaoL.value,
+                            nivel_iluo: pendingNivelL?.value || 'I',
+                            avaliador_nome: pendingAvL?.value || 'Sistema',
+                            data_avaliacao: new Date().toISOString().substring(0, 10)
+                        });
+                    }
+                }
+                
                 if (validList.length > 0) {
                     const mappedIluoRows = validList.map(i => ({
                         operador_id: finalOpId,
