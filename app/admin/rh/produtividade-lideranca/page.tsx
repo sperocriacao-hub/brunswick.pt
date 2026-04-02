@@ -342,11 +342,11 @@ export default async function ProdutividadeLiderancaRH({ searchParams }: { searc
                 </Card>
             </div>
 
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 mb-8 mt-6">
-                <div className="xl:col-span-2">
+            <div className="space-y-8 mb-8 mt-6">
+                <div className="w-full">
                     <MatrizNoveBox data={noveBoxData} />
                 </div>
-                <div className="xl:col-span-1">
+                <div className="w-full">
                     <TopPerformersMural
                         operadores={(operadores as unknown as DB_OperadorArea[])}
                         avaliacoes={(avaliacoesMes as unknown as DB_AvaliacaoDiaria[]) || []}
