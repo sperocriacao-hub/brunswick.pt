@@ -350,6 +350,7 @@ export default async function ProdutividadeLiderancaRH({ searchParams }: { searc
                     <TopPerformersMural
                         operadores={(operadores as unknown as DB_OperadorArea[])}
                         avaliacoes={(avaliacoesMes as unknown as DB_AvaliacaoDiaria[]) || []}
+                        groupBy="funcao"
                     />
                 </div>
             </div>

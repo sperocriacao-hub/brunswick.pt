@@ -8,9 +8,10 @@ import { cn } from "@/lib/utils";
 interface TopPerformersProps {
     operadores: DB_OperadorArea[];
     avaliacoes: DB_AvaliacaoDiaria[];
+    groupBy?: 'area' | 'funcao';
 }
 
-export function TopPerformersMural({ operadores, avaliacoes }: TopPerformersProps) {
+export function TopPerformersMural({ operadores, avaliacoes, groupBy = 'area' }: TopPerformersProps) {
     // Agrupa todos os empregados e calcula a sua média global
     const scoredEmployees = operadores.map(op => {
         const myEvals = avaliacoes.filter(e => e.funcionario_id === op.id);
@@ -29,18 +30,17 @@ export function TopPerformersMural({ operadores, avaliacoes }: TopPerformersProp
         };
     }).filter(op => op.evalCount > 0);
 
-    // Agrupa por Área
-    const byArea: Record<string, typeof scoredEmployees> = {};
+    // Agrupa (por Área ou Função)
+    const groupedData: Record<string, typeof scoredEmployees> = {};
 
-    // Todos os funcionários num bolo geral
     scoredEmployees.forEach(e => {
-        const area = e.area_nome || "Geral";
-        if (!byArea[area]) byArea[area] = [];
-        byArea[area].push(e);
+        const key = groupBy === 'funcao' ? (e.funcao || "Outros") : (e.area_nome || "Geral");
+        if (!groupedData[key]) groupedData[key] = [];
+        groupedData[key].push(e);
     });
 
-    Object.keys(byArea).forEach(area => {
-        byArea[area].sort((a, b) => b.score - a.score);
+    Object.keys(groupedData).forEach(key => {
+        groupedData[key].sort((a, b) => b.score - a.score);
     });
 
     return (
@@ -56,19 +56,19 @@ export function TopPerformersMural({ operadores, avaliacoes }: TopPerformersProp
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                {Object.entries(byArea).map(([area, performers]) => {
+                {Object.entries(groupedData).map(([key, performers]) => {
                     const top3 = performers.slice(0, 3);
                     if (top3.length === 0) return null;
                     const winner = top3[0];
                     const runnersUp = top3.slice(1);
 
                     return (
-                        <Card key={area} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col relative group hover:shadow-md transition-shadow">
-                            {/* Area Header */}
+                        <Card key={key} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col relative group hover:shadow-md transition-shadow">
+                            {/* Group Header */}
                             <div className="bg-slate-50 border-b px-4 py-3 flex justify-between items-center">
                                 <h3 className="font-bold text-slate-800 uppercase text-xs tracking-wider flex items-center gap-2">
                                     <TrendingUp className="w-4 h-4 text-slate-400" />
-                                    {area}
+                                    {key}
                                 </h3>
                                 <Badge variant="outline" className="text-[10px] font-normal bg-white">
                                     {performers.length} Avaliados
