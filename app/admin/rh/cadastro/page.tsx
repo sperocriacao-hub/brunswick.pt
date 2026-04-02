@@ -558,15 +558,21 @@ function FuncionarioFormCore() {
                                             const a = document.getElementById('iluo_avaliador') as HTMLInputElement;
                                             if(!e.value) return;
                                             
+                                            // Guardar valores primitivos IMEDIATAMENTE antes da função assíncrona do React
+                                            const valEstacao = e.value;
+                                            const valNivel = l.value;
+                                            const valAvaliador = a.value;
+                                            
                                             setIluoList(prev => {
-                                                const cleaned = prev.filter(item => item.estacao_id !== e.value);
+                                                const cleaned = prev.filter(item => item.estacao_id !== valEstacao);
                                                 return [...cleaned, {
-                                                    estacao_id: e.value,
-                                                    nivel_iluo: l.value,
-                                                    avaliador_nome: a.value,
+                                                    estacao_id: valEstacao,
+                                                    nivel_iluo: valNivel,
+                                                    avaliador_nome: valAvaliador,
                                                     data_avaliacao: new Date().toISOString().substring(0, 10)
                                                 }];
                                             });
+                                            
                                             e.value = '';
                                             a.value = '';
                                         }}
