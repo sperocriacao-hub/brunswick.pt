@@ -146,9 +146,9 @@ export default function OperadorPerfilPage({ params }: PerfProps) {
                 <div className="p-6 border-b border-[rgba(255,255,255,0.05)] flex justify-between items-center bg-[rgba(0,0,0,0.2)]">
                     <div>
                         <h2 className="font-bold text-lg flex items-center gap-2 text-red-400">
-                            <AlertTriangle size={18} /> Caderneta de Apontamentos (Falhas &lt; 2.0)
+                            <AlertTriangle size={18} /> Caderneta de Feedback (Geral & Avaliações Críticas)
                         </h2>
-                        <p className="text-xs opacity-60">Histórico inalterável de retificações introduzidas pelo Supervisor de Linha.</p>
+                        <p className="text-xs opacity-60">Histórico inalterável de retificações e notas introduzidas pelo Supervisor de Linha.</p>
                     </div>
                 </div>
 

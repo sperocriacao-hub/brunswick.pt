@@ -130,6 +130,11 @@ export default function AvaliacoesLideranca() {
             filteredEmployees.forEach(emp => {
                 const found = dictRemoto.get(emp.id);
                 if (found) {
+                    let parsedJson: Record<string, string> = {};
+                    try {
+                        if (found.justificativas) parsedJson = JSON.parse(found.justificativas);
+                    } catch (e) {}
+
                     newForms[emp.id] = {
                         hst: found.nota_hst || 3.0,
                         epi: found.nota_epi || 3.0,
@@ -145,7 +150,7 @@ export default function AvaliacoesLideranca() {
                         melhoria: found.nota_melhoria || 3.0,
                         kpis: found.nota_kpis || 3.0,
                         cultura: found.nota_cultura || 3.0,
-                        notasFinais: found.justificacao || ""
+                        notasFinais: parsedJson['comentario_geral'] || ""
                     };
                     newSaved[emp.id] = true;
                 } else if (!newForms[emp.id] || newSaved[emp.id]) {
@@ -217,7 +222,10 @@ export default function AvaliacoesLideranca() {
             nomeFuncionario: emp.nome_operador,
             data_avaliacao: selectedDate, // Retroativa suportada
             ...form,
-            justificacoes
+            justificacoes: {
+                ...justificacoes,
+                ...(form.notasFinais ? { comentario_geral: form.notasFinais } : {})
+            }
         };
 
         const res = await submeterAvaliacaoLideranca(dto, "Supervisor Logado");

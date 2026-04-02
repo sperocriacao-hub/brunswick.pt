@@ -13,6 +13,7 @@ export type AvaliacaoDTO = {
     eficiencia: number;
     objetivos: number;
     atitude: number;
+    notasFinais?: string;
     justificacoes: Record<string, string>; // ex: { 'hst': 'Sem óculos proteção' }
     data_avaliacao?: string; // Permitir avaliação retroativa
 };
@@ -55,7 +56,8 @@ export async function submeterAvaliacaoDiaria(avaliacao: AvaliacaoDTO, autoSuper
                 nota_qualidade: avaliacao.qualidade,
                 nota_eficiencia: avaliacao.eficiencia,
                 nota_objetivos: avaliacao.objetivos,
-                nota_atitude: avaliacao.atitude
+                nota_atitude: avaliacao.atitude,
+                justificacao: avaliacao.notasFinais || null
             })
             .select('id')
             .single();
@@ -74,7 +76,8 @@ export async function submeterAvaliacaoDiaria(avaliacao: AvaliacaoDTO, autoSuper
         const mapEixos: Record<string, string> = {
             'hst': 'HST', 'epi': 'EPI', 'limpeza': 'Limpeza_5S',
             'qualidade': 'Qualidade', 'eficiencia': 'Eficiencia',
-            'objetivos': 'Objetivos', 'atitude': 'Atitude'
+            'objetivos': 'Objetivos', 'atitude': 'Atitude',
+            'geral': 'Feedback Geral'
         };
 
         for (const [key, just] of Object.entries(avaliacao.justificacoes)) {

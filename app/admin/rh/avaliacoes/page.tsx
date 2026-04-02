@@ -212,6 +212,10 @@ export default function LoteAvaliacoesDiariasLayout() {
             }
         });
 
+        if (form.notasFinais && form.notasFinais.trim() !== "") {
+            justificacoes['geral'] = form.notasFinais.trim();
+        }
+
         if (needsJustification && form.notasFinais.trim() === "") {
             alert("Existem pilares sob classificação crítica (< 2.0) ou Excelência (> 3.8). Tem obrigatoriamente de inserir uma justificativa no bloco inferior antes de gravar.");
             return;
