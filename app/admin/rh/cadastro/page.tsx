@@ -225,7 +225,11 @@ function FuncionarioFormCore() {
         } else {
             // Sincronizar Relacionamentos ILUO
             if (finalOpId && finalOpId.trim() !== '') {
-                await supabase.from('operador_iluo_matriz').delete().eq('operador_id', finalOpId);
+                // Delete everything older
+                const { error: deleteError } = await supabase.from('operador_iluo_matriz').delete().eq('operador_id', finalOpId);
+                if (deleteError) {
+                    alert("Aviso: Erro ao limpar matrizes antigas: " + deleteError.message);
+                }
                 
                 const validList = iluoList.filter(i => i.estacao_id && i.estacao_id.trim() !== '');
                 
@@ -255,11 +259,13 @@ function FuncionarioFormCore() {
                         data_avaliacao: i.data_avaliacao || new Date().toISOString()
                     }));
                     
-                    const { error: iluoError } = await supabase.from('operador_iluo_matriz').insert(mappedIluoRows);
+                    const { data: insertedData, error: iluoError } = await supabase.from('operador_iluo_matriz').insert(mappedIluoRows).select();
                     if (iluoError) {
-                        console.error('Erro detalhado:', iluoError);
                         alert("Erro a gravar as matrizes ILUO: " + iluoError.message);
-                        return; // Halt navigation to avoid losing the form context if it failed
+                        return; // Halt navigation
+                    }
+                    if (!insertedData || insertedData.length === 0) {
+                        alert("Atenção Crítica: O Supabase reportou sucesso (Sem Erros) mas rejeitou fisicamente os dados (0 linhas gravadas)! Contacte suporte (Verifique a permissão RLS do Postgres).");
                     }
                 }
             }
