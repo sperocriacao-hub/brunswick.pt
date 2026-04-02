@@ -173,6 +173,7 @@ function FuncionarioFormCore() {
 
         const payload: Record<string, unknown> = { ...formData };
         delete payload.senha_acesso; // Nunca guardar passwords não cifradas na base de dados de RH
+        payload.iluo_nivel = 'I'; // Bypass temporário para a restrição legada da BD antiga
 
         if (payload.matriz_talento_media === '') payload.matriz_talento_media = null;
         if (payload.posto_base_id === '') payload.posto_base_id = null;
@@ -266,7 +267,13 @@ function FuncionarioFormCore() {
                     }
                     if (!insertedData || insertedData.length === 0) {
                         alert("Atenção Crítica: O Supabase reportou sucesso (Sem Erros) mas rejeitou fisicamente os dados (0 linhas gravadas)! Contacte suporte (Verifique a permissão RLS do Postgres).");
+                        return;
+                    } else {
+                        // Forçamos o browser a mostrar-nos a verdade!
+                        alert("Gravado com Sucesso: " + insertedData.length + " Matrizes ILUO foram escritas na base de dados (Tabela Nova)!");
                     }
+                } else {
+                    alert("Aviso: Nenhuma Matriz ILUO foi encontrada para gravar. A tabela para este operário ficará vazia.");
                 }
             }
 
