@@ -234,7 +234,12 @@ function FuncionarioFormCore() {
                         avaliador_nome: i.avaliador_nome,
                         data_avaliacao: i.data_avaliacao || new Date().toISOString()
                     }));
-                    await supabase.from('operador_iluo_matriz').insert(mappedIluoRows);
+                    const { error: iluoError } = await supabase.from('operador_iluo_matriz').insert(mappedIluoRows);
+                    if (iluoError) {
+                        console.error('Erro detalhado:', iluoError);
+                        alert("Erro a gravar as matrizes ILUO: " + iluoError.message);
+                        return; // Halt navigation to avoid losing the form context if it failed
+                    }
                 }
             }
 
