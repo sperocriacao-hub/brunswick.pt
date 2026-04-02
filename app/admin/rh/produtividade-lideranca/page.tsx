@@ -6,7 +6,7 @@ import { Activity, Clock, Coffee, MapPin, Users, Filter, CalendarDays, ShieldAle
 import { cookies } from 'next/headers';
 import { FactoryHeatmap, DB_AvaliacaoDiaria, DB_OperadorArea } from '@/components/rh/FactoryHeatmap';
 import { TopPerformersMural } from '@/components/rh/TopPerformersMural';
-import { ProdutividadeTable } from '@/components/rh/ProdutividadeTable';
+import { MatrizNoveBox } from '@/components/rh/MatrizNoveBox';
 
 export const dynamic = 'force-dynamic';
 
@@ -58,7 +58,7 @@ export default async function ProdutividadeLiderancaRH({ searchParams }: { searc
     let queryOps = supabase
         .from('operadores')
         .select(`
-            id, tag_rfid_operador, nome_operador, funcao, status, area_base_id, posto_base_id,
+            id, tag_rfid_operador, nome_operador, funcao, status, area_base_id, posto_base_id, lider_nome, supervisor_nome, gestor_nome,
             areas_fabrica(id, nome_area),
             estacoes!operadores_posto_base_id_fkey(id, nome_estacao)
         `)
@@ -86,9 +86,8 @@ export default async function ProdutividadeLiderancaRH({ searchParams }: { searc
         estacao_nome: (op.estacoes as any)?.nome_estacao || ''
     })) || [];
 
-    // 4. Fetch Avaliações Diárias do Mês Corrente (Para Heatmap e Top 3)
+    // 4. Fetch Avaliações (Para Médias Base Culturais da 9-Box)
     const firstDayStr = `${currentMonthStr}-01`;
-    // Add 1 to month, handle year rollover, subtract 1 ms to get last day of current month
     const currentDate = new Date(`${currentMonthStr}-01T00:00:00Z`);
     const nextMonthDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1);
     const lastDayStr = new Date(nextMonthDate.getTime() - 1).toISOString().split('T')[0];
@@ -99,16 +98,29 @@ export default async function ProdutividadeLiderancaRH({ searchParams }: { searc
         .gte('data_avaliacao', firstDayStr)
         .lte('data_avaliacao', lastDayStr);
 
-    // 5. Fetch Tarefas (Value Added Time) do mês
+    // 5. Fetch Dados de Mentoria (Feedbacks Emitidos)
+    const { data: rawAptsEmitted } = await supabase
+        .from('apontamentos_negativos')
+        .select('supervisor_nome, data_apontamento')
+        .gte('data_apontamento', firstDayStr)
+        .lte('data_apontamento', lastDayStr);
+
+    // 6. Fetch Andons para Cálculo SLA e Gestão Tática
+    const { data: rawAndons } = await supabase
+        .from('alertas_andon')
+        .select(`created_at, resolvido_at, resolvido, estacoes(area_id)`)
+        .gte('created_at', `${firstDayStr}T00:00:00Z`)
+        .lte('created_at', `${lastDayStr}T23:59:59Z`);
+
+    // 7. Base de Operação (Tarefas e Pausas para OEE de Equipa)
     const { data: rawTarefas } = await supabase
         .from('registos_rfid_realtime')
         .select(`
-            id, operador_rfid, timestamp_inicio, timestamp_fim, estacoes(nome_estacao)
+            id, operador_rfid, timestamp_inicio, timestamp_fim, estacoes(nome_estacao, area_id)
         `)
         .gte('timestamp_inicio', `${firstDayStr}T00:00:00Z`)
         .lte('timestamp_inicio', `${lastDayStr}T23:59:59Z`);
 
-    // 6. Fetch Pausas (Non-Value Added Time) do mês
     const { data: rawPausas } = await supabase
         .from('log_pausas_operador')
         .select(`
@@ -116,13 +128,6 @@ export default async function ProdutividadeLiderancaRH({ searchParams }: { searc
         `)
         .gte('timestamp_inicio', `${firstDayStr}T00:00:00Z`)
         .lte('timestamp_inicio', `${lastDayStr}T23:59:59Z`);
-
-    // 7. Fetch Pontos (Assiduidade Bruta) do mês
-    const { data: rawPontos } = await supabase
-        .from('log_ponto_diario')
-        .select('*')
-        .gte('timestamp', `${firstDayStr}T00:00:00Z`)
-        .lte('timestamp', `${lastDayStr}T23:59:59Z`);
 
     // Helper: Calc Minutes
     const diffMinutes = (inicio: string, fim: string | null) => {
@@ -132,55 +137,80 @@ export default async function ProdutividadeLiderancaRH({ searchParams }: { searc
         return Math.max(0, Math.floor((end - start) / 60000));
     };
 
-    // Agregar Dados por Lider
-    const statsOperador = operadores?.map(op => {
-        const suasTarefas = rawTarefas?.filter(t => t.operador_rfid === op.tag_rfid_operador) || [];
-        const suasPausas = rawPausas?.filter(p => p.operador_rfid === op.tag_rfid_operador) || [];
+    // Agregar Dados por Líder usando a Perspetiva Estratégica
+    const statsOperador = operadores?.map(lider => {
+        // Encontrar a Equipa do Líder
+        let equipa = rawOperadores?.filter(op => op.lider_nome === lider.nome_operador || op.supervisor_nome === lider.nome_operador) || [];
+        if (equipa.length === 0) {
+            // Se nao tem direct reports explícitos, usar a área dele como fallback de influência
+            equipa = rawOperadores?.filter(op => op.area_base_id === lider.area_base_id && !LEADERSHIP_ROLES.includes(op.funcao)) || [];
+        }
+        const rfidEquipa = new Set(equipa.map(e => e.tag_rfid_operador));
 
-        const myStarts = rawPontos?.filter(p => p.operador_rfid === op.tag_rfid_operador && p.tipo_registo === 'ENTRADA') || [];
-        const diasPresentes = new Set(myStarts.map(p => p.timestamp.substring(0, 10))).size;
-
-        let totalTrabalhoEfetivo = 0; // OEE Value Added (Minutos Tarefas)
-        suasTarefas.forEach(t => {
-            totalTrabalhoEfetivo += diffMinutes(t.timestamp_inicio, t.timestamp_fim);
+        // Calcular OEE Reflexo (OEE da Equipa)
+        let totalVaEquipa = 0;
+        let totalNvaEquipa = 0;
+        
+        rawTarefas?.forEach(t => {
+            if (rfidEquipa.has(t.operador_rfid)) totalVaEquipa += diffMinutes(t.timestamp_inicio, t.timestamp_fim);
         });
-
-        let totalPausas = 0; // OEE NVA (Minutos em WC, Medico, etc)
-        suasPausas.forEach(p => {
-            totalPausas += diffMinutes(p.timestamp_inicio, p.timestamp_fim);
+        rawPausas?.forEach(p => {
+            if (rfidEquipa.has(p.operador_rfid)) totalNvaEquipa += diffMinutes(p.timestamp_inicio, p.timestamp_fim);
         });
+        
+        const equipeTotalTime = totalVaEquipa + totalNvaEquipa;
+        const equipaOee = equipeTotalTime > 0 ? (totalVaEquipa / equipeTotalTime) * 100 : 0;
 
-        // Contagem de Movimentos Geográficos
-        const estacoesVistas = new Set(suasTarefas.map(t => (t.estacoes as any)?.nome_estacao));
-        const numEstacoesDiferentes = estacoesVistas.size;
+        // Andons na Área de Intervenção
+        const andonsDominio = rawAndons?.filter(a => (a.estacoes as any)?.area_id === lider.area_base_id) || [];
+        const andonsResolvidos = andonsDominio.filter(a => a.resolvido && a.resolvido_at);
+        let tempoTotalSla = 0;
+        andonsResolvidos.forEach(a => {
+            tempoTotalSla += diffMinutes(a.created_at, a.resolvido_at);
+        });
+        const mtrAndon = andonsResolvidos.length > 0 ? Math.round(tempoTotalSla / andonsResolvidos.length) : 0;
+        const taxaResAndon = andonsDominio.length > 0 ? (andonsResolvidos.length / andonsDominio.length) * 100 : 0;
 
-        const totalTrackedTime = totalTrabalhoEfetivo + totalPausas;
-        const valueRation = totalTrackedTime > 0 ? (totalTrabalhoEfetivo / totalTrackedTime) * 100 : 0;
+        // Índice de Mentoria (Feedbacks + Avaliações Liderança)
+        const myAvs = avaliacoesMes?.filter(a => a.supervisor_nome === lider.nome_operador) || [];
+        const myApts = rawAptsEmitted?.filter(a => a.supervisor_nome === lider.nome_operador) || [];
+        const mentorshipCount = myAvs.length + myApts.length;
+
+        // Cultura Score (Média da própria avaliação de Liderança dele - Atitude + Gestão + Melhoria)
+        const hisAssessments = avaliacoesMes?.filter(a => a.funcionario_id === lider.id) || [];
+        let suaCulturaScore = 0;
+        if (hisAssessments.length > 0) {
+            const lastAv = hisAssessments[hisAssessments.length - 1]; // Assume latest
+            suaCulturaScore = ((lastAv.nota_atitude || 3) + (lastAv.nota_gestao_motivacao || 3) + (lastAv.nota_cultura || 3)) / 3;
+        } else {
+            suaCulturaScore = 3.0; // Default Standard
+        }
 
         return {
-            ...op,
-            diasPresentes,
-            totalTrabalhoEfetivo,
-            totalPausas,
-            numEstacoesDiferentes,
-            valueRation
+            ...lider,
+            totalTrabalhoEfetivo: totalVaEquipa, // Re-aproveitado para manter a Props original de widgets legados se necessário
+            equipaOee,
+            mtrAndon,
+            taxaResAndon,
+            mentorshipCount,
+            suaCulturaScore,
+            equipaTamanho: equipa.length
         };
-    }).sort((a, b) => b.totalTrabalhoEfetivo - a.totalTrabalhoEfetivo) || [];
+    }).sort((a, b) => b.equipaOee - a.equipaOee) || [];
 
-    // Totais Globais OEE das Lideranças
-    const kpiVABruto = statsOperador.reduce((acc, curr) => acc + curr.totalTrabalhoEfetivo, 0);
-    const kpiNVABruto = statsOperador.reduce((acc, curr) => acc + curr.totalPausas, 0);
-    const taxaProdutividade = kpiVABruto + kpiNVABruto > 0 ? (kpiVABruto / (kpiVABruto + kpiNVABruto)) * 100 : 0;
+    // Macro KPIs Estratégicos
+    const overallVa = statsOperador.reduce((sum, curr) => sum + curr.totalTrabalhoEfetivo, 0); // Para mural fallback
+    
+    // SLA Global de Fábrica
+    const globalAndons = rawAndons?.filter(a => a.resolvido && a.resolvido_at) || [];
+    let globalGteAndonSla = 0;
+    globalAndons.forEach(a => globalGteAndonSla += diffMinutes(a.created_at, a.resolvido_at));
+    const mediaGlobalSla = globalAndons.length > 0 ? Math.round(globalGteAndonSla / globalAndons.length) : 0;
+    
+    const mediaGlobalMentoria = statsOperador.length > 0 ? (statsOperador.reduce((sum, curr) => sum + curr.mentorshipCount, 0)) : 0;
+    const mediaGlobalOeeEquipas = statsOperador.length > 0 ? (statsOperador.reduce((sum, curr) => sum + curr.equipaOee, 0) / statsOperador.length) : 0;
 
-    // Totais Globais Assiduidade (Contados sob as lideranças scope "selectedArea" (se filtrado))
-    const expectedWorkers = statsOperador.length;
-    const presentWorkers = statsOperador.reduce((sum, w) => sum + (w.diasPresentes > 0 ? 1 : 0), 0);
-    const turnoverFabricaHoje = kpiVABruto + kpiNVABruto;
-    const absenteismRate = (expectedWorkers > 0 && (presentWorkers > 0 || turnoverFabricaHoje > 0))
-        ? ((expectedWorkers - presentWorkers) / expectedWorkers) * 100
-        : 0;
-
-    // Gerador Array Meses Formulario (Ultimos 6 Meses)
+    // Gerador Array Meses Formulario
     const ultimosMeses = [];
     for (let i = 0; i < 6; i++) {
         const d = new Date();
@@ -190,6 +220,14 @@ export default async function ProdutividadeLiderancaRH({ searchParams }: { searc
             label: d.toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' }).toUpperCase()
         });
     }
+
+    // Build data for 9-Box
+    const noveBoxData = statsOperador.map(lider => ({
+        nome: lider.nome_operador,
+        equipaOee: lider.equipaOee,
+        mentoriaScore: lider.suaCulturaScore,
+        andonMins: lider.mtrAndon
+    }));
 
     return (
         <div className="p-6 md:p-8 space-y-8 animate-in fade-in zoom-in duration-500 max-w-[1600px] mx-auto">
@@ -201,7 +239,7 @@ export default async function ProdutividadeLiderancaRH({ searchParams }: { searc
                         Feedback Produtividade Liderança
                     </h1>
                     <p className="text-indigo-600/70 font-medium text-sm flex items-center gap-2">
-                        <Clock size={16} /> Visão Exclusiva para Chefias.
+                        <ShieldAlert size={16} /> Painel de Mentoria Estratégica e Risco. Métrica Avalia Reflexo nas Equipas.
                     </p>
                 </div>
 
@@ -236,21 +274,22 @@ export default async function ProdutividadeLiderancaRH({ searchParams }: { searc
                 </form>
             </div>
 
-            {/* Macro KPIs - Expandida 4 Columns c/ Absentismo */}
+            {/* Macro KPIs Estratégicos */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <Card className="bg-white border hover:border-indigo-200 transition-colors shadow-sm">
                     <CardHeader className="pb-2 border-b border-slate-50">
                         <CardTitle className="text-slate-500 text-[10px] font-bold tracking-widest uppercase flex items-center justify-between">
-                            <span>Absenteísmo (Lideranças)</span>
-                            <Users size={14} className="text-red-400" />
+                            <span>SLA Resol. Andon (Médio)</span>
+                            <ShieldAlert size={14} className="text-amber-500" />
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="pt-4">
                         <div className="flex items-baseline gap-2">
-                            <span className="text-3xl font-extrabold text-slate-800">{absenteismRate.toFixed(1)}%</span>
+                            <span className="text-3xl font-extrabold text-slate-800">{mediaGlobalSla}</span>
+                            <span className="text-sm text-slate-500 font-bold">MIN</span>
                         </div>
                         <p className="text-slate-500 font-medium text-xs mt-1 border-t border-slate-100 pt-2">
-                            Líderes Ausentes Hoje: <strong className="text-red-500">{expectedWorkers - presentWorkers}</strong> de {expectedWorkers}.
+                            Tempo médio das Chefias a acalmar Anomalias.
                         </p>
                     </CardContent>
                 </Card>
@@ -258,14 +297,14 @@ export default async function ProdutividadeLiderancaRH({ searchParams }: { searc
                 <Card className="bg-white border hover:border-indigo-200 transition-colors shadow-sm">
                     <CardHeader className="pb-2 border-b border-slate-50">
                         <CardTitle className="text-slate-500 text-[10px] font-bold tracking-widest uppercase flex items-center justify-between">
-                            <span>OEE (Value-Added)</span>
+                            <span>OEE Médio (Equipas Base)</span>
                             <Activity size={14} className="text-indigo-500" />
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="pt-4">
-                        <div className="text-3xl font-extrabold text-indigo-600">{taxaProdutividade.toFixed(1)}%</div>
+                        <div className="text-3xl font-extrabold text-indigo-600">{mediaGlobalOeeEquipas.toFixed(1)}%</div>
                         <p className="text-slate-500 font-medium text-xs mt-1 border-t border-slate-100 pt-2">
-                            {kpiVABruto} Min Tarefas na Linha Montagem.
+                            Rendimento Reflexo da Liderança.
                         </p>
                     </CardContent>
                 </Card>
@@ -273,14 +312,14 @@ export default async function ProdutividadeLiderancaRH({ searchParams }: { searc
                 <Card className="bg-white border hover:border-indigo-200 transition-colors shadow-sm">
                     <CardHeader className="pb-2 border-b border-slate-50">
                         <CardTitle className="text-slate-500 text-[10px] font-bold tracking-widest uppercase flex items-center justify-between">
-                            <span>Tempo NVA (Desperdício)</span>
-                            <Coffee size={14} className="text-rose-500" />
+                            <span>Volume Mentoria</span>
+                            <Users size={14} className="text-emerald-500" />
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="pt-4">
-                        <div className="text-3xl font-extrabold text-rose-600">{kpiNVABruto} <span className="text-lg text-rose-400">min</span></div>
+                        <div className="text-3xl font-extrabold text-emerald-600">{mediaGlobalMentoria} <span className="text-lg text-emerald-400">Atos</span></div>
                         <p className="text-slate-500 font-medium text-xs mt-1 border-t border-slate-100 pt-2">
-                            Acumulado em Pausas Sistémicas.
+                            Feedbacks pedagógicos emitidos aos Operários.
                         </p>
                     </CardContent>
                 </Card>
@@ -288,43 +327,92 @@ export default async function ProdutividadeLiderancaRH({ searchParams }: { searc
                 <Card className="bg-white border hover:border-indigo-200 transition-colors shadow-sm">
                     <CardHeader className="pb-2 border-b border-slate-50">
                         <CardTitle className="text-slate-500 text-[10px] font-bold tracking-widest uppercase flex items-center justify-between">
-                            <span>Saltos Nomadas</span>
-                            <MapPin size={14} className="text-emerald-500" />
+                            <span>Média de Operários Dir.</span>
+                            <MapPin size={14} className="text-blue-500" />
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="pt-4">
-                        <div className="text-3xl font-extrabold text-emerald-600">
-                            {expectedWorkers > 0 ? (statsOperador.reduce((sum, curr) => sum + curr.numEstacoesDiferentes, 0) / expectedWorkers).toFixed(1) : 0}
+                        <div className="text-3xl font-extrabold text-blue-600">
+                            {statsOperador.length > 0 ? Math.round(statsOperador.reduce((sum, cur) => sum + cur.equipaTamanho, 0) / statsOperador.length) : 0}
                         </div>
                         <p className="text-slate-500 font-medium text-xs mt-1 border-t border-slate-100 pt-2">
-                            Média de Postos Apoiados por Liderança.
+                            Dimensão do Squad por cada Líder Ativo.
                         </p>
                     </CardContent>
                 </Card>
             </div>
 
-            {/* Top 3 Performers do Mês */}
-            <TopPerformersMural
-                operadores={(operadores as unknown as DB_OperadorArea[])}
-                avaliacoes={(avaliacoesMes as unknown as DB_AvaliacaoDiaria[]) || []}
-            />
-
-            {/* Mapa Longitudinal de Calor (Factory Heatmap) */}
-            <div className="mt-8 mb-8">
-                <FactoryHeatmap
-                    avaliacoes={(avaliacoesMes as unknown as DB_AvaliacaoDiaria[]) || []}
-                    operadores={(operadores as unknown as DB_OperadorArea[])}
-                />
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 mb-8 mt-6">
+                <div className="xl:col-span-2">
+                    <MatrizNoveBox data={noveBoxData} />
+                </div>
+                <div className="xl:col-span-1">
+                    <TopPerformersMural
+                        operadores={(operadores as unknown as DB_OperadorArea[])}
+                        avaliacoes={(avaliacoesMes as unknown as DB_AvaliacaoDiaria[]) || []}
+                    />
+                </div>
             </div>
 
-            {/* Painel Central das Tabelas OEE RH */}
-            <ProdutividadeTable 
-                statsOperador={statsOperador} 
-                mesIso={currentMonthStr} 
-                areasCatalog={areasCatalog || []} 
-                estacoesCatalog={estacoesCatalog || []} 
-                isLeader={true}
-            />
+            {/* Painel Central das Tabelas Mentoria RH */}
+            <Card className="bg-white border hover:border-indigo-200 transition-colors shadow-sm overflow-hidden">
+                <CardHeader className="pb-4 border-b border-slate-100 bg-slate-50">
+                    <CardTitle className="text-slate-700 text-lg font-extrabold flex items-center justify-between">
+                        <span>Scorecard Desempenho Dirigentes</span>
+                    </CardTitle>
+                </CardHeader>
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                        <thead>
+                            <tr className="bg-indigo-50 border-b border-indigo-100 text-[10px] uppercase font-bold text-indigo-700 tracking-wider">
+                                <th className="p-4">Líder (Nome & Área)</th>
+                                <th className="p-4">Tamanho Equipa</th>
+                                <th className="p-4">Índice Mentoria</th>
+                                <th className="p-4">SLA Tempo p/ Andon</th>
+                                <th className="p-4">OEE da Equipa Dir.</th>
+                            </tr>
+                        </thead>
+                        <tbody className="text-sm text-slate-700">
+                            {statsOperador.map((lider, i) => (
+                                <tr key={lider.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                                    <td className="p-4 font-bold text-slate-900 flex flex-col">
+                                        <span>{lider.nome_operador}</span>
+                                        <span className="text-[10px] text-slate-400 uppercase tracking-widest font-mono">
+                                            {lider.area_nome}
+                                        </span>
+                                    </td>
+                                    <td className="p-4 font-mono">
+                                        {lider.equipaTamanho} operários
+                                    </td>
+                                    <td className="p-4 text-emerald-600 font-bold">
+                                        {lider.mentorshipCount} Guias/Correções
+                                    </td>
+                                    <td className="p-4">
+                                        <span className={`font-mono font-bold px-2 py-0.5 rounded ${lider.mtrAndon < 10 ? 'bg-green-100 text-green-700' : lider.mtrAndon < 30 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`}>
+                                            {lider.mtrAndon > 0 ? `${lider.mtrAndon}m Médio` : 'Nenhum Rgt.'}
+                                        </span>
+                                    </td>
+                                    <td className="p-4">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-full bg-slate-100 rounded-full h-2">
+                                                <div className={`h-2 rounded-full ${lider.equipaOee > 80 ? 'bg-blue-500' : lider.equipaOee > 60 ? 'bg-amber-400' : 'bg-rose-500'}`} style={{ width: `${Math.min(100, lider.equipaOee)}%` }}></div>
+                                            </div>
+                                            <span className="font-bold text-slate-800 w-12">{lider.equipaOee.toFixed(0)}%</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                            {statsOperador.length === 0 && (
+                                <tr>
+                                    <td colSpan={5} className="p-10 text-center text-slate-500 italic">
+                                        Nenhuma informação de Liderança neste período/filtro.
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            </Card>
         </div>
     );
 }
