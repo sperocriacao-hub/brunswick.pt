@@ -162,8 +162,8 @@ export default async function ProdutividadeLiderancaRH({ searchParams }: { searc
         const equipeTotalTime = totalVaEquipa + totalNvaEquipa;
         const equipaOee = equipeTotalTime > 0 ? (totalVaEquipa / equipeTotalTime) * 100 : 0;
 
-        // Andons na Área de Intervenção
-        const andonsDominio = rawAndons?.filter(a => (a.estacoes as any)?.area_id === lider.area_base_id) || [];
+        // Andons da Equipa (Causados/Levantados por membros da equipa do líder)
+        const andonsDominio = rawAndons?.filter(a => a.operador_rfid && rfidEquipa.has(a.operador_rfid)) || [];
         const andonsResolvidos = andonsDominio.filter(a => a.resolvido && a.resolvido_at);
         let tempoTotalSla = 0;
         andonsResolvidos.forEach(a => {
