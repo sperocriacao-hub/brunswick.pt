@@ -109,7 +109,7 @@ export default async function ProdutividadeLiderancaRH({ searchParams }: { searc
     // 6. Fetch Andons para Cálculo SLA e Gestão Tática
     const { data: rawAndons } = await supabase
         .from('alertas_andon')
-        .select(`created_at, resolvido_at, resolvido, estacoes!alertas_andon_estacao_id_fkey(area_id)`)
+        .select(`created_at, resolvido_at, resolvido, operador_rfid, estacoes!alertas_andon_estacao_id_fkey(area_id)`)
         .gte('created_at', `${firstDayStr}T00:00:00Z`)
         .lte('created_at', `${lastDayStr}T23:59:59Z`);
 
