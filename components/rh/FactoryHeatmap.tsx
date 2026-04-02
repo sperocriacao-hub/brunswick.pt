@@ -41,6 +41,7 @@ export interface DB_AvaliacaoDiaria {
 export interface DB_OperadorArea {
     id: string;
     nome_operador: string;
+    funcao?: string;
     status: string;
     area_base_id: number;
     area_nome?: string;
