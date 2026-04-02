@@ -228,11 +228,6 @@ export default function GestaoRHPage() {
                                     </td>
                                     <td className="p-4">
                                         <span className="font-medium text-slate-700">{op.funcao || 'Não Atribuída'}</span>
-                                        {op.iluo_nivel && (
-                                            <span className="ml-2 bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider border border-indigo-200">
-                                                ILUO: {op.iluo_nivel}
-                                            </span>
-                                        )}
                                     </td>
                                     <td className="p-4">
                                         {op.possui_acesso_sistema ? (
