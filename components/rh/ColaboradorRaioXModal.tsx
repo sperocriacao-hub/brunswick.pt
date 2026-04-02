@@ -44,6 +44,7 @@ export function ColaboradorRaioXModal({ isOpen, onClose, operadorId, operadorRfi
 
             let formattedRadar = [];
             let formattedLinha = [];
+            let feedbacksUnificados: any[] = [];
 
             if (isLeader) {
                 // Liderança (Cálculo Front-end 30 dias)
@@ -94,6 +95,27 @@ export function ColaboradorRaioXModal({ isOpen, onClose, operadorId, operadorRfi
                 if (formattedLinha.length === 0) {
                     formattedLinha.push({ date: new Date().toLocaleDateString('pt-PT'), score: 0 });
                 }
+
+                // Extrair Feedbacks Escritos da Liderança (JSON justificativas)
+                colsRaw?.forEach(row => {
+                    if (row.justificativas) {
+                        try {
+                            const parsed = JSON.parse(row.justificativas);
+                            Object.entries(parsed).forEach(([key, val]) => {
+                                if (val && (val as string).trim() !== '') {
+                                    feedbacksUnificados.push({
+                                        data_apontamento: row.data_avaliacao,
+                                        supervisor_nome: row.supervisor_nome,
+                                        topico_falhado: key === 'comentario_geral' ? 'Feedback Geral' : `Pilar: ${key}`,
+                                        justificacao: val,
+                                        nota_atribuida: 'N/A'
+                                    });
+                                }
+                            });
+                        } catch(e) {}
+                    }
+                });
+
             } else {
                 // 1. Fetch Médias dos 7 Pilares (Radar)
                 const { data: radarMedias } = await supabase.rpc('get_medias_operador_v2', { target_id: operadorId });
@@ -108,9 +130,9 @@ export function ColaboradorRaioXModal({ isOpen, onClose, operadorId, operadorRfi
                     { subject: 'Inovação / Kaisen', A: radarMedias?.[0]?.med_kaisen || 0 },
                 ];
 
-                // 2. Fetch OEE Timeline (Linha de Progressão) Últimos 30 Dias
+                // 2. Fetch OEE Timeline (Linha de Progressão) Últimos 30 Dias + Extrair Justificação Geral
                 const { data: linhasRaw } = await supabase.from('avaliacoes_diarias')
-                    .select('data_avaliacao, nota_eficiencia')
+                    .select('data_avaliacao, nota_eficiencia, justificacao, supervisor_nome')
                     .eq('funcionario_id', operadorId)
                     .gte('data_avaliacao', trintaDiasStr)
                     .order('data_avaliacao', { ascending: true });
@@ -122,19 +144,42 @@ export function ColaboradorRaioXModal({ isOpen, onClose, operadorId, operadorRfi
                 if (formattedLinha.length === 0) {
                     formattedLinha.push({ date: new Date().toLocaleDateString('pt-PT'), score: 0 });
                 }
+
+                // Feedbacks Gerais na Tabela Principal
+                linhasRaw?.forEach(row => {
+                     if (row.justificacao && row.justificacao.trim() !== '') {
+                         feedbacksUnificados.push({
+                             data_apontamento: row.data_avaliacao,
+                             supervisor_nome: row.supervisor_nome,
+                             topico_falhado: 'Feedback Geral',
+                             justificacao: row.justificacao,
+                             nota_atribuida: 'N/A'
+                         });
+                     }
+                });
+
+                // 3. Fetch Apontamentos Negativos Específicos
+                const { data: anotacoesRaw } = await supabase.from('apontamentos_negativos')
+                    .select('data_apontamento, topico_falhado, nota_atribuida, justificacao, supervisor_nome')
+                    .eq('funcionario_id', operadorId)
+                    .order('data_apontamento', { ascending: false })
+                    .limit(20);
+
+                if (anotacoesRaw) {
+                    anotacoesRaw.forEach(a => feedbacksUnificados.push(a));
+                }
             }
 
             setHistoricoRadar(formattedRadar);
             setHistoricoLinha(formattedLinha);
 
-            // 3. Fetch Apontamentos Negativos Recentes (Abaixo de 2)
-            const { data: anotacoesRaw } = await supabase.from('apontamentos_negativos')
-                .select('data_apontamento, topico_falhado, nota_atribuida, justificacao, supervisor_nome')
-                .eq('funcionario_id', operadorId)
-                .order('data_apontamento', { ascending: false })
-                .limit(10);
+            // Ordenar todos os feedbacks por Data (Decrescente) e filtrar duplicados acidentais se o apontamento "Geral" estiver 2 vezes (via justificativas JSON vs DB table)
+            const uniqueFeedbacks = Array.from(new Set(feedbacksUnificados.map(a => JSON.stringify(a))))
+                .map(str => JSON.parse(str))
+                .sort((a, b) => new Date(b.data_apontamento).getTime() - new Date(a.data_apontamento).getTime())
+                .slice(0, 15); // Top 15 recentes
 
-            setApontamentosNegativos(anotacoesRaw || []);
+            setApontamentosNegativos(uniqueFeedbacks);
             setIsLoading(false);
         };
 
