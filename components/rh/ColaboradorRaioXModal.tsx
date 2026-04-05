@@ -21,11 +21,21 @@ interface ColaboradorRaioXModalProps {
     nomeOperador: string;
     funcaoArea: string;
     isLeader?: boolean;
+    aiContext?: {
+        equipaOee: number;
+        mtrAndon: number;
+        mentoriaScore: number;
+        mentorshipCount: number;
+    }
 }
 
-export function ColaboradorRaioXModal({ isOpen, onClose, operadorId, operadorRfid, nomeOperador, funcaoArea, isLeader = false }: ColaboradorRaioXModalProps) {
+export function ColaboradorRaioXModal({ isOpen, onClose, operadorId, operadorRfid, nomeOperador, funcaoArea, isLeader = false, aiContext }: ColaboradorRaioXModalProps) {
     const supabase = createClient();
     const [isLoading, setIsLoading] = useState(false);
+
+    // AI State
+    const [isAiLoading, setIsAiLoading] = useState(false);
+    const [aiResult, setAiResult] = useState<any>(null);
 
     // Data Holders
     const [historicoRadar, setHistoricoRadar] = useState<any[]>([]);
@@ -186,6 +196,36 @@ export function ColaboradorRaioXModal({ isOpen, onClose, operadorId, operadorRfi
         carregarDadosIndividuais();
     }, [isOpen, operadorId, operadorRfid, supabase]);
 
+    const handleGerarMentoria = async () => {
+        if (!aiContext) return;
+        setIsAiLoading(true);
+        setAiResult(null);
+
+        try {
+            const res = await fetch('/api/ai/mentoria', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    nome: nomeOperador,
+                    cargo: isLeader ? 'Liderança' : 'Operador',
+                    area: funcaoArea,
+                    equipaOee: aiContext.equipaOee,
+                    mtrAndon: aiContext.mtrAndon,
+                    mentoriaScore: aiContext.mentoriaScore,
+                    mentorshipCount: aiContext.mentorshipCount
+                })
+            });
+            const data = await res.json();
+            if (data.error) throw new Error(data.error);
+            setAiResult(data.data);
+        } catch (error) {
+            console.error(error);
+            alert("Erro ao conectar com a Inteligência Artificial.");
+        } finally {
+            setIsAiLoading(false);
+        }
+    };
+
     return (
         <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
             {/* O Trigger foi removido pois abrimos controladamente via state */}
@@ -292,29 +332,100 @@ export function ColaboradorRaioXModal({ isOpen, onClose, operadorId, operadorRfi
                                     const analysis = aiEngine(worstSubjectObj.subject, score);
 
                                     return (
-                                        <div className="bg-gradient-to-br from-indigo-50 to-white rounded-xl shadow-sm border border-indigo-100 p-6 relative overflow-hidden mt-8">
+                                        <div className="bg-gradient-to-br from-indigo-50 to-white rounded-xl shadow-sm border border-indigo-100 p-6 relative mt-8">
                                             <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-100 rounded-full blur-2xl -mr-10 -mt-10 opacity-60"></div>
-                                            <h3 className="text-xs uppercase tracking-widest font-extrabold text-indigo-800 mb-4 flex items-center gap-2 border-b border-indigo-100 pb-3 relative z-10">
-                                                <Lightbulb size={16} className="text-indigo-600" /> Analítica PDI: Assistente Tático Baseado na Avaliação
-                                            </h3>
                                             
-                                            <div className="relative z-10">
-                                                <div className="flex items-center gap-2 mb-2">
-                                                    <span className={`text-[10px] px-2 py-0.5 rounded font-black uppercase tracking-wider ${analysis.severity === 'Crítico' ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'}`}>
-                                                        Detetado Desvio: Nível {analysis.severity}
-                                                    </span>
-                                                    <span className="text-xs font-bold text-slate-700">{worstSubjectObj.subject} (Score Base de Dados: {score.toFixed(1)})</span>
+                                            {isLeader && aiContext ? (
+                                                // Painel de IA Google Gemini (Apenas para Liderança)
+                                                <div className="relative z-10">
+                                                   <div className="flex items-center justify-between border-b border-indigo-100 pb-3 mb-4">
+                                                       <h3 className="text-xs uppercase tracking-widest font-extrabold text-indigo-800 flex items-center gap-2">
+                                                           <Lightbulb size={16} className="text-indigo-600" /> Co-Piloto de Mentoria Dirigências (AI)
+                                                       </h3>
+                                                       <span className="text-[10px] font-bold px-2 py-0.5 bg-blue-100 text-blue-700 rounded uppercase">Google Gemini V1.5</span>
+                                                   </div>
+
+                                                   {!aiResult ? (
+                                                       <button 
+                                                           onClick={handleGerarMentoria} 
+                                                           disabled={isAiLoading}
+                                                           className="w-full flex flex-col items-center justify-center p-6 bg-indigo-900 hover:bg-indigo-800 transition-colors border border-indigo-700 rounded-lg shadow-lg group disabled:opacity-50"
+                                                       >
+                                                           {isAiLoading ? (
+                                                               <>
+                                                                   <Activity className="text-indigo-300 animate-spin mb-3" size={32} />
+                                                                   <span className="text-sm font-bold text-indigo-100 uppercase tracking-widest">A SINTETIZAR 6 PILARES...</span>
+                                                               </>
+                                                           ) : (
+                                                               <>
+                                                                   <div className="w-12 h-12 bg-indigo-800 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform ring-4 ring-indigo-500/20">
+                                                                       <Activity className="text-indigo-300" size={24} />
+                                                                   </div>
+                                                                   <span className="text-sm font-bold text-white uppercase tracking-widest">Gerar Diagnóstico & P.D.I.</span>
+                                                                   <span className="text-xs text-indigo-300 mt-1 text-center font-medium max-w-[80%]">Analisa OEE Equipa, Tempo Resposta Andon, Avaliações Direção e Bottom-Up</span>
+                                                               </>
+                                                           )}
+                                                       </button>
+                                                   ) : (
+                                                       <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                                           <div className="bg-orange-50 border-l-4 border-orange-500 p-4 rounded-r-lg">
+                                                               <h4 className="text-xs font-bold uppercase text-orange-800 flex items-center gap-2 mb-2"><AlertTriangle size={14}/> Alertas Críticos</h4>
+                                                               <ul className="text-sm text-orange-900 space-y-1 list-disc pl-4 font-medium">
+                                                                   {aiResult.alertas.map((al: string, idx: number) => <li key={idx}>{al}</li>)}
+                                                               </ul>
+                                                           </div>
+
+                                                           <div className="bg-emerald-50 border-l-4 border-emerald-500 p-4 rounded-r-lg">
+                                                               <h4 className="text-xs font-bold uppercase text-emerald-800 flex items-center gap-2 mb-2"><TrendingUp size={14}/> Elogios Direcionados</h4>
+                                                               <ul className="text-sm text-emerald-900 space-y-1 list-disc pl-4 font-medium">
+                                                                   {aiResult.elogios.map((el: string, idx: number) => <li key={idx}>{el}</li>)}
+                                                               </ul>
+                                                           </div>
+
+                                                           <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg">
+                                                               <h4 className="text-xs font-bold uppercase text-blue-800 flex items-center gap-2 mb-2"><Lightbulb size={14}/> P.D.I (Plano de Acção)</h4>
+                                                               <ul className="text-sm text-blue-900 space-y-2 font-semibold">
+                                                                   {aiResult.pdi.map((pdite: string, idx: number) => (
+                                                                       <li key={idx} className="flex items-start gap-2 bg-white/60 p-2 rounded">
+                                                                           <span className="bg-blue-200 text-blue-800 rounded px-1.5 py-0.5 text-[10px] w-auto h-auto shrink-0 mt-0.5">#{idx+1}</span>
+                                                                           {pdite}
+                                                                       </li>
+                                                                   ))}
+                                                               </ul>
+                                                           </div>
+
+                                                           <button onClick={() => setAiResult(null)} className="text-[10px] uppercase font-bold text-indigo-500 hover:text-indigo-700 w-full text-center mt-2 border-t border-indigo-100 pt-2">
+                                                               Limpar Diagnóstico M.E.S
+                                                           </button>
+                                                       </div>
+                                                   )}
                                                 </div>
-                                                <div className="bg-white/90 p-4 rounded-lg border border-indigo-50 shadow-sm relative mt-3 transition-all hover:border-indigo-200">
-                                                    <div className="absolute left-0 top-0 w-1 h-full bg-indigo-400 rounded-l-lg"></div>
-                                                    <p className="text-[13px] text-slate-800 leading-relaxed font-semibold italic pl-2">
-                                                        "{analysis.suggestion}"
-                                                    </p>
-                                                </div>
-                                                <div className="mt-3 text-[9px] text-indigo-400 font-bold uppercase tracking-widest text-right flex items-center justify-end gap-1">
-                                                    <Activity size={10} /> Consultoria IA M.E.S / Exposição Confidencial Liderança
-                                                </div>
-                                            </div>
+                                            ) : (
+                                                // Painel Antigo Tático Baseado na Avaliação Estática (Para Operários)
+                                                <>
+                                                   <h3 className="text-xs uppercase tracking-widest font-extrabold text-indigo-800 mb-4 flex items-center gap-2 border-b border-indigo-100 pb-3 relative z-10">
+                                                       <Lightbulb size={16} className="text-indigo-600" /> Analítica PDI: Assistente Tático Baseado na Avaliação
+                                                   </h3>
+                                                   
+                                                   <div className="relative z-10">
+                                                       <div className="flex items-center gap-2 mb-2">
+                                                           <span className={`text-[10px] px-2 py-0.5 rounded font-black uppercase tracking-wider ${analysis.severity === 'Crítico' ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'}`}>
+                                                               Detetado Desvio: Nível {analysis.severity}
+                                                           </span>
+                                                           <span className="text-xs font-bold text-slate-700">{worstSubjectObj.subject} (Score Base de Dados: {score.toFixed(1)})</span>
+                                                       </div>
+                                                       <div className="bg-white/90 p-4 rounded-lg border border-indigo-50 shadow-sm relative mt-3 transition-all hover:border-indigo-200">
+                                                           <div className="absolute left-0 top-0 w-1 h-full bg-indigo-400 rounded-l-lg"></div>
+                                                           <p className="text-[13px] text-slate-800 leading-relaxed font-semibold italic pl-2">
+                                                               "{analysis.suggestion}"
+                                                           </p>
+                                                       </div>
+                                                       <div className="mt-3 text-[9px] text-indigo-400 font-bold uppercase tracking-widest text-right flex items-center justify-end gap-1">
+                                                           <Activity size={10} /> Consultoria M.E.S Operacional
+                                                       </div>
+                                                   </div>
+                                                </>
+                                            )}
                                         </div>
                                     );
                                 })()}

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
-import { MonitorSmartphone, AlertTriangle, Lightbulb, QrCode, FileText, UserCheck, UserX, CheckSquare, ListTodo, LogIn, HardHat, ChevronLeft, Wifi } from 'lucide-react';
+import { MonitorSmartphone, AlertTriangle, Lightbulb, QrCode, FileText, UserCheck, UserX, CheckSquare, ListTodo, LogIn, HardHat, ChevronLeft, Wifi, Star } from 'lucide-react';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
@@ -9,9 +9,12 @@ import { getStationOperators, getStationChecklist, buscarEstacoes, dispararAlert
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { BottomUpModal } from '@/components/rh/BottomUpModal';
+import { createClient } from '@/utils/supabase/client';
 
 export default function InteractiveTabletPage() {
     const router = useRouter();
+    const supabase = createClient();
 
     // Context Factory State
     const [estacoes, setEstacoes] = useState<{ id: string, nome_estacao: string }[]>([]);
@@ -52,6 +55,9 @@ export default function InteractiveTabletPage() {
     const [andonType, setAndonType] = useState('Ajuste técnico');
     const [andonDesc, setAndonDesc] = useState('');
     const [causadoraEstacaoId, setCausadoraEstacaoId] = useState('');
+
+    // Bottom-Up Modal State
+    const [isBottomUpModalOpen, setIsBottomUpModalOpen] = useState(false);
 
     // Area Andon Status
     const [areaAndonStatus, setAreaAndonStatus] = useState<any[]>([]);
@@ -433,6 +439,24 @@ export default function InteractiveTabletPage() {
         }
     };
 
+    const handleBottomUpSubmit = async (rfid: string, liderNome: string, scores: any, feedback: string) => {
+        const { error } = await supabase.from('avaliacoes_bottom_up').insert({
+            estacao_id: selectedEstacaoId,
+            operador_rfid: rfid,
+            lider_alvo: liderNome,
+            nota_seguranca: scores.seguranca,
+            nota_justica: scores.justica,
+            nota_comunicacao: scores.comunicacao,
+            nota_autonomia: scores.autonomia,
+            feedback_escrito: feedback || null
+        });
+
+        if (error) {
+            console.error("Erro Supabase Avaliacao BottomUp", error);
+            throw new Error('Falha na Submissão de Mentoria');
+        }
+    };
+
     return (
         <div className="min-h-screen bg-[#0a0a0a] text-slate-200 flex flex-col font-sans relative">
             
@@ -563,6 +587,18 @@ export default function InteractiveTabletPage() {
                                     )}
                                 </div>
                             ))}
+                        </div>
+                    )}
+                    
+                    {/* BUTTON BOTTOM UP */}
+                    {clockedInOperators.length > 0 && (
+                        <div className="mt-4 pt-4 border-t border-slate-800 shrink-0">
+                            <Button 
+                                onClick={() => setIsBottomUpModalOpen(true)}
+                                className="w-full bg-emerald-600/20 text-emerald-500 border border-emerald-500/50 hover:bg-emerald-600 hover:text-white uppercase tracking-widest font-black h-14 shadow-[0_0_15px_rgba(16,185,129,0.15)]"
+                            >
+                                <Star className="w-5 h-5 mr-2" /> Avaliar Chefia
+                            </Button>
                         </div>
                     )}
                 </aside>
@@ -832,6 +868,13 @@ export default function InteractiveTabletPage() {
                     </div>
                 </DialogContent>
             </Dialog>
+
+            <BottomUpModal 
+                isOpen={isBottomUpModalOpen}
+                onClose={() => setIsBottomUpModalOpen(false)}
+                operadoresAtivos={clockedInOperators}
+                onSubmitAvaliacao={handleBottomUpSubmit}
+            />
         </div>
     );
 }

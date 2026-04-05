@@ -13,6 +13,7 @@ interface LiderStats {
     mentorshipCount: number;
     mtrAndon: number;
     equipaOee: number;
+    suaCulturaScore: number;
 }
 
 interface ScorecardProps {
@@ -96,6 +97,12 @@ export function ScorecardLideranca({ statsOperador, isLeader }: ScorecardProps) 
                     funcaoArea={selectedColaborador.area_nome || ''}
                     onClose={() => setSelectedColaborador(null)}
                     isLeader={isLeader}
+                    aiContext={{
+                        equipaOee: selectedColaborador.equipaOee,
+                        mtrAndon: selectedColaborador.mtrAndon,
+                        mentoriaScore: selectedColaborador.suaCulturaScore,
+                        mentorshipCount: selectedColaborador.mentorshipCount
+                    }}
                 />
             )}
         </Card>
