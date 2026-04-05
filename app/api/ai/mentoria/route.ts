@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
 
         const genAI = new GoogleGenerativeAI(apiKey);
         const model = genAI.getGenerativeModel({
-            model: "gemini-1.5-flash", 
+            model: "gemini-1.5-pro", 
             systemInstruction: `Você é um 'Coach Executivo Industrial Lean' experiente, desenhado para ajudar Diretores da fábrica Brunswick a avaliarem e a desenvolverem os seus Supervisores/Líderes fabris. 
                 Sua resposta deve ser estruturada SEMPRE em formato JSON com três chaves estritas:
                 {
