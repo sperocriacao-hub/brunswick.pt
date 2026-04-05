@@ -2,6 +2,7 @@ import React from 'react';
 import { createClient } from '@/utils/supabase/server';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Activity, Clock, Coffee, MapPin, Users, Filter, CalendarDays, ShieldAlert, Briefcase } from 'lucide-react';
+import Link from 'next/link';
 
 import { cookies } from 'next/headers';
 import { FactoryHeatmap, DB_AvaliacaoDiaria, DB_OperadorArea } from '@/components/rh/FactoryHeatmap';
@@ -239,9 +240,12 @@ export default async function ProdutividadeLiderancaRH({ searchParams }: { searc
                         <Briefcase className="text-indigo-600" size={32} />
                         Feedback Produtividade Liderança
                     </h1>
-                    <p className="text-indigo-600/70 font-medium text-sm flex items-center gap-2">
+                    <p className="text-indigo-600/70 font-medium text-sm flex items-center gap-2 mb-3">
                         <ShieldAlert size={16} /> Painel de Mentoria Estratégica e Risco. Métrica Avalia Reflexo nas Equipas.
                     </p>
+                    <Link href="/admin/rh/produtividade-lideranca/manifesto" className="inline-flex items-center gap-2 px-3 py-1 bg-indigo-900 border border-indigo-700 text-indigo-100 text-xs font-bold uppercase tracking-widest rounded shadow-sm hover:bg-indigo-800 transition-colors">
+                        Ler o Manifesto Base de Liderança
+                    </Link>
                 </div>
 
                 <form className="flex items-center gap-3 bg-white p-2 rounded-lg border border-indigo-100 shadow-sm" method="GET">
