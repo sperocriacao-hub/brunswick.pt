@@ -218,9 +218,9 @@ export function ColaboradorRaioXModal({ isOpen, onClose, operadorId, operadorRfi
             const data = await res.json();
             if (data.error) throw new Error(data.error);
             setAiResult(data.data);
-        } catch (error) {
+        } catch (error: any) {
             console.error(error);
-            alert("Erro ao conectar com a Inteligência Artificial.");
+            alert(`Falha da Inteligência Artificial: ${error.message}`);
         } finally {
             setIsAiLoading(false);
         }

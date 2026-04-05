@@ -40,8 +40,20 @@ export async function POST(req: NextRequest) {
         const responseText = result.response.text();
         
         // Remove blocos de markdown ```json se existirem para podermos parsear limpo
-        const cleanJson = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
-        const jsonOutput = JSON.parse(cleanJson);
+        let jsonOutput;
+        try {
+            const cleanJson = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
+            // Find JSON block with regex in case Gemini added leading trailing text
+            const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                jsonOutput = JSON.parse(jsonMatch[0]);
+            } else {
+                jsonOutput = JSON.parse(cleanJson);
+            }
+        } catch (e) {
+            console.error("Failed to parse Gemini JSON:", responseText);
+            throw new Error("A IA não retornou um formato válido. Tente gerar de novo.");
+        }
 
         return NextResponse.json({ data: jsonOutput });
     } catch (error: any) {

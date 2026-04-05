@@ -204,7 +204,7 @@ export default function LiderancaManifesto() {
                                             <Icon size={28} strokeWidth={2.5} className="drop-shadow-sm" />
                                         </div>
                                         <div>
-                                            <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-1">
+                                            <span className="text-[10px] font-black uppercase text-slate-500 tracking-widest block mb-1">
                                                 Nº {String(i+1).padStart(2, '0')}
                                             </span>
                                             <h3 className="text-xl font-extrabold text-slate-800 tracking-tight leading-tight">
@@ -224,10 +224,10 @@ export default function LiderancaManifesto() {
                                 </div>
 
                                 <div className="border-t border-slate-100 pt-5">
-                                    <h4 className="text-[11px] font-black tracking-widest uppercase text-slate-400 mb-3 flex items-center gap-2">
-                                        <BookOpen size={14} className="text-blue-500" /> Orientações e Missão
+                                    <h4 className="text-[11px] font-black tracking-widest uppercase text-slate-500 mb-3 flex items-center gap-2">
+                                        <BookOpen size={14} className="text-blue-600" /> Orientações e Missão
                                     </h4>
-                                    <p className="text-slate-600 text-sm leading-relaxed font-medium">
+                                    <p className="text-slate-700 text-sm leading-relaxed font-medium">
                                         {p.desc}
                                     </p>
                                 </div>
@@ -236,12 +236,12 @@ export default function LiderancaManifesto() {
                     })}
                 </div>
 
-                <div className="mt-20 pt-10 border-t-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-center opacity-70">
-                    <HardHat size={32} className="text-slate-300 mb-4" />
-                    <p className="text-sm font-semibold text-slate-500 uppercase tracking-widest">
+                <div className="mt-20 pt-10 border-t-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-center opacity-90">
+                    <HardHat size={32} className="text-slate-500 mb-4" />
+                    <p className="text-sm font-semibold text-slate-700 uppercase tracking-widest">
                         A excelência da fábrica é moldada pela sua liderança.
                     </p>
-                    <p className="text-xs mt-2 text-slate-400 font-medium">Bússola Estrutural & PDI Co-Pilot (Inteligência Artificial) • Ano de 2026</p>
+                    <p className="text-xs mt-2 text-slate-600 font-medium">Bússola Estrutural & PDI Co-Pilot (Inteligência Artificial) • Ano de 2026</p>
                 </div>
             </main>
         </div>
