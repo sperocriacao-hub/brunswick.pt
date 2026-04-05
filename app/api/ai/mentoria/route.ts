@@ -11,21 +11,26 @@ export async function POST(req: NextRequest) {
         }
 
         const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({
-            model: "gemini-1.5-pro", 
-            systemInstruction: `Você é um 'Coach Executivo Industrial Lean' experiente, desenhado para ajudar Diretores da fábrica Brunswick a avaliarem e a desenvolverem os seus Supervisores/Líderes fabris. 
-                Sua resposta deve ser estruturada SEMPRE em formato JSON com três chaves estritas:
-                {
-                   "alertas": ["ponto critico 1", "ponto critico 2"],
-                   "elogios": ["onde ele acertou 1", "onde ele acertou 2"],
-                   "pdi": ["Tarefa prática PDI 1", "Tarefa prática PDI 2", "Tarefa prática PDI 3"]
-                }
-                
-                Instruções do PDI (Plano de Desenvolvimento Individual): Sugira tarefas micro, práticas e acionáveis (ex: "Fazer uma reunião stand-up amanha sobre Qualidade com a linha").
-                Seja rigoroso, diplomático, focado em Lean Manufacturing.`
-        });
+        
+        const systemInstructionText = `Você é um 'Coach Executivo Industrial Lean' experiente, desenhado para ajudar Diretores da fábrica Brunswick a avaliarem e a desenvolverem os seus Supervisores/Líderes fabris. 
+            Sua resposta deve ser estruturada SEMPRE em formato JSON com três chaves estritas:
+            {
+               "alertas": ["ponto critico 1", "ponto critico 2"],
+               "elogios": ["onde ele acertou 1", "onde ele acertou 2"],
+               "pdi": ["Tarefa prática PDI 1", "Tarefa prática PDI 2", "Tarefa prática PDI 3"]
+            }
+            
+            Instruções do PDI (Plano de Desenvolvimento Individual): Sugira tarefas micro, práticas e acionáveis (ex: "Fazer uma reunião stand-up amanha sobre Qualidade com a linha").
+            Seja rigoroso, diplomático, focado em Lean Manufacturing.`;
 
-        const prompt = `Analise o perfil e métricas de desempenho deste líder e crie um Diagnóstico e Plano de Mentoria.
+        let model;
+        // Tentamos modelos do mais robusto para os universais, pois algumas Chaves API/Regiões não têm acesso a strings diretas.
+        const modelKeys = ["gemini-1.5-pro-latest", "gemini-1.5-flash-latest", "gemini-pro"];
+        
+        let result = null;
+        let lastError = null;
+
+        const prompt = `${systemInstructionText}\n\nAnalise o perfil e métricas de desempenho deste líder e crie um Diagnóstico e Plano de Mentoria.
         DADOS DO DIRIGENTE:
         Nome: ${body.nome}
         Cargo e Área: ${body.cargo} (${body.area || 'Geral'})
@@ -36,7 +41,21 @@ export async function POST(req: NextRequest) {
         
         Sintetize os problemas críticos (se o OEE for baixo, se as respostas a anomalias do Andon forem lentas, ou se as avaliações forem más), elogie os pontos fortes e estabeleça 3 tarefas urgentes de PDI.`;
 
-        const result = await model.generateContent(prompt);
+        for (const modelKey of modelKeys) {
+            try {
+                model = genAI.getGenerativeModel({ model: modelKey });
+                result = await model.generateContent(prompt);
+                break; // Se deu sucesso, não vai para o próximo modelo.
+            } catch (error) {
+                lastError = error;
+                console.warn(`[AI Mentorship] Falhou modelo: ${modelKey}`, error);
+            }
+        }
+
+        if (!result) {
+            console.error("AI Mentorship Exhausted Models Error:", lastError);
+            throw new Error(`Falha total de LLM (Nenhum modelo suportado). Erro retornado: ${(lastError as any)?.message || 'Desconhecido'}`);
+        }
         const responseText = result.response.text();
         
         // Remove blocos de markdown ```json se existirem para podermos parsear limpo
