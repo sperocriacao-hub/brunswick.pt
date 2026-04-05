@@ -54,8 +54,41 @@ export async function POST(req: NextRequest) {
 
         if (!result) {
             console.error("AI Mentorship Exhausted Models Error:", lastError);
-            throw new Error(`Falha total de LLM (Nenhum modelo suportado). Erro retornado: ${(lastError as any)?.message || 'Desconhecido'}`);
+            
+            // Tentativa Final: Buscar dinamicamente os modelos que a conta do utilizador suporta
+            try {
+                const modelsReq = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+                const modelsData = await modelsReq.json();
+                
+                if (modelsData.models && modelsData.models.length > 0) {
+                    const validModels = modelsData.models.filter((m: any) => m.supportedGenerationMethods?.includes('generateContent'));
+                    if (validModels.length > 0) {
+                        const dynamicModelName = validModels[0].name.replace('models/', '');
+                        console.log(`[AI Mentorship] Tentando modelo dinâmico encontrado na conta: ${dynamicModelName}`);
+                        model = genAI.getGenerativeModel({ model: dynamicModelName });
+                        result = await model.generateContent(prompt);
+                    }
+                }
+            } catch (dynamicError) {
+                console.error("Erro ao buscar modelos dinâmicos:", dynamicError);
+            }
+
+            // Se mesmo assim não houver resultado, aí sim explodimos o erro
+            if (!result) {
+                // Tentaremos formatar a lista de modelos para facilitar o debug do user
+                let availableModelsStr = "";
+                try {
+                    const modelsReq = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+                    const modelsData = await modelsReq.json();
+                    if (modelsData.models) {
+                        availableModelsStr = modelsData.models.map((m: any) => m.name).join(", ");
+                    }
+                } catch (e) {}
+
+                throw new Error(`Nenhum modelo suportado associado à sua API Key. Erro retornado: ${(lastError as any)?.message || 'Desconhecido'}. Modelos disponíveis na sua chave: [${availableModelsStr || 'Nenhum reportado'}]`);
+            }
         }
+        
         const responseText = result.response.text();
         
         // Remove blocos de markdown ```json se existirem para podermos parsear limpo
