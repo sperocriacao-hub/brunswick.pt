@@ -56,8 +56,7 @@ export async function submeterAvaliacaoDiaria(avaliacao: AvaliacaoDTO, autoSuper
                 nota_qualidade: avaliacao.qualidade,
                 nota_eficiencia: avaliacao.eficiencia,
                 nota_objetivos: avaliacao.objetivos,
-                nota_atitude: avaliacao.atitude,
-                justificacao: avaliacao.notasFinais || null
+                nota_atitude: avaliacao.atitude
             })
             .select('id')
             .single();

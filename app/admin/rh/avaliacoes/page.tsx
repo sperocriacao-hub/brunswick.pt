@@ -152,7 +152,7 @@ export default function LoteAvaliacoesDiariasLayout() {
                         eficiencia: found.nota_eficiencia || 3.0,
                         objetivos: found.nota_objetivos || 3.0,
                         atitude: found.nota_atitude || 3.0,
-                        notasFinais: found.justificacao || ""
+                        notasFinais: "" // was found.justificacao || "" but it doesn't exist
                     };
                     newSaved[emp.id] = true;
                 } else if (!newForms[emp.id] || newSaved[emp.id]) { // Reset Form if it was dirty from another date
