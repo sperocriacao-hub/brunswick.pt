@@ -100,6 +100,13 @@ export default async function ProdutividadeLiderancaRH({ searchParams }: { searc
         .gte('data_avaliacao', firstDayStr)
         .lte('data_avaliacao', lastDayStr);
 
+    // 4.5 Fetch Avaliações Operárias (The Real Bottom-Up)
+    const { data: avaliacoesBase } = await supabase
+        .from('avaliacoes_bottom_up')
+        .select('*')
+        .gte('created_at', `${firstDayStr}T00:00:00Z`)
+        .lte('created_at', `${lastDayStr}T23:59:59Z`);
+
     // 5. Fetch Dados de Mentoria (Feedbacks Emitidos)
     const { data: rawAptsEmitted } = await supabase
         .from('apontamentos_negativos')
@@ -200,19 +207,23 @@ export default async function ProdutividadeLiderancaRH({ searchParams }: { searc
         const myApts = rawAptsEmitted?.filter(a => a.supervisor_nome === lider.nome_operador) || [];
         const mentorshipCount = myAvs.length + myApts.length;
 
-        // Cultura Score (Média da própria avaliação de Liderança dele - Atitude + Gestão + Melhoria)
-        const hisAssessments = avaliacoesMes?.filter(a => a.funcionario_id === lider.id) || [];
+        // 1. Cultura Score (Bottom-Up) real das bases
+        const hisBaseEvals = avaliacoesBase?.filter(a => a.lider_alvo === lider.nome_operador) || [];
         let suaCulturaScore = 0;
+        if (hisBaseEvals.length > 0) {
+            const sum = hisBaseEvals.reduce((acc, cur) => acc + ((cur.nota_seguranca + cur.nota_justica + cur.nota_comunicacao + cur.nota_autonomia) / 4), 0);
+            suaCulturaScore = sum / hisBaseEvals.length;
+        }
+
+        // 2. Conformidade Oficial (HST e Objetivos) da Liderança
+        const hisAssessments = avaliacoesMes?.filter(a => a.funcionario_id === lider.id) || [];
         let notaHst = 0;
         let notaObjetivos = 0;
         
         if (hisAssessments.length > 0) {
             const lastAv = hisAssessments[hisAssessments.length - 1]; // Assume latest
-            suaCulturaScore = ((lastAv.nota_atitude || 3) + (lastAv.nota_gestao_motivacao || 3) + (lastAv.nota_cultura || 3)) / 3;
-            notaHst = lastAv.hst || lastAv.nota_hst || 0; // Usando fallback para campos baseados no DTO
-            notaObjetivos = lastAv.objetivos || lastAv.nota_objetivos || 0;
-        } else {
-            suaCulturaScore = 3.0; // Default Standard
+            notaHst = lastAv.hst || lastAv.nota_hst || lastAv.kpis || 0; // Fallbacks para preencher
+            notaObjetivos = lastAv.objetivos || lastAv.nota_objetivos || lastAv.eficiencia || 0;
         }
 
         return {
