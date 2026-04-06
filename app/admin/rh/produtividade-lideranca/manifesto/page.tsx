@@ -153,24 +153,24 @@ export default function LiderancaManifesto() {
         <div className="min-h-screen bg-slate-50 font-sans text-slate-800 relative overflow-hidden pb-20">
             
             {/* Elegant Header Backgrounds */}
-            <div className="absolute top-0 left-0 w-full h-[50vh] bg-gradient-to-br from-indigo-900 via-blue-800 to-blue-950 skew-y-[3deg] origin-top-left -z-10 shadow-xl overflow-hidden">
-                <div className="absolute inset-0 bg-[url('https://transparenttextures.com/patterns/graphy.png')] opacity-[0.2]"></div>
-                <div className="absolute top-[-10%] right-[-5%] w-[400px] h-[400px] bg-sky-500/30 blur-[100px] rounded-full"></div>
-                <div className="absolute top-[20%] left-[-10%] w-[500px] h-[500px] bg-indigo-500/20 blur-[150px] rounded-full"></div>
+            <div className="absolute top-0 left-0 w-full h-[600px] lg:h-[70vh] bg-gradient-to-br from-indigo-50 via-slate-100 to-blue-50 skew-y-[3deg] origin-top-left -z-10 overflow-hidden">
+                <div className="absolute inset-0 bg-[url('https://transparenttextures.com/patterns/graphy.png')] opacity-[0.4]"></div>
+                <div className="absolute top-[-10%] right-[-5%] w-[400px] h-[400px] bg-sky-200/50 blur-[100px] rounded-full"></div>
+                <div className="absolute top-[20%] left-[-10%] w-[500px] h-[500px] bg-indigo-200/40 blur-[150px] rounded-full"></div>
             </div>
 
             <main className="max-w-[1500px] mx-auto px-6 pt-16 z-10">
                 {/* Cabeçalho */}
                 <div className="flex flex-col items-center justify-center text-center space-y-6 pt-6 pb-20">
-                    <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-blue-900/40 backdrop-blur-md border border-blue-400/30 shadow-[0_0_20px_rgba(59,130,246,0.3)] rounded-full text-blue-200 text-xs font-mono font-bold tracking-widest uppercase">
+                    <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-blue-100/80 backdrop-blur-md border border-blue-200 shadow-sm rounded-full text-blue-900 text-xs font-mono font-bold tracking-widest uppercase">
                         <BookOpen size={16} /> Escola Superior de Liderança Estratégica M.E.S.
                     </div>
                     
-                    <h1 className="text-4xl md:text-6xl lg:text-7xl font-extrabold text-white tracking-tight uppercase max-w-5xl leading-tight">
-                        Manifesto <br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-200 to-sky-100 drop-shadow-md">Liderança Brunswick 360</span>
+                    <h1 className="text-4xl md:text-6xl lg:text-7xl font-extrabold text-slate-900 tracking-tight uppercase max-w-5xl leading-tight drop-shadow-sm">
+                        Manifesto <br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-700 to-indigo-800">Liderança Brunswick 360</span>
                     </h1>
                     
-                    <p className="text-blue-100/90 max-w-4xl text-base lg:text-lg font-medium leading-relaxed mt-2 drop-shadow">
+                    <p className="text-slate-600 max-w-4xl text-base lg:text-lg font-medium leading-relaxed mt-2">
                         O guia definitivo de conduta, gestão mental e eficiência para Lideranças. Este compêndio não dita apenas regras operacionais de avaliação; ele serve de estudo prático, consciencialização profunda e matriz filosófica sobre como motivar as equipas rumo à Inovação e Respeito Mútuo Fabril.
                     </p>
 
@@ -234,6 +234,89 @@ export default function LiderancaManifesto() {
                             </div>
                         )
                     })}
+                </div>
+                </div>
+
+                {/* Manual de Entendimento dos Novos KPIs */}
+                <div className="mt-28 py-16 px-8 md:px-16 bg-white rounded-[3rem] border border-slate-200 shadow-xl shadow-slate-200/50 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-slate-100 rounded-bl-full -z-0 opacity-50"></div>
+                    <div className="relative z-10">
+                        <div className="flex items-center gap-4 mb-4">
+                            <div className="p-3 bg-indigo-100 text-indigo-700 rounded-xl">
+                                <BarChart3 size={32} />
+                            </div>
+                            <h2 className="text-2xl md:text-4xl font-black text-slate-800 tracking-tight uppercase">
+                                Manual de Liderança <span className="text-indigo-600">Baseada em Dados</span>
+                            </h2>
+                        </div>
+                        <p className="text-slate-500 font-medium text-sm md:text-base max-w-3xl leading-relaxed mb-10">
+                            A Brunswick adotou um novo standard na medição do desempenho dos seus Líderes e Supervisores. Abandonamos as fórmulas cegas e agora focamo-nos na Causa Raiz, Segurança e Cultura. Saiba exatamente como será avaliado no novo Painel de Mentoria:
+                        </p>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12 pl-2 md:pl-4">
+                            {/* Bloco 1 */}
+                            <div className="border-l-4 border-amber-400 pl-6 py-1">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <ShieldAlert size={20} className="text-amber-500" />
+                                    <h3 className="text-lg font-bold text-slate-800">1. MTR (Resol. Andon SLA)</h3>
+                                </div>
+                                <p className="text-sm text-slate-600 leading-relaxed font-medium">
+                                    <b className="text-slate-800">O que é:</b> Mean Time to Resolve. Mede quanto tempo (em média) o líder demora a agir e fechar um chamado do Sistema Andon.<br/><br/>
+                                    <b className="text-slate-800">Como é calculado:</b> Pega na Estação Causadora (onde originou a falha, não apenas onde o botão foi tocado) e liga ao seu Supervisor através da secção da "Bússola". Calcula os minutos desde o Alarme até receber intervenção.<br/><br/>
+                                    <b className="text-slate-800">O seu papel:</b> O objetivo é agilidade e apoio rápido. SLA abaixo de 10 minutos (Badge Verde). Acima de 30 minutos emite alerta.
+                                </p>
+                            </div>
+
+                            {/* Bloco 2 */}
+                            <div className="border-l-4 border-blue-400 pl-6 py-1">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <Vote size={20} className="text-blue-500" />
+                                    <h3 className="text-lg font-bold text-slate-800">2. Índice de Cultura Democrática</h3>
+                                </div>
+                                <p className="text-sm text-slate-600 leading-relaxed font-medium">
+                                    <b className="text-slate-800">O que é:</b> O chamado Score Bottom-Up local.<br/><br/>
+                                    <b className="text-slate-800">Como é calculado:</b> É a soma dos questionários anónimos feitos pelos próprios operários (via Quiosque de Fabrica e Tablets) que o avaliam de 1 a 5 Estrelas em: <span className="italic">Autonomia, Justiça, Comunicação e Segurança Psicológica</span>.<br/><br/>
+                                    <b className="text-slate-800">O seu papel:</b> A sua nota de Cultura não é dada pelos Diretores, mas sim pelas pessoas que trabalham diariamente nas trincheiras consigo. Cuidar deles eleva as suas estrelas.
+                                </p>
+                            </div>
+
+                            {/* Bloco 3 */}
+                            <div className="border-l-4 border-emerald-400 pl-6 py-1">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <ShieldCheck size={20} className="text-emerald-500" />
+                                    <h3 className="text-lg font-bold text-slate-800">3. Conformidade H.S.T.</h3>
+                                </div>
+                                <p className="text-sm text-slate-600 leading-relaxed font-medium">
+                                    <b className="text-slate-800">O que é:</b> O rigor e exigência mantidos pela Chefia perante a Segurança Operacional da secção.<br/><br/>
+                                    <b className="text-slate-800">Como é calculado:</b> Trata-se da nota oficial (0 a 5.0) depositada pelo serviço de Saúde Sustentável ou Auditores Internos de Rondas na Plataforma de RH ("Top-Down").<br/><br/>
+                                    <b className="text-slate-800">O seu papel:</b> Mantenha a equipa fardada e cumpra estritamente os diâmetros de Segurança para que receba sempre nota superior a 4.0 (Aprovação Verde).
+                                </p>
+                            </div>
+
+                            {/* Bloco 4 */}
+                            <div className="border-l-4 border-indigo-400 pl-6 py-1">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <Target size={20} className="text-indigo-500" />
+                                    <h3 className="text-lg font-bold text-slate-800">4. Cumprimento de Objetivos</h3>
+                                </div>
+                                <p className="text-sm text-slate-600 leading-relaxed font-medium">
+                                    <b className="text-slate-800">O que é:</b> O alcance das metas táticas da fábrica que lhe foram propostas no arranque do mês.<br/><br/>
+                                    <b className="text-slate-800">Como é calculado:</b> Semelhante ao HST, é atribuído diretamente pelo Diretor Industrial ou Encarregado Geral face às expectativas, numa avaliação oficial Top-Down de 0 a 5.0.<br/><br/>
+                                    <b className="text-slate-800">O seu papel:</b> Foque-se na qualidade, no Kaizen e no ritmo. É com o cumprimento das suas promessas fabris que domina este KPI.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="mt-12 p-6 bg-slate-50 border border-slate-200 rounded-2xl flex items-start gap-4">
+                            <Cpu size={28} className="text-slate-400 shrink-0 mt-1" />
+                            <div>
+                                <h4 className="text-sm font-bold text-slate-800 uppercase tracking-widest mb-1">A Inteligência Artificial Monitoriza.</h4>
+                                <p className="text-xs font-medium text-slate-500 leading-relaxed">
+                                    Qualquer Chefe que veja o seu "Badge" Mudar para Vermelho será monitorizado. O Dashboard cruza estes 4 eixos instantaneamente, criando um <b>Plano de Desenvolvimento Individual (PDI)</b> gerado de forma neuro-didática pelo Gemini e pelo M.E.S. para que saiba onde focar a energia se errar num dos Pilares.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <div className="mt-20 pt-10 border-t-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-center opacity-90">
