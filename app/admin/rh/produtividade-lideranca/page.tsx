@@ -1,7 +1,7 @@
 import React from 'react';
 import { createClient } from '@/utils/supabase/server';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Activity, Clock, Coffee, MapPin, Users, Filter, CalendarDays, ShieldAlert, Briefcase } from 'lucide-react';
+import { Activity, Clock, Coffee, MapPin, Users, Filter, CalendarDays, ShieldAlert, Briefcase, Target, ShieldCheck, Vote } from 'lucide-react';
 import Link from 'next/link';
 
 import { cookies } from 'next/headers';
@@ -230,7 +230,7 @@ export default async function ProdutividadeLiderancaRH({ searchParams }: { searc
     }).sort((a, b) => b.equipaOee - a.equipaOee) || [];
 
     // Macro KPIs Estratégicos
-    const overallVa = statsOperador.reduce((sum, curr) => sum + curr.totalTrabalhoEfetivo, 0); // Para mural fallback
+    const numLideres = statsOperador.length || 1;
     
     // SLA Global de Fábrica
     const globalAndons = rawAndons?.filter(a => a.resolvido && a.resolvido_at) || [];
@@ -238,8 +238,9 @@ export default async function ProdutividadeLiderancaRH({ searchParams }: { searc
     globalAndons.forEach(a => globalGteAndonSla += diffMinutes(a.created_at, a.resolvido_at));
     const mediaGlobalSla = globalAndons.length > 0 ? Math.round(globalGteAndonSla / globalAndons.length) : 0;
     
-    const mediaGlobalMentoria = statsOperador.length > 0 ? (statsOperador.reduce((sum, curr) => sum + curr.mentorshipCount, 0)) : 0;
-    const mediaGlobalOeeEquipas = statsOperador.length > 0 ? (statsOperador.reduce((sum, curr) => sum + curr.equipaOee, 0) / statsOperador.length) : 0;
+    const mediaGlobalHst = statsOperador.reduce((sum, curr) => sum + curr.notaHst, 0) / numLideres;
+    const mediaGlobalObjetivos = statsOperador.reduce((sum, curr) => sum + curr.notaObjetivos, 0) / numLideres;
+    const mediaGlobalCultura = statsOperador.reduce((sum, curr) => sum + curr.suaCulturaScore, 0) / numLideres;
 
     // Gerador Array Meses Formulario
     const ultimosMeses = [];
@@ -308,69 +309,88 @@ export default async function ProdutividadeLiderancaRH({ searchParams }: { searc
                 </form>
             </div>
 
-            {/* Macro KPIs Estratégicos */}
+            {/* Macro KPIs Estratégicos - Novo Enfoque Fabril */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <Card className="bg-white border hover:border-indigo-200 transition-colors shadow-sm">
-                    <CardHeader className="pb-2 border-b border-slate-50">
+                {/* KPI 1 : SLA Andon */}
+                <Card className="bg-slate-50 border-0 shadow-sm ring-1 ring-slate-200/60 hover:ring-indigo-300 transition-all overflow-hidden group">
+                    <CardHeader className="pb-2 border-b border-white bg-slate-100/50">
                         <CardTitle className="text-slate-500 text-[10px] font-bold tracking-widest uppercase flex items-center justify-between">
-                            <span>SLA Resol. Andon (Médio)</span>
-                            <ShieldAlert size={14} className="text-amber-500" />
+                            <span>SLA Intervenção</span>
+                            <div className="p-1.5 bg-slate-200 rounded-md group-hover:bg-amber-100 transition-colors">
+                                <ShieldAlert size={14} className="text-amber-500" />
+                            </div>
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="pt-4">
                         <div className="flex items-baseline gap-2">
-                            <span className="text-3xl font-extrabold text-slate-800">{mediaGlobalSla}</span>
-                            <span className="text-sm text-slate-500 font-bold">MIN</span>
+                            <span className="text-3xl font-black tracking-tight text-slate-800">{mediaGlobalSla}</span>
+                            <span className="text-sm text-slate-400 font-bold">MIN</span>
                         </div>
-                        <p className="text-slate-500 font-medium text-xs mt-1 border-t border-slate-100 pt-2">
-                            Tempo médio das Chefias a acalmar Anomalias.
+                        <p className="text-slate-500 font-medium text-xs mt-2 border-t border-slate-200/50 pt-2">
+                            MTR (Andon). Agilidade das Chefias nas linhas.
                         </p>
                     </CardContent>
                 </Card>
 
-                <Card className="bg-white border hover:border-indigo-200 transition-colors shadow-sm">
-                    <CardHeader className="pb-2 border-b border-slate-50">
+                {/* KPI 2 : Bottom Up Cultura */}
+                <Card className="bg-slate-50 border-0 shadow-sm ring-1 ring-slate-200/60 hover:ring-indigo-300 transition-all overflow-hidden group">
+                    <CardHeader className="pb-2 border-b border-white bg-slate-100/50">
                         <CardTitle className="text-slate-500 text-[10px] font-bold tracking-widest uppercase flex items-center justify-between">
-                            <span>OEE Médio (Equipas Base)</span>
-                            <Activity size={14} className="text-indigo-500" />
+                            <span>Índice Liderança Democrático</span>
+                            <div className="p-1.5 bg-slate-200 rounded-md group-hover:bg-blue-100 transition-colors">
+                                <Vote size={14} className="text-blue-500" />
+                            </div>
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="pt-4">
-                        <div className="text-3xl font-extrabold text-indigo-600">{mediaGlobalOeeEquipas.toFixed(1)}%</div>
-                        <p className="text-slate-500 font-medium text-xs mt-1 border-t border-slate-100 pt-2">
-                            Rendimento Reflexo da Liderança.
-                        </p>
-                    </CardContent>
-                </Card>
-
-                <Card className="bg-white border hover:border-indigo-200 transition-colors shadow-sm">
-                    <CardHeader className="pb-2 border-b border-slate-50">
-                        <CardTitle className="text-slate-500 text-[10px] font-bold tracking-widest uppercase flex items-center justify-between">
-                            <span>Volume Mentoria</span>
-                            <Users size={14} className="text-emerald-500" />
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="pt-4">
-                        <div className="text-3xl font-extrabold text-emerald-600">{mediaGlobalMentoria} <span className="text-lg text-emerald-400">Atos</span></div>
-                        <p className="text-slate-500 font-medium text-xs mt-1 border-t border-slate-100 pt-2">
-                            Feedbacks pedagógicos emitidos aos Operários.
-                        </p>
-                    </CardContent>
-                </Card>
-
-                <Card className="bg-white border hover:border-indigo-200 transition-colors shadow-sm">
-                    <CardHeader className="pb-2 border-b border-slate-50">
-                        <CardTitle className="text-slate-500 text-[10px] font-bold tracking-widest uppercase flex items-center justify-between">
-                            <span>Média de Operários Dir.</span>
-                            <MapPin size={14} className="text-blue-500" />
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="pt-4">
-                        <div className="text-3xl font-extrabold text-blue-600">
-                            {statsOperador.length > 0 ? Math.round(statsOperador.reduce((sum, cur) => sum + cur.equipaTamanho, 0) / statsOperador.length) : 0}
+                        <div className="flex items-baseline gap-2">
+                            <span className="text-3xl font-black tracking-tight text-slate-800">{mediaGlobalCultura.toFixed(1)}</span>
+                            <span className="text-sm text-slate-400 font-bold">/ 5.0</span>
                         </div>
-                        <p className="text-slate-500 font-medium text-xs mt-1 border-t border-slate-100 pt-2">
-                            Dimensão do Squad por cada Líder Ativo.
+                        <p className="text-slate-500 font-medium text-xs mt-2 border-t border-slate-200/50 pt-2">
+                            Média de Quizzes e Sondagens das bases.
+                        </p>
+                    </CardContent>
+                </Card>
+
+                {/* KPI 3 : Conformidade HST */}
+                <Card className="bg-slate-50 border-0 shadow-sm ring-1 ring-slate-200/60 hover:ring-indigo-300 transition-all overflow-hidden group">
+                    <CardHeader className="pb-2 border-b border-white bg-slate-100/50">
+                        <CardTitle className="text-slate-500 text-[10px] font-bold tracking-widest uppercase flex items-center justify-between">
+                            <span>Conformidade HST Oficial</span>
+                            <div className="p-1.5 bg-slate-200 rounded-md group-hover:bg-emerald-100 transition-colors">
+                                <ShieldCheck size={14} className="text-emerald-500" />
+                            </div>
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-4">
+                        <div className="flex items-baseline gap-2">
+                            <span className="text-3xl font-black tracking-tight text-slate-800">{mediaGlobalHst.toFixed(1)}</span>
+                            <span className="text-sm text-slate-400 font-bold">/ 5.0</span>
+                        </div>
+                        <p className="text-slate-500 font-medium text-xs mt-2 border-t border-slate-200/50 pt-2">
+                            Média das rondas H.S.T feitas ao Líder.
+                        </p>
+                    </CardContent>
+                </Card>
+
+                {/* KPI 4 : Objetivos */}
+                <Card className="bg-slate-50 border-0 shadow-sm ring-1 ring-slate-200/60 hover:ring-indigo-300 transition-all overflow-hidden group">
+                    <CardHeader className="pb-2 border-b border-white bg-slate-100/50">
+                        <CardTitle className="text-slate-500 text-[10px] font-bold tracking-widest uppercase flex items-center justify-between">
+                            <span>Cumprimento de Objetivos</span>
+                            <div className="p-1.5 bg-slate-200 rounded-md group-hover:bg-indigo-100 transition-colors">
+                                <Target size={14} className="text-indigo-500" />
+                            </div>
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-4">
+                        <div className="flex items-baseline gap-2">
+                            <span className="text-3xl font-black tracking-tight text-slate-800">{mediaGlobalObjetivos.toFixed(1)}</span>
+                            <span className="text-sm text-slate-400 font-bold">/ 5.0</span>
+                        </div>
+                        <p className="text-slate-500 font-medium text-xs mt-2 border-t border-slate-200/50 pt-2">
+                            Avaliação tática registada no O.R.H.
                         </p>
                     </CardContent>
                 </Card>
