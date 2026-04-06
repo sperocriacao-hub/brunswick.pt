@@ -36,10 +36,12 @@ export async function POST(req: NextRequest) {
         Cargo e Área: ${body.cargo} (${body.area || 'Geral'})
         OEE Médio da sua Equipa Efetiva: ${body.equipaOee?.toFixed(1) || '0'}%
         Tempo Médio Pessoal de Resposta a Andons (Resolução de Quedas de Linha): ${body.mtrAndon} minutos
-        Avaliação Top-Down (Cultura e Atitude dada pela Direção): ${body.mentoriaScore?.toFixed(1) || '0'} / 5.0
+        Índice de Liderança Democrático (Avaliação Ascendente/Quizzes): ${body.mentoriaScore?.toFixed(1) || '0'} / 5.0
+        Avaliação Oficial de Higiene e Segurança no Trabalho (HST): ${body.notaHst?.toFixed(1) || 'N/A'} / 5.0
+        Avaliação Oficial de Cumprimento de Objetivos: ${body.notaObjetivos?.toFixed(1) || 'N/A'} / 5.0
         Atos de Mentoria/Acompanhamento emitidos por este líder: ${body.mentorshipCount} acompanhamentos.
         
-        Sintetize os problemas críticos (se o OEE for baixo, se as respostas a anomalias do Andon forem lentas, ou se as avaliações forem más), elogie os pontos fortes e estabeleça 3 tarefas urgentes de PDI.`;
+        Sintetize os problemas críticos (se a nota oficial de HST for baixa, se atingir poucos objetivos, se as respostas a anomalias do Andon forem lentas, ou se as avaliações da base forem más), elogie os pontos fortes evidentes como acima de 3.8/5.0 em notas, e estabeleça 3 tarefas urgentes de PDI.`;
 
         for (const modelKey of modelKeys) {
             try {

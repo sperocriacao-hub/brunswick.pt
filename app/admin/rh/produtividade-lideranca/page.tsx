@@ -173,7 +173,7 @@ export default async function ProdutividadeLiderancaRH({ searchParams }: { searc
             const hora = new Date(a.created_at).getHours();
             const isT2 = hora >= 14 && hora < 22;
             
-            const stationName = getEstacaoName(a.local_ocorrencia_id) || getEstacaoName(a.estacao_id);
+            const stationName = getEstacaoName(a.estacao_id) || getEstacaoName(a.local_ocorrencia_id);
             const bussolaReverificada = rawBussola?.find(b => stationName?.startsWith(b.prefixo_estacao));
             
             if (bussolaReverificada) {
@@ -203,9 +203,14 @@ export default async function ProdutividadeLiderancaRH({ searchParams }: { searc
         // Cultura Score (Média da própria avaliação de Liderança dele - Atitude + Gestão + Melhoria)
         const hisAssessments = avaliacoesMes?.filter(a => a.funcionario_id === lider.id) || [];
         let suaCulturaScore = 0;
+        let notaHst = 0;
+        let notaObjetivos = 0;
+        
         if (hisAssessments.length > 0) {
             const lastAv = hisAssessments[hisAssessments.length - 1]; // Assume latest
             suaCulturaScore = ((lastAv.nota_atitude || 3) + (lastAv.nota_gestao_motivacao || 3) + (lastAv.nota_cultura || 3)) / 3;
+            notaHst = lastAv.hst || lastAv.nota_hst || 0; // Usando fallback para campos baseados no DTO
+            notaObjetivos = lastAv.objetivos || lastAv.nota_objetivos || 0;
         } else {
             suaCulturaScore = 3.0; // Default Standard
         }
@@ -218,6 +223,8 @@ export default async function ProdutividadeLiderancaRH({ searchParams }: { searc
             taxaResAndon,
             mentorshipCount,
             suaCulturaScore,
+            notaHst,
+            notaObjetivos,
             equipaTamanho: equipa.length
         };
     }).sort((a, b) => b.equipaOee - a.equipaOee) || [];

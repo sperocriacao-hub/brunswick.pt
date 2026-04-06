@@ -26,6 +26,8 @@ interface ColaboradorRaioXModalProps {
         mtrAndon: number;
         mentoriaScore: number;
         mentorshipCount: number;
+        notaHst?: number;
+        notaObjetivos?: number;
     }
 }
 
@@ -212,7 +214,9 @@ export function ColaboradorRaioXModal({ isOpen, onClose, operadorId, operadorRfi
                     equipaOee: aiContext.equipaOee,
                     mtrAndon: aiContext.mtrAndon,
                     mentoriaScore: aiContext.mentoriaScore,
-                    mentorshipCount: aiContext.mentorshipCount
+                    mentorshipCount: aiContext.mentorshipCount,
+                    notaHst: aiContext.notaHst,
+                    notaObjetivos: aiContext.notaObjetivos
                 })
             });
             const data = await res.json();
