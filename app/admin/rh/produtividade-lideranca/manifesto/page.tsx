@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { Network, ShieldCheck, Zap, Crosshair, HeartPulse, HardHat, Recycle, LayoutGrid, Handshake, ShieldAlert, Cpu, Trophy, BarChart3, LineChart, BookOpen, Quote, ChevronLeft } from 'lucide-react';
+import { Network, ShieldCheck, Zap, Crosshair, HeartPulse, HardHat, Recycle, LayoutGrid, Handshake, ShieldAlert, Cpu, Trophy, BarChart3, LineChart, BookOpen, Quote, ChevronLeft, Target, Vote } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 
@@ -234,7 +234,6 @@ export default function LiderancaManifesto() {
                             </div>
                         )
                     })}
-                </div>
                 </div>
 
                 {/* Manual de Entendimento dos Novos KPIs */}
