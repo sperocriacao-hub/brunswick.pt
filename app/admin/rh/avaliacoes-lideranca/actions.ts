@@ -107,8 +107,8 @@ export async function submeterAvaliacaoLideranca(avaliacao: AvaliacaoLiderancaDT
 
         return { success: true };
 
-    } catch (err: unknown) {
-        return { success: false, error: err instanceof Error ? err.message : "Falha na Gravação da Avaliação" };
+    } catch (err: any) {
+        return { success: false, error: err?.message || "Falha na Gravação da Avaliação" };
     }
 }
 

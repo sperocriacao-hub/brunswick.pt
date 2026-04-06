@@ -21,7 +21,7 @@ export type AvaliacaoDTO = {
 export async function carregarEquipaAvaliavel() {
     try {
         const cookieStore = cookies();
-        const supabase = createClient(cookieStore);
+        const supabase = await createClient(cookieStore);
 
         const { data, error } = await supabase
             .from('operadores')
@@ -31,8 +31,8 @@ export async function carregarEquipaAvaliavel() {
 
         if (error) throw error;
         return { success: true, operadores: data };
-    } catch (err: unknown) {
-        return { success: false, error: err instanceof Error ? err.message : "Erro desconhecido" };
+    } catch (err: any) {
+        return { success: false, error: err?.message || "Erro desconhecido" };
     }
 }
 
@@ -41,7 +41,7 @@ export async function submeterAvaliacaoDiaria(avaliacao: AvaliacaoDTO, autoSuper
         if (!avaliacao.funcionario_id) throw new Error("ID de Funcionário em falta.");
 
         const cookieStore = cookies();
-        const supabase = createClient(cookieStore);
+        const supabase = await createClient(cookieStore);
 
         // 1. Inserir Avaliação (Isto chamará o Trigger PostgreSQL de atualização da matriz master)
         const { data: avalData, error: avalError } = await supabase
@@ -101,12 +101,12 @@ export async function submeterAvaliacaoDiaria(avaliacao: AvaliacaoDTO, autoSuper
                 .from('apontamentos_negativos')
                 .insert(apontamentos);
 
-            if (errorApt) console.error("Falha ao registar apontamentos negativos:", errorApt);
+            if (errorApt) throw errorApt;
         }
 
         return { success: true };
 
-    } catch (err: unknown) {
-        return { success: false, error: err instanceof Error ? err.message : "Falha na Gravação da Avaliação" };
+    } catch (err: any) {
+        return { success: false, error: err?.message || "Falha na Gravação da Avaliação" };
     }
 }
