@@ -279,7 +279,7 @@ export default function CustomTVDashboardPage() {
 
                             const isSingle = pagedAreas.length === 1;
                             const gridCols = pagedAreas.length <= 2 ? 'grid-cols-2' : 
-                                             pagedAreas.length <= 6 ? 'grid-cols-3' : 'grid-cols-4';
+                                             pagedAreas.length === 3 ? 'grid-cols-3' : 'grid-cols-4';
 
                             return (
                                 <>
