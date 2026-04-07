@@ -699,18 +699,35 @@ export function Sidebar({
                   <Link
                     onClick={() => setIsOpen(false)}
                     href="/admin/qualidade/rnc"
-                    className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes("/admin/qualidade/rnc") ? "bg-blue-800 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
+                    className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname === "/admin/qualidade/rnc" || pathname.startsWith("/admin/qualidade/rnc/nova") ? "bg-blue-800 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
                   >
                     <AlertTriangle
                       size={18}
                       className={
-                        pathname.includes("/admin/qualidade/rnc")
+                        pathname === "/admin/qualidade/rnc" || pathname.startsWith("/admin/qualidade/rnc/nova")
                           ? "text-white"
                           : "text-blue-300"
                       }
                     />
                     <span className="text-sm border-transparent">
-                      Gestão RNC (8D / A3)
+                      Lista (8D / A3)
+                    </span>
+                  </Link>
+                  <Link
+                    onClick={() => setIsOpen(false)}
+                    href="/admin/qualidade/rnc/quadro"
+                    className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes("/admin/qualidade/rnc/quadro") ? "bg-blue-800 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
+                  >
+                    <ListTodo
+                      size={18}
+                      className={
+                        pathname.includes("/admin/qualidade/rnc/quadro")
+                          ? "text-white"
+                          : "text-blue-300"
+                      }
+                    />
+                    <span className="text-sm border-transparent">
+                      Scrum Board (RNC)
                     </span>
                   </Link>
                   <Link
