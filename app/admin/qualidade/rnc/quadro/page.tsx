@@ -104,7 +104,7 @@ export default function RncKanbanBoardPage() {
         if (!selectedA3Id) return;
         setIsSavingA3(true);
 
-        const newStatus = validacao === 'Eficaz' ? 'Concluido' : 'Em Andamento';
+        const newStatus = validacao === 'Eficaz' ? 'Implementado' : 'Em Desenvolvimento';
 
         const payload = {
             autor: equipa,
