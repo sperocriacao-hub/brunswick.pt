@@ -185,9 +185,9 @@ export async function dispatchNotification(event: string, payload: Record<string
                     }
 
                     if (regra.tipo_canal === 'SMS') {
-                        const accountSid = process.env.TWILIO_ACCOUNT_SID;
-                        const authToken = process.env.TWILIO_AUTH_TOKEN;
-                        const twilioNumber = process.env.TWILIO_PHONE_NUMBER;
+                        const accountSid = process.env.TWILIO_ACCOUNT_SID?.trim().replace(/['"]/g, '');
+                        const authToken = process.env.TWILIO_AUTH_TOKEN?.trim().replace(/['"]/g, '');
+                        const twilioNumber = process.env.TWILIO_PHONE_NUMBER?.trim().replace(/['"]/g, '');
                         
                         if (!accountSid || !authToken || !twilioNumber) {
                             throw new Error('Credenciais Twilio incompletas no .env');
