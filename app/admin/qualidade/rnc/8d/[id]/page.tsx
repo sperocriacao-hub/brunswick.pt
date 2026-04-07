@@ -7,6 +7,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { get8d, update8d } from '../../actions';
 import { FileText, Save, Loader2, ArrowLeft, Users, Focus, Shield, Compass, Key, PlayCircle, CheckSquare, Zap, Target } from 'lucide-react';
 import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function EditarOitodPage() {
     const params = useParams();
@@ -117,87 +118,89 @@ export default function EditarOitodPage() {
                 </div>
             </header>
 
-            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-8">
+            {/* TABS CONTAINER */}
+            <Tabs defaultValue="definicao" className="w-full">
+                <TabsList className="grid w-full grid-cols-4 bg-slate-200/50 p-1 mb-8 rounded-xl">
+                    <TabsTrigger value="definicao" className="font-bold text-xs uppercase data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-sm">1. Equipa & Problema (D1-D2)</TabsTrigger>
+                    <TabsTrigger value="causa" className="font-bold text-xs uppercase data-[state=active]:bg-white data-[state=active]:text-amber-700 data-[state=active]:shadow-sm">2. Contenção & Causa (D3-D4)</TabsTrigger>
+                    <TabsTrigger value="acao" className="font-bold text-xs uppercase data-[state=active]:bg-white data-[state=active]:text-emerald-700 data-[state=active]:shadow-sm">3. Ação & Validação (D5-D6)</TabsTrigger>
+                    <TabsTrigger value="padrao" className="font-bold text-xs uppercase data-[state=active]:bg-white data-[state=active]:text-blue-700 data-[state=active]:shadow-sm">4. Prevenção & Fecho (D7-D8)</TabsTrigger>
+                </TabsList>
 
-                {/* D1 */}
-                <div className="space-y-3">
-                    <label className="text-xs font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
-                        <Users size={16} className="text-indigo-500" /> D1. Equipa de Resolução
-                    </label>
-                    <p className="text-xs text-slate-500">Liste o Responsável Líder (Champion) e os restantes membros multidisciplinares alocados a este problema.</p>
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <div className="col-span-1">
-                            <Input value={responsavel} onChange={e => setResponsavel(e.target.value)} placeholder="Líder (Ex: Eng. João)" className="bg-slate-50" />
-                        </div>
-                        <div className="col-span-3">
-                            <Input value={d1} onChange={e => setD1(e.target.value)} placeholder="Outros Membros (Ex: Qualidade, Supervisor, Operador)" className="bg-slate-50" />
+                {/* TAB 1: D1-D2 */}
+                <TabsContent value="definicao" className="space-y-6 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    <div className="space-y-3">
+                        <label className="text-xs font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
+                            <Users size={16} className="text-indigo-500" /> D1. Equipa de Resolução
+                        </label>
+                        <p className="text-xs text-slate-500">Liste o Responsável Líder (Champion) e os restantes membros multidisciplinares alocados a este problema.</p>
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <div className="col-span-1">
+                                <Input value={responsavel} onChange={e => setResponsavel(e.target.value)} placeholder="Líder (Ex: Eng. João)" className="bg-slate-50" />
+                            </div>
+                            <div className="col-span-3">
+                                <Input value={d1} onChange={e => setD1(e.target.value)} placeholder="Outros Membros (Ex: Qualidade, Supervisor, Operador)" className="bg-slate-50" />
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <hr className="border-slate-100" />
+                    <hr className="border-slate-100" />
 
-                {/* D2 */}
-                <div className="space-y-3">
-                    <label className="text-xs font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
-                        <Target size={16} className="text-rose-500" /> D2. Descrição do Problema (5W2H)
-                    </label>
-                    <p className="text-xs text-slate-500">Defina o problema focado no cliente (Quem, Onde, Quando, O Quê).</p>
-                    <textarea
-                        value={d2} onChange={e => setD2(e.target.value)}
-                        className="flex w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm min-h-[80px]"
-                    />
-                    
-                    {/* FOTOS DA RNC */}
-                    {rnc?.anexos_url && rnc.anexos_url.length > 0 && (
-                        <div className="flex gap-4 mt-4 pt-4 border-t border-slate-100">
-                            <span className="text-xs uppercase font-bold text-slate-400 self-center">Evidências Iniciais:</span>
-                            {rnc.anexos_url.map((url: string, idx: number) => (
-                                <img 
-                                    key={idx} 
-                                    src={url} 
-                                    alt="Evidência" 
-                                    onClick={() => setZoomedPhoto(url)}
-                                    className="w-16 h-16 rounded border border-slate-200 object-cover cursor-pointer hover:ring-2 hover:ring-indigo-400 transition-all shadow-sm"
-                                />
-                            ))}
-                        </div>
-                    )}
-                </div>
+                    <div className="space-y-3">
+                        <label className="text-xs font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
+                            <Target size={16} className="text-rose-500" /> D2. Descrição do Problema (5W2H)
+                        </label>
+                        <p className="text-xs text-slate-500">Defina o problema focado no cliente (Quem, Onde, Quando, O Quê).</p>
+                        <textarea
+                            value={d2} onChange={e => setD2(e.target.value)}
+                            className="flex w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm min-h-[120px]"
+                        />
 
-                <hr className="border-slate-100" />
+                        {/* FOTOS DA RNC */}
+                        {rnc?.anexos_url && rnc.anexos_url.length > 0 && (
+                            <div className="flex gap-4 mt-4 pt-4 border-t border-slate-100">
+                                <span className="text-xs uppercase font-bold text-slate-400 self-center">Evidências Iniciais:</span>
+                                {rnc.anexos_url.map((url: string, idx: number) => (
+                                    <img 
+                                        key={idx} src={url} alt="Evidência" onClick={() => setZoomedPhoto(url)}
+                                        className="w-16 h-16 rounded border border-slate-200 object-cover cursor-pointer hover:ring-2 hover:ring-indigo-400 transition-all shadow-sm"
+                                    />
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </TabsContent>
 
-                {/* D3 */}
-                <div className="space-y-3">
-                    <label className="text-xs font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
-                        <Shield size={16} className="text-amber-500" /> D3. Ações Provisórias / Contenção (ICA)
-                    </label>
-                    <p className="text-xs text-slate-500">O que foi feito imediatamente para proteger os clientes/próxima estação até a causa raiz ser encontrada?</p>
-                    <textarea
-                        value={d3} onChange={e => setD3(e.target.value)}
-                        className="flex w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm min-h-[80px]"
-                    />
-                </div>
+                {/* TAB 2: D3-D4 */}
+                <TabsContent value="causa" className="space-y-6 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    <div className="space-y-3">
+                        <label className="text-xs font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
+                            <Shield size={16} className="text-amber-500" /> D3. Ações Provisórias / Contenção (ICA)
+                        </label>
+                        <p className="text-xs text-slate-500">O que foi feito imediatamente para proteger os clientes/próxima estação até a causa raiz ser encontrada?</p>
+                        <textarea
+                            value={d3} onChange={e => setD3(e.target.value)}
+                            className="flex w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm min-h-[100px]"
+                        />
+                    </div>
 
-                <hr className="border-slate-100" />
+                    <hr className="border-slate-100" />
 
-                {/* D4 */}
-                <div className="space-y-3 opacity-90">
-                    <label className="text-xs font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
-                        <Focus size={16} className="text-purple-500" /> D4. Identificação da Causa Raiz (RCA)
-                    </label>
-                    <p className="text-xs text-slate-500">Use os 5 Porquês ou Fishbone para provar porque é que falhou o processo.</p>
-                    <textarea
-                        value={d4} onChange={e => setD4(e.target.value)}
-                        className="flex w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm min-h-[100px]"
-                        placeholder="Porque 1... Porque 2... Porque 3..."
-                    />
-                </div>
+                    <div className="space-y-3">
+                        <label className="text-xs font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
+                            <Focus size={16} className="text-purple-500" /> D4. Identificação da Causa Raiz (RCA)
+                        </label>
+                        <p className="text-xs text-slate-500">Use os 5 Porquês ou Fishbone para provar porque é que falhou o processo.</p>
+                        <textarea
+                            value={d4} onChange={e => setD4(e.target.value)}
+                            className="flex w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm min-h-[140px]"
+                            placeholder="Porque 1... Porque 2... Porque 3..."
+                        />
+                    </div>
+                </TabsContent>
 
-                <hr className="border-slate-100" />
-
-                {/* D5 & D6 */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 opacity-90">
+                {/* TAB 3: D5-D6 */}
+                <TabsContent value="acao" className="space-y-6 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-300">
                     <div className="space-y-3">
                         <label className="text-xs font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
                             <Key size={16} className="text-emerald-500" /> D5. Ação Permanente (PCA)
@@ -205,9 +208,11 @@ export default function EditarOitodPage() {
                         <p className="text-xs text-slate-500">Soluções escolhidas para intervir na Causa Raiz.</p>
                         <textarea
                             value={d5} onChange={e => setD5(e.target.value)}
-                            className="flex w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm min-h-[100px]"
+                            className="flex w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm min-h-[120px]"
                         />
                     </div>
+
+                    <hr className="border-slate-100" />
 
                     <div className="space-y-3">
                         <label className="text-xs font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
@@ -216,15 +221,13 @@ export default function EditarOitodPage() {
                         <p className="text-xs text-slate-500">Verificação com dados de que a solução (D5) efetivamente corrigiu a Causa Raiz.</p>
                         <textarea
                             value={d6} onChange={e => setD6(e.target.value)}
-                            className="flex w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm min-h-[100px]"
+                            className="flex w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm min-h-[120px]"
                         />
                     </div>
-                </div>
+                </TabsContent>
 
-                <hr className="border-slate-100" />
-
-                {/* D7 & D8 */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 opacity-90">
+                {/* TAB 4: D7-D8 */}
+                <TabsContent value="padrao" className="space-y-6 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-300">
                     <div className="space-y-3">
                         <label className="text-xs font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
                             <Compass size={16} className="text-teal-500" /> D7. Prevenção de Recorrência
@@ -232,9 +235,11 @@ export default function EditarOitodPage() {
                         <p className="text-xs text-slate-500">SOPs atualizados, TPM modificado ou Lição Aprendida para o resto da fábrica?</p>
                         <textarea
                             value={d7} onChange={e => setD7(e.target.value)}
-                            className="flex w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm min-h-[80px]"
+                            className="flex w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm min-h-[120px]"
                         />
                     </div>
+
+                    <hr className="border-slate-100" />
 
                     <div className="space-y-3">
                         <label className="text-xs font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
@@ -246,8 +251,8 @@ export default function EditarOitodPage() {
                             className="flex w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm min-h-[80px]"
                         />
                     </div>
-                </div>
-            </div>
+                </TabsContent>
+            </Tabs>
 
             {/* MODAL FOTO ZOOM */}
             {zoomedPhoto && (

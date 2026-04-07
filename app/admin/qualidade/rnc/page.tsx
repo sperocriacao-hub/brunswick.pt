@@ -99,6 +99,9 @@ export default function GestaoRncPage() {
                     <p className="text-lg text-slate-500 mt-1">Gestão de Anomalias de Qualidade e delegação Lean (8D / A3)</p>
                 </div>
                 <div className="flex gap-2">
+                    <Button variant="outline" onClick={() => router.push('/admin/qualidade/rnc/quadro')} className="bg-white hover:bg-slate-50 border-slate-200 font-bold text-slate-700">
+                        <LayoutTemplate className="w-4 h-4 mr-2 text-rose-500" /> Modo Quadro Kanban
+                    </Button>
                     <Button onClick={() => router.push('/admin/qualidade/rnc/nova')} className="bg-rose-600 hover:bg-rose-700 shadow-lg shadow-rose-200 font-bold">
                         <Plus className="w-5 h-5 mr-2" /> Emitir RNC
                     </Button>

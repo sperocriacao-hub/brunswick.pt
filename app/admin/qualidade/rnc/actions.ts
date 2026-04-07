@@ -27,6 +27,16 @@ export async function getRncs() {
     }
 }
 
+export async function updateRncStatus(id: string, status: string) {
+    try {
+        const { error } = await supabase.from("qualidade_rnc").update({ status }).eq("id", id);
+        if (error) throw error;
+        return { success: true };
+    } catch (err: any) {
+        return { success: false, error: err.message };
+    }
+}
+
 export async function getSelectData() {
     try {
         const { data: ops, error: opError } = await supabase

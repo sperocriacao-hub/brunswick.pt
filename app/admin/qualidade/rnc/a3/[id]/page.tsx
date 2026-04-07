@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { useParams, useRouter } from 'next/navigation';
 import { getA3, updateA3 } from '../../actions';
 import { LayoutTemplate, Save, Loader2, ArrowLeft, Target, AlertCircle, Activity, Search, Wrench, ListTodo, Eye, CheckCircle } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function EditarATresPage() {
     const params = useParams();
@@ -124,131 +125,122 @@ export default function EditarATresPage() {
                 </div>
             </div>
 
-            {/* O CANVAS A3 (Duas Metades) */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* TABS CONTAINER */}
+            <Tabs defaultValue="definicao" className="w-full">
+                <TabsList className="grid w-full grid-cols-4 bg-slate-200/50 p-1 mb-8 rounded-xl max-w-4xl">
+                    <TabsTrigger value="definicao" className="font-bold text-xs uppercase data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-sm">1. Definição & Sit. Atual</TabsTrigger>
+                    <TabsTrigger value="causa" className="font-bold text-xs uppercase data-[state=active]:bg-white data-[state=active]:text-amber-700 data-[state=active]:shadow-sm">2. Objetivo & Causa Raiz</TabsTrigger>
+                    <TabsTrigger value="plano" className="font-bold text-xs uppercase data-[state=active]:bg-white data-[state=active]:text-blue-700 data-[state=active]:shadow-sm">3. Contramedidas (5W2H)</TabsTrigger>
+                    <TabsTrigger value="verificacao" className="font-bold text-xs uppercase data-[state=active]:bg-white data-[state=active]:text-emerald-700 data-[state=active]:shadow-sm">4. Verificação & Tracking</TabsTrigger>
+                </TabsList>
 
-                {/* METADE ESQUERDA (Planeamento) */}
-                <div className="space-y-6">
+                {/* TAB 1: Background & Situação Atual */}
+                <TabsContent value="definicao" className="space-y-6 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    <div className="space-y-3">
+                        <label className="text-xs font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
+                            <AlertCircle size={16} className="text-slate-500" /> 1. Background / Contexto
+                        </label>
+                        <p className="text-xs text-slate-500">Porque é que estamos a falar disto? Qual o problema de negócio que estamos a tentar resolver?</p>
+                        <textarea
+                            value={background} onChange={e => setBackground(e.target.value)}
+                            className="flex w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm min-h-[140px]"
+                        />
+                        
+                        {/* FOTOS DA RNC */}
+                        {rnc?.anexos_url && rnc.anexos_url.length > 0 && (
+                            <div className="flex gap-4 mt-4 pt-4 border-t border-slate-100">
+                                <span className="text-xs uppercase font-bold text-slate-400 self-center">Evidências Iniciais:</span>
+                                {rnc.anexos_url.map((url: string, idx: number) => (
+                                    <img 
+                                        key={idx} src={url} alt="Evidência" onClick={() => setZoomedPhoto(url)}
+                                        className="w-16 h-16 rounded border border-slate-200 object-cover cursor-pointer hover:ring-2 hover:ring-indigo-400 transition-all shadow-sm"
+                                    />
+                                ))}
+                            </div>
+                        )}
+                    </div>
 
-                    <Card className="border-slate-200 shadow-sm overflow-hidden">
-                        <div className="bg-slate-100 px-4 py-2 border-b border-slate-200 flex items-center gap-2">
-                            <AlertCircle size={16} className="text-slate-500" />
-                            <span className="font-bold text-sm text-slate-700 uppercase tracking-widest">1. Background / Contexto</span>
+                    <hr className="border-slate-100" />
+
+                    <div className="space-y-3">
+                        <label className="text-xs font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
+                            <Activity size={16} className="text-rose-500" /> 2. Situação Atual
+                        </label>
+                        <p className="text-xs text-slate-500">Onde estamos hoje? Apresente factos, gráficos ou o fluxo de valor atual.</p>
+                        <textarea
+                            value={condicaoAtual} onChange={e => setCondicaoAtual(e.target.value)}
+                            className="flex w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm min-h-[160px]"
+                        />
+                    </div>
+                </TabsContent>
+
+                {/* TAB 2: Objetivo & Causa */}
+                <TabsContent value="causa" className="space-y-6 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    <div className="space-y-3">
+                        <label className="text-xs font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
+                            <Target size={16} className="text-amber-500" /> 3. Objetivo / Meta
+                        </label>
+                        <p className="text-xs text-slate-500">Para onde queremos ir? Indique uma métrica SMART (Específica, Mensurável, Atingível, Relevante, Temporal).</p>
+                        <textarea
+                            value={objetivo} onChange={e => setObjetivo(e.target.value)}
+                            className="flex w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm min-h-[120px]"
+                        />
+                    </div>
+
+                    <hr className="border-slate-100" />
+
+                    <div className="space-y-3">
+                        <label className="text-xs font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
+                            <Search size={16} className="text-indigo-500" /> 4. Análise da Causa Raiz
+                        </label>
+                        <p className="text-xs text-slate-500">Porquê é que o problema ocorre? (5 Porquês, Diagrama de Ishikawa).</p>
+                        <textarea
+                            value={analiseCausa} onChange={e => setAnaliseCausa(e.target.value)}
+                            className="flex w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm min-h-[220px]"
+                        />
+                    </div>
+                </TabsContent>
+
+                {/* TAB 3: Plano */}
+                <TabsContent value="plano" className="space-y-6 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    <div className="space-y-3">
+                        <label className="text-xs font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
+                            <Wrench size={16} className="text-emerald-500" /> 5. Contramedidas Propostas
+                        </label>
+                        <p className="text-xs text-slate-500">Quais as soluções encontradas para combater a causa raiz e atingir o nosso objetivo?</p>
+                        <textarea
+                            value={contramedidas} onChange={e => setContramedidas(e.target.value)}
+                            className="flex w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm min-h-[200px]"
+                        />
+                    </div>
+
+                    <hr className="border-slate-100" />
+
+                    <div className="space-y-3">
+                        <label className="text-xs font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
+                            <ListTodo size={16} className="text-blue-500" /> 6. Plano de Ação (5W2H)
+                        </label>
+                        <div className="p-6 bg-slate-50 border border-slate-200 border-dashed rounded-xl text-center">
+                            <p className="text-xs text-slate-500 mb-4">A lista individual de tarefas de investigação deverá ser gerida pelo Global Lean Actions.</p>
+                            <Button disabled variant="outline" className="bg-white"><ListTodo className="w-4 h-4 mr-2" /> Gerir Tarefas do A3</Button>
                         </div>
-                        <CardContent className="p-0">
-                            <textarea
-                                value={background} onChange={e => setBackground(e.target.value)}
-                                className="w-full resize-none border-0 p-4 min-h-[140px] text-sm focus:ring-0"
-                                placeholder="Porque é que estamos a falar disto? Qual o problema de negócio que estamos a tentar resolver?"
-                            />
-                            
-                            {/* FOTOS DA RNC */}
-                            {rnc?.anexos_url && rnc.anexos_url.length > 0 && (
-                                <div className="flex gap-4 p-4 border-t border-slate-100 bg-white">
-                                    <span className="text-xs uppercase font-bold text-slate-400 self-center">Evidências Iniciais:</span>
-                                    {rnc.anexos_url.map((url: string, idx: number) => (
-                                        <img 
-                                            key={idx} 
-                                            src={url} 
-                                            alt="Evidência" 
-                                            onClick={() => setZoomedPhoto(url)}
-                                            className="w-16 h-16 rounded border border-slate-200 object-cover cursor-pointer hover:ring-2 hover:ring-indigo-400 transition-all shadow-sm"
-                                        />
-                                    ))}
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
+                    </div>
+                </TabsContent>
 
-                    <Card className="border-slate-200 shadow-sm overflow-hidden">
-                        <div className="bg-slate-100 px-4 py-2 border-b border-slate-200 flex items-center gap-2">
-                            <Activity size={16} className="text-rose-500" />
-                            <span className="font-bold text-sm text-slate-700 uppercase tracking-widest">2. Situação Atual</span>
-                        </div>
-                        <CardContent className="p-0">
-                            <textarea
-                                value={condicaoAtual} onChange={e => setCondicaoAtual(e.target.value)}
-                                className="w-full resize-none border-0 p-4 min-h-[160px] text-sm focus:ring-0"
-                                placeholder="Onde estamos hoje? Apresente factos, gráficos ou o fluxo de valor atual."
-                            />
-                        </CardContent>
-                    </Card>
-
-                    <Card className="border-slate-200 shadow-sm overflow-hidden">
-                        <div className="bg-slate-100 px-4 py-2 border-b border-slate-200 flex items-center gap-2">
-                            <Target size={16} className="text-amber-500" />
-                            <span className="font-bold text-sm text-slate-700 uppercase tracking-widest">3. Objetivo / Meta</span>
-                        </div>
-                        <CardContent className="p-0">
-                            <textarea
-                                value={objetivo} onChange={e => setObjetivo(e.target.value)}
-                                className="w-full resize-none border-0 p-4 min-h-[120px] text-sm focus:ring-0"
-                                placeholder="Para onde queremos ir? Indique uma métrica SMART (Específica, Mensurável, Atingível, Relevante, Temporal)."
-                            />
-                        </CardContent>
-                    </Card>
-
-                    <Card className="border-slate-200 shadow-sm overflow-hidden">
-                        <div className="bg-slate-100 px-4 py-2 border-b border-slate-200 flex items-center gap-2">
-                            <Search size={16} className="text-indigo-500" />
-                            <span className="font-bold text-sm text-slate-700 uppercase tracking-widest">4. Análise da Causa Raiz</span>
-                        </div>
-                        <CardContent className="p-0">
-                            <textarea
-                                value={analiseCausa} onChange={e => setAnaliseCausa(e.target.value)}
-                                className="w-full resize-none border-0 p-4 min-h-[220px] text-sm focus:ring-0"
-                                placeholder="Porquê é que o problema ocorre? (5 Porquês, Diagrama de Ishikawa)"
-                            />
-                        </CardContent>
-                    </Card>
-
-                </div>
-
-                {/* METADE DIREITA (Ação e Validação) */}
-                <div className="space-y-6">
-
-                    <Card className="border-slate-200 shadow-sm overflow-hidden">
-                        <div className="bg-slate-100 px-4 py-2 border-b border-slate-200 flex items-center gap-2">
-                            <Wrench size={16} className="text-emerald-500" />
-                            <span className="font-bold text-sm text-slate-700 uppercase tracking-widest">5. Contramedidas Propostas</span>
-                        </div>
-                        <CardContent className="p-0">
-                            <textarea
-                                value={contramedidas} onChange={e => setContramedidas(e.target.value)}
-                                className="w-full resize-none border-0 p-4 min-h-[240px] text-sm focus:ring-0"
-                                placeholder="Quais as soluções encontradas para combater a causa raiz e atingir o nosso objetivo?"
-                            />
-                        </CardContent>
-                    </Card>
-
-                    <Card className="border-slate-200 shadow-sm overflow-hidden">
-                        <div className="bg-slate-100 px-4 py-2 border-b border-slate-200 flex items-center gap-2">
-                            <ListTodo size={16} className="text-blue-500" />
-                            <span className="font-bold text-sm text-slate-700 uppercase tracking-widest">6. Plano de Ação (5W2H)</span>
-                        </div>
-                        <CardContent className="p-4 bg-slate-50 border-b border-slate-100 text-center">
-                            <p className="text-xs text-slate-500 mb-2">Após gravar e aprovar o A3 este campo habilitará uma Tabela Dinâmica Dinâmica (Lista de Tarefas).</p>
-                            <Button disabled variant="outline" size="sm" className="bg-white"><ListTodo className="w-4 h-4 mr-2" /> Gerir Tarefas do A3</Button>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="border-slate-200 shadow-sm overflow-hidden h-full">
-                        <div className="bg-slate-100 px-4 py-2 border-b border-slate-200 flex items-center gap-2">
-                            <Eye size={16} className="text-teal-500" />
-                            <span className="font-bold text-sm text-slate-700 uppercase tracking-widest">7. Acompanhamento / Standard</span>
-                        </div>
-                        <CardContent className="p-0 h-full">
-                            <textarea
-                                value={seguimento} onChange={e => setSeguimento(e.target.value)}
-                                className="w-full h-full resize-none border-0 p-4 min-h-[140px] text-sm focus:ring-0"
-                                placeholder="Como vamos avaliar o impacto destas ações e como garantimos que o erro não volta? O que será partilhado com o resto da fábrica?"
-                            />
-                        </CardContent>
-                    </Card>
-
-                </div>
-
-            </div>
+                {/* TAB 4: Verificação */}
+                <TabsContent value="verificacao" className="space-y-6 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    <div className="space-y-3">
+                        <label className="text-xs font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
+                            <Eye size={16} className="text-teal-500" /> 7. Acompanhamento / Standard
+                        </label>
+                        <p className="text-xs text-slate-500">Como vamos avaliar o impacto destas ações e como garantimos que o erro não volta? O que será partilhado com o resto da fábrica?</p>
+                        <textarea
+                            value={seguimento} onChange={e => setSeguimento(e.target.value)}
+                            className="flex w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm min-h-[140px]"
+                        />
+                    </div>
+                </TabsContent>
+            </Tabs>
 
             {/* MODAL FOTO ZOOM */}
             {zoomedPhoto && (
