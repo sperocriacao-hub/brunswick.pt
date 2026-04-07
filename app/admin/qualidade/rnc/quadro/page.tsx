@@ -268,9 +268,7 @@ export default function RncKanbanBoardPage() {
 
                                                         <div className="flex justify-between items-end border-t border-slate-100 pt-3">
                                                             <div>
-                                                                {has8d ? (
-                                                                    <div className="text-xs font-black text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded">8D ATIVO</div>
-                                                                ) : hasA3 ? (
+                                                                {hasA3 ? (
                                                                     <div className="text-xs font-black text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">A3 ATIVO</div>
                                                                 ) : (
                                                                     <div className="text-xs font-black text-slate-500 bg-slate-50 border border-slate-200 px-2 py-0.5 rounded">PENDENTE</div>
