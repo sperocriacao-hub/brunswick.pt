@@ -407,6 +407,9 @@ export default function GestaoRncPage() {
 
                                                         {rnc.status !== 'Pendente' && !has8d && !hasA3 && rnc.status !== 'Encerrado' && (
                                                             <>
+                                                                <Button variant="outline" size="sm" className="h-8 border-indigo-200 text-indigo-700 hover:bg-indigo-50 font-bold text-xs" onClick={() => router.push(`/admin/qualidade/rnc/8d/novo/${rnc.id}`)}>
+                                                                    <FileText className="w-3 h-3 mr-1" /> Gerar 8D
+                                                                </Button>
                                                                 <Button variant="outline" size="sm" className="h-8 border-emerald-200 text-emerald-700 hover:bg-emerald-50 font-bold text-xs" onClick={() => router.push(`/admin/qualidade/rnc/a3/novo/${rnc.id}`)}>
                                                                     <LayoutTemplate className="w-3 h-3 mr-1" /> Gerar A3
                                                                 </Button>
@@ -417,15 +420,9 @@ export default function GestaoRncPage() {
                                                             <Edit className="w-3 h-3 mr-1" /> Editar
                                                         </Button>
 
-                                                        {has8d && (
-                                                            <Button variant="default" size="sm" className="h-8 bg-indigo-600 hover:bg-indigo-700 font-bold" onClick={() => router.push(`/admin/qualidade/rnc/8d/${rnc.qualidade_8d[0].id}`)}>
-                                                                <FileText className="w-3 h-3 mr-1" /> Abrir 8D
-                                                            </Button>
-                                                        )}
-
-                                                        {hasA3 && (
-                                                            <Button variant="default" size="sm" className="h-8 bg-emerald-600 hover:bg-emerald-700 font-bold" onClick={() => router.push(`/admin/qualidade/rnc/a3/${rnc.qualidade_a3[0].id}`)}>
-                                                                <LayoutTemplate className="w-3 h-3 mr-1" /> Abrir A3
+                                                        {(has8d || hasA3) && (
+                                                            <Button variant="default" size="sm" className="h-8 bg-indigo-600 hover:bg-indigo-700 font-bold" onClick={() => router.push(`/admin/qualidade/rnc/quadro`)}>
+                                                                <LayoutTemplate className="w-3 h-3 mr-1" /> Ver no Scrum Board
                                                             </Button>
                                                         )}
                                                     </div>

@@ -225,11 +225,14 @@ export default function RncKanbanBoardPage() {
                                                         
                                                         // Open Modal exactly as Lean!
                                                         if (has8d) {
-                                                            alert("RNC tem Método 8D. Esta interface será consolidada no A3 Scrum proximamente. Por favor, reabra através do Botão 'Editar' antigo.");
-                                                            // router.push(`/admin/qualidade/rnc/8d/${rnc.qualidade_8d[0].id}`);
+                                                            router.push(`/admin/qualidade/rnc/8d/${rnc.qualidade_8d[0].id}`);
                                                         }
                                                         else if (hasA3) openA3Modal(rnc);
-                                                        else alert("Esta RNC ainda não tem um método. Gere-o na vista Central.");
+                                                        else {
+                                                            if (confirm("Esta RNC encontra-se em Investigação mas sem documento associado. Deseja iniciar um Canvas A3 agora?")) {
+                                                                router.push(`/admin/qualidade/rnc/a3/novo/${rnc.id}`);
+                                                            }
+                                                        }
                                                     }}
                                                     className={`cursor-pointer shadow-sm hover:shadow-md transition-all group relative bg-white overflow-hidden border ${isCritical ? 'border-rose-300' : 'border-slate-200 hover:border-indigo-300'}`}
                                                 >
