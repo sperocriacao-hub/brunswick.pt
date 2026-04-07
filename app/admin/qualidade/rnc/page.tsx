@@ -45,13 +45,12 @@ export default function GestaoRncPage() {
     const openEditModal = (rnc: any) => {
         setEditRncId(rnc.id);
         
-        let fotos = ['', ''];
+        let fotos: string[] = [];
         try {
             if (rnc.anexos_url) {
                 const parsed = JSON.parse(rnc.anexos_url);
                 if (Array.isArray(parsed)) {
-                    fotos[0] = parsed[0] || '';
-                    fotos[1] = parsed[1] || '';
+                    fotos = parsed.filter(u => u && u.trim() !== '');
                 }
             }
         } catch(e) {}
@@ -59,17 +58,70 @@ export default function GestaoRncPage() {
         setEditPayload({
             descricao_problema: rnc.descricao_problema || '',
             contexto_producao: rnc.contexto_producao || '',
-            foto1: fotos[0],
-            foto2: fotos[1]
+            fotos: fotos
         });
         setIsEditModalOpen(true);
+    };
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = Array.from(e.target.files || []);
+        if (files.length + (editPayload.fotos?.length || 0) > 2) {
+            alert("Apenas pode anexar no máximo 2 fotos no total.");
+            return;
+        }
+
+        files.forEach(file => {
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+                    const max_size = 1000;
+
+                    if (width > height) {
+                        if (width > max_size) {
+                            height *= max_size / width;
+                            width = max_size;
+                        }
+                    } else {
+                        if (height > max_size) {
+                            width *= max_size / height;
+                            height = max_size;
+                        }
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx?.drawImage(img, 0, 0, width, height);
+                    const dataUrl = canvas.toDataURL('image/webp', 0.7);
+                    
+                    setEditPayload((prev: any) => ({
+                        ...prev,
+                        fotos: [...(prev.fotos || []), dataUrl]
+                    }));
+                };
+                img.src = ev.target?.result as string;
+            };
+            reader.readAsDataURL(file);
+        });
+        e.target.value = ''; // Reset
+    };
+
+    const removeFoto = (index: number) => {
+        setEditPayload((prev: any) => ({
+            ...prev,
+            fotos: prev.fotos.filter((_: any, i: number) => i !== index)
+        }));
     };
 
     const handleSaveRnc = async () => {
         if (!editRncId) return;
         setIsSaving(true);
 
-        const arrURLs = [editPayload.foto1, editPayload.foto2].filter(u => u && u.trim() !== '');
+        const arrURLs = editPayload.fotos || [];
 
         const res = await updateRnc(editRncId, {
             descricao_problema: editPayload.descricao_problema,
@@ -512,24 +564,36 @@ export default function GestaoRncPage() {
                             />
                         </div>
 
-                        <div className="pt-4 border-t border-slate-100 flex flex-col gap-3">
-                            <div>
-                                <Label className="text-xs font-bold text-slate-600 block mb-1">🔗 Prova Fotográfica 1 (URL da Imagem)</Label>
-                                <Input
-                                    value={editPayload.foto1 || ''}
-                                    onChange={e => setEditPayload({ ...editPayload, foto1: e.target.value })}
-                                    className="h-8 text-xs bg-white"
-                                    placeholder="https://exemplo.com/foto1.jpg"
-                                />
-                            </div>
-                            <div>
-                                <Label className="text-xs font-bold text-slate-600 block mb-1">🔗 Prova Fotográfica 2 (URL da Imagem)</Label>
-                                <Input
-                                    value={editPayload.foto2 || ''}
-                                    onChange={e => setEditPayload({ ...editPayload, foto2: e.target.value })}
-                                    className="h-8 text-xs bg-white"
-                                    placeholder="https://exemplo.com/foto2.jpg"
-                                />
+                        <div className="pt-4 border-t border-slate-100">
+                            <Label className="text-xs font-bold text-slate-700 uppercase mb-3 block">Evidências Fotográficas (Máx. 2)</Label>
+                            
+                            <div className="flex flex-wrap gap-4 items-start">
+                                {(editPayload.fotos || []).map((f: string, idx: number) => (
+                                    <div key={idx} className="relative w-32 h-32 rounded-lg border border-slate-200 overflow-hidden shadow-sm group">
+                                        <img src={f} alt={`Evidencia ${idx}`} className="object-cover w-full h-full" />
+                                        <button 
+                                            type="button" 
+                                            onClick={() => removeFoto(idx)}
+                                            className="absolute top-1 right-1 bg-red-500 text-white w-6 h-6 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-md"
+                                        >
+                                            ✕
+                                        </button>
+                                    </div>
+                                ))}
+
+                                {(editPayload.fotos || []).length < 2 && (
+                                    <label className="w-32 h-32 rounded-lg border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-500 hover:text-indigo-600 hover:border-indigo-400 hover:bg-indigo-50 cursor-pointer transition-colors bg-slate-50">
+                                        <span className="text-2xl mb-1">+</span>
+                                        <span className="text-[10px] font-bold uppercase tracking-widest text-center px-2">Anexar<br/>Ficheiro</span>
+                                        <input 
+                                            type="file" 
+                                            accept="image/*" 
+                                            className="hidden" 
+                                            onChange={handleFileChange}
+                                            multiple
+                                        />
+                                    </label>
+                                )}
                             </div>
                         </div>
                     </div>
