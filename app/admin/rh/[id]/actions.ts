@@ -87,7 +87,7 @@ export async function buscarPerfilCompetencia(funcionarioId: string) {
             apontamentos: apsData || []
         };
 
-    } catch (err: unknown) {
-        return { success: false, error: err instanceof Error ? err.message : "Falhou consulta do Perfil." };
+    } catch (err: any) {
+        return { success: false, error: err?.message || "Falhou consulta do Perfil." };
     }
 }

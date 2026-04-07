@@ -22,9 +22,9 @@ export async function getOrdemProducaoById(id: string) {
 
         if (error) throw error;
         return { success: true, data };
-    } catch (err: unknown) {
+    } catch (err: any) {
         console.error("Erro a extrair Ordem Producao por ID:", err);
-        return { success: false, error: err instanceof Error ? err.message : "Erro desconhecido" };
+        return { success: false, error: err?.message || "Erro desconhecido" };
     }
 }
 
@@ -79,8 +79,8 @@ export async function atualizarOrdemProducao(id: string, payload: any) {
         }
 
         return { success: true };
-    } catch (err: unknown) {
+    } catch (err: any) {
         console.error("Erro ao atualizar Ordem Producao:", err);
-        return { success: false, error: err instanceof Error ? err.message : "Erro desconhecido" };
+        return { success: false, error: err?.message || "Erro desconhecido" };
     }
 }

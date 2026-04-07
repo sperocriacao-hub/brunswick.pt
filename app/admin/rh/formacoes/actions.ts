@@ -21,7 +21,7 @@ export type PlanoFormacao = {
 
 export async function listarFormacoes() {
     const cookieStore = cookies();
-    const supabase = await createClient(cookieStore);
+    const supabase = createClient(cookieStore);
     
     const { data, error } = await supabase
         .from('rh_planos_formacao')
@@ -49,7 +49,7 @@ export async function criarPlanoFormacao(dto: {
     notas_gerais?: string;
 }) {
     const cookieStore = cookies();
-    const supabase = await createClient(cookieStore);
+    const supabase = createClient(cookieStore);
     
     // Inserir Formação
     const { error } = await supabase
@@ -74,7 +74,7 @@ export async function criarPlanoFormacao(dto: {
 
 export async function atualizarStatusFormacao(id: string, novoStatus: string) {
     const cookieStore = cookies();
-    const supabase = await createClient(cookieStore);
+    const supabase = createClient(cookieStore);
     
     const updates: any = { status: novoStatus, updated_at: new Date().toISOString() };
     if (novoStatus === 'Concluída' || novoStatus === 'Reprovada' || novoStatus === 'Suspensa') {
@@ -95,7 +95,7 @@ export async function atualizarStatusFormacao(id: string, novoStatus: string) {
 
 export async function obterTopFormadores() {
     const cookieStore = cookies();
-    const supabase = await createClient(cookieStore);
+    const supabase = createClient(cookieStore);
     // Isto buscaria respostas na tabela quiz_formacao_respostas.
     // Vamos construir a query para o Rating dos Formadores.
     
@@ -143,13 +143,13 @@ export async function obterTopFormadores() {
 // Helper para UI
 export async function listarFormadoresParaSelect() {
     const cookieStore = cookies();
-    const supabase = await createClient(cookieStore);
+    const supabase = createClient(cookieStore);
     const { data } = await supabase.from('operadores').select('id, nome_operador, numero_operador').eq('status', 'Ativo').order('nome_operador');
     return data || [];
 }
 export async function listarEstacoesParaSelect() {
     const cookieStore = cookies();
-    const supabase = await createClient(cookieStore);
+    const supabase = createClient(cookieStore);
     const { data } = await supabase.from('estacoes').select('id, nome_estacao, areas_fabrica(nome_area)').order('nome_estacao');
     return data || [];
 }

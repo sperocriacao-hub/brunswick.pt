@@ -16,7 +16,7 @@ export type IdentidadeFormacao = {
 // Autentica o Crachá e descobre qual a Formação ATIVA em curso para esta pessoa
 export async function iniciarSessaoFormacao(rfid_ou_numero: string) {
     const cookieStore = cookies();
-    const supabase = await createClient(cookieStore);
+    const supabase = createClient(cookieStore);
 
     // 1. Procurar Operador
     const { data: opData } = await supabase.from('operadores')
@@ -66,7 +66,7 @@ export async function iniciarSessaoFormacao(rfid_ou_numero: string) {
 // Devolve as perguntas adequadas à sua Função (Se for Formador, responde a perguntas que avaliam o Aluno)
 export async function carregarPerguntasFormacao(funcao: 'Formador' | 'Formando') {
     const cookieStore = cookies();
-    const supabase = await createClient(cookieStore);
+    const supabase = createClient(cookieStore);
     
     // O alvo de avaliação inverte:
     const alvo = funcao === 'Formador' ? 'Avaliar Formando' : 'Avaliar Formador';
@@ -84,7 +84,7 @@ export async function carregarPerguntasFormacao(funcao: 'Formador' | 'Formando')
 // Envia para a DB Mestre/Aprendiz
 export async function submeterFormacaoFeedback(payloads: { formacao_id: string, pergunta_id: string, avaliador_id: string, nota: number }[]) {
     const cookieStore = cookies();
-    const supabase = await createClient(cookieStore);
+    const supabase = createClient(cookieStore);
     
     // Filtro para ignorar colisões se ele carregar na mesma pergunta duas vezes (UPSERT com ON CONFLICT ignorado usando unique)
     const { error } = await supabase.from('quiz_formacao_respostas').upsert(payloads, { onConflict: 'formacao_id, pergunta_id, avaliador_id' });

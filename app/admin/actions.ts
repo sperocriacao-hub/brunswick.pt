@@ -208,9 +208,9 @@ export async function fetchDashboardData() {
             topTalentos,
             caudalMensal: graficoEvolucao
         };
-    } catch (err: unknown) {
+    } catch (err: any) {
         console.error("Dashboard Fetch Error:", err);
-        return { success: false, error: err instanceof Error ? err.message : "Erro desconhecido" };
+        return { success: false, error: err?.message || "Erro desconhecido" };
     }
 }
 
@@ -316,9 +316,9 @@ export async function fetchMicroOEEData() {
             gargalos
         };
 
-    } catch (err: unknown) {
+    } catch (err: any) {
         console.error("Micro OEE Fetch Error:", err);
-        return { success: false, error: err instanceof Error ? err.message : "Erro desconhecido" };
+        return { success: false, error: err?.message || "Erro desconhecido" };
     }
 }
 
@@ -421,8 +421,8 @@ export async function calculateFinancialDeviations(diasJanela: number = 30) {
             }
         };
 
-    } catch (err: unknown) {
+    } catch (err: any) {
         console.error("Ledger Fetch Error:", err);
-        return { success: false, error: err instanceof Error ? err.message : "Erro desconhecido" };
+        return { success: false, error: err?.message || "Erro desconhecido" };
     }
 }

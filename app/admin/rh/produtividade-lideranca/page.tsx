@@ -14,7 +14,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function ProdutividadeLiderancaRH({ searchParams }: { searchParams: Promise<{ mes?: string, area?: string }> }) {
     const cookieStore = cookies();
-    const supabase = await createClient(cookieStore);
+    const supabase = createClient(cookieStore);
 
     // ---- 1. LÓGICA DE AUTORIZAÇÃO E VISIBILIDADE HIERÁRQUICA ----
     const { data: { user } } = await supabase.auth.getUser();

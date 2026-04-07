@@ -27,7 +27,7 @@ export type AvaliacaoLiderancaDTO = {
 export async function carregarEquipaLideranca() {
     try {
         const cookieStore = cookies();
-        const supabase = await createClient(cookieStore);
+        const supabase = createClient(cookieStore);
 
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return { success: false, error: "Não Autenticado" };
@@ -61,8 +61,8 @@ export async function carregarEquipaLideranca() {
 
         if (error) throw error;
         return { success: true, operadores: data, myLevel: minLevel };
-    } catch (err: unknown) {
-        return { success: false, error: err instanceof Error ? err.message : "Erro desconhecido" };
+    } catch (err: any) {
+        return { success: false, error: err?.message || "Erro desconhecido" };
     }
 }
 
@@ -71,7 +71,7 @@ export async function submeterAvaliacaoLideranca(avaliacao: AvaliacaoLiderancaDT
         if (!avaliacao.funcionario_id) throw new Error("ID de Funcionário em falta.");
 
         const cookieStore = cookies();
-        const supabase = await createClient(cookieStore);
+        const supabase = createClient(cookieStore);
 
         // 1. Inserir Avaliação na Nova Tabela Dedicada à Liderança
         const { error: avalError } = await supabase
@@ -120,7 +120,7 @@ export type QuizFeedbacksAgg = {
 
 export async function getFeedbackQuizAggregado(nome_lider: string) {
     const cookieStore = cookies();
-    const supabase = await createClient(cookieStore);
+    const supabase = createClient(cookieStore);
 
     const { data: rawRespostas, error } = await supabase
         .from('quiz_cultura_respostas')

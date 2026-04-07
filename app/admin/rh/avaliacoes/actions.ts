@@ -21,7 +21,7 @@ export type AvaliacaoDTO = {
 export async function carregarEquipaAvaliavel() {
     try {
         const cookieStore = cookies();
-        const supabase = await createClient(cookieStore);
+        const supabase = createClient(cookieStore);
 
         const { data, error } = await supabase
             .from('operadores')
@@ -41,7 +41,7 @@ export async function submeterAvaliacaoDiaria(avaliacao: AvaliacaoDTO, autoSuper
         if (!avaliacao.funcionario_id) throw new Error("ID de Funcionário em falta.");
 
         const cookieStore = cookies();
-        const supabase = await createClient(cookieStore);
+        const supabase = createClient(cookieStore);
 
         // 1. Inserir Avaliação (Isto chamará o Trigger PostgreSQL de atualização da matriz master)
         const { data: avalData, error: avalError } = await supabase

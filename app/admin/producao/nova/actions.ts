@@ -66,9 +66,9 @@ export async function fetchFormularioNovaOPData() {
             }
         };
 
-    } catch (err: unknown) {
+    } catch (err: any) {
         console.error("Erro a extrair payload Producao:", err);
-        return { success: false, error: err instanceof Error ? err.message : "Erro desconhecido" };
+        return { success: false, error: err?.message || "Erro desconhecido" };
     }
 }
 
@@ -141,8 +141,8 @@ export async function emitirOrdemProducao(payload: any) {
         }
 
         return { success: true, id: data.id };
-    } catch (err: unknown) {
+    } catch (err: any) {
         console.error("Erro ao inserir Ordem Producao:", err);
-        return { success: false, error: err instanceof Error ? err.message : "Erro desconhecido" };
+        return { success: false, error: err?.message || "Erro desconhecido" };
     }
 }

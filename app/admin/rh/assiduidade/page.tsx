@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function AssiduidadeDashboard() {
     const cookieStore = cookies();
-    const supabase = await createClient(cookieStore);
+    const supabase = createClient(cookieStore);
 
     const hojeStr = new Date().toISOString().split('T')[0];
 

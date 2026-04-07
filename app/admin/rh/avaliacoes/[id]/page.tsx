@@ -16,7 +16,7 @@ export default async function PerfilOperadorRH({ params }: { params: Promise<{ i
 
     // Fetch Data
     const cookieStore = cookies();
-    const supabase = await createClient(cookieStore);
+    const supabase = createClient(cookieStore);
 
     // 1. Fetch Operador Data
     const { data: operador, error: errOp } = await supabase

@@ -6,21 +6,21 @@ import { PerguntaQuizGroup } from '@/app/admin/rh/gestao-quizzes/actions';
 
 export async function carregarPerguntasSatisfacao() {
     const cookieStore = cookies();
-    const supabase = await createClient(cookieStore);
+    const supabase = createClient(cookieStore);
     const { data } = await supabase.from('quiz_satisfacao_perguntas').select('*').eq('ativo', true).order('created_at', { ascending: true });
     return data as PerguntaQuizGroup[] || [];
 }
 
 export async function carregarAreasFoco() {
     const cookieStore = cookies();
-    const supabase = await createClient(cookieStore);
+    const supabase = createClient(cookieStore);
     const { data } = await supabase.from('areas_fabrica').select('id, nome_area').order('nome_area');
     return data || [];
 }
 
 export async function submeterSatisfacao(areaId: string | null, respostas: { pergunta_id: string; nota: number }[]) {
     const cookieStore = cookies();
-    const supabase = await createClient(cookieStore);
+    const supabase = createClient(cookieStore);
     
     const payloads = respostas.map(r => ({
         pergunta_id: r.pergunta_id,

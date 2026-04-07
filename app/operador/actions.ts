@@ -33,9 +33,9 @@ export async function buscarEstacoes() {
         });
 
         return { success: true, estacoes: formatadas };
-    } catch (err: unknown) {
+    } catch (err: any) {
         console.error("Erro a buscar estações:", err);
-        return { success: false, error: err instanceof Error ? err.message : "Erro desconhecido" };
+        return { success: false, error: err?.message || "Erro desconhecido" };
     }
 }
 

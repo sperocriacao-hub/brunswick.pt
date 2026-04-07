@@ -4,7 +4,7 @@ import { cookies } from 'next/headers';
 
 export default async function DebugAbsent() {
     const cookieStore = cookies() as any;
-    const supabase = await createClient(cookieStore);
+    const supabase = createClient(cookieStore);
 
     const tvId = 'a12ba774-7275-4ae7-ac76-3aaebfd05391'; // A random TV, replace if needed, or just test logic generically
 
