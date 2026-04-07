@@ -32,6 +32,14 @@ export default function CustomTVDashboardPage() {
 
     const [refreshTick, setRefreshTick] = useState(0);
     const [time, setTime] = useState(new Date());
+    const [currentPage, setCurrentPage] = useState(0);
+
+    useEffect(() => {
+        const pageTimer = setInterval(() => {
+            setCurrentPage(prev => prev + 1);
+        }, 15000); // 15 seconds per page
+        return () => clearInterval(pageTimer);
+    }, []);
 
     useEffect(() => {
         const timer = setInterval(() => setTime(new Date()), 1000);
@@ -264,24 +272,30 @@ export default function CustomTVDashboardPage() {
                             }
 
                             // Dinamismo da grelha: se houver poucas áreas, faz os cards maiores.
-                            const isSingle = activeAreas.length === 1;
-                            const gridCols = activeAreas.length <= 2 ? 'grid-cols-2' : 
-                                             activeAreas.length === 3 ? 'grid-cols-3' : 'grid-cols-4';
+                            const itemsPerPage = 8;
+                            const totalPages = Math.ceil(activeAreas.length / itemsPerPage);
+                            const displayPage = totalPages > 0 ? currentPage % totalPages : 0;
+                            const pagedAreas = activeAreas.slice(displayPage * itemsPerPage, (displayPage + 1) * itemsPerPage);
+
+                            const isSingle = pagedAreas.length === 1;
+                            const gridCols = pagedAreas.length <= 2 ? 'grid-cols-2' : 
+                                             pagedAreas.length <= 6 ? 'grid-cols-3' : 'grid-cols-4';
 
                             return (
+                                <>
                                 <div className={isSingle ? "flex items-start justify-center w-full min-h-full" : `grid ${gridCols} gap-6 content-start min-h-full`}>
-                                    {activeAreas.map(area => {
+                                    {pagedAreas.map(area => {
                                         const alertsInArea = area.activeAndons;
                                         
                                         return (
                                             <div key={area.id} className={`rounded-3xl p-6 shadow-2xl relative flex flex-col min-h-[400px] overflow-hidden border bg-gradient-to-br from-red-950/40 to-slate-900 border-red-500/50 ${isSingle ? 'w-1/2' : ''}`}>
                                                 <div className="absolute top-0 right-0 w-48 h-48 bg-red-500/10 blur-3xl rounded-full"></div>
                                                 
-                                                <h2 className="text-2xl font-black uppercase tracking-widest flex justify-between items-center mb-6 border-b border-red-500/30 pb-4 text-red-400">
-                                                    <div className="flex flex-col truncate pr-2">
-                                                        <span className="truncate">{area.nome_estacao}</span>
+                                                <h2 className="text-xl md:text-xl font-black uppercase tracking-widest flex justify-between items-center mb-6 border-b border-red-500/30 pb-4 text-red-400">
+                                                    <div className="flex flex-col pr-2">
+                                                        <span className="leading-tight text-lg drop-shadow-md">{area.nome_estacao}</span>
                                                     </div>
-                                                    <span className="bg-red-500 text-white rounded-full shrink-0 h-10 px-4 flex items-center justify-center text-lg shadow-[0_0_20px_rgba(220,38,38,0.8)] animate-pulse">
+                                                    <span className="bg-red-500 text-white rounded-full shrink-0 h-8 px-3 flex items-center justify-center text-sm shadow-[0_0_20px_rgba(220,38,38,0.8)] animate-pulse">
                                                         {alertsInArea.length} ALERTA{alertsInArea.length > 1 ? 'S' : ''}
                                                     </span>
                                                 </h2>
@@ -296,7 +310,7 @@ export default function CustomTVDashboardPage() {
                                                             <div key={al.id} className={`bg-black/80 border border-red-500/40 rounded-2xl p-3 shadow-lg border-l-4 border-l-red-500 relative flex flex-col justify-between ${isDense ? 'w-[calc(50%-0.25rem)] min-h-[100px]' : 'w-full min-h-[120px]'}`}>
                                                                 <div className="flex flex-col min-w-0 mb-2">
                                                                     <span className={`text-white font-black uppercase leading-tight truncate ${isDense ? 'text-sm' : 'text-lg'}`}>{al.tipo_alerta}</span>
-                                                                    <span className="text-slate-400 font-bold text-[0.65rem] tracking-widest uppercase mt-0.5 truncate">
+                                                                    <span className="text-slate-400 font-bold text-[0.60rem] tracking-widest uppercase mt-0.5 line-clamp-2 leading-tight">
                                                                         📍 {al.estacoes?.nome_estacao || al.causadora?.nome_estacao || "Estação"}
                                                                     </span>
                                                                     {!isDense && al.descricao_alerta && <span className="text-slate-300 italic text-xs mt-1.5 line-clamp-2">"{al.descricao_alerta}"</span>}
@@ -317,6 +331,14 @@ export default function CustomTVDashboardPage() {
                                         );
                                     })}
                                 </div>
+                                {totalPages > 1 && (
+                                    <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-2">
+                                        {Array.from({ length: totalPages }).map((_, idx) => (
+                                            <div key={idx} className={`w-3 h-3 rounded-full transition-colors ${idx === displayPage ? 'bg-red-500 shadow-[0_0_10px_rgba(220,38,38,0.8)]' : 'bg-red-950/50'}`} />
+                                        ))}
+                                    </div>
+                                )}
+                                </>
                             );
                         })()}
                     </section>
