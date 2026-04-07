@@ -4,11 +4,13 @@ import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, Filter, FileWarning, History, FileText, LayoutTemplate, CopyPlus, Printer, Loader2 } from 'lucide-react';
+import { Search, Plus, Filter, FileWarning, History, FileText, LayoutTemplate, CopyPlus, Printer, Loader2, Edit, Save } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { getRncs, getQualityActions } from './actions';
+import { getRncs, getQualityActions, updateRnc } from './actions';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";  // Need Textarea for the problem description
+import { Label } from "@/components/ui/label";
 
 export default function GestaoRncPage() {
     const router = useRouter();
@@ -24,6 +26,37 @@ export default function GestaoRncPage() {
     const [historyA3, setHistoryA3] = useState<any[]>([]);
     const [loadingHistory, setLoadingHistory] = useState(false);
     const [historySearchTerm, setHistorySearchTerm] = useState('');
+
+    // Edit Modal State
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [editRncId, setEditRncId] = useState<string | null>(null);
+    const [editPayload, setEditPayload] = useState<any>({});
+    const [isSaving, setIsSaving] = useState(false);
+
+    const openEditModal = (rnc: any) => {
+        setEditRncId(rnc.id);
+        setEditPayload({
+            descricao_problema: rnc.descricao_problema || '',
+            contexto_producao: rnc.contexto_producao || '',
+        });
+        setIsEditModalOpen(true);
+    };
+
+    const handleSaveRnc = async () => {
+        if (!editRncId) return;
+        setIsSaving(true);
+        const res = await updateRnc(editRncId, {
+            descricao_problema: editPayload.descricao_problema,
+            contexto_producao: editPayload.contexto_producao
+        });
+        if (res.success) {
+            setIsEditModalOpen(false);
+            carregarRncs();
+        } else {
+            alert("Erro ao atualizar: " + res.error);
+        }
+        setIsSaving(false);
+    };
 
     useEffect(() => {
         carregarRncs();
@@ -240,6 +273,10 @@ export default function GestaoRncPage() {
 
                                                 <td className="px-6 py-4 text-right print:hidden">
                                                     <div className="flex justify-end gap-2">
+                                                        <Button variant="outline" size="sm" className="h-8 border-slate-200 text-slate-600 hover:bg-slate-50 font-bold text-xs" onClick={() => openEditModal(rnc)}>
+                                                            <Edit className="w-3 h-3 mr-1" /> Editar
+                                                        </Button>
+
                                                         {!has8d && !hasA3 && (
                                                             <>
                                                                 <Button variant="outline" size="sm" className="h-8 border-indigo-200 text-indigo-700 hover:bg-indigo-50 font-bold text-xs" onClick={() => router.push(`/admin/qualidade/rnc/8d/novo/${rnc.id}`)}>
@@ -368,6 +405,49 @@ export default function GestaoRncPage() {
                     .bg-slate-50\\/50 { background: white !important; }
                 }
             `}</style>
+
+            {/* MODAL EDITAR RNC BASE */}
+            <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+                <DialogContent className="sm:max-w-[500px] border-slate-200">
+                    <DialogHeader>
+                        <DialogTitle className="text-xl font-black text-slate-800 flex items-center gap-2"><Edit size={20} className="text-indigo-600"/> Editar Detalhes RNC Base</DialogTitle>
+                        <DialogDescription className="text-slate-500 font-medium">
+                            Atualize a descrição original do problema ou o contexto para melhor compreensão na War Room.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label className="text-sm font-bold text-slate-700">Descrição do Defeito / Problema</Label>
+                            <Textarea
+                                value={editPayload.descricao_problema || ''}
+                                onChange={e => setEditPayload({ ...editPayload, descricao_problema: e.target.value })}
+                                className="bg-slate-50 font-medium min-h-[100px]"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label className="text-sm font-bold text-slate-700">Contexto Produtivo (Sintomas extra)</Label>
+                            <Input
+                                value={editPayload.contexto_producao || ''}
+                                onChange={e => setEditPayload({ ...editPayload, contexto_producao: e.target.value })}
+                                className="bg-slate-50 font-medium"
+                                placeholder="OP X, Turno B, Máquina Y..."
+                            />
+                        </div>
+                    </div>
+
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsEditModalOpen(false)} className="font-bold border-slate-200">
+                            Cancelar
+                        </Button>
+                        <Button onClick={handleSaveRnc} disabled={isSaving} className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold">
+                            {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+                            Guardar Alterações
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
         </div>
     );
 }
