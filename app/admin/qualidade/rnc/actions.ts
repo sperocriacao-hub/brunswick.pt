@@ -63,10 +63,24 @@ export async function getSelectData() {
 
 export async function createRnc(payload: any) {
     try {
-        // Gera número (Ex: RNC-2026-X)
+        // Gera número (Ex: RNC-2026-00X) prevenindo colisão por deletes
         const year = new Date().getFullYear();
-        const { count } = await supabase.from("qualidade_rnc").select("*", { count: 'exact', head: true });
-        const numRnc = `RNC-${year}-${String((count || 0) + 1).padStart(3, '0')}`;
+        const { data: lastRecord } = await supabase
+            .from("qualidade_rnc")
+            .select("numero_rnc")
+            .ilike("numero_rnc", `RNC-${year}-%`)
+            .order("created_at", { ascending: false })
+            .limit(1);
+
+        let nextSeq = 1;
+        if (lastRecord && lastRecord.length > 0 && lastRecord[0].numero_rnc) {
+            const parts = lastRecord[0].numero_rnc.split('-');
+            if (parts.length >= 3) {
+                const parsed = parseInt(parts[2], 10);
+                if (!isNaN(parsed)) nextSeq = parsed + 1;
+            }
+        }
+        const numRnc = `RNC-${year}-${String(nextSeq).padStart(3, '0')}`;
 
         const insertData = { ...payload, numero_rnc: numRnc };
 
@@ -97,10 +111,24 @@ export async function getRncBase(rncId: string) {
 
 export async function create8d(payload: any) {
     try {
-        // Gera número (Ex: 8D-2026-X)
+        // Gera número (Ex: 8D-2026-X) prevenindo colisão
         const year = new Date().getFullYear();
-        const { count } = await supabase.from("qualidade_8d").select("*", { count: 'exact', head: true });
-        const num8d = `8D-${year}-${String((count || 0) + 1).padStart(3, '0')}`;
+        const { data: lastRecord } = await supabase
+            .from("qualidade_8d")
+            .select("numero_8d")
+            .ilike("numero_8d", `8D-${year}-%`)
+            .order("created_at", { ascending: false })
+            .limit(1);
+
+        let nextSeq = 1;
+        if (lastRecord && lastRecord.length > 0 && lastRecord[0].numero_8d) {
+            const parts = lastRecord[0].numero_8d.split('-');
+            if (parts.length >= 3) {
+                const parsed = parseInt(parts[2], 10);
+                if (!isNaN(parsed)) nextSeq = parsed + 1;
+            }
+        }
+        const num8d = `8D-${year}-${String(nextSeq).padStart(3, '0')}`;
 
         const insertData = { ...payload, numero_8d: num8d };
 
