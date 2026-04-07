@@ -154,13 +154,23 @@ export async function dispararAlertaAndon(estacao_id: string, rf_tag_operador: s
             if (estacaoLocalData) strLocal = estacaoLocalData.nome_estacao;
         }
 
+        // Pre-fetch operator name to improve notification richness
+        let operadorNome = 'Desconhecido';
+        if (rf_tag_operador) {
+            const { data: opData } = await supabase.from('operadores').select('nome_operador').eq('tag_rfid_operador', rf_tag_operador).single();
+            if (opData) operadorNome = opData.nome_operador;
+        }
+
         await dispatchNotification('ANDON_TRIGGER', {
             op_numero: rf_tag_barco || 'N/A',
             op_estacao: strLocal,
             op_estacao_causadora: strCausadora,
             op_tag_operador: rf_tag_operador || 'Anon',
+            nome_operador: operadorNome,
+            data_hora: new Date().toLocaleString('pt-PT', { timeZone: 'Europe/Lisbon' }),
             // Extensões de payload de refinamento
             tipo_alerta: tipo_alerta,
+            tipo_incidencia: tipo_alerta,
             descricao_alerta: descricao_alerta
         });
 
