@@ -710,7 +710,7 @@ export function Sidebar({
                       }
                     />
                     <span className="text-sm border-transparent">
-                      Lista (8D / A3)
+                      RNC
                     </span>
                   </Link>
                   <Link
