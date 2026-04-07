@@ -40,7 +40,8 @@ export async function getAndonHistory(mesesAtras: number = 6) {
                     op_numero,
                     hin_hull_id,
                     modelos:modelo_id ( nome_modelo )
-                )
+                ),
+                operadores:operador_rfid ( nome_operador )
             `)
             .gte('created_at', minDate.toISOString())
             .order('created_at', { ascending: false });

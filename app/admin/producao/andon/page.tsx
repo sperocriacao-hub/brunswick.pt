@@ -27,6 +27,7 @@ export default function AndonDashPage() {
     const [filterStatus, setFilterStatus] = useState<string>('all');
     const [filterProblema, setFilterProblema] = useState<string>('all');
     const [filterCausadora, setFilterCausadora] = useState<string>('all');
+    const [filterLinha, setFilterLinha] = useState<string>('all');
     const [filterDate, setFilterDate] = useState<string>('');
 
     // Filters (KPIs)
@@ -112,6 +113,7 @@ export default function AndonDashPage() {
     // Calculate unique AREAS for filter dropdowns
     const mapAreasProblema = new Map<string, string>();
     const mapAreasCausadora = new Map<string, string>();
+    const mapLinhas = new Map<string, string>();
     alertas.forEach(a => {
         if (a.estacao_problema?.areas_fabrica) {
             mapAreasProblema.set(a.estacao_problema.areas_fabrica.id, a.estacao_problema.areas_fabrica.nome_area);
@@ -119,10 +121,17 @@ export default function AndonDashPage() {
         if (a.estacao_causadora?.areas_fabrica) {
             mapAreasCausadora.set(a.estacao_causadora.areas_fabrica.id, a.estacao_causadora.areas_fabrica.nome_area);
         }
+        if (a.estacao_problema) {
+            mapLinhas.set(a.estacao_problema.id, a.estacao_problema.nome_estacao);
+        }
+        if (a.estacao_causadora) {
+            mapLinhas.set(a.estacao_causadora.id, a.estacao_causadora.nome_estacao);
+        }
     });
 
     const uniqueAreasProblema = Array.from(mapAreasProblema.entries()).map(([id, nome]) => ({id, nome}));
     const uniqueAreasCausadora = Array.from(mapAreasCausadora.entries()).map(([id, nome]) => ({id, nome}));
+    const uniqueLinhas = Array.from(mapLinhas.entries()).map(([id, nome]) => ({id, nome})).sort((a,b) => a.nome.localeCompare(b.nome));
 
     // Apply Filters
     const filteredAlertas = alertas.filter(al => {
@@ -130,6 +139,7 @@ export default function AndonDashPage() {
         if (filterStatus === 'solucionado' && !al.resolvido) return false;
         if (filterProblema !== 'all' && al.estacao_problema?.areas_fabrica?.id !== filterProblema) return false;
         if (filterCausadora !== 'all' && al.estacao_causadora?.areas_fabrica?.id !== filterCausadora) return false;
+        if (filterLinha !== 'all' && al.estacao_problema?.id !== filterLinha && al.estacao_causadora?.id !== filterLinha) return false;
         if (filterDate) {
             const alDate = new Date(al.created_at).toISOString().split('T')[0];
             if (alDate !== filterDate) return false;
@@ -341,8 +351,14 @@ export default function AndonDashPage() {
                                     <option key={area.id} value={area.id}>{area.nome}</option>
                                 ))}
                             </select>
+                            <select value={filterLinha} onChange={e => setFilterLinha(e.target.value)} className="border border-slate-300 rounded-md px-3 py-1.5 focus:border-blue-500 focus:outline-none max-w-[150px] truncate">
+                                <option value="all">Qualquer Linha / Estação</option>
+                                {uniqueLinhas.map(linha => (
+                                    <option key={linha.id} value={linha.id}>{linha.nome}</option>
+                                ))}
+                            </select>
                             <Button variant="outline" size="sm" onClick={() => {
-                                setFilterDate(''); setFilterStatus('all'); setFilterProblema('all'); setFilterCausadora('all'); loadData();
+                                setFilterDate(''); setFilterStatus('all'); setFilterProblema('all'); setFilterCausadora('all'); setFilterLinha('all'); loadData();
                             }}>Reset</Button>
                         </div>
                     </CardHeader>
@@ -357,6 +373,7 @@ export default function AndonDashPage() {
                                         <th className="px-4 py-3 text-center">T. Perd.</th>
                                         <th className="px-4 py-3">Onde (Problema)</th>
                                         <th className="px-4 py-3">Alvo (Causadora)</th>
+                                        <th className="px-4 py-3">Criador</th>
                                         <th className="px-4 py-3 min-w-[200px]">Contexto OP / Motivo</th>
                                         <th className="px-4 py-3 text-right">Ação</th>
                                     </tr>
@@ -397,6 +414,11 @@ export default function AndonDashPage() {
                                                         <div className="font-bold text-red-700 text-[11px] uppercase tracking-wider leading-tight truncate">
                                                             {al.estacao_causadora?.areas_fabrica?.nome_area || 'Área'} - {al.estacao_causadora?.nome_estacao || 'Desconhecida'}
                                                         </div>
+                                                    </div>
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    <div className="font-bold text-slate-700 text-[11px] whitespace-nowrap capitalize">
+                                                        {al.operadores?.nome_operador?.split(' ').slice(0, 2).join(' ') || al.operador_rfid}
                                                     </div>
                                                 </td>
                                                 <td className="px-4 py-3">
