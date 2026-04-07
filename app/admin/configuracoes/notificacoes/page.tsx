@@ -100,6 +100,7 @@ export default function NotificacoesPage() {
             case 'EMAIL': return <Mail size={16} className="text-blue-600" />;
             case 'SMS': return <MessageSquare size={16} className="text-emerald-600" />;
             case 'WEBHOOK': return <Globe size={16} className="text-purple-600" />;
+            case 'TELEGRAM': return <Send size={16} className="text-cyan-600" />;
             default: return <Bell size={16} />;
         }
     };
@@ -358,8 +359,8 @@ export default function NotificacoesPage() {
                                 {/* Canal Type Options */}
                                 <div className="space-y-3">
                                     <label className="text-sm font-semibold text-slate-700">Canal de Comunicação (Alvo)</label>
-                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                                        {(['EMAIL', 'SMS', 'WEBHOOK'] as const).map((tipo) => (
+                                    <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                                        {(['EMAIL', 'SMS', 'WEBHOOK', 'TELEGRAM'] as const).map((tipo) => (
                                             <label
                                                 key={tipo}
                                                 className={`relative flex cursor-pointer p-4 border rounded-lg shadow-sm focus:outline-none ${editingRegra.tipo_canal === tipo
@@ -412,6 +413,7 @@ export default function NotificacoesPage() {
                                             className="flex-1 bg-transparent border-none outline-none focus:ring-0 text-sm p-1 min-w-[150px] text-slate-900 placeholder:text-slate-400"
                                             placeholder={
                                                 editingRegra.tipo_canal === 'EMAIL' ? 'Ex: abc@brunswick.pt' :
+                                                editingRegra.tipo_canal === 'TELEGRAM' ? 'Ex: 123456789 (ID do Chat)' :
                                                     (editingRegra.tipo_canal === 'SMS' ? 'Ex: +351910000000' :
                                                         'https://hook.url/endpoint')
                                             }

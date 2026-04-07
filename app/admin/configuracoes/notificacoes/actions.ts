@@ -6,7 +6,7 @@ import { createClient } from '@/utils/supabase/server';
 export type NotificacaoRegra = {
     id: string;
     nome_regra: string;
-    tipo_canal: 'EMAIL' | 'SMS' | 'WEBHOOK';
+    tipo_canal: 'EMAIL' | 'SMS' | 'WEBHOOK' | 'TELEGRAM';
     destinatarios_array: string[];
     evento_gatilho: string;
     template_mensagem: string;
@@ -223,6 +223,28 @@ export async function dispatchNotification(event: string, payload: Record<string
                             body: JSON.stringify({ event, message: mensagemFinal })
                         });
                         if (!resHook.ok) throw new Error('Webhook rejeitado pelo destino');
+                    }
+
+                    if (regra.tipo_canal === 'TELEGRAM') {
+                        const botToken = process.env.TELEGRAM_BOT_TOKEN?.trim();
+                        if (!botToken) throw new Error('Credenciais Telegram incompletas no .env (TELEGRAM_BOT_TOKEN)');
+                        
+                        const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
+                        
+                        const resTelegram = await fetch(url, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                chat_id: dest,
+                                text: `🚨 *ALERTA ANDON (Brunswick)* 🚨\n\n${mensagemFinal}`,
+                                parse_mode: 'Markdown'
+                            })
+                        });
+                        
+                        if (!resTelegram.ok) {
+                            const errTexto = await resTelegram.text();
+                            throw new Error(`Falha Telegram API: ${errTexto.substring(0, 100)}`);
+                        }
                     }
                 } catch (sendError: unknown) {
                     status = 'FAILED';
