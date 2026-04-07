@@ -272,7 +272,7 @@ export default function CustomTVDashboardPage() {
                             }
 
                             // Dinamismo da grelha: se houver poucas áreas, faz os cards maiores.
-                            const itemsPerPage = 8;
+                            const itemsPerPage = 4;
                             const totalPages = Math.ceil(activeAreas.length / itemsPerPage);
                             const displayPage = totalPages > 0 ? currentPage % totalPages : 0;
                             const pagedAreas = activeAreas.slice(displayPage * itemsPerPage, (displayPage + 1) * itemsPerPage);
