@@ -18,6 +18,7 @@ export default function EditarATresPage() {
     const [rnc, setRnc] = useState<any>(null);
     const [reportId, setReportId] = useState<string>('');
     const [status, setStatusLabel] = useState<string>('');
+    const [zoomedPhoto, setZoomedPhoto] = useState<string | null>(null);
 
     // A3 Fields
     const [titulo, setTitulo] = useState('');
@@ -92,8 +93,10 @@ export default function EditarATresPage() {
                     <h1 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3">
                         <LayoutTemplate className="text-emerald-600" size={32} /> Edição de A3 Thinking
                     </h1>
-                    <p className="text-slate-500 font-medium mt-1">
-                        Vinculado a <span className="text-rose-600 font-bold">{rnc?.numero_rnc}</span> - Estado: <span className="text-emerald-800 font-bold">{status}</span>
+                    <p className="text-slate-500 font-medium mt-1 gap-2 flex items-center">
+                        Vinculado a <span className="text-rose-600 font-bold">{rnc?.numero_rnc}</span> 
+                        {rnc?.contexto_producao && <span className="bg-slate-200 text-slate-700 px-2 py-0.5 rounded text-xs font-bold uppercase">{rnc.contexto_producao}</span>}
+                        - Estado: <span className="text-emerald-800 font-bold">{status}</span>
                     </p>
                 </div>
 
@@ -138,6 +141,22 @@ export default function EditarATresPage() {
                                 className="w-full resize-none border-0 p-4 min-h-[140px] text-sm focus:ring-0"
                                 placeholder="Porque é que estamos a falar disto? Qual o problema de negócio que estamos a tentar resolver?"
                             />
+                            
+                            {/* FOTOS DA RNC */}
+                            {rnc?.anexos_url && rnc.anexos_url.length > 0 && (
+                                <div className="flex gap-4 p-4 border-t border-slate-100 bg-white">
+                                    <span className="text-xs uppercase font-bold text-slate-400 self-center">Evidências Iniciais:</span>
+                                    {rnc.anexos_url.map((url: string, idx: number) => (
+                                        <img 
+                                            key={idx} 
+                                            src={url} 
+                                            alt="Evidência" 
+                                            onClick={() => setZoomedPhoto(url)}
+                                            className="w-16 h-16 rounded border border-slate-200 object-cover cursor-pointer hover:ring-2 hover:ring-indigo-400 transition-all shadow-sm"
+                                        />
+                                    ))}
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
 
@@ -230,6 +249,16 @@ export default function EditarATresPage() {
                 </div>
 
             </div>
+
+            {/* MODAL FOTO ZOOM */}
+            {zoomedPhoto && (
+                <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 animate-in fade-in" onClick={() => setZoomedPhoto(null)}>
+                    <div className="relative max-w-4xl max-h-screen">
+                        <button className="absolute -top-4 -right-4 bg-white text-black rounded-full w-8 h-8 font-bold shadow-lg" onClick={() => setZoomedPhoto(null)}>✕</button>
+                        <img src={zoomedPhoto} className="max-w-full max-h-[90vh] rounded-lg shadow-2xl object-contain" />
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

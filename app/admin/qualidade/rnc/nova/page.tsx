@@ -18,13 +18,61 @@ export default function NovaRncPage() {
     const [estacoes, setEstacoes] = useState<any[]>([]);
 
     // Form State
-    const [opId, setOpId] = useState('none');
+    const [contextoProdutivo, setContextoProdutivo] = useState('');
     const [estacaoId, setEstacaoId] = useState('none');
     const [detetadoPor, setDetetadoPor] = useState('');
     const [tipo, setTipo] = useState('Dimensional');
     const [gravidade, setGravidade] = useState('Media');
     const [descricao, setDescricao] = useState('');
     const [acao, setAcao] = useState('');
+    const [fotos, setFotos] = useState<string[]>([]);
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = Array.from(e.target.files || []);
+        if (files.length + fotos.length > 2) {
+            alert("Apenas pode anexar no máximo 2 fotos.");
+            return;
+        }
+
+        files.forEach(file => {
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+                    const max_size = 1000;
+
+                    if (width > height) {
+                        if (width > max_size) {
+                            height *= max_size / width;
+                            width = max_size;
+                        }
+                    } else {
+                        if (height > max_size) {
+                            width *= max_size / height;
+                            height = max_size;
+                        }
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx?.drawImage(img, 0, 0, width, height);
+                    const dataUrl = canvas.toDataURL('image/webp', 0.7);
+                    setFotos(prev => [...prev, dataUrl]);
+                };
+                img.src = ev.target?.result as string;
+            };
+            reader.readAsDataURL(file);
+        });
+        e.target.value = ''; // Reset
+    };
+
+    const removeFoto = (index: number) => {
+        setFotos(prev => prev.filter((_, i) => i !== index));
+    };
 
     useEffect(() => {
         carregarSelects();
@@ -43,13 +91,14 @@ export default function NovaRncPage() {
         setSubmitting(true);
 
         const payload = {
-            ordem_producao_id: opId === 'none' || !opId ? null : opId,
+            contexto_producao: contextoProdutivo,
             estacao_id: estacaoId === 'none' || !estacaoId ? null : estacaoId,
             detetado_por_nome: detetadoPor,
             tipo_defeito: tipo,
             gravidade: gravidade,
             descricao_problema: descricao,
-            acao_imediata: acao
+            acao_imediata: acao,
+            anexos_url: fotos.length > 0 ? fotos : null
         };
 
         const res = await createRnc(payload);
@@ -83,20 +132,13 @@ export default function NovaRncPage() {
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-2">
-                                <label className="text-xs font-bold text-slate-700 uppercase">Contexto Produtivo (O.P.)</label>
-                                <Select value={opId} onValueChange={setOpId}>
-                                    <SelectTrigger className="bg-white">
-                                        <SelectValue placeholder="Aplicar a Ordem..." />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="none">-- RNC Geral (Sem OP Específica) --</SelectItem>
-                                        {ops.map(op => (
-                                            <SelectItem key={op.id} value={op.id}>
-                                                {op.linhas_producao?.letra_linha ? `Linha ${op.linhas_producao.letra_linha}` : 'Sem Linha'} - O.P. {op.id.split('-')[0]} ({op.modelos?.nome_modelo})
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                                <label className="text-xs font-bold text-slate-700 uppercase">Contexto Produtivo / Referência</label>
+                                <Input 
+                                    value={contextoProdutivo} 
+                                    onChange={e => setContextoProdutivo(e.target.value)} 
+                                    placeholder="Ex: OP-1234, Pós Venda, Teste..." 
+                                    className="bg-white" 
+                                />
                             </div>
 
                             <div className="space-y-2">
@@ -105,7 +147,7 @@ export default function NovaRncPage() {
                                     <SelectTrigger className="bg-white">
                                         <SelectValue placeholder="Local da Ocorrência..." />
                                     </SelectTrigger>
-                                    <SelectContent>
+                                    <SelectContent className="bg-white">
                                         <SelectItem value="none">-- Não Especificado --</SelectItem>
                                         {estacoes.map(st => (
                                             <SelectItem key={st.id} value={st.id}>
@@ -127,7 +169,7 @@ export default function NovaRncPage() {
                                 <label className="text-xs font-bold text-slate-700 uppercase">Classe do Defeito</label>
                                 <Select value={tipo} onValueChange={setTipo}>
                                     <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
-                                    <SelectContent>
+                                    <SelectContent className="bg-white">
                                         <SelectItem value="Dimensional">Dimensional / Geometria</SelectItem>
                                         <SelectItem value="Estético">Estético / Cosmético (Fibra)</SelectItem>
                                         <SelectItem value="Material">Material Não-Conforme (Stock)</SelectItem>
@@ -140,7 +182,7 @@ export default function NovaRncPage() {
                                 <label className="text-xs font-bold text-slate-700 uppercase">Gravidade Inicial</label>
                                 <Select value={gravidade} onValueChange={setGravidade}>
                                     <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
-                                    <SelectContent>
+                                    <SelectContent className="bg-white">
                                         <SelectItem value="Baixa">Baixa (Retoque cosmético rápido)</SelectItem>
                                         <SelectItem value="Media">Média (Requer retrabalho fora do tempo standard)</SelectItem>
                                         <SelectItem value="Critica">Crítica (Risco Estrutural / Desmantelar)</SelectItem>
@@ -171,6 +213,41 @@ export default function NovaRncPage() {
                                 className="flex w-full rounded-md border border-amber-300 bg-white px-3 py-2 text-sm min-h-[80px] focus:outline-none focus:ring-2 focus:ring-amber-500"
                                 placeholder="De forma a proteger o cliente e não infetar outras fases, o que foi feito logo na hora? (Ex: Isolar lote, refazer peça, travar a máquina...)"
                             />
+                        </div>
+
+                        {/* FOTOS SECTION */}
+                        <div className="space-y-3 pt-4 border-t border-slate-100">
+                            <label className="text-xs font-bold text-slate-700 uppercase">Evidências Fotográficas (Máx. 2)</label>
+                            
+                            <div className="flex flex-wrap gap-4 items-start">
+                                {fotos.map((f, idx) => (
+                                    <div key={idx} className="relative w-32 h-32 rounded-lg border border-slate-200 overflow-hidden shadow-sm group">
+                                        <img src={f} alt={`Evidencia ${idx}`} className="object-cover w-full h-full" />
+                                        <button 
+                                            type="button" 
+                                            onClick={() => removeFoto(idx)}
+                                            className="absolute top-1 right-1 bg-red-500 text-white w-6 h-6 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-md"
+                                        >
+                                            ✕
+                                        </button>
+                                    </div>
+                                ))}
+
+                                {fotos.length < 2 && (
+                                    <label className="w-32 h-32 rounded-lg border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-500 hover:text-indigo-600 hover:border-indigo-400 hover:bg-indigo-50 cursor-pointer transition-colors">
+                                        <span className="text-2xl mb-1">+</span>
+                                        <span className="text-[10px] font-bold uppercase tracking-widest">Add Foto</span>
+                                        <input 
+                                            type="file" 
+                                            accept="image/*" 
+                                            className="hidden" 
+                                            onChange={handleFileChange}
+                                            multiple
+                                        />
+                                    </label>
+                                )}
+                            </div>
+                            <p className="text-[10px] text-slate-400 uppercase tracking-widest mt-1">As fotos são automaticamente otimizadas antes do envio.</p>
                         </div>
 
                         <div className="flex justify-end gap-4 pt-6">

@@ -192,10 +192,10 @@ export default function GestaoRncPage() {
                                                     <div className="text-[10px] text-slate-400 font-mono mt-1 uppercase">
                                                         {new Date(rnc.data_deteccao).toLocaleDateString()} • {rnc.detetado_por_nome}
                                                     </div>
-                                                    {(rnc.ordens_producao || rnc.estacoes) && (
+                                                    {(rnc.contexto_producao || rnc.estacoes) && (
                                                         <div className="mt-2 text-[10px] bg-slate-100 px-2 py-0.5 rounded border border-slate-200 flex gap-2 w-max text-slate-600 font-bold uppercase">
-                                                            {rnc.ordens_producao ? `O.P. ${rnc.ordens_producao?.id?.split('-')[0]}` : ''}
-                                                            {rnc.estacoes ? ` • ST: ${rnc.estacoes?.nome_estacao}` : ''}
+                                                            {rnc.contexto_producao ? `${rnc.contexto_producao}` : ''}
+                                                            {rnc.estacoes ? `${rnc.contexto_producao ? ' • ' : ''}ST: ${rnc.estacoes?.nome_estacao}` : ''}
                                                         </div>
                                                     )}
                                                 </td>

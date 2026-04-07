@@ -12,7 +12,6 @@ export async function getRncs() {
             .from("qualidade_rnc")
             .select(`
                 *,
-                ordens_producao (id),
                 estacoes (nome_estacao),
                 qualidade_8d (id, numero_8d, status),
                 qualidade_a3 (id, titulo, status)
@@ -112,7 +111,7 @@ export async function get8d(id: string) {
     try {
         const { data: report, error } = await supabase
             .from("qualidade_8d")
-            .select(`*, qualidade_rnc(numero_rnc, descricao_problema)`)
+            .select(`*, qualidade_rnc(numero_rnc, descricao_problema, contexto_producao, anexos_url)`)
             .eq("id", id)
             .single();
 
@@ -152,7 +151,7 @@ export async function getA3(id: string) {
     try {
         const { data: report, error } = await supabase
             .from("qualidade_a3")
-            .select(`*, qualidade_rnc(numero_rnc, descricao_problema)`)
+            .select(`*, qualidade_rnc(numero_rnc, descricao_problema, contexto_producao, anexos_url)`)
             .eq("id", id)
             .single();
 
