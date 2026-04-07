@@ -44,7 +44,7 @@ export async function submitGembaAction(walkId: string, areaId: string, observat
             .from("lean_acoes")
             .insert([{
                 titulo: `Ação Gemba Walk`,
-                descricao: `Correção observada na Ronda Gemba: \${observation}`,
+                descricao: `Correção observada na Ronda Gemba: ${observation}`,
                 origem_tipo: 'Gemba Walk',
                 origem_id: walkId,
                 area_id: areaId,

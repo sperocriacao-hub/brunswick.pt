@@ -46,8 +46,8 @@ export async function convertKaizenToAction(kaizen: any) {
         const { error } = await supabase
             .from("lean_acoes")
             .insert([{
-                titulo: `KAIZEN: \${kaizen.titulo}`,
-                descricao: `Implementar a melhoria proposta por \${kaizen.operadores?.nome_operador}.\\nSOLUÇÃO: \${kaizen.proposta_melhoria}`,
+                titulo: `KAIZEN: ${kaizen.titulo}`,
+                descricao: `Implementar a melhoria proposta por ${kaizen.operadores?.nome_operador}.\nSOLUÇÃO: ${kaizen.proposta_melhoria}`,
                 origem_tipo: 'Kaizen',
                 origem_id: kaizen.id,
                 area_id: kaizen.area_id,
