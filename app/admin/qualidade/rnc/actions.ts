@@ -13,7 +13,6 @@ export async function getRncs() {
             .select(`
                 *,
                 estacoes (nome_estacao),
-                qualidade_8d (id, numero_8d, status),
                 qualidade_a3 (id, titulo, status)
             `)
             .order("created_at", { ascending: false });
@@ -103,82 +102,7 @@ export async function createRnc(payload: any) {
     }
 }
 
-// ---- METODOLOGIA 8D ----
-export async function getRncBase(rncId: string) {
-    try {
-        const { data: rnc, error } = await supabase
-            .from("qualidade_rnc")
-            .select("*")
-            .eq("id", rncId)
-            .single();
-
-        if (error) throw error;
-        return { success: true, rnc };
-    } catch (err: any) {
-        return { success: false, error: err.message };
-    }
-}
-
-export async function create8d(payload: any) {
-    try {
-        // Gera número (Ex: 8D-2026-X) prevenindo colisão
-        const year = new Date().getFullYear();
-        const { data: lastRecord } = await supabase
-            .from("qualidade_8d")
-            .select("numero_8d")
-            .ilike("numero_8d", `8D-${year}-%`)
-            .order("created_at", { ascending: false })
-            .limit(1);
-
-        let nextSeq = 1;
-        if (lastRecord && lastRecord.length > 0 && lastRecord[0].numero_8d) {
-            const parts = lastRecord[0].numero_8d.split('-');
-            if (parts.length >= 3) {
-                const parsed = parseInt(parts[2], 10);
-                if (!isNaN(parsed)) nextSeq = parsed + 1;
-            }
-        }
-        const num8d = `8D-${year}-${String(nextSeq).padStart(3, '0')}`;
-
-        const insertData = { ...payload, numero_8d: num8d };
-
-        const { error } = await supabase.from("qualidade_8d").insert(insertData);
-        if (error) throw error;
-
-        // Atualiza a RNC Base para "Em Investigacao" automaticamente
-        await supabase.from("qualidade_rnc").update({ status: 'Em Investigacao' }).eq("id", payload.rnc_id);
-
-        return { success: true };
-    } catch (err: any) {
-        return { success: false, error: err.message };
-    }
-}
-
 // ---- METODOLOGIA A3 ----
-export async function get8d(id: string) {
-    try {
-        const { data: report, error } = await supabase
-            .from("qualidade_8d")
-            .select(`*, qualidade_rnc(numero_rnc, descricao_problema, contexto_producao, anexos_url)`)
-            .eq("id", id)
-            .single();
-
-        if (error) throw error;
-        return { success: true, report };
-    } catch (err: any) {
-        return { success: false, error: err.message };
-    }
-}
-
-export async function update8d(id: string, payload: any) {
-    try {
-        const { error } = await supabase.from("qualidade_8d").update(payload).eq("id", id);
-        if (error) throw error;
-        return { success: true };
-    } catch (err: any) {
-        return { success: false, error: err.message };
-    }
-}
 
 export async function createA3(payload: any) {
     try {
@@ -222,14 +146,6 @@ export async function updateA3(id: string, payload: any) {
 
 export async function getQualityActions() {
     try {
-        const { data: d8, error: err8 } = await supabase
-            .from("qualidade_8d")
-            .select(`
-                *,
-                qualidade_rnc(numero_rnc, descricao_problema, created_at)
-            `)
-            .order("created_at", { ascending: false });
-
         const { data: a3, error: errA } = await supabase
             .from("qualidade_a3")
             .select(`
@@ -238,10 +154,9 @@ export async function getQualityActions() {
             `)
             .order("created_at", { ascending: false });
 
-        if (err8) throw err8;
         if (errA) throw errA;
 
-        return { success: true, historico8d: d8 || [], historicoA3: a3 || [] };
+        return { success: true, historico8d: [], historicoA3: a3 || [] };
     } catch (err: any) {
         return { success: false, historico8d: [], historicoA3: [], error: err.message };
     }

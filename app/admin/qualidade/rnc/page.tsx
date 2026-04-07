@@ -322,7 +322,6 @@ export default function GestaoRncPage() {
                                         const isOpen = rnc.status === 'Aberto';
 
                                         // Checking what methodology was requested/is active
-                                        const has8d = rnc.qualidade_8d && rnc.qualidade_8d.length > 0;
                                         const hasA3 = rnc.qualidade_a3 && rnc.qualidade_a3.length > 0;
 
                                         return (
@@ -377,12 +376,7 @@ export default function GestaoRncPage() {
 
                                                 <td className="px-6 py-4 text-center">
                                                     {/* Representação Visual da Metodologia Adotada */}
-                                                    {has8d ? (
-                                                        <div className="flex flex-col items-center gap-1">
-                                                            <span className="text-xs font-black text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded shadow-sm">Método 8D</span>
-                                                            <span className="text-[10px] text-slate-500 uppercase">{rnc.qualidade_8d[0].status}</span>
-                                                        </div>
-                                                    ) : hasA3 ? (
+                                                    {hasA3 ? (
                                                         <div className="flex flex-col items-center gap-1">
                                                             <span className="text-xs font-black text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded shadow-sm">Canvas A3</span>
                                                             <span className="text-[10px] text-slate-500 uppercase">{rnc.qualidade_a3[0].status}</span>
@@ -394,7 +388,7 @@ export default function GestaoRncPage() {
 
                                                 <td className="px-6 py-4 text-right print:hidden">
                                                     <div className="flex justify-end gap-2">
-                                                        {rnc.status === 'Pendente' && !has8d && !hasA3 && (
+                                                        {rnc.status === 'Pendente' && !hasA3 && (
                                                             <>
                                                                 <Button variant="outline" size="sm" className="h-8 border-rose-200 text-rose-700 hover:bg-rose-50 font-bold text-xs" onClick={() => { setEncerrarRncId(rnc.id); setIsEncerrarModalOpen(true); }}>
                                                                     <Ban className="w-3 h-3 mr-1" /> Encerrar Caso
@@ -405,13 +399,11 @@ export default function GestaoRncPage() {
                                                             </>
                                                         )}
 
-                                                        {rnc.status !== 'Pendente' && !has8d && !hasA3 && rnc.status !== 'Encerrado' && (
+                                                        {rnc.status !== 'Pendente' && !hasA3 && rnc.status !== 'Encerrado' && (
                                                             <>
-                                                                <Button variant="outline" size="sm" className="h-8 border-indigo-200 text-indigo-700 hover:bg-indigo-50 font-bold text-xs" onClick={() => router.push(`/admin/qualidade/rnc/8d/novo/${rnc.id}`)}>
-                                                                    <FileText className="w-3 h-3 mr-1" /> Gerar 8D
-                                                                </Button>
-                                                                <Button variant="outline" size="sm" className="h-8 border-emerald-200 text-emerald-700 hover:bg-emerald-50 font-bold text-xs" onClick={() => router.push(`/admin/qualidade/rnc/a3/novo/${rnc.id}`)}>
-                                                                    <LayoutTemplate className="w-3 h-3 mr-1" /> Gerar A3
+                                                                {/* O botão "Gerar" via lista central é descontinuado. Os A3 são gerados e respondem exclusivamente pelo Kanban */}
+                                                                <Button variant="outline" size="sm" className="h-8 border-slate-200 text-slate-600 hover:bg-indigo-50 hover:text-indigo-700 font-bold text-xs" onClick={() => router.push(`/admin/qualidade/rnc/quadro`)}>
+                                                                    <LayoutTemplate className="w-3 h-3 mr-1" /> Ir p/ Quadro Tratar
                                                                 </Button>
                                                             </>
                                                         )}
@@ -420,7 +412,7 @@ export default function GestaoRncPage() {
                                                             <Edit className="w-3 h-3 mr-1" /> Editar
                                                         </Button>
 
-                                                        {(has8d || hasA3) && (
+                                                        {hasA3 && (
                                                             <Button variant="default" size="sm" className="h-8 bg-indigo-600 hover:bg-indigo-700 font-bold" onClick={() => router.push(`/admin/qualidade/rnc/quadro`)}>
                                                                 <LayoutTemplate className="w-3 h-3 mr-1" /> Ver no Scrum Board
                                                             </Button>

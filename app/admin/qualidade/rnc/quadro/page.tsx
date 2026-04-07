@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { ListTodo, CheckCircle2, Clock, AlertTriangle, MessageSquarePlus, Lightbulb, Loader2, Search, Target, ShieldAlert, ArrowRight, Activity, FileText, Plus, Trash2, Crosshair, Save } from 'lucide-react';
-import { getRncs, updateRncStatus, getA3, updateA3, get8d, update8d } from '../actions';
+import { getRncs, updateRncStatus, getA3, updateA3, createA3 } from '../actions';
 import { useRouter } from 'next/navigation';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -213,30 +213,42 @@ export default function RncKanbanBoardPage() {
                                         </div>
                                     ) : (
                                         colItems.map(rnc => {
-                                            const has8d = rnc.qualidade_8d && rnc.qualidade_8d.length > 0;
                                             const hasA3 = rnc.qualidade_a3 && rnc.qualidade_a3.length > 0;
                                             const isCritical = rnc.gravidade === 'Critica' || rnc.gravidade === 'Bloqueante';
 
                                             return (
                                                 <Card
                                                     key={rnc.id}
-                                                    onClick={(e) => {
+                                                    onClick={async (e) => {
                                                         if ((e.target as HTMLElement).closest('.scrum-arrow')) return;
                                                         
                                                         // Open Modal exactly as Lean!
-                                                        if (has8d) {
-                                                            router.push(`/admin/qualidade/rnc/8d/${rnc.qualidade_8d[0].id}`);
-                                                        }
-                                                        else if (hasA3) openA3Modal(rnc);
-                                                        else {
-                                                            if (confirm("Esta RNC encontra-se em Investigação mas sem documento associado. Deseja iniciar um Canvas A3 agora?")) {
-                                                                router.push(`/admin/qualidade/rnc/a3/novo/${rnc.id}`);
+                                                        if (hasA3) {
+                                                            openA3Modal(rnc);
+                                                        } else {
+                                                            if (confirm("Esta RNC encontra-se em Investigação mas sem documento associado. Deseja iniciar o Canvas A3 agora?")) {
+                                                                // Silent creation of A3 standard document directly from Board
+                                                                const payload = {
+                                                                    rnc_id: rnc.id,
+                                                                    titulo: 'Análise ' + rnc.numero_rnc,
+                                                                    autor: rnc.detetado_por_nome || 'Equipa de Qualidade'
+                                                                };
+                                                                setLoading(true);
+                                                                const res = await createA3(payload);
+                                                                if(res.success) {
+                                                                    await carregarQuadro();
+                                                                    // We have to rely on the user clicking it again since the new ID is now fresh in db,
+                                                                    // or we can auto-open, but just refreshing the board is quick enough for them to click the green card.
+                                                                } else {
+                                                                    alert("Erro ao criar A3: " + res.error);
+                                                                    setLoading(false);
+                                                                }
                                                             }
                                                         }
                                                     }}
-                                                    className={`cursor-pointer shadow-sm hover:shadow-md transition-all group relative bg-white overflow-hidden border ${isCritical ? 'border-rose-300' : 'border-slate-200 hover:border-indigo-300'}`}
+                                                    className={`cursor-pointer shadow-sm hover:shadow-md transition-all group relative bg-white overflow-hidden border ${isCritical ? 'border-rose-300' : 'border-slate-200 hover:border-emerald-300'}`}
                                                 >
-                                                    <div className={`absolute left-0 top-0 bottom-0 w-1 ${has8d ? 'bg-indigo-400' : hasA3 ? 'bg-emerald-400' : 'bg-slate-300'}`}></div>
+                                                    <div className={`absolute left-0 top-0 bottom-0 w-1 ${hasA3 ? 'bg-emerald-400' : 'bg-slate-300'}`}></div>
 
                                                     <CardContent className="p-4 pl-5">
                                                         <div className="flex justify-between items-start mb-2 gap-2">
