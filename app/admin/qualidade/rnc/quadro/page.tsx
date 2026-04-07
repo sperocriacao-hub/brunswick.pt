@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
-import { ListTodo, CheckCircle2, Clock, AlertTriangle, MessageSquarePlus, Lightbulb, Loader2, Search, Target, ShieldAlert, ArrowRight, Activity, FileText, Plus, Trash2, Crosshair, Save } from 'lucide-react';
+import { ListTodo, CheckCircle2, Clock, AlertTriangle, MessageSquarePlus, Lightbulb, Loader2, Search, Target, ShieldAlert, ArrowRight, Activity, FileText, Plus, Trash2, Crosshair, Save, ImageIcon } from 'lucide-react';
 import { getRncs, updateRncStatus, getA3, updateA3, createA3 } from '../actions';
 import { useRouter } from 'next/navigation';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -72,6 +72,11 @@ export default function RncKanbanBoardPage() {
         // Fetch specific data
         const res = await getA3(idA3);
         if(res.success && res.report) {
+            setSelectedAction({
+                ...rnc,
+                anexos_url: res.report.qualidade_rnc?.anexos_url
+            });
+            
             setEquipa(res.report.autor || ''); // Mapped to 'autor'
             
             // Map 'analise_causa' to WHYS
@@ -332,6 +337,33 @@ export default function RncKanbanBoardPage() {
                                         {selectedAction?.descricao_problema}
                                         {selectedAction?.contexto_producao && (
                                             <p className="mt-4 font-semibold text-slate-500 uppercase text-xs">Contexto: {selectedAction.contexto_producao}</p>
+                                        )}
+                                        {/* EXIBIÇÃO DE FOTOS NATIVAS DA RNC */}
+                                        {selectedAction?.anexos_url && selectedAction.anexos_url.length > 5 && (
+                                            <div className="mt-6 border-t border-slate-200 pt-6">
+                                                <h4 className="font-bold text-slate-700 text-xs uppercase mb-3 flex items-center gap-2"><ImageIcon size={14} className="text-indigo-500" /> Evidências Fotográficas da Anomalia</h4>
+                                                <div className="flex gap-4 overflow-x-auto pb-4">
+                                                    {(() => {
+                                                        try {
+                                                            const urls = JSON.parse(selectedAction.anexos_url);
+                                                            if (Array.isArray(urls)) {
+                                                                return urls.map((url: string, index: number) => url ? (
+                                                                    <div key={index} className="w-56 h-56 shrink-0 rounded-xl border-2 border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition-all relative bg-slate-100 group">
+                                                                        <img 
+                                                                            src={url} 
+                                                                            alt={`Prova ${index + 1}`} 
+                                                                            className="object-cover w-full h-full cursor-pointer group-hover:scale-105 transition-transform duration-300" 
+                                                                            onClick={() => window.open(url, '_blank')}
+                                                                        />
+                                                                    </div>
+                                                                ) : null);
+                                                            }
+                                                        } catch(e) {}
+                                                        return null;
+                                                    })()}
+                                                </div>
+                                                <p className="text-[10px] text-slate-400 font-medium italic">Clique numa prova para a consultar no tamanho original (nova janela).</p>
+                                            </div>
                                         )}
                                     </div>
                                 </div>
