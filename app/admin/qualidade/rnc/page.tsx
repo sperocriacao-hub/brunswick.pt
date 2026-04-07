@@ -4,12 +4,12 @@ import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, Filter, FileWarning, History, FileText, LayoutTemplate, CopyPlus, Printer, Loader2, Edit, Save } from 'lucide-react';
+import { Search, Plus, Filter, FileWarning, History, FileText, LayoutTemplate, CopyPlus, Printer, Loader2, Edit, Save, Send, Ban, Image as ImageIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { getRncs, getQualityActions, updateRnc } from './actions';
+import { getRncs, getQualityActions, updateRnc, updateRncStatus } from './actions';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";  // Need Textarea for the problem description
+import { Textarea } from "@/components/ui/textarea"; 
 import { Label } from "@/components/ui/label";
 
 export default function GestaoRncPage() {
@@ -33,11 +33,34 @@ export default function GestaoRncPage() {
     const [editPayload, setEditPayload] = useState<any>({});
     const [isSaving, setIsSaving] = useState(false);
 
+    // Fotos Modal State
+    const [isFotosOpen, setIsFotosOpen] = useState(false);
+    const [fotosAtuais, setFotosAtuais] = useState<string[]>([]);
+
+    // Triage Encerrar State
+    const [isEncerrarModalOpen, setIsEncerrarModalOpen] = useState(false);
+    const [encerrarRncId, setEncerrarRncId] = useState<string | null>(null);
+    const [justificativaFecho, setJustificativaFecho] = useState('');
+
     const openEditModal = (rnc: any) => {
         setEditRncId(rnc.id);
+        
+        let fotos = ['', ''];
+        try {
+            if (rnc.anexos_url) {
+                const parsed = JSON.parse(rnc.anexos_url);
+                if (Array.isArray(parsed)) {
+                    fotos[0] = parsed[0] || '';
+                    fotos[1] = parsed[1] || '';
+                }
+            }
+        } catch(e) {}
+
         setEditPayload({
             descricao_problema: rnc.descricao_problema || '',
             contexto_producao: rnc.contexto_producao || '',
+            foto1: fotos[0],
+            foto2: fotos[1]
         });
         setIsEditModalOpen(true);
     };
@@ -45,9 +68,13 @@ export default function GestaoRncPage() {
     const handleSaveRnc = async () => {
         if (!editRncId) return;
         setIsSaving(true);
+
+        const arrURLs = [editPayload.foto1, editPayload.foto2].filter(u => u && u.trim() !== '');
+
         const res = await updateRnc(editRncId, {
             descricao_problema: editPayload.descricao_problema,
-            contexto_producao: editPayload.contexto_producao
+            contexto_producao: editPayload.contexto_producao,
+            anexos_url: arrURLs.length > 0 ? JSON.stringify(arrURLs) : null
         });
         if (res.success) {
             setIsEditModalOpen(false);
@@ -57,6 +84,31 @@ export default function GestaoRncPage() {
         }
         setIsSaving(false);
     };
+
+    const handleEncerrar = async () => {
+        if (!encerrarRncId || justificativaFecho.trim().length < 5) {
+            alert("Por favor escreva uma Justificativa Técnica com pelo menos 5 caracteres.");
+            return;
+        }
+        setIsSaving(true);
+        const res = await updateRnc(encerrarRncId, { status: 'Encerrado', justificativa_fecho: justificativaFecho });
+        if (res.success) {
+            setIsEncerrarModalOpen(false);
+            carregarRncs();
+        } else {
+            alert("Erro ao encerrar: " + res.error);
+        }
+        setIsSaving(false);
+    };
+
+    const handleEnviarAnalise = async (id: string) => {
+        if (confirm("Isto vai enviar definitivamente a ocorrência para a War Room do Kanban para avaliação A3/8D. Deseja prosseguir?")) {
+            setLoading(true);
+            await updateRncStatus(id, 'Aberto');
+            carregarRncs();
+        }
+    };
+
 
     useEffect(() => {
         carregarRncs();
@@ -241,6 +293,23 @@ export default function GestaoRncPage() {
                                                         <span className={`text-[10px] px-2 py-0.5 rounded font-black tracking-widest uppercase border ${isCritical ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
                                                             {rnc.tipo_defeito} ({rnc.gravidade})
                                                         </span>
+                                                        {rnc.anexos_url && rnc.anexos_url.length > 5 && (
+                                                            <Button
+                                                                variant="ghost" size="sm"
+                                                                onClick={() => {
+                                                                    try {
+                                                                        const parsed = JSON.parse(rnc.anexos_url);
+                                                                        if (Array.isArray(parsed) && parsed.length > 0) {
+                                                                            setFotosAtuais(parsed);
+                                                                            setIsFotosOpen(true);
+                                                                        }
+                                                                    } catch(e) {}
+                                                                }}
+                                                                className="h-6 px-2 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-[10px] rounded"
+                                                            >
+                                                                <ImageIcon size={12} className="mr-1" /> Provas
+                                                            </Button>
+                                                        )}
                                                     </div>
                                                     <p className="text-sm text-slate-600 font-medium line-clamp-2 pr-4">{rnc.descricao_problema}</p>
                                                 </td>
@@ -273,30 +342,38 @@ export default function GestaoRncPage() {
 
                                                 <td className="px-6 py-4 text-right print:hidden">
                                                     <div className="flex justify-end gap-2">
-                                                        <Button variant="outline" size="sm" className="h-8 border-slate-200 text-slate-600 hover:bg-slate-50 font-bold text-xs" onClick={() => openEditModal(rnc)}>
-                                                            <Edit className="w-3 h-3 mr-1" /> Editar
-                                                        </Button>
-
-                                                        {!has8d && !hasA3 && (
+                                                        {rnc.status === 'Pendente' && !has8d && !hasA3 && (
                                                             <>
-                                                                <Button variant="outline" size="sm" className="h-8 border-indigo-200 text-indigo-700 hover:bg-indigo-50 font-bold text-xs" onClick={() => router.push(`/admin/qualidade/rnc/8d/novo/${rnc.id}`)}>
-                                                                    <CopyPlus className="w-3 h-3 mr-1" /> Gerar 8D
+                                                                <Button variant="outline" size="sm" className="h-8 border-rose-200 text-rose-700 hover:bg-rose-50 font-bold text-xs" onClick={() => { setEncerrarRncId(rnc.id); setIsEncerrarModalOpen(true); }}>
+                                                                    <Ban className="w-3 h-3 mr-1" /> Encerrar Caso
                                                                 </Button>
+                                                                <Button variant="default" size="sm" className="h-8 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs" onClick={() => handleEnviarAnalise(rnc.id)}>
+                                                                    <Send className="w-3 h-3 mr-1" /> Enviar para Análise
+                                                                </Button>
+                                                            </>
+                                                        )}
+
+                                                        {rnc.status !== 'Pendente' && !has8d && !hasA3 && rnc.status !== 'Encerrado' && (
+                                                            <>
                                                                 <Button variant="outline" size="sm" className="h-8 border-emerald-200 text-emerald-700 hover:bg-emerald-50 font-bold text-xs" onClick={() => router.push(`/admin/qualidade/rnc/a3/novo/${rnc.id}`)}>
                                                                     <LayoutTemplate className="w-3 h-3 mr-1" /> Gerar A3
                                                                 </Button>
                                                             </>
                                                         )}
 
+                                                        <Button variant="outline" size="sm" className="h-8 border-slate-200 text-slate-600 hover:bg-slate-50 font-bold text-xs" onClick={() => openEditModal(rnc)}>
+                                                            <Edit className="w-3 h-3 mr-1" /> Editar
+                                                        </Button>
+
                                                         {has8d && (
                                                             <Button variant="default" size="sm" className="h-8 bg-indigo-600 hover:bg-indigo-700 font-bold" onClick={() => router.push(`/admin/qualidade/rnc/8d/${rnc.qualidade_8d[0].id}`)}>
-                                                                <FileText className="w-3 h-3 mr-1" /> Editar 8D
+                                                                <FileText className="w-3 h-3 mr-1" /> Abrir 8D
                                                             </Button>
                                                         )}
 
                                                         {hasA3 && (
                                                             <Button variant="default" size="sm" className="h-8 bg-emerald-600 hover:bg-emerald-700 font-bold" onClick={() => router.push(`/admin/qualidade/rnc/a3/${rnc.qualidade_a3[0].id}`)}>
-                                                                <LayoutTemplate className="w-3 h-3 mr-1" /> Editar A3
+                                                                <LayoutTemplate className="w-3 h-3 mr-1" /> Abrir A3
                                                             </Button>
                                                         )}
                                                     </div>
@@ -434,6 +511,27 @@ export default function GestaoRncPage() {
                                 placeholder="OP X, Turno B, Máquina Y..."
                             />
                         </div>
+
+                        <div className="pt-4 border-t border-slate-100 flex flex-col gap-3">
+                            <div>
+                                <Label className="text-xs font-bold text-slate-600 block mb-1">🔗 Prova Fotográfica 1 (URL da Imagem)</Label>
+                                <Input
+                                    value={editPayload.foto1 || ''}
+                                    onChange={e => setEditPayload({ ...editPayload, foto1: e.target.value })}
+                                    className="h-8 text-xs bg-white"
+                                    placeholder="https://exemplo.com/foto1.jpg"
+                                />
+                            </div>
+                            <div>
+                                <Label className="text-xs font-bold text-slate-600 block mb-1">🔗 Prova Fotográfica 2 (URL da Imagem)</Label>
+                                <Input
+                                    value={editPayload.foto2 || ''}
+                                    onChange={e => setEditPayload({ ...editPayload, foto2: e.target.value })}
+                                    className="h-8 text-xs bg-white"
+                                    placeholder="https://exemplo.com/foto2.jpg"
+                                />
+                            </div>
+                        </div>
                     </div>
 
                     <DialogFooter>
@@ -445,6 +543,55 @@ export default function GestaoRncPage() {
                             Guardar Alterações
                         </Button>
                     </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* MODAL ENCERRAR RNC */}
+            <Dialog open={isEncerrarModalOpen} onOpenChange={setIsEncerrarModalOpen}>
+                <DialogContent className="sm:max-w-[425px] border-rose-200">
+                    <DialogHeader>
+                        <DialogTitle className="text-xl font-black text-rose-700 flex items-center gap-2"><Ban size={20} /> Encerrar RNC (S/ Seguimento)</DialogTitle>
+                        <DialogDescription className="text-slate-500 font-medium">
+                            Irá descartar permanentemente esta ocorrência e retirar a necessidade de ser analisada na War Room.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label className="text-sm font-bold text-slate-700">Justificativa Técnica (Obrigatório)</Label>
+                            <Textarea
+                                value={justificativaFecho}
+                                onChange={e => setJustificativaFecho(e.target.value)}
+                                className="bg-rose-50/30 border-rose-100 font-medium min-h-[100px]"
+                                placeholder="Motivo do encerramento precoce..."
+                            />
+                        </div>
+                    </div>
+
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsEncerrarModalOpen(false)} className="font-bold border-slate-200">Cancelar</Button>
+                        <Button onClick={handleEncerrar} disabled={isSaving} className="bg-rose-600 hover:bg-rose-700 text-white font-bold">
+                            {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Confirmar Encerramento'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* MODAL GALERIA DE FOTOS */}
+            <Dialog open={isFotosOpen} onOpenChange={setIsFotosOpen}>
+                <DialogContent className="sm:max-w-[800px] bg-slate-900 border-slate-800 text-white">
+                    <DialogHeader>
+                        <DialogTitle className="text-xl font-black flex items-center gap-2"><ImageIcon size={20} className="text-indigo-400" /> Galeria de Provas Visuais</DialogTitle>
+                        <DialogDescription className="text-slate-400">Registo fotográfico associado a esta Não Conformidade</DialogDescription>
+                    </DialogHeader>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-6">
+                        {fotosAtuais.map((url, idx) => (
+                            <div key={idx} className="relative rounded-lg overflow-hidden border border-slate-700 group bg-slate-800/50 aspect-video flex items-center justify-center">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={url} alt={`Prova ${idx + 1}`} className="object-contain w-full h-full max-h-[400px]" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                            </div>
+                        ))}
+                    </div>
                 </DialogContent>
             </Dialog>
 
