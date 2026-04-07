@@ -121,11 +121,14 @@ export default function AndonDashPage() {
         if (a.estacao_causadora?.areas_fabrica) {
             mapAreasCausadora.set(a.estacao_causadora.areas_fabrica.id, a.estacao_causadora.areas_fabrica.nome_area);
         }
-        if (a.estacao_problema) {
-            mapLinhas.set(a.estacao_problema.id, a.estacao_problema.nome_estacao);
+        if (a.estacao_problema?.linhas_producao) {
+            mapLinhas.set(a.estacao_problema.linhas_producao.id, a.estacao_problema.linhas_producao.descricao_linha);
         }
-        if (a.estacao_causadora) {
-            mapLinhas.set(a.estacao_causadora.id, a.estacao_causadora.nome_estacao);
+        if (a.estacao_causadora?.linhas_producao) {
+            mapLinhas.set(a.estacao_causadora.linhas_producao.id, a.estacao_causadora.linhas_producao.descricao_linha);
+        }
+        if (a.ordens_producao?.linhas_producao) {
+            mapLinhas.set(a.ordens_producao.linhas_producao.id, a.ordens_producao.linhas_producao.descricao_linha);
         }
     });
 
@@ -139,7 +142,7 @@ export default function AndonDashPage() {
         if (filterStatus === 'solucionado' && !al.resolvido) return false;
         if (filterProblema !== 'all' && al.estacao_problema?.areas_fabrica?.id !== filterProblema) return false;
         if (filterCausadora !== 'all' && al.estacao_causadora?.areas_fabrica?.id !== filterCausadora) return false;
-        if (filterLinha !== 'all' && al.estacao_problema?.id !== filterLinha && al.estacao_causadora?.id !== filterLinha) return false;
+        if (filterLinha !== 'all' && al.estacao_problema?.linhas_producao?.id !== filterLinha && al.estacao_causadora?.linhas_producao?.id !== filterLinha && al.ordens_producao?.linhas_producao?.id !== filterLinha) return false;
         if (filterDate) {
             const alDate = new Date(al.created_at).toISOString().split('T')[0];
             if (alDate !== filterDate) return false;
@@ -352,7 +355,7 @@ export default function AndonDashPage() {
                                 ))}
                             </select>
                             <select value={filterLinha} onChange={e => setFilterLinha(e.target.value)} className="border border-slate-300 rounded-md px-3 py-1.5 focus:border-blue-500 focus:outline-none max-w-[150px] truncate">
-                                <option value="all">Qualquer Linha / Estação</option>
+                                <option value="all">Qualquer Linha de Produção</option>
                                 {uniqueLinhas.map(linha => (
                                     <option key={linha.id} value={linha.id}>{linha.nome}</option>
                                 ))}
