@@ -40,14 +40,33 @@ export async function getAndonHistory(mesesAtras: number = 6) {
                     op_numero,
                     hin_hull_id,
                     modelos:modelo_id ( nome_modelo )
-                ),
-                operadores:operador_rfid ( nome_operador )
+                )
             `)
             .gte('created_at', minDate.toISOString())
             .order('created_at', { ascending: false });
 
         if (error) throw error;
-        return { success: true, data: data || [] };
+        
+        let andonData = data || [];
+        
+        // Fetch operator names manually since there's no FK on alertas_andon -> operadores
+        const rfids = Array.from(new Set(andonData.map(a => a.operador_rfid).filter(Boolean)));
+        
+        if (rfids.length > 0) {
+            const { data: ops } = await supabase
+                .from('operadores')
+                .select('tag_rfid_operador, nome_operador')
+                .in('tag_rfid_operador', rfids);
+                
+            const mapOps = new Map(ops?.map(o => [o.tag_rfid_operador, o.nome_operador]) || []);
+            
+            andonData = andonData.map(a => ({
+                ...a,
+                operadores: { nome_operador: a.operador_rfid ? mapOps.get(a.operador_rfid) || null : null }
+            }));
+        }
+
+        return { success: true, data: andonData };
     } catch (err: any) {
         console.error("Erro a buscar histórico Andon:", err);
         return { success: false, error: err.message };
