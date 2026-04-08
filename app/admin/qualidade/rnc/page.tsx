@@ -194,14 +194,12 @@ export default function GestaoRncPage() {
     }
 
     const filteredRncs = rncs.filter(rnc => {
-        const matchesStatus = filterStatus === 'ALL' || rnc.status === filterStatus;
-        const searchUpper = searchTerm.toUpperCase();
-        const matchesTerm = !searchTerm ||
-            rnc.numero_rnc.toUpperCase().includes(searchUpper) ||
-            rnc.descricao_problema.toUpperCase().includes(searchUpper) ||
-            rnc.detetado_por_nome.toUpperCase().includes(searchUpper);
-
-        return matchesStatus && matchesTerm;
+        if (filterStatus !== 'ALL' && rnc.status !== filterStatus) return false;
+        
+        const estacaoStr = rnc.estacoes?.nome_estacao || '';
+        const prodStr = rnc.contexto_producao || '';
+        const str = (rnc.numero_rnc + ' ' + rnc.descricao_problema + ' ' + rnc.tipo_defeito + ' ' + estacaoStr + ' ' + prodStr).toLowerCase();
+        return str.includes(searchTerm.toLowerCase());
     });
 
     // Merge and Filter History Actions
@@ -339,7 +337,7 @@ export default function GestaoRncPage() {
                                                     )}
                                                 </td>
 
-                                                <td className="px-6 py-4">
+                                                <td className="px-6 py-4 max-w-sm">
                                                     <div className="flex items-center gap-2 mb-1">
                                                         <span className={`text-[10px] px-2 py-0.5 rounded font-black tracking-widest uppercase border ${isCritical ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
                                                             {rnc.tipo_defeito} ({rnc.gravidade})
@@ -388,7 +386,7 @@ export default function GestaoRncPage() {
 
                                                 <td className="px-6 py-4 text-right print:hidden">
                                                     <div className="flex justify-end gap-2">
-                                                        {rnc.status === 'Pendente' && !hasA3 && (
+                                                        {rnc.status === 'Aberto' && !hasA3 && (
                                                             <>
                                                                 <Button variant="outline" size="sm" className="h-8 border-rose-200 text-rose-700 hover:bg-rose-50 font-bold text-xs" onClick={() => { setEncerrarRncId(rnc.id); setIsEncerrarModalOpen(true); }}>
                                                                     <Ban className="w-3 h-3 mr-1" /> Encerrar Caso
@@ -399,7 +397,7 @@ export default function GestaoRncPage() {
                                                             </>
                                                         )}
 
-                                                        {rnc.status !== 'Pendente' && !hasA3 && rnc.status !== 'Encerrado' && (
+                                                        {rnc.status !== 'Aberto' && !hasA3 && rnc.status !== 'Encerrado' && (
                                                             <>
                                                                 {/* O botão "Gerar" via lista central é descontinuado. Os A3 são gerados e respondem exclusivamente pelo Kanban */}
                                                                 <Button variant="outline" size="sm" className="h-8 border-slate-200 text-slate-600 hover:bg-indigo-50 hover:text-indigo-700 font-bold text-xs" onClick={() => router.push(`/admin/qualidade/rnc/quadro`)}>
