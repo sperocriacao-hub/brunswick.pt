@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { createClient } from '@/utils/supabase/client';
-import { Loader2, Search, UserPlus, Users, Edit, UserX, UserCheck, Shield, Repeat, X } from 'lucide-react';
+import { Loader2, Search, UserPlus, Users, Edit, UserX, UserCheck, Shield, Repeat, X, Star, Save } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -48,6 +48,34 @@ export default function GestaoRHPage() {
     const [isRelocateModalOpen, setIsRelocateModalOpen] = useState(false);
     const [relocatingOp, setRelocatingOp] = useState<OperadorInfo | null>(null);
     const [selectedEstacaoId, setSelectedEstacaoId] = useState<string>('');
+
+    // ILUO Modal State
+    const [isIluoModalOpen, setIsIluoModalOpen] = useState(false);
+    const [iluoTargetOp, setIluoTargetOp] = useState<OperadorInfo | null>(null);
+    const [opIluoList, setOpIluoList] = useState<{estacao_id: string, nivel_iluo: string, avaliador_nome: string, data_avaliacao: string}[]>([]);
+    const [isIluoLoading, setIsIluoLoading] = useState(false);
+    const [newIluoEstacao, setNewIluoEstacao] = useState('');
+    const [newIluoNivel, setNewIluoNivel] = useState('I');
+    
+    // Hydration state for Session Storage
+    const [isHydrated, setIsHydrated] = useState(false);
+
+    useEffect(() => {
+        const savedArea = sessionStorage.getItem('rh_filter_area');
+        const savedEstacao = sessionStorage.getItem('rh_filter_estacao');
+        const savedSearch = sessionStorage.getItem('rh_search_query');
+        if (savedArea) setFilterArea(savedArea);
+        if (savedEstacao) setFilterEstacao(savedEstacao);
+        if (savedSearch) setSearchQuery(savedSearch);
+        setIsHydrated(true);
+    }, []);
+
+    useEffect(() => {
+        if (!isHydrated) return;
+        sessionStorage.setItem('rh_filter_area', filterArea);
+        sessionStorage.setItem('rh_filter_estacao', filterEstacao);
+        sessionStorage.setItem('rh_search_query', searchQuery);
+    }, [filterArea, filterEstacao, searchQuery, isHydrated]);
 
     const carregarEquipa = async () => {
         setIsLoading(true);
@@ -281,6 +309,27 @@ export default function GestaoRHPage() {
                                             <Edit size={16} />
                                         </button>
                                         <button
+                                            onClick={async () => {
+                                                setIluoTargetOp(op);
+                                                setIsIluoLoading(true);
+                                                setIsIluoModalOpen(true);
+                                                const { data } = await supabase.from('operador_iluo_matriz').select('*').eq('operador_id', op.id);
+                                                if (data) {
+                                                    setOpIluoList(data.map(item => ({
+                                                        estacao_id: item.estacao_id,
+                                                        nivel_iluo: item.nivel_iluo,
+                                                        avaliador_nome: item.avaliador_nome || '',
+                                                        data_avaliacao: item.data_avaliacao || ''
+                                                    })));
+                                                }
+                                                setIsIluoLoading(false);
+                                            }}
+                                            className="p-2 text-slate-400 hover:bg-indigo-50 hover:text-indigo-600 rounded-md transition-colors border border-transparent hover:border-indigo-100"
+                                            title="Matriz de Competências ILUO"
+                                        >
+                                            <Star size={16} />
+                                        </button>
+                                        <button
                                             onClick={() => toggleStatus(op.id, op.status)}
                                             className={`p-2 rounded-md transition-colors border ${op.status === 'Ativo'
                                                 ? 'text-slate-400 border-transparent hover:border-red-200 hover:bg-red-50 hover:text-red-600'
@@ -347,6 +396,154 @@ export default function GestaoRHPage() {
                                 {isLoading ? <Loader2 size={16} className="animate-spin" /> : <Repeat size={16} />}
                                 Confirmar Empréstimo
                             </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* MODAL ILUO RÁPIDO */}
+            {isIluoModalOpen && iluoTargetOp && (
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-200 flex flex-col max-h-[90vh]">
+                        <div className="px-6 py-4 border-b border-indigo-100 flex justify-between items-center bg-indigo-50/50">
+                            <h3 className="font-bold text-indigo-900 flex items-center gap-2">
+                                <Star size={18} className="text-indigo-500 fill-indigo-100" />
+                                Matriz ILUO
+                            </h3>
+                            <button onClick={() => setIsIluoModalOpen(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <div className="p-6 overflow-y-auto flex-1">
+                            <div className="flex items-center gap-4 mb-6 pb-4 border-b border-slate-100">
+                                <div className="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-extrabold text-xl shadow-inner">
+                                    {iluoTargetOp.nome_operador.charAt(0)}
+                                </div>
+                                <div>
+                                    <h4 className="text-lg font-black text-slate-800 leading-tight">{iluoTargetOp.nome_operador}</h4>
+                                    <p className="text-xs text-slate-500 font-medium uppercase tracking-widest">{iluoTargetOp.funcao || 'Operador Base'}</p>
+                                </div>
+                            </div>
+
+                            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 grid grid-cols-1 md:grid-cols-4 gap-3 items-end mb-6">
+                                <div className="md:col-span-2">
+                                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Nova Célula/Estação</label>
+                                    <select 
+                                        value={newIluoEstacao} 
+                                        onChange={e => setNewIluoEstacao(e.target.value)} 
+                                        className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-sm"
+                                    >
+                                        <option value="">-- Selecionar Estação Produtiva --</option>
+                                        {estacoes.map(e => <option key={e.id} value={e.id}>{e.nome_estacao}</option>)}
+                                    </select>
+                                </div>
+                                <div className="md:col-span-1">
+                                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Nível</label>
+                                    <select 
+                                        value={newIluoNivel} 
+                                        onChange={e => setNewIluoNivel(e.target.value)} 
+                                        className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-sm font-bold text-indigo-700"
+                                    >
+                                        <option value="I">I - Trainee</option>
+                                        <option value="L">L - Autónomo</option>
+                                        <option value="U">U - Especialista</option>
+                                        <option value="O">O - Formador</option>
+                                    </select>
+                                </div>
+                                <div className="md:col-span-1">
+                                    <button 
+                                        type="button"
+                                        disabled={!newIluoEstacao || isIluoLoading}
+                                        onClick={async () => {
+                                            if (!newIluoEstacao) return;
+                                            setIsIluoLoading(true);
+                                            // Atualiza no backend
+                                            const payload = {
+                                                operador_id: iluoTargetOp.id,
+                                                estacao_id: newIluoEstacao,
+                                                nivel_iluo: newIluoNivel,
+                                                avaliador_nome: 'Sistema / Gestor Liderança',
+                                            };
+                                            // Cleanup if exists
+                                            await supabase.from('operador_iluo_matriz').delete().eq('operador_id', iluoTargetOp.id).eq('estacao_id', newIluoEstacao);
+                                            // Insert new
+                                            const { error } = await supabase.from('operador_iluo_matriz').insert([payload]);
+                                            if (error) { alert("Erro ao guardar competência: " + error.message); setIsIluoLoading(false); return; }
+                                            
+                                            // Update Local State Map
+                                            setOpIluoList(prev => {
+                                                const cl = prev.filter(p => p.estacao_id !== newIluoEstacao);
+                                                cl.push({
+                                                    estacao_id: newIluoEstacao,
+                                                    nivel_iluo: newIluoNivel,
+                                                    avaliador_nome: 'Sistema / Gestor Liderança',
+                                                    data_avaliacao: new Date().toISOString()
+                                                });
+                                                return cl;
+                                            });
+                                            setNewIluoEstacao('');
+                                            setNewIluoNivel('I');
+                                            setIsIluoLoading(false);
+                                        }}
+                                        className="w-full bg-indigo-600 disabled:opacity-50 text-white font-bold py-2.5 px-3 rounded-md text-xs hover:bg-indigo-700 transition-colors shadow-sm flex items-center justify-center gap-2"
+                                    >
+                                        {isIluoLoading ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} 
+                                        Salvar
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest border-b border-slate-200 pb-2 mb-4">Competências Certificadas ({opIluoList.length})</h4>
+
+                            {isIluoLoading && opIluoList.length === 0 ? (
+                                <div className="p-8 flex justify-center"><Loader2 className="animate-spin text-indigo-300" size={32} /></div>
+                            ) : opIluoList.length === 0 ? (
+                                <div className="text-center p-8 bg-slate-50 border border-slate-100 rounded-lg text-slate-400 italic text-sm">
+                                    Nenhuma certificação M.E.S ILUO documentada.
+                                </div>
+                            ) : (
+                                <div className="space-y-2">
+                                    {opIluoList.map(skill => {
+                                        const estInfo = estacoes.find(e => e.id === skill.estacao_id);
+                                        const areaInfo = areas.find(a => a.id === estInfo?.area_id);
+                                        
+                                        const cores: Record<string, string> = {
+                                            'I': 'bg-slate-100 text-slate-600 border-slate-300',
+                                            'L': 'bg-amber-100 text-amber-700 border-amber-300',
+                                            'U': 'bg-blue-100 text-blue-700 border-blue-300',
+                                            'O': 'bg-emerald-100 text-emerald-700 border-emerald-300'
+                                        };
+                                        return (
+                                            <div key={skill.estacao_id} className="flex items-center justify-between p-3 border border-slate-200 rounded-lg bg-white shadow-sm hover:border-indigo-100 transition-colors group">
+                                                <div className="flex items-center gap-4">
+                                                    <div className={`w-10 h-10 rounded-full border-2 shadow-inner flex items-center justify-center font-black ${cores[skill.nivel_iluo] || cores['I']}`}>
+                                                        {skill.nivel_iluo}
+                                                    </div>
+                                                    <div>
+                                                        <div className="text-sm font-bold text-slate-800">{estInfo?.nome_estacao || 'Desconhecida'}</div>
+                                                        <div className="text-[10px] text-slate-400 font-medium tracking-wide uppercase">{areaInfo?.nome_area || 'Área Desconhecida'}</div>
+                                                    </div>
+                                                </div>
+                                                <button 
+                                                    type="button" 
+                                                    disabled={isIluoLoading}
+                                                    onClick={async () => {
+                                                        if(!window.confirm("Retirar esta certificação? O trabalhador perderá os benefícios do painel IoT associados.")) return;
+                                                        setIsIluoLoading(true);
+                                                        await supabase.from('operador_iluo_matriz').delete().eq('operador_id', iluoTargetOp.id).eq('estacao_id', skill.estacao_id);
+                                                        setOpIluoList(prev => prev.filter(i => i.estacao_id !== skill.estacao_id));
+                                                        setIsIluoLoading(false);
+                                                    }} 
+                                                    className="opacity-20 group-hover:opacity-100 text-[10px] uppercase font-bold text-red-500 hover:bg-red-50 px-3 py-1.5 rounded border border-transparent hover:border-red-200 transition-all disabled:opacity-30"
+                                                >
+                                                    Retirar
+                                                </button>
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
