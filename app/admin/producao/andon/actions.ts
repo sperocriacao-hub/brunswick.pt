@@ -169,7 +169,6 @@ export async function clonarAlertaAndon(alerta_id: string, operador_rfid: string
                 local_ocorrencia_id: oldAlert.local_ocorrencia_id,
                 op_id: oldAlert.op_id,
                 resolvido: false,
-                notificacao_enviada: false,
                 situacao: 'NOVO'
             }])
             .select()
