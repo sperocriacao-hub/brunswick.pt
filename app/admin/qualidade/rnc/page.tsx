@@ -4,13 +4,14 @@ import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, Filter, FileWarning, History, FileText, LayoutTemplate, CopyPlus, Printer, Loader2, Edit, Save, Send, Ban, Image as ImageIcon } from 'lucide-react';
+import { Search, Plus, Filter, FileWarning, History, FileText, LayoutTemplate, CopyPlus, Printer, Loader2, Edit, Save, Send, Ban, Image as ImageIcon, Mail } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { getRncs, getQualityActions, updateRnc, updateRncStatus } from './actions';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea"; 
 import { Label } from "@/components/ui/label";
+import { generateRncEml } from './emailGenerator';
 
 export default function GestaoRncPage() {
     const router = useRouter();
@@ -161,6 +162,18 @@ export default function GestaoRncPage() {
         }
     };
 
+    const handleExportMail = (rnc: any) => {
+        let firstImage = null;
+        if (rnc.anexos_url) {
+            try {
+                const parsed = typeof rnc.anexos_url === 'string' ? JSON.parse(rnc.anexos_url) : rnc.anexos_url;
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    firstImage = parsed[0];
+                }
+            } catch (e) { }
+        }
+        generateRncEml(rnc, firstImage);
+    };
 
     useEffect(() => {
         carregarRncs();
@@ -407,6 +420,10 @@ export default function GestaoRncPage() {
 
                                                         <Button variant="outline" size="sm" className="h-8 border-slate-200 text-slate-600 hover:bg-slate-50 font-bold text-xs" onClick={() => openEditModal(rnc)}>
                                                             <Edit className="w-3 h-3 mr-1" /> Editar
+                                                        </Button>
+
+                                                        <Button variant="outline" size="sm" className="h-8 border-blue-200 text-blue-700 hover:bg-blue-50 font-bold text-xs" onClick={() => handleExportMail(rnc)}>
+                                                            <Mail className="w-3 h-3 mr-1" /> Partilhar
                                                         </Button>
 
                                                         {hasA3 && (
