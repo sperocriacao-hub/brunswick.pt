@@ -385,7 +385,7 @@ export default function GestaoRncPage() {
 
                                                 <td className="px-6 py-4 text-right print:hidden">
                                                     <div className="flex justify-end gap-2">
-                                                        {rnc.status === 'Aberto' && !hasA3 && (
+                                                        {rnc.status === 'Pendente' && !hasA3 && (
                                                             <>
                                                                 <Button variant="outline" size="sm" className="h-8 border-rose-200 text-rose-700 hover:bg-rose-50 font-bold text-xs" onClick={() => { setEncerrarRncId(rnc.id); setIsEncerrarModalOpen(true); }}>
                                                                     <Ban className="w-3 h-3 mr-1" /> Encerrar Caso
@@ -396,7 +396,7 @@ export default function GestaoRncPage() {
                                                             </>
                                                         )}
 
-                                                        {rnc.status !== 'Aberto' && !hasA3 && rnc.status !== 'Encerrado' && (
+                                                        {rnc.status !== 'Pendente' && !hasA3 && rnc.status !== 'Encerrado' && (
                                                             <>
                                                                 {/* O botão "Gerar" via lista central é descontinuado. Os A3 são gerados e respondem exclusivamente pelo Kanban */}
                                                                 <Button variant="outline" size="sm" className="h-8 border-slate-200 text-slate-600 hover:bg-indigo-50 hover:text-indigo-700 font-bold text-xs" onClick={() => router.push(`/admin/qualidade/rnc/quadro`)}>

@@ -98,7 +98,7 @@ export default function NovaRncPage() {
             gravidade: gravidade,
             descricao_problema: descricao,
             acao_imediata: acao,
-            anexos_url: fotos.length > 0 ? fotos : null
+            anexos_url: fotos.length > 0 ? JSON.stringify(fotos) : null
         };
 
         const res = await createRnc(payload);
