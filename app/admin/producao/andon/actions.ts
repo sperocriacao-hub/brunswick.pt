@@ -10,7 +10,7 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.
 // Ação de backend privilegiada para ler/escrever históricos do Andon
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-export async function getAndonHistory(mesesAtras: number = 6) {
+export async function getAndonHistory(mesesAtras: number = 4) {
     try {
         const minDate = new Date();
         minDate.setMonth(minDate.getMonth() - mesesAtras);

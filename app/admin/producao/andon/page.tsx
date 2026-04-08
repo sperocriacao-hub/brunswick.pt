@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { getAndonHistory, fecharAlertaAndon, clonarAlertaAndon, getLoggedOperadorRfid } from './actions';
 import { getTVConfigs } from '../../configuracoes/tvs/actions';
-import { AlertCircle, Clock, CheckCircle2, Factory, Hammer, Tv, Filter, BarChart2, ListTodo, Activity, Timer, AlertTriangle, TrendingDown, TrendingUp, Trophy, ShieldCheck, Ship } from 'lucide-react';
+import { AlertCircle, Clock, CheckCircle2, Factory, Hammer, Tv, Filter, BarChart2, ListTodo, Activity, Timer, AlertTriangle, TrendingDown, TrendingUp, Trophy, ShieldCheck, Ship, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -30,6 +30,10 @@ export default function AndonDashPage() {
     const [filterLinha, setFilterLinha] = useState<string>('all');
     const [filterDate, setFilterDate] = useState<string>('');
 
+    // Pagination
+    const [currentPage, setCurrentPage] = useState(1);
+    const ITEMS_PER_PAGE = 20;
+
     // Filters (KPIs)
     const [selectedMonth, setSelectedMonth] = useState<string>(format(new Date(), 'yyyy-MM'));
     const [selectedDayKpi, setSelectedDayKpi] = useState<string>('');
@@ -46,6 +50,10 @@ export default function AndonDashPage() {
     useEffect(() => {
         loadData();
     }, []);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [filterStatus, filterProblema, filterCausadora, filterLinha, filterDate]);
 
     async function loadData() {
         setIsLoading(true);
@@ -149,6 +157,9 @@ export default function AndonDashPage() {
         }
         return true;
     });
+
+    const totalPages = Math.ceil(filteredAlertas.length / ITEMS_PER_PAGE);
+    const paginatedAlertas = filteredAlertas.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
     // KPI Calculations (Filtered by Global Area Picker)
     const kpisFilteredByArea = alertas.filter(a => {
@@ -384,10 +395,10 @@ export default function AndonDashPage() {
                                 <tbody className="divide-y divide-slate-100">
                                     {isLoading ? (
                                         <tr><td colSpan={7} className="text-center p-8 text-slate-400">A carregar métricas...</td></tr>
-                                    ) : filteredAlertas.length === 0 ? (
+                                    ) : paginatedAlertas.length === 0 ? (
                                         <tr><td colSpan={7} className="text-center p-8 text-slate-400">Nenhum incidente corresponde aos filtros.</td></tr>
                                     ) : (
-                                        filteredAlertas.map((al) => (
+                                        paginatedAlertas.map((al) => (
                                             <tr key={al.id} className="hover:bg-slate-50/50 transition-colors">
                                                 <td className="px-4 py-3 font-mono text-slate-500 text-[11px] whitespace-nowrap">
                                                     {format(new Date(al.created_at), 'dd/MM HH:mm')}
@@ -460,6 +471,44 @@ export default function AndonDashPage() {
                                 </tbody>
                             </table>
                         </div>
+                        {totalPages > 1 && (
+                            <div className="flex items-center justify-between border-t border-slate-200 bg-slate-50 px-4 py-3 sm:px-6">
+                                <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+                                    <div>
+                                        <p className="text-sm text-slate-700">
+                                            A mostrar <span className="font-bold">{(currentPage - 1) * ITEMS_PER_PAGE + 1}</span> a <span className="font-bold">{Math.min(currentPage * ITEMS_PER_PAGE, filteredAlertas.length)}</span> de <span className="font-bold">{filteredAlertas.length}</span> resultados
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                                disabled={currentPage === 1}
+                                                className="rounded-l-md px-2 py-2 text-slate-400 focus:z-20 border-slate-300"
+                                            >
+                                                <span className="sr-only">Anterior</span>
+                                                <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+                                            </Button>
+                                            <span className="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-slate-700 border border-slate-300 bg-white">
+                                                Página {currentPage} de {totalPages}
+                                            </span>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                                disabled={currentPage === totalPages}
+                                                className="rounded-r-md px-2 py-2 text-slate-400 focus:z-20 border-slate-300"
+                                            >
+                                                <span className="sr-only">Próxima</span>
+                                                <ChevronRight className="h-4 w-4" aria-hidden="true" />
+                                            </Button>
+                                        </nav>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
             )}
