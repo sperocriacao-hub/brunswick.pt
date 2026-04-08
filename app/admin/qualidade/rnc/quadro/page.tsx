@@ -339,13 +339,16 @@ export default function RncKanbanBoardPage() {
                                             <p className="mt-4 font-semibold text-slate-500 uppercase text-xs">Contexto: {selectedAction.contexto_producao}</p>
                                         )}
                                         {/* EXIBIÇÃO DE FOTOS NATIVAS DA RNC */}
-                                        {selectedAction?.anexos_url && selectedAction.anexos_url.length > 5 && (
+                                        {selectedAction?.anexos_url && (
                                             <div className="mt-6 border-t border-slate-200 pt-6">
                                                 <h4 className="font-bold text-slate-700 text-xs uppercase mb-3 flex items-center gap-2"><ImageIcon size={14} className="text-indigo-500" /> Evidências Fotográficas da Anomalia</h4>
                                                 <div className="flex gap-4 overflow-x-auto pb-4">
                                                     {(() => {
                                                         try {
-                                                            const urls = JSON.parse(selectedAction.anexos_url);
+                                                            let urls = selectedAction.anexos_url;
+                                                            if (typeof urls === 'string') {
+                                                                urls = JSON.parse(urls);
+                                                            }
                                                             if (Array.isArray(urls)) {
                                                                 return urls.map((url: string, index: number) => url ? (
                                                                     <div key={index} className="w-56 h-56 shrink-0 rounded-xl border-2 border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition-all relative bg-slate-100 group">

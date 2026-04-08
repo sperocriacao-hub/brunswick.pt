@@ -48,9 +48,12 @@ export default function GestaoRncPage() {
         let fotos: string[] = [];
         try {
             if (rnc.anexos_url) {
-                const parsed = JSON.parse(rnc.anexos_url);
+                let parsed = rnc.anexos_url;
+                if (typeof parsed === 'string') {
+                    parsed = JSON.parse(parsed);
+                }
                 if (Array.isArray(parsed)) {
-                    fotos = parsed.filter(u => u && u.trim() !== '');
+                    fotos = parsed.filter(u => typeof u === 'string' && u.trim() !== '');
                 }
             }
         } catch(e) {}
@@ -126,7 +129,7 @@ export default function GestaoRncPage() {
         const res = await updateRnc(editRncId, {
             descricao_problema: editPayload.descricao_problema,
             contexto_producao: editPayload.contexto_producao,
-            anexos_url: arrURLs.length > 0 ? JSON.stringify(arrURLs) : null
+            anexos_url: arrURLs.length > 0 ? arrURLs : null
         });
         if (res.success) {
             setIsEditModalOpen(false);
@@ -346,12 +349,17 @@ export default function GestaoRncPage() {
                                                                 variant="ghost" size="sm"
                                                                 onClick={() => {
                                                                     try {
-                                                                        const parsed = JSON.parse(rnc.anexos_url);
+                                                                        let parsed = rnc.anexos_url;
+                                                                        if (typeof parsed === 'string') {
+                                                                            parsed = JSON.parse(parsed);
+                                                                        }
                                                                         if (Array.isArray(parsed) && parsed.length > 0) {
-                                                                            setFotosAtuais(parsed);
+                                                                            setFotosAtuais(parsed.filter(u => typeof u === 'string'));
                                                                             setIsFotosOpen(true);
                                                                         }
-                                                                    } catch(e) {}
+                                                                    } catch(e) {
+                                                                        console.error(e);
+                                                                    }
                                                                 }}
                                                                 className="h-6 px-2 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-[10px] rounded"
                                                             >
@@ -568,17 +576,17 @@ export default function GestaoRncPage() {
                                 ))}
 
                                 {(editPayload.fotos || []).length < 2 && (
-                                    <div className="relative overflow-hidden w-32 h-32 rounded-lg border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-500 hover:text-indigo-600 hover:border-indigo-400 hover:bg-indigo-50 cursor-pointer transition-colors bg-slate-50">
+                                    <label className="w-32 h-32 rounded-lg border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-500 hover:text-indigo-600 hover:border-indigo-400 hover:bg-indigo-50 cursor-pointer transition-colors bg-slate-50">
                                         <span className="text-2xl mb-1">+</span>
                                         <span className="text-[10px] font-bold uppercase tracking-widest text-center px-2">Anexar<br/>Ficheiro</span>
                                         <input 
                                             type="file" 
                                             accept="image/*" 
-                                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" 
+                                            className="hidden" 
                                             onChange={handleFileChange}
                                             multiple
                                         />
-                                    </div>
+                                    </label>
                                 )}
                             </div>
                         </div>

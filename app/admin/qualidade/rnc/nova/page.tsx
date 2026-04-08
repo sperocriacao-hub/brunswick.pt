@@ -98,7 +98,7 @@ export default function NovaRncPage() {
             gravidade: gravidade,
             descricao_problema: descricao,
             acao_imediata: acao,
-            anexos_url: fotos.length > 0 ? JSON.stringify(fotos) : null
+            anexos_url: fotos.length > 0 ? fotos : null
         };
 
         const res = await createRnc(payload);
@@ -234,17 +234,17 @@ export default function NovaRncPage() {
                                 ))}
 
                                 {fotos.length < 2 && (
-                                    <div className="relative overflow-hidden w-32 h-32 rounded-lg border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-500 hover:text-indigo-600 hover:border-indigo-400 hover:bg-indigo-50 cursor-pointer transition-colors">
+                                    <label className="w-32 h-32 rounded-lg border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-500 hover:text-indigo-600 hover:border-indigo-400 hover:bg-indigo-50 cursor-pointer transition-colors">
                                         <span className="text-2xl mb-1">+</span>
                                         <span className="text-[10px] font-bold uppercase tracking-widest">Add Foto</span>
                                         <input 
                                             type="file" 
                                             accept="image/*" 
-                                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" 
+                                            className="hidden" 
                                             onChange={handleFileChange}
                                             multiple
                                         />
-                                    </div>
+                                    </label>
                                 )}
                             </div>
                             <p className="text-[10px] text-slate-400 uppercase tracking-widest mt-1">As fotos são automaticamente otimizadas antes do envio.</p>
