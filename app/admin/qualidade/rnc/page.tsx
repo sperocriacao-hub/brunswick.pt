@@ -48,12 +48,9 @@ export default function GestaoRncPage() {
         let fotos: string[] = [];
         try {
             if (rnc.anexos_url) {
-                let parsed = rnc.anexos_url;
-                if (typeof parsed === 'string') {
-                    parsed = JSON.parse(parsed);
-                }
+                const parsed = JSON.parse(rnc.anexos_url);
                 if (Array.isArray(parsed)) {
-                    fotos = parsed.filter(u => typeof u === 'string' && u.trim() !== '');
+                    fotos = parsed.filter(u => u && u.trim() !== '');
                 }
             }
         } catch(e) {}
@@ -129,7 +126,7 @@ export default function GestaoRncPage() {
         const res = await updateRnc(editRncId, {
             descricao_problema: editPayload.descricao_problema,
             contexto_producao: editPayload.contexto_producao,
-            anexos_url: arrURLs.length > 0 ? arrURLs : null
+            anexos_url: arrURLs.length > 0 ? JSON.stringify(arrURLs) : null
         });
         if (res.success) {
             setIsEditModalOpen(false);
@@ -349,17 +346,12 @@ export default function GestaoRncPage() {
                                                                 variant="ghost" size="sm"
                                                                 onClick={() => {
                                                                     try {
-                                                                        let parsed = rnc.anexos_url;
-                                                                        if (typeof parsed === 'string') {
-                                                                            parsed = JSON.parse(parsed);
-                                                                        }
+                                                                        const parsed = JSON.parse(rnc.anexos_url);
                                                                         if (Array.isArray(parsed) && parsed.length > 0) {
-                                                                            setFotosAtuais(parsed.filter(u => typeof u === 'string'));
+                                                                            setFotosAtuais(parsed);
                                                                             setIsFotosOpen(true);
                                                                         }
-                                                                    } catch(e) {
-                                                                        console.error(e);
-                                                                    }
+                                                                    } catch(e) {}
                                                                 }}
                                                                 className="h-6 px-2 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-[10px] rounded"
                                                             >

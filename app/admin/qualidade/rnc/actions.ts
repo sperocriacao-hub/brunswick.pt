@@ -91,7 +91,7 @@ export async function createRnc(payload: any) {
         }
         const numRnc = `RNC-${year}-${String(nextSeq).padStart(3, '0')}`;
 
-        const insertData = { ...payload, numero_rnc: numRnc, status: 'Pendente' };
+        const insertData = { ...payload, numero_rnc: numRnc };
 
         const { error } = await supabase.from("qualidade_rnc").insert(insertData);
         if (error) throw error;
