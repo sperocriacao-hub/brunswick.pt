@@ -234,7 +234,7 @@ export default function NovaRncPage() {
                                 ))}
 
                                 {fotos.length < 2 && (
-                                    <label className="relative overflow-hidden w-32 h-32 rounded-lg border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-500 hover:text-indigo-600 hover:border-indigo-400 hover:bg-indigo-50 cursor-pointer transition-colors">
+                                    <div className="relative overflow-hidden w-32 h-32 rounded-lg border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-500 hover:text-indigo-600 hover:border-indigo-400 hover:bg-indigo-50 cursor-pointer transition-colors">
                                         <span className="text-2xl mb-1">+</span>
                                         <span className="text-[10px] font-bold uppercase tracking-widest">Add Foto</span>
                                         <input 
@@ -244,7 +244,7 @@ export default function NovaRncPage() {
                                             onChange={handleFileChange}
                                             multiple
                                         />
-                                    </label>
+                                    </div>
                                 )}
                             </div>
                             <p className="text-[10px] text-slate-400 uppercase tracking-widest mt-1">As fotos são automaticamente otimizadas antes do envio.</p>
