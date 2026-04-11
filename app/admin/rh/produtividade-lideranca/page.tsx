@@ -274,12 +274,22 @@ export default async function ProdutividadeLiderancaRH({ searchParams }: { searc
     // SLA Global de Fábrica
     const globalAndons = rawAndons?.filter(a => a.resolvido && a.resolvido_at) || [];
     let globalGteAndonSla = 0;
-    globalAndons.forEach(a => globalGteAndonSla += diffMinutes(a.created_at, a.resolvido_at));
+    globalAndons.forEach(a => {
+        const estacao = a.estacoes as any;
+        const temT2 = estacao ? !!(estacao.lider_t2_id || estacao.supervisor_t2_id) : false;
+        globalGteAndonSla += calcActiveMinutes(a.created_at, a.resolvido_at, temT2);
+    });
     const mediaGlobalSla = globalAndons.length > 0 ? Math.round(globalGteAndonSla / globalAndons.length) : 0;
     
-    const mediaGlobalHst = statsOperador.reduce((sum, curr) => sum + curr.notaHst, 0) / numLideres;
-    const mediaGlobalObjetivos = statsOperador.reduce((sum, curr) => sum + curr.notaObjetivos, 0) / numLideres;
-    const mediaGlobalCultura = statsOperador.reduce((sum, curr) => sum + curr.suaCulturaScore, 0) / numLideres;
+    // Ignorar os lideres sem avaliação ainda este mês para não prejudicar a média global
+    const lideresHst = statsOperador.filter(l => l.notaHst > 0);
+    const mediaGlobalHst = lideresHst.length > 0 ? lideresHst.reduce((sum, curr) => sum + curr.notaHst, 0) / lideresHst.length : 0;
+
+    const lideresObj = statsOperador.filter(l => l.notaObjetivos > 0);
+    const mediaGlobalObjetivos = lideresObj.length > 0 ? lideresObj.reduce((sum, curr) => sum + curr.notaObjetivos, 0) / lideresObj.length : 0;
+
+    const lideresCultura = statsOperador.filter(l => l.suaCulturaScore > 0);
+    const mediaGlobalCultura = lideresCultura.length > 0 ? lideresCultura.reduce((sum, curr) => sum + curr.suaCulturaScore, 0) / lideresCultura.length : 0;
 
     // Gerador Array Meses Formulario
     const ultimosMeses = [];
@@ -293,12 +303,14 @@ export default async function ProdutividadeLiderancaRH({ searchParams }: { searc
     }
 
     // Build data for 9-Box
-    const noveBoxData = statsOperador.map(lider => ({
-        nome: lider.nome_operador,
-        equipaOee: lider.equipaOee,
-        mentoriaScore: lider.suaCulturaScore,
-        andonMins: lider.mtrAndon
-    }));
+    const noveBoxData = statsOperador
+        .filter(lider => lider.equipaOee > 0 || lider.suaCulturaScore > 0 || lider.mtrAndon > 0) // Ocultar outliers completos
+        .map(lider => ({
+            nome: lider.nome_operador,
+            equipaOee: lider.equipaOee,
+            mentoriaScore: lider.suaCulturaScore > 0 ? lider.suaCulturaScore : 2.5, // Mantém plot no centro (neutro) se não tiver feedback e tiver apenas OEE
+            andonMins: lider.mtrAndon
+        }));
 
     return (
         <div className="p-6 md:p-8 space-y-8 animate-in fade-in zoom-in duration-500 max-w-[1600px] mx-auto">
