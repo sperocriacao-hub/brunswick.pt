@@ -117,11 +117,16 @@ export default async function ProdutividadeLiderancaRH({ searchParams }: { searc
     // 6. Fetch Andons para Cálculo SLA e Gestão Tática
     const { data: rawAndons } = await supabase
         .from('alertas_andon')
-        .select(`created_at, resolvido_at, resolvido, operador_rfid, estacao_id, local_ocorrencia_id, estacoes!alertas_andon_estacao_id_fkey(area_id)`)
+        .select(`
+            created_at, resolvido_at, resolvido, operador_rfid, estacao_id, local_ocorrencia_id, 
+            estacoes!alertas_andon_estacao_id_fkey(
+                area_id, nome_estacao, lider_t1_id, supervisor_t1_id, lider_t2_id, supervisor_t2_id, 
+                manutencao_id, qualidade_id, logistica_id
+            )
+        `)
         .gte('created_at', `${firstDayStr}T00:00:00Z`)
         .lte('created_at', `${lastDayStr}T23:59:59Z`);
 
-    const { data: rawBussola } = await supabase.from('bussola_lideranca').select('*');
     const { data: rawEstacoes } = await supabase.from('estacoes').select('id, nome_estacao');
 
     // 7. Base de Operação (Tarefas e Pausas para OEE de Equipa)
@@ -173,25 +178,25 @@ export default async function ProdutividadeLiderancaRH({ searchParams }: { searc
         const equipeTotalTime = totalVaEquipa + totalNvaEquipa;
         const equipaOee = equipeTotalTime > 0 ? (totalVaEquipa / equipeTotalTime) * 100 : 0;
 
-        // Andons da Equipa (Causados/Levantados na Área de Responsabilidade via Bússola, ou Levantados por Membros)
-        const getEstacaoName = (id: string | null) => rawEstacoes?.find(e => e.id === id)?.nome_estacao;
-        
+        // Andons da Equipa (Causados/Levantados na Área de Responsabilidade Atribuída)
         const andonsDominio = rawAndons?.filter(a => {
             const hora = new Date(a.created_at).getHours();
             const isT2 = hora >= 14 && hora < 22;
             
-            const stationName = getEstacaoName(a.estacao_id) || getEstacaoName(a.local_ocorrencia_id);
-            const bussolaReverificada = rawBussola?.find(b => stationName?.startsWith(b.prefixo_estacao));
-            
-            if (bussolaReverificada) {
-                // Responsabilidade atribuída pela Bússola
-                const responsavelLider = isT2 ? bussolaReverificada.lider_t2 : bussolaReverificada.lider_t1;
-                const responsavelSuper = isT2 ? bussolaReverificada.supervisor_t2 : bussolaReverificada.supervisor_t1;
-                return (responsavelLider === lider.nome_operador || responsavelSuper === lider.nome_operador);
-            }
-            
-            // Fallback para rastreio humano se a Bússola não apanhar
-            return a.operador_rfid && rfidEquipa.has(a.operador_rfid);
+            const estacao = a.estacoes as any;
+            if (!estacao) return false;
+
+            // Responsabilidade Tática Direta
+            const responsavelLiderId = isT2 ? estacao.lider_t2_id : estacao.lider_t1_id;
+            const responsavelSuperId = isT2 ? estacao.supervisor_t2_id : estacao.supervisor_t1_id;
+
+            // Se o Líder não é o líder da estação, talvez ele seja do Suporte
+            const isSuporte = 
+                estacao.manutencao_id === lider.id || 
+                estacao.qualidade_id === lider.id || 
+                estacao.logistica_id === lider.id;
+
+            return responsavelLiderId === lider.id || responsavelSuperId === lider.id || isSuporte;
         }) || [];
 
         const andonsResolvidos = andonsDominio.filter(a => a.resolvido && a.resolvido_at);
