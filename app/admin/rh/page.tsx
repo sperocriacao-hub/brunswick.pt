@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { createClient } from '@/utils/supabase/client';
-import { Loader2, Search, UserPlus, Users, Edit, UserX, UserCheck, Shield, Repeat, X, Star, Save } from 'lucide-react';
+import { Loader2, Search, UserPlus, Users, Edit, UserX, UserCheck, Shield, Repeat, X, Star, Save, MapPin } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -182,9 +182,14 @@ export default function GestaoRHPage() {
                     </h1>
                     <p className="text-slate-500 font-medium">Controlo Cadastral, Permissões M.E.S e Níveis ILUO.</p>
                 </div>
-                <Link href="/admin/rh/cadastro" className="bg-blue-600 text-white hover:bg-blue-700 px-4 py-2 rounded-md font-medium transition-colors flex gap-2 items-center shadow-sm">
-                    <UserPlus size={18} /> Novo Operário
-                </Link>
+                <div className="flex gap-3">
+                    <Link href="/admin/rh/bussola" className="bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 px-4 py-2 rounded-md font-bold transition-colors flex gap-2 items-center shadow-sm">
+                        <MapPin size={18} /> Bússola (Andon)
+                    </Link>
+                    <Link href="/admin/rh/cadastro" className="bg-blue-600 text-white hover:bg-blue-700 px-4 py-2 rounded-md font-medium transition-colors flex gap-2 items-center shadow-sm">
+                        <UserPlus size={18} /> Novo Operário
+                    </Link>
+                </div>
             </header>
 
             <div className="bg-white border border-slate-200 rounded-lg p-6 mb-8 flex flex-col md:flex-row gap-4 items-center shadow-sm">
