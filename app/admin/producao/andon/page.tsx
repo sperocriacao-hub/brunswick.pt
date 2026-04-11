@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { getAndonHistory, fecharAlertaAndon, clonarAlertaAndon, getLoggedOperadorRfid } from './actions';
+import { getAndonHistory, fecharAlertaAndon, clonarAlertaAndon, getLoggedOperadorRfid, terceirizarAndon } from './actions';
 import { getTVConfigs } from '../../configuracoes/tvs/actions';
-import { AlertCircle, Clock, CheckCircle2, Factory, Hammer, Tv, Filter, BarChart2, ListTodo, Activity, Timer, AlertTriangle, TrendingDown, TrendingUp, Trophy, ShieldCheck, Ship, ChevronLeft, ChevronRight } from 'lucide-react';
+import { AlertCircle, ArrowRightLeft, Clock, CheckCircle2, Factory, Hammer, Tv, Filter, BarChart2, ListTodo, Activity, Timer, AlertTriangle, TrendingDown, TrendingUp, Trophy, ShieldCheck, Ship, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -47,6 +47,12 @@ export default function AndonDashPage() {
     const [andonDesc, setAndonDesc] = useState('');
     const [causadoraEstacaoId, setCausadoraEstacaoId] = useState('');
     const [localOcorrenciaId, setLocalOcorrenciaId] = useState('');
+
+    // ANDON Transfer Modal State
+    const [isTerceirizarModalOpen, setIsTerceirizarModalOpen] = useState(false);
+    const [terceirizarAndonId, setTerceirizarAndonId] = useState('');
+    const [terceirizarNovaCausadora, setTerceirizarNovaCausadora] = useState('');
+    const [terceirizarObs, setTerceirizarObs] = useState('');
 
     useEffect(() => {
         loadData();
@@ -96,6 +102,29 @@ export default function AndonDashPage() {
         if (!window.confirm("Confirmar que este problema na Estação foi superado e a produção retomou?")) return;
         setIsLoading(true);
         await fecharAlertaAndon(id);
+        await loadData();
+    }
+
+    function openTerceirizarModal(id: string) {
+        setTerceirizarAndonId(id);
+        setTerceirizarNovaCausadora('');
+        setTerceirizarObs('');
+        setIsTerceirizarModalOpen(true);
+    }
+
+    async function confirmTerceirizar() {
+        if (!terceirizarNovaCausadora || !terceirizarObs) {
+            alert("Atenção: É obrigatório selecionar a nova estação responsável e justificar o motivo.");
+            return;
+        }
+        setIsTerceirizarModalOpen(false);
+        setIsLoading(true);
+        const res = await terceirizarAndon(terceirizarAndonId, terceirizarNovaCausadora, terceirizarObs);
+        if (res.success) {
+            alert("✅ Alerta redirecionado com sucesso. O seu MTTR de análise foi registado e a linha aguarda agora pelo novo responsável.");
+        } else {
+            alert("Erro ao transferir alerta: " + res.error);
+        }
         await loadData();
     }
 
@@ -497,15 +526,26 @@ export default function AndonDashPage() {
                                                 </td>
                                                 <td className="px-4 py-3 text-right">
                                                     {!al.resolvido ? (
-                                                        <Button
-                                                            size="icon"
-                                                            variant="outline"
-                                                            className="h-8 w-8 border-emerald-500 text-emerald-600 hover:bg-emerald-50"
-                                                            onClick={() => handleResolver(al.id)}
-                                                            title="Resolver Paragem"
-                                                        >
-                                                            <Hammer size={14} />
-                                                        </Button>
+                                                        <div className="flex items-center justify-end gap-2">
+                                                            <Button
+                                                                size="icon"
+                                                                variant="outline"
+                                                                className="h-8 w-8 border-blue-500 text-blue-600 hover:bg-blue-50"
+                                                                onClick={() => openTerceirizarModal(al.id)}
+                                                                title="Transferir Responsabilidade (Escalar)"
+                                                            >
+                                                                <ArrowRightLeft size={14} />
+                                                            </Button>
+                                                            <Button
+                                                                size="icon"
+                                                                variant="outline"
+                                                                className="h-8 w-8 border-emerald-500 text-emerald-600 hover:bg-emerald-50"
+                                                                onClick={() => handleResolver(al.id)}
+                                                                title="Resolver Paragem"
+                                                            >
+                                                                <Hammer size={14} />
+                                                            </Button>
+                                                        </div>
                                                     ) : (
                                                         <Button
                                                             size="icon"
@@ -981,6 +1021,63 @@ export default function AndonDashPage() {
                             className="bg-red-600 hover:bg-red-700 text-white font-black tracking-widest px-8 shadow-md"
                         >
                             DISPARAR ALARME
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* TERCEIRIZAR / TRANSFERIR MODAL */}
+            <Dialog open={isTerceirizarModalOpen} onOpenChange={setIsTerceirizarModalOpen}>
+                <DialogContent className="bg-white border-slate-200 text-slate-800 sm:max-w-[500px]">
+                    <DialogHeader>
+                        <DialogTitle className="text-2xl font-black text-blue-600 uppercase tracking-widest flex items-center gap-3">
+                            <ArrowRightLeft size={28} />
+                            Transferir Causa Raiz
+                        </DialogTitle>
+                        <DialogDescription className="text-slate-500 text-sm">
+                            Esta quebra será dada como "Diagnosticada" no seu colo. Iremos criar abrir em simultâneo um alerta para o Fornecedor que escolher abaixo, cobrando o <strong className="text-slate-800">MTR</strong> a ele.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="py-2 space-y-5">
+                        <div className="space-y-2">
+                            <Label className="text-slate-700 font-bold uppercase tracking-widest text-xs">A culpa real deste defeito vem de:</Label>
+                            <select
+                                value={terceirizarNovaCausadora}
+                                onChange={(e) => setTerceirizarNovaCausadora(e.target.value)}
+                                className="w-full bg-slate-50 border border-slate-300 shadow-sm rounded-lg p-3 text-slate-800 focus:ring-blue-500 focus:border-blue-500"
+                            >
+                                <option value="" disabled>Selecione a estação fornecedora culpada...</option>
+                                {estacoes.map(est => (
+                                    <option key={est.id} value={est.id}>{est.nome_estacao}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label className="text-slate-700 font-bold uppercase tracking-widest text-xs">Justificação da Tramitação</Label>
+                            <Textarea
+                                value={terceirizarObs}
+                                onChange={(e) => setTerceirizarObs(e.target.value)}
+                                placeholder="Descreva que material defeituoso recebeu para alertar o fornecedor ou motivo para lhe descartar a culpa..."
+                                className="bg-slate-50 border-slate-300 text-slate-800 focus-visible:ring-blue-500 min-h-[100px] resize-none"
+                            />
+                        </div>
+                    </div>
+
+                    <DialogFooter className="sm:justify-between gap-4 mt-4">
+                        <Button
+                            variant="ghost"
+                            onClick={() => setIsTerceirizarModalOpen(false)}
+                            className="text-slate-500 hover:text-slate-700 hover:bg-slate-100"
+                        >
+                            Cancelar
+                        </Button>
+                        <Button
+                            onClick={confirmTerceirizar}
+                            disabled={!terceirizarNovaCausadora || !terceirizarObs}
+                            className="bg-blue-600 hover:bg-blue-700 text-white font-bold tracking-widest px-8 shadow-sm"
+                        >
+                            TRAMITAR ALARME
                         </Button>
                     </DialogFooter>
                 </DialogContent>

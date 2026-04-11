@@ -145,6 +145,54 @@ export async function fecharAlertaAndon(alerta_id: string, supervisor_notes: str
     }
 }
 
+export async function terceirizarAndon(alerta_id: string, nova_estacao_causadora_id: string, observacoes: string) {
+    try {
+        // 1. Fetch the old alert
+        const { data: oldAlert, error: fe } = await supabase
+            .from('alertas_andon')
+            .select('*')
+            .eq('id', alerta_id)
+            .single();
+
+        if (fe || !oldAlert) throw new Error("Alerta original não encontrado");
+
+        // 2. Close the old alert
+        const { error: ue } = await supabase
+            .from('alertas_andon')
+            .update({
+                resolvido: true,
+                resolvido_at: new Date().toISOString(),
+                situacao: `Redirecionado para Terceiros: ${observacoes}`,
+                descricao_alerta: (oldAlert.descricao_alerta || '') + `\n[Redirecionado]: ${observacoes}`
+            })
+            .eq('id', alerta_id);
+
+        if (ue) throw ue;
+
+        // 3. Open the new alert pointing to the new responsible station
+        const novoAlerta = {
+            estacao_id: nova_estacao_causadora_id,
+            local_ocorrencia_id: oldAlert.local_ocorrencia_id,
+            op_id: oldAlert.op_id,
+            operador_rfid: oldAlert.operador_rfid,
+            tipo_alerta: oldAlert.tipo_alerta,
+            descricao_alerta: `[Tramitado Internamente] Herdado da estação anterior.\nMotivo da Tramitação: ${observacoes}\n\nDesc. Original: ${oldAlert.descricao_alerta || ''}`,
+            situacao: 'AJUDA_REQUERIDA',
+            resolvido: false
+        };
+
+        const { error: ie } = await supabase
+            .from('alertas_andon')
+            .insert([novoAlerta]);
+
+        if (ie) throw ie;
+
+        return { success: true };
+    } catch (err: any) {
+        return { success: false, error: err.message };
+    }
+}
+
 export async function getAreasTVLinks() {
     try {
         const { data, error } = await supabase
