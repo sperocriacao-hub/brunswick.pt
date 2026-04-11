@@ -9,6 +9,7 @@ import { FactoryHeatmap, DB_AvaliacaoDiaria, DB_OperadorArea } from '@/component
 import { TopPerformersMural } from '@/components/rh/TopPerformersMural';
 import { MatrizNoveBox } from '@/components/rh/MatrizNoveBox';
 import { ScorecardLideranca } from '@/components/rh/ScorecardLideranca';
+import { calcActiveMinutes } from '@/lib/andonUtils';
 
 export const dynamic = 'force-dynamic';
 
@@ -152,39 +153,6 @@ export default async function ProdutividadeLiderancaRH({ searchParams }: { searc
         const start = new Date(inicio).getTime();
         const end = fim ? new Date(fim).getTime() : new Date().getTime(); // Se não fechou, usa o Agora
         return Math.max(0, Math.floor((end - start) / 60000));
-    };
-
-    // Helper: Calc Minutes Inteligente (Andon MTR)
-    const calcActiveMinutes = (inicio: string, fim: string | null, temT2: boolean) => {
-        if (!inicio) return 0;
-        const start = new Date(inicio).getTime();
-        const end = fim ? new Date(fim).getTime() : new Date().getTime();
-        if (start >= end) return 0;
-
-        if (temT2) {
-            // Se a estação opera em 2 turnos, usa o tempo original contínuo (ou ajustável futuramente)
-            return Math.floor((end - start) / 60000);
-        }
-
-        // Se a estação só tem T1, contabilizar APENAS o tempo em que esteve no horário do T1:
-        // Das 06:00 às 13:59 (exclui fins de semana por segurança operacional de 5 dias).
-        let count = 0;
-        let current = new Date(start);
-        const limit = new Date(end);
-        
-        let loops = 0;
-        while (current < limit && loops < 100000) { // Max ~2 meses de loop de proteção
-            const h = current.getHours();
-            const day = current.getDay();
-            const isWeekend = day === 0 || day === 6; // Domingo=0, Sabado=6
-            
-            if (!isWeekend && h >= 6 && h < 14) {
-                count++;
-            }
-            current.setMinutes(current.getMinutes() + 1);
-            loops++;
-        }
-        return count;
     };
 
     // Agregar Dados por Líder usando a Perspetiva Estratégica
