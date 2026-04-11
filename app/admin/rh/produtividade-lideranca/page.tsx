@@ -146,12 +146,45 @@ export default async function ProdutividadeLiderancaRH({ searchParams }: { searc
         .gte('timestamp_inicio', `${firstDayStr}T00:00:00Z`)
         .lte('timestamp_inicio', `${lastDayStr}T23:59:59Z`);
 
-    // Helper: Calc Minutes
+    // Helper: Calc Minutes Standard
     const diffMinutes = (inicio: string, fim: string | null) => {
         if (!inicio) return 0;
         const start = new Date(inicio).getTime();
         const end = fim ? new Date(fim).getTime() : new Date().getTime(); // Se não fechou, usa o Agora
         return Math.max(0, Math.floor((end - start) / 60000));
+    };
+
+    // Helper: Calc Minutes Inteligente (Andon MTR)
+    const calcActiveMinutes = (inicio: string, fim: string | null, temT2: boolean) => {
+        if (!inicio) return 0;
+        const start = new Date(inicio).getTime();
+        const end = fim ? new Date(fim).getTime() : new Date().getTime();
+        if (start >= end) return 0;
+
+        if (temT2) {
+            // Se a estação opera em 2 turnos, usa o tempo original contínuo (ou ajustável futuramente)
+            return Math.floor((end - start) / 60000);
+        }
+
+        // Se a estação só tem T1, contabilizar APENAS o tempo em que esteve no horário do T1:
+        // Das 06:00 às 13:59 (exclui fins de semana por segurança operacional de 5 dias).
+        let count = 0;
+        let current = new Date(start);
+        const limit = new Date(end);
+        
+        let loops = 0;
+        while (current < limit && loops < 100000) { // Max ~2 meses de loop de proteção
+            const h = current.getHours();
+            const day = current.getDay();
+            const isWeekend = day === 0 || day === 6; // Domingo=0, Sabado=6
+            
+            if (!isWeekend && h >= 6 && h < 14) {
+                count++;
+            }
+            current.setMinutes(current.getMinutes() + 1);
+            loops++;
+        }
+        return count;
     };
 
     // Agregar Dados por Líder usando a Perspetiva Estratégica
@@ -186,9 +219,18 @@ export default async function ProdutividadeLiderancaRH({ searchParams }: { searc
             const estacao = a.estacoes as any;
             if (!estacao) return false;
 
+            const temT2 = !!(estacao.lider_t2_id || estacao.supervisor_t2_id);
+
+            // Se não tem T2, toda e qualquer ocorrência "cai" para as chefias do T1 resolverem
+            // independentemente da hora a que foi gerada na máquina (a hora extra será limada no cálculo)!
+            const isT2Efetivo = isT2 && temT2;
+
             // Responsabilidade Tática Direta
-            const responsavelLiderId = isT2 ? estacao.lider_t2_id : estacao.lider_t1_id;
-            const responsavelSuperId = isT2 ? estacao.supervisor_t2_id : estacao.supervisor_t1_id;
+            const responsavelLiderId = isT2Efetivo ? estacao.lider_t2_id : estacao.lider_t1_id;
+            const responsavelSuperId = isT2Efetivo ? estacao.supervisor_t2_id : estacao.supervisor_t1_id;
+
+            // Anexar o `temT2` ao objeto Andon para ser usado no cálculo lá em baixo
+            (a as any).station_has_t2 = temT2;
 
             // Se o Líder não é o líder da estação, talvez ele seja do Suporte
             const isSuporte = 
@@ -202,7 +244,8 @@ export default async function ProdutividadeLiderancaRH({ searchParams }: { searc
         const andonsResolvidos = andonsDominio.filter(a => a.resolvido && a.resolvido_at);
         let tempoTotalSla = 0;
         andonsResolvidos.forEach(a => {
-            tempoTotalSla += diffMinutes(a.created_at, a.resolvido_at);
+            const hasT2 = (a as any).station_has_t2;
+            tempoTotalSla += calcActiveMinutes(a.created_at, a.resolvido_at, hasT2);
         });
         const mtrAndon = andonsResolvidos.length > 0 ? Math.round(tempoTotalSla / andonsResolvidos.length) : 0;
         const taxaResAndon = andonsDominio.length > 0 ? (andonsResolvidos.length / andonsDominio.length) * 100 : 0;
