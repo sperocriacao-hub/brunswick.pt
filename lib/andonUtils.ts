@@ -1,4 +1,4 @@
-const calcActiveMinutes = (inicio, fim, temT2) => {
+export const calcActiveMinutes = (inicio: string, fim: string | null, temT2: boolean) => {
     if (!inicio) return 0;
     const start = new Date(inicio).getTime();
     const end = fim ? new Date(fim).getTime() : new Date().getTime();
@@ -26,16 +26,3 @@ const calcActiveMinutes = (inicio, fim, temT2) => {
     }
     return count;
 };
-
-const d1 = new Date("2026-04-10T13:00:00Z"); // Sexta, T1
-const d2 = new Date("2026-04-10T14:30:00Z"); // Sexta, T2
-console.log("Noite 1 (Sexta) sem T2. Esperado: 60 mins ->", calcActiveMinutes(d1, d2, false));
-
-const d3 = new Date("2026-04-10T13:00:00Z"); // Sexta
-const d4 = new Date("2026-04-13T07:00:00Z"); // Segunda
-console.log("Fim de semana atravessado (Sexta a Seg). Esperado: ~120 mins ->", calcActiveMinutes(d3, d4, false));
-
-const d5 = new Date("2026-04-10T13:00:00Z");
-const d6 = new Date("2026-04-13T07:00:00Z");
-console.log("Fim de semana atravessado (COM T2). Esperado: Minutos puros ->", calcActiveMinutes(d5, d6, true));
-

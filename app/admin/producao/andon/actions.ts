@@ -29,7 +29,7 @@ export async function getAndonHistory(mesesAtras: number = 4) {
                 estacao_id,
                 local_ocorrencia_id,
                 estacao_causadora:estacao_id (
-                    nome_estacao,
+                    nome_estacao, lider_t1_id, supervisor_t1_id, lider_t2_id, supervisor_t2_id,
                     areas_fabrica:area_id ( id, nome_area ),
                     linhas_producao:linha_id ( id, descricao_linha )
                 ),

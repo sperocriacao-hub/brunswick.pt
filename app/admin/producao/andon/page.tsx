@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { format, differenceInMinutes, subMonths } from 'date-fns';
 import Link from 'next/link';
+import { calcActiveMinutes } from '@/lib/andonUtils';
 import { buscarEstacoes, dispararAlertaAndon } from '@/app/operador/actions';
 import { BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, LineChart, Line, CartesianGrid, Cell } from 'recharts';
 
@@ -110,12 +111,10 @@ export default function AndonDashPage() {
         await loadData();
     }
 
-    const calcularTempoPerdido = (start: string, end: string | null) => {
-        if (!end) {
-            const minutes = differenceInMinutes(new Date(), new Date(start));
-            return `${minutes} min`;
-        }
-        return `${differenceInMinutes(new Date(end), new Date(start))} min`;
+    const calcularTempoPerdido = (start: string, end: string | null, estacao_causadora: any = null) => {
+        const temT2 = estacao_causadora ? !!(estacao_causadora.lider_t2_id || estacao_causadora.supervisor_t2_id) : false;
+        const minutes = calcActiveMinutes(start, end, temT2);
+        return `${minutes} min`;
     };
 
     // Calculate unique AREAS for filter dropdowns
@@ -394,9 +393,9 @@ export default function AndonDashPage() {
                                 </thead>
                                 <tbody className="divide-y divide-slate-100">
                                     {isLoading ? (
-                                        <tr><td colSpan={7} className="text-center p-8 text-slate-400">A carregar métricas...</td></tr>
+                                        <tr><td colSpan={8} className="text-center p-8 text-slate-400">A carregar métricas...</td></tr>
                                     ) : paginatedAlertas.length === 0 ? (
-                                        <tr><td colSpan={7} className="text-center p-8 text-slate-400">Nenhum incidente corresponde aos filtros.</td></tr>
+                                        <tr><td colSpan={8} className="text-center p-8 text-slate-400">Nenhum incidente corresponde aos filtros.</td></tr>
                                     ) : (
                                         paginatedAlertas.map((al) => (
                                             <tr key={al.id} className="hover:bg-slate-50/50 transition-colors">
@@ -416,7 +415,7 @@ export default function AndonDashPage() {
                                                 </td>
                                                 <td className="px-4 py-3 text-center font-mono font-bold text-xs whitespace-nowrap">
                                                     <span className={al.resolvido ? "text-slate-500" : "text-red-500"}>
-                                                        {calcularTempoPerdido(al.created_at, al.resolvido_at)}
+                                                        {calcularTempoPerdido(al.created_at, al.resolvido_at, al.estacao_causadora)}
                                                     </span>
                                                 </td>
                                                 <td className="px-4 py-3">
