@@ -118,7 +118,7 @@ export default async function ProdutividadeLiderancaRH({ searchParams }: { searc
     const { data: rawAndons } = await supabase
         .from('alertas_andon')
         .select(`
-            created_at, resolvido_at, resolvido, operador_rfid, estacao_id, local_ocorrencia_id, 
+            created_at, resolvido_at, resolvido, operador_rfid, estacao_id, local_ocorrencia_id, tipo_alerta,
             estacoes!alertas_andon_estacao_id_fkey(
                 area_id, nome_estacao, lider_t1_id, supervisor_t1_id, lider_t2_id, supervisor_t2_id, 
                 manutencao_id, qualidade_id, logistica_id
@@ -232,12 +232,24 @@ export default async function ProdutividadeLiderancaRH({ searchParams }: { searc
             // Anexar o `temT2` ao objeto Andon para ser usado no cálculo lá em baixo
             (a as any).station_has_t2 = temT2;
 
-            // Se o Líder não é o líder da estação, talvez ele seja do Suporte
-            const isSuporte = 
-                estacao.manutencao_id === lider.id || 
-                estacao.qualidade_id === lider.id || 
-                estacao.logistica_id === lider.id;
+            // Se o Líder não é o líder da estação, talvez ele seja do Suporte Específico!
+            let isSuporte = false;
+            const alertaDesc = (a.tipo_alerta || '').toLowerCase();
+            
+            // Se for chamada de Manutenção
+            if (alertaDesc.includes('manuten') || alertaDesc.includes('avaria') || alertaDesc.includes('quebra')) {
+                isSuporte = estacao.manutencao_id === lider.id;
+            } 
+            // Se for chamada de Qualidade
+            else if (alertaDesc.includes('qualidade') || alertaDesc.includes('rnc') || alertaDesc.includes('defeito')) {
+                isSuporte = estacao.qualidade_id === lider.id;
+            }
+            // Se for chamada de Logística / Falta de Peça
+            else if (alertaDesc.includes('falta') || alertaDesc.includes('logistica')) {
+                isSuporte = estacao.logistica_id === lider.id;
+            }
 
+            // O Andon cai no "Mural" se eu for o Line Leader da estação OU o Suporte chamado para resolver!
             return responsavelLiderId === lider.id || responsavelSuperId === lider.id || isSuporte;
         }) || [];
 
