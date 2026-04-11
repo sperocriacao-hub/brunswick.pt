@@ -187,33 +187,88 @@ export default function AndonDashPage() {
 
     let totalMinutosPerdidos = 0;
     kpisCurrentMonth.forEach(a => {
-        const start = new Date(a.created_at);
-        const end = a.resolvido_at ? new Date(a.resolvido_at) : new Date();
-        totalMinutosPerdidos += differenceInMinutes(end, start);
+        const temT2 = a.estacao_causadora ? !!((a.estacao_causadora as any).lider_t2_id || (a.estacao_causadora as any).supervisor_t2_id) : false;
+        totalMinutosPerdidos += calcActiveMinutes(a.created_at, a.resolvido_at, temT2);
     });
 
     const mttr = resolvidos > 0 ? Math.round(totalMinutosPerdidos / resolvidos) : 0;
 
-    // Takt Time UI removed upon request (keep pure total time)
-
     const mttrPorArea: Record<string, { resolvidos: number, minutos: number }> = {};
     const causadorasPerdaCount: Record<string, number> = {};
     const heatmapAreasCount: Record<string, number> = {};
+    const causasPerdaCount: Record<string, number> = {};
+    
+    // Aggregation for Leaders
+    const mttrPorLider: Record<string, { andons: number, minutos: number, isSuporte: boolean }> = {};
 
     kpisCurrentMonth.forEach(a => {
-        const areaName = a.estacao_causadora?.areas_fabrica?.nome_area || 'Desconhecida';
-        heatmapAreasCount[areaName] = (heatmapAreasCount[areaName] || 0) + 1;
+        const estacao = a.estacao_causadora as any;
+        const temT2 = estacao ? !!(estacao.lider_t2_id || estacao.supervisor_t2_id) : false;
+        const loss = calcActiveMinutes(a.created_at, a.resolvido_at, temT2);
 
-        const loss = differenceInMinutes(a.resolvido_at ? new Date(a.resolvido_at) : new Date(), new Date(a.created_at));
+        // Agregação de Causas 
+        causasPerdaCount[a.tipo_alerta] = (causasPerdaCount[a.tipo_alerta] || 0) + loss;
+
+        // Agregação por Área
+        const areaName = estacao?.areas_fabrica?.nome_area || 'Desconhecida';
+        heatmapAreasCount[areaName] = (heatmapAreasCount[areaName] || 0) + 1;
         causadorasPerdaCount[areaName] = (causadorasPerdaCount[areaName] || 0) + loss;
 
         if (a.resolvido && a.resolvido_at) {
             if (!mttrPorArea[areaName]) mttrPorArea[areaName] = { resolvidos: 0, minutos: 0 };
             mttrPorArea[areaName].resolvidos++;
             mttrPorArea[areaName].minutos += loss;
+
+            // --- Lógica de Imputação de Liderança (igual ao painel de RH) ---
+            if (estacao) {
+                const hora = new Date(a.created_at).getHours(); // UTC mismatch might be minimal here for just attribution
+                const isT2 = hora >= 14 && hora < 22;
+                const isT2Efetivo = isT2 && temT2;
+
+                const responsavelNome = isT2Efetivo 
+                    ? (estacao.lider_t2_nome || estacao.supervisor_t2_nome) 
+                    : (estacao.lider_t1_nome || estacao.supervisor_t1_nome);
+
+                let suporteNome = null;
+                const desc = (a.tipo_alerta || '').toLowerCase();
+                let wasSuporteTarget = false;
+                
+                if (desc.includes('manuten') || desc.includes('avaria') || desc.includes('quebra')) {
+                    suporteNome = estacao.manutencao_nome;
+                    wasSuporteTarget = true;
+                } else if (desc.includes('qualidade') || desc.includes('rnc') || desc.includes('defeito')) {
+                    suporteNome = estacao.qualidade_nome;
+                    wasSuporteTarget = true;
+                } else if (desc.includes('falta') || desc.includes('logistica')) {
+                    suporteNome = estacao.logistica_nome;
+                    wasSuporteTarget = true;
+                }
+
+                // Dá prioridade ao suporte chamado. Se não houver nome, recai sobre o lider da linha.
+                const activeLeader = suporteNome || responsavelNome || 'Desconhecido';
+                
+                if (!mttrPorLider[activeLeader]) mttrPorLider[activeLeader] = { andons: 0, minutos: 0, isSuporte: wasSuporteTarget };
+                mttrPorLider[activeLeader].andons++;
+                mttrPorLider[activeLeader].minutos += loss;
+            }
         }
     });
 
+    // Processamento MTR Líderes
+    const rankingLideres = Object.entries(mttrPorLider)
+        .map(([name, data]) => ({
+            name,
+            mtr: data.andons > 0 ? Math.round(data.minutos / data.andons) : 0,
+            andons: data.andons,
+            isSuporte: data.isSuporte
+        }))
+        .filter(item => item.name !== 'Desconhecido' && item.mtr > 0)
+        .sort((a, b) => a.mtr - b.mtr);
+
+    const top5LideresAgeis = rankingLideres.slice(0, 5);
+    const top3LideresAcompanhamento = rankingLideres.slice(-3).reverse();
+
+    // Processamento MTR Área
     const rankingMttrData = Object.entries(mttrPorArea)
         .map(([name, data]) => ({
             name,
@@ -221,39 +276,38 @@ export default function AndonDashPage() {
         }))
         .filter(item => item.mttr > 0)
         .sort((a, b) => a.mttr - b.mttr)
-        .slice(0, 5); // top 5 mais ágeis
+        .slice(0, 7); // top 7 de áreas
 
     const topViloes = Object.entries(causadorasPerdaCount)
         .map(([name, loss]) => ({ name, horas: Math.round(loss/60) }))
         .sort((a,b) => b.horas - a.horas)
         .slice(0,5);
 
-    // Pareto Causas (Tipologia vs Horas Perdidas)
-    const causasPerdaCount: Record<string, number> = {};
-    kpisCurrentMonth.forEach(a => {
-        const loss = differenceInMinutes(a.resolvido_at ? new Date(a.resolvido_at) : new Date(), new Date(a.created_at));
-        causasPerdaCount[a.tipo_alerta] = (causasPerdaCount[a.tipo_alerta] || 0) + loss;
-    });
     const topCausas = Object.entries(causasPerdaCount)
         .map(([name, loss]) => ({ name, horas: Math.round(loss/60) }))
         .sort((a,b) => b.horas - a.horas)
         .slice(0, 5);
 
-    // Tendência últimos 4 meses (Baseado na selectedArea, ignora selectedMonth)
-    const last4MonthsStr = Array.from({ length: 4 }).map((_, i) => {
-        const d = subMonths(new Date(), 3 - i);
-        return format(d, 'yyyy-MM');
+    // Tendência diária últimos 15 dias
+    const last15DaysStr = Array.from({ length: 15 }).map((_, i) => {
+        const d = new Date();
+        d.setDate(d.getDate() - (14 - i));
+        return d.toISOString().split('T')[0];
     });
 
-    const trendData = last4MonthsStr.map(mStr => {
-        const alMonthList = kpisFilteredByArea.filter(a => format(new Date(a.created_at), 'yyyy-MM') === mStr);
-        const resolvedList = alMonthList.filter(a => a.resolvido && a.resolvido_at);
-        let mTotalLoss = 0;
-        resolvedList.forEach(a => { mTotalLoss += differenceInMinutes(new Date(a.resolvido_at!), new Date(a.created_at)); });
+    const trend15Days = last15DaysStr.map(dStr => {
+        const alDayList = kpisFilteredByArea.filter(a => a.created_at.startsWith(dStr));
+        const resolvedList = alDayList.filter(a => a.resolvido && a.resolvido_at);
+        let dTotalLoss = 0;
+        resolvedList.forEach(a => {
+            const temT2 = a.estacao_causadora ? !!((a.estacao_causadora as any).lider_t2_id || (a.estacao_causadora as any).supervisor_t2_id) : false;
+            dTotalLoss += calcActiveMinutes(a.created_at, a.resolvido_at, temT2);
+        });
+        const dMttr = resolvedList.length > 0 ? Math.round(dTotalLoss / resolvedList.length) : 0;
         return {
-            name: mStr, 
-            Ocorrências: alMonthList.length,
-            MTTR: resolvedList.length > 0 ? Math.round(mTotalLoss / resolvedList.length) : 0
+            name: dStr.slice(-5), // MM-DD format para o eixo X
+            MTR: dMttr,
+            'Ocurrências': alDayList.length
         };
     });
 
@@ -608,13 +662,74 @@ export default function AndonDashPage() {
                         </Card>
                     </div>
 
-                    {/* SEGUNDA LINHA: OS NOVOS RANKINGS DE MATURIDADE (LEAN) */}
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        {/* WINNERS: MTTR */}
-                        <Card className="border-slate-200 shadow-sm lg:col-span-1 border-t-4 border-t-emerald-500">
+                    {/* SEGUNDA LINHA: RANKING DE LIDERANÇA TÁTICA (MTR) */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {/* WINNERS LEADERS */}
+                        <Card className="border-slate-200 shadow-sm border-t-4 border-t-emerald-500">
                             <CardHeader>
                                 <CardTitle className="text-slate-800 text-sm font-bold uppercase tracking-widest flex items-center gap-2">
-                                    <TrendingUp size={16} className="text-emerald-500" /> Top Áreas (Agilidade Resposta)
+                                    <Trophy size={16} className="text-emerald-500" /> Top 5 Líderes (Mais Ágeis)
+                                </CardTitle>
+                                <p className="text-xs text-slate-500 m-0">Menor Tempo de Resposta (MTR) em min.</p>
+                            </CardHeader>
+                            <CardContent className="h-[250px]">
+                                {top5LideresAgeis.length > 0 ? (
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <BarChart data={top5LideresAgeis} layout="vertical" margin={{ left: -10, right: 20 }}>
+                                            <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" />
+                                            <XAxis type="number" hide />
+                                            <YAxis dataKey="name" type="category" width={120} fontSize={10} tickLine={false} axisLine={false} />
+                                            <RechartsTooltip cursor={{fill: '#f8fafc'}} formatter={(val) => [`${val} min`, 'MTR Médio']} />
+                                            <Bar dataKey="mtr" fill="#10b981" radius={[0, 4, 4, 0]}>
+                                                {top5LideresAgeis.map((entry, index) => (
+                                                    <Cell key={`cell-${index}`} fill={index === 0 ? '#059669' : '#34d399'} />
+                                                ))}
+                                            </Bar>
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                ) : (
+                                    <div className="h-full flex items-center justify-center text-slate-400 text-sm">Sem dados suficientes.</div>
+                                )}
+                            </CardContent>
+                        </Card>
+
+                        {/* LOSERS LEADERS */}
+                        <Card className="border-slate-200 shadow-sm border-t-4 border-t-amber-500 bg-amber-50/10">
+                            <CardHeader>
+                                <CardTitle className="text-slate-800 text-sm font-bold uppercase tracking-widest flex items-center gap-2">
+                                    <AlertTriangle size={16} className="text-amber-500" /> Acompanhamento (Top 3 Líderes)
+                                </CardTitle>
+                                <p className="text-xs text-slate-500 m-0">Maior Tempo de Resposta (MTR) em min.</p>
+                            </CardHeader>
+                            <CardContent className="h-[250px]">
+                                {top3LideresAcompanhamento.length > 0 ? (
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <BarChart data={top3LideresAcompanhamento} layout="vertical" margin={{ left: -10, right: 20 }}>
+                                            <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" />
+                                            <XAxis type="number" hide />
+                                            <YAxis dataKey="name" type="category" width={120} fontSize={10} tickLine={false} axisLine={false} />
+                                            <RechartsTooltip cursor={{fill: '#fcf8f0'}} formatter={(val) => [`${val} min`, 'MTR Elevado']} />
+                                            <Bar dataKey="mtr" fill="#f59e0b" radius={[0, 4, 4, 0]}>
+                                                {top3LideresAcompanhamento.map((entry, index) => (
+                                                    <Cell key={`cell-${index}`} fill={'#d97706'} />
+                                                ))}
+                                            </Bar>
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                ) : (
+                                    <div className="h-full flex items-center justify-center text-slate-400 text-sm">Nenhum líder em alerta.</div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </div>
+
+                    {/* TERCEIRA LINHA: OS NOVOS RANKINGS DE MATURIDADE (LEAN) */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        {/* WINNERS: MTTR */}
+                        <Card className="border-slate-200 shadow-sm lg:col-span-1 border-t-4 border-t-blue-500">
+                            <CardHeader>
+                                <CardTitle className="text-slate-800 text-sm font-bold uppercase tracking-widest flex items-center gap-2">
+                                    <TrendingUp size={16} className="text-blue-500" /> Top Áreas (Tempo de Resposta)
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="h-[250px]">
@@ -625,9 +740,9 @@ export default function AndonDashPage() {
                                             <XAxis type="number" hide />
                                             <YAxis dataKey="name" type="category" width={100} fontSize={10} tickLine={false} axisLine={false} />
                                             <RechartsTooltip cursor={{fill: '#f8fafc'}} formatter={(val) => [`${val} min`, 'MTTR Médio']} />
-                                            <Bar dataKey="mttr" fill="#10b981" radius={[0, 4, 4, 0]}>
+                                            <Bar dataKey="mttr" fill="#3b82f6" radius={[0, 4, 4, 0]}>
                                                 {rankingMttrData.map((entry, index) => (
-                                                    <Cell key={`cell-${index}`} fill={index === 0 ? '#059669' : '#34d399'} />
+                                                    <Cell key={`cell-${index}`} fill={index === 0 ? '#2563eb' : '#60a5fa'} />
                                                 ))}
                                             </Bar>
                                         </BarChart>
@@ -698,35 +813,23 @@ export default function AndonDashPage() {
                     </div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        <Card className="border-slate-200 shadow-sm">
+                        <Card className="border-slate-200 shadow-sm lg:col-span-2">
                             <CardHeader>
-                                <CardTitle className="text-slate-800 text-sm font-bold uppercase tracking-widest">Volume Reportes</CardTitle>
+                                <CardTitle className="text-slate-800 text-sm font-bold uppercase tracking-widest flex items-center gap-2">
+                                    <TrendingUp size={16} className="text-indigo-500" /> Tendência Contínua (Últimos 15 Dias)
+                                </CardTitle>
+                                <p className="text-xs text-slate-500 m-0">Acompanhamento do MTR face ao Volume Diário</p>
                             </CardHeader>
                             <CardContent className="h-[250px]">
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={trendData}>
+                                    <LineChart data={trend15Days}>
                                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                                         <XAxis dataKey="name" fontSize={11} tickLine={false} axisLine={false} />
-                                        <YAxis fontSize={11} tickLine={false} axisLine={false} />
+                                        <YAxis yAxisId="left" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(val)=>`${val}m`} />
+                                        <YAxis yAxisId="right" orientation="right" fontSize={11} tickLine={false} axisLine={false} />
                                         <RechartsTooltip cursor={{fill: '#f8fafc'}} />
-                                        <Bar dataKey="Ocorrências" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                                    </BarChart>
-                                </ResponsiveContainer>
-                            </CardContent>
-                        </Card>
-
-                        <Card className="border-slate-200 shadow-sm">
-                            <CardHeader>
-                                <CardTitle className="text-slate-800 text-sm font-bold uppercase tracking-widest">Tendência MTTR</CardTitle>
-                            </CardHeader>
-                            <CardContent className="h-[250px]">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <LineChart data={trendData}>
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                                        <XAxis dataKey="name" fontSize={11} tickLine={false} axisLine={false} />
-                                        <YAxis fontSize={11} tickLine={false} axisLine={false} />
-                                        <RechartsTooltip />
-                                        <Line type="monotone" dataKey="MTTR" stroke="#10b981" strokeWidth={3} dot={{r:4, fill: '#10b981'}} activeDot={{r:6}} name="Média Resposta (min)" />
+                                        <Line yAxisId="left" type="monotone" dataKey="MTR" stroke="#10b981" strokeWidth={3} dot={{r:4, fill: '#10b981'}} activeDot={{r:6}} name="MTR (min)" />
+                                        <Bar yAxisId="right" dataKey="Ocurrências" fill="#94a3b8" radius={[4, 4, 0, 0]} opacity={0.3} barSize={20} />
                                     </LineChart>
                                 </ResponsiveContainer>
                             </CardContent>

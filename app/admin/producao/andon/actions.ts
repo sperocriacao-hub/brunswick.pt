@@ -30,6 +30,7 @@ export async function getAndonHistory(mesesAtras: number = 4) {
                 local_ocorrencia_id,
                 estacao_causadora:estacao_id (
                     nome_estacao, lider_t1_id, supervisor_t1_id, lider_t2_id, supervisor_t2_id,
+                    manutencao_id, qualidade_id, logistica_id,
                     areas_fabrica:area_id ( id, nome_area ),
                     linhas_producao:linha_id ( id, descricao_linha )
                 ),
@@ -55,19 +56,66 @@ export async function getAndonHistory(mesesAtras: number = 4) {
         // Fetch operator names manually since there's no FK on alertas_andon -> operadores
         const rfids = Array.from(new Set(andonData.map(a => a.operador_rfid).filter(Boolean)));
         
+        // Coleta todos os UUIDs de liderança presentes nas estações
+        const leaderIds = new Set<string>();
+        andonData.forEach(a => {
+            const e = a.estacao_causadora as any;
+            if (e) {
+                // If the relationship is returned as an array, extract the first
+                const est = Array.isArray(e) ? e[0] : e;
+                if (!est) return;
+                if (est.lider_t1_id) leaderIds.add(est.lider_t1_id);
+                if (est.lider_t2_id) leaderIds.add(est.lider_t2_id);
+                if (est.supervisor_t1_id) leaderIds.add(est.supervisor_t1_id);
+                if (est.supervisor_t2_id) leaderIds.add(est.supervisor_t2_id);
+                if (est.manutencao_id) leaderIds.add(est.manutencao_id);
+                if (est.qualidade_id) leaderIds.add(est.qualidade_id);
+                if (est.logistica_id) leaderIds.add(est.logistica_id);
+            }
+        });
+
+        // 1. Fetch from rfids
+        const mapOps = new Map<string, string>();
         if (rfids.length > 0) {
             const { data: ops } = await supabase
                 .from('operadores')
                 .select('tag_rfid_operador, nome_operador')
                 .in('tag_rfid_operador', rfids);
                 
-            const mapOps = new Map(ops?.map(o => [o.tag_rfid_operador, o.nome_operador]) || []);
-            
-            andonData = andonData.map(a => ({
-                ...a,
-                operadores: { nome_operador: a.operador_rfid ? mapOps.get(a.operador_rfid) || null : null }
-            }));
+            ops?.forEach(o => mapOps.set(o.tag_rfid_operador, o.nome_operador));
         }
+
+        // 2. Fetch from leaderIds
+        const mapLeaders = new Map<string, string>();
+        if (leaderIds.size > 0) {
+            const { data: leaders } = await supabase
+                .from('operadores')
+                .select('id, nome_operador')
+                .in('id', Array.from(leaderIds));
+                
+            leaders?.forEach(l => mapLeaders.set(l.id, l.nome_operador));
+        }
+            
+        andonData = andonData.map(a => {
+            const rawE = a.estacao_causadora as any;
+            const est = rawE ? (Array.isArray(rawE) ? rawE[0] : rawE) : null;
+            const enhancedEstacao = est ? {
+                ...est,
+                lider_t1_nome: est.lider_t1_id ? mapLeaders.get(est.lider_t1_id) : null,
+                lider_t2_nome: est.lider_t2_id ? mapLeaders.get(est.lider_t2_id) : null,
+                supervisor_t1_nome: est.supervisor_t1_id ? mapLeaders.get(est.supervisor_t1_id) : null,
+                supervisor_t2_nome: est.supervisor_t2_id ? mapLeaders.get(est.supervisor_t2_id) : null,
+                manutencao_nome: est.manutencao_id ? mapLeaders.get(est.manutencao_id) : null,
+                qualidade_nome: est.qualidade_id ? mapLeaders.get(est.qualidade_id) : null,
+                logistica_nome: est.logistica_id ? mapLeaders.get(est.logistica_id) : null,
+            } : null;
+
+            return {
+                ...a,
+                estacao_causadora: enhancedEstacao,
+                operadores: { nome_operador: a.operador_rfid ? mapOps.get(a.operador_rfid) || null : null }
+            };
+        });
 
         return { success: true, data: andonData };
     } catch (err: any) {
