@@ -1,18 +1,36 @@
+function getPortugalOffset(dateNum: number) {
+    const isoString = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Europe/Lisbon',
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', second: '2-digit',
+        hour12: false
+    }).format(new Date(dateNum));
+    
+    const cleanStr = isoString.replace(', ', 'T'); 
+    return new Date(`${cleanStr}Z`).getTime() - dateNum;
+}
+
 export const calcActiveMinutes = (inicio: string, fim: string | null, temT2: boolean) => {
     if (!inicio) return 0;
-    const start = new Date(inicio).getTime();
-    const end = fim ? new Date(fim).getTime() : new Date().getTime();
+    const startObj = new Date(inicio);
+    const endObj = fim ? new Date(fim) : new Date();
+    
+    const start = startObj.getTime();
+    const end = endObj.getTime();
     if (start >= end) return 0;
 
+    // Shift to Pseudo-UTC using Portugal offset at that specific date
+    const offset = getPortugalOffset(start);
+
     let count = 0;
-    let current = new Date(start);
-    const limit = new Date(end);
+    let current = new Date(start + offset);
+    const limit = new Date(end + offset);
     
     // Permitir loop até ~1.5 anos (1 milhão de minutos) para não ter timeouts com Andons antigos
     let loops = 0;
     while (current < limit && loops < 1000000) { 
-        const h = current.getHours();
-        const day = current.getDay();
+        const h = current.getUTCHours();
+        const day = current.getUTCDay();
         const isWeekend = day === 0 || day === 6; 
         
         if (!isWeekend) {
@@ -24,7 +42,7 @@ export const calcActiveMinutes = (inicio: string, fim: string | null, temT2: boo
                 count++;
             }
         }
-        current.setMinutes(current.getMinutes() + 1);
+        current.setUTCMinutes(current.getUTCMinutes() + 1);
         loops++;
     }
     return count;
