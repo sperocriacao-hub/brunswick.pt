@@ -36,6 +36,7 @@ function FuncionarioFormCore() {
         // 2. Estrutura
         funcao: '',
         grupo_equipa: '',
+        area_base_id: '',
         posto_base_id: '',
         turno: '',
         lider_nome: '',
@@ -100,6 +101,7 @@ function FuncionarioFormCore() {
                             data_nascimento: data.data_nascimento || '',
                             funcao: data.funcao || '',
                             grupo_equipa: data.grupo_equipa || '',
+                            area_base_id: data.area_base_id || '',
                             posto_base_id: data.posto_base_id || '',
                             turno: data.turno || '',
                             lider_nome: data.lider_nome || '',
@@ -177,6 +179,7 @@ function FuncionarioFormCore() {
 
         if (payload.matriz_talento_media === '') payload.matriz_talento_media = null;
         if (payload.posto_base_id === '') payload.posto_base_id = null;
+        if (payload.area_base_id === '') payload.area_base_id = null;
         if (payload.data_nascimento === '') payload.data_nascimento = null;
         if (payload.data_admissao === '') payload.data_admissao = null;
         if (payload.data_rescisao === '') payload.data_rescisao = null;
@@ -418,11 +421,22 @@ function FuncionarioFormCore() {
                     <div className="grid grid-cols-2 gap-4 mb-4">
                         <div>
                             <label className="block text-xs font-semibold text-slate-600 mb-1">Equipa / Grupo (Área)</label>
-                            <select value={formData.grupo_equipa} onChange={e => setFormData({ ...formData, grupo_equipa: e.target.value })} className={`${inputClass} appearance-none`}>
+                            <select 
+                                value={formData.area_base_id} 
+                                onChange={e => {
+                                    const selId = e.target.value;
+                                    const selName = selId ? e.target.options[e.target.selectedIndex].text : '';
+                                    setFormData({ ...formData, area_base_id: selId, grupo_equipa: selName });
+                                }} 
+                                className={`${inputClass} appearance-none`}
+                            >
                                 <option value="">Não Alocada...</option>
                                 {areasDisponiveis.map(a => (
-                                    <option key={a.id} value={a.nome_area}>{a.nome_area}</option>
+                                    <option key={a.id} value={a.id}>{a.nome_area}</option>
                                 ))}
+                                {formData.grupo_equipa && !formData.area_base_id && (
+                                    <option value="" disabled>⚠️ Antigo: {formData.grupo_equipa}</option>
+                                )}
                             </select>
                         </div>
                         <div>
