@@ -242,7 +242,7 @@ export async function obterMatrizIluoGlobal() {
     const { data: matriz } = await supabase.from('operador_iluo_matriz')
         .select('*');
         
-    if (!operadores || !estacoes || !matriz) return { success: false, data: [] };
+    if (!operadores || !estacoes || !matriz) return { success: false, data: { operadores: [], estacoes: [] } };
     
     // Construir o relatório para o frontend
     // Mapeamos para cada operador, o seu nivel de habilidade em formato Dicionário { estacao_id: 'I' }
