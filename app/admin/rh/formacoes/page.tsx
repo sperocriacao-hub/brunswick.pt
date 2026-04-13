@@ -21,6 +21,10 @@ export default function GestaoFormacoesRH() {
     const [editModeId, setEditModeId] = useState<string | null>(null);
     const [editDataFim, setEditDataFim] = useState("");
     const [editNotas, setEditNotas] = useState("");
+    
+    // Matrix Filter State
+    const [matrizFilterArea, setMatrizFilterArea] = useState<string>("Todas");
+    
     const [isLoading, setIsLoading] = useState(true);
 
     // Dicionários para novo formulário
@@ -453,65 +457,105 @@ export default function GestaoFormacoesRH() {
             )}
 
             {/* GLOBAL ILUO MATRIX */}
-            {viewMode === 'matriz' && (
-                <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm animate-in fade-in duration-700">
-                    <div className="flex justify-between items-end mb-8">
+            {viewMode === 'matriz' && (() => {
+                // Derived state for Matrix Filters
+                const allAreas = Array.from(new Set(matrizGlobal.estacoes.map(e => e.areas_fabrica?.nome_area).filter(Boolean))) as string[];
+                const filteredEstacoes = matrizFilterArea === "Todas" ? matrizGlobal.estacoes : matrizGlobal.estacoes.filter(e => e.areas_fabrica?.nome_area === matrizFilterArea);
+                const filteredOperadores = matrizGlobal.operadores.filter(op => filteredEstacoes.some(est => op.skills[est.id]));
+
+                return (
+                <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm animate-in fade-in duration-700 print:p-0 print:border-none print:shadow-none print-matrix-container">
+                    {/* Inject Print Styles globally when in this mode */}
+                    <style dangerouslySetInnerHTML={{__html:`
+                        @media print {
+                            body * { visibility: hidden; }
+                            .print-matrix-container, .print-matrix-container * { visibility: visible; }
+                            .print-matrix-container { position: absolute; left: 0; top: 0; width: 100%; margin: 0; padding: 0; background: white; }
+                            @page { size: landscape; margin: 10mm; }
+                        }
+                    `}} />
+                
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4 print:hidden">
                         <div>
                             <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3"><Map className="text-emerald-500" /> Relatório ILUO (Matriz Global)</h2>
                             <p className="text-slate-500 mt-1 font-medium">Cruzamento oficial de competências ativas de todos os operadores por Posto de Trabalho.</p>
                         </div>
-                        <Button className="bg-slate-800 hover:bg-slate-700 font-bold" onClick={() => window.print()}>Imprimir Ficha</Button>
+                        <div className="flex gap-4 items-end">
+                            <div className="flex flex-col">
+                                <label className="text-[10px] uppercase font-bold text-slate-500 mb-1">Filtrar por Área:</label>
+                                <select 
+                                    className="h-10 px-3 py-1 border border-slate-300 rounded-lg text-sm bg-slate-50"
+                                    value={matrizFilterArea}
+                                    onChange={(e) => setMatrizFilterArea(e.target.value)}
+                                >
+                                    <option value="Todas">🏭 Todas as Áreas (Completa)</option>
+                                    {allAreas.map(area => <option key={area} value={area}>{area}</option>)}
+                                </select>
+                            </div>
+                            <Button className="bg-slate-800 hover:bg-slate-700 font-bold h-10" onClick={() => window.print()}>🖨️ Imprimir Grelha</Button>
+                        </div>
                     </div>
 
                     <div className="overflow-x-auto print:overflow-visible">
-                        <table className="w-full text-sm text-left border-collapse min-w-max">
-                            <thead>
-                                <tr>
-                                    <th className="bg-slate-100 text-slate-700 font-black p-3 border border-slate-200 sticky left-0 z-10 w-64 uppercase text-xs">Operador (RH)</th>
-                                    {matrizGlobal.estacoes.map(est => (
-                                        <th key={est.id} className="bg-slate-50 text-slate-600 font-bold p-3 border border-slate-200 text-center px-4 w-24">
-                                            <div className="text-[9px] uppercase text-slate-400 mb-1">{est.areas_fabrica?.nome_area}</div>
-                                            <div className="leading-tight">{est.nome_estacao}</div>
-                                        </th>
-                                    ))}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {matrizGlobal.operadores.map((op, index) => (
-                                    <tr key={op.operador_id} className="hover:bg-slate-50/50">
-                                        <td className="p-3 border border-slate-200 bg-white sticky left-0 font-medium">
-                                            <span className="text-xs font-mono text-slate-400 mr-2">{op.numero}</span>
-                                            {op.nome}
-                                        </td>
-                                        {matrizGlobal.estacoes.map(est => {
-                                            const val = op.skills[est.id];
-                                            let colorClass = "text-slate-300";
-                                            let bgClass = "bg-transparent";
-                                            if (val === 'I') { colorClass = "text-slate-800"; bgClass = "bg-slate-200 border-slate-400"; }
-                                            if (val === 'L') { colorClass = "text-amber-800"; bgClass = "bg-amber-100 border-amber-400"; }
-                                            if (val === 'U') { colorClass = "text-blue-800"; bgClass = "bg-blue-100 border-blue-400"; }
-                                            if (val === 'O') { colorClass = "text-emerald-800"; bgClass = "bg-emerald-100 border-emerald-400"; }
-                                            
-                                            // Empty cell logic
-                                            if (!val) {
-                                                return <td key={est.id} className="p-3 border border-slate-200 text-center"><span className="text-slate-200 text-xs">-</span></td>;
-                                            }
+                        {/* Cabecalho de Impressão (Só aparece no Papel) */}
+                        <div className="hidden print:block mb-4">
+                            <h1 className="text-2xl font-black text-slate-900 border-b-2 border-slate-900 pb-2 mb-2">Relatório de Competências ILUO da Fábrica</h1>
+                            <div className="text-sm text-slate-600 font-bold uppercase">Área Destaque: {matrizFilterArea}</div>
+                            <div className="text-xs text-slate-400">Extraído a: {new Date().toLocaleDateString('pt-PT')}</div>
+                        </div>
 
-                                            return (
-                                                <td key={est.id} className="p-1 border border-slate-200 text-center">
-                                                    <div className={`w-8 h-8 rounded shrink-0 mx-auto font-black flex items-center justify-center text-sm border-2 ${bgClass} ${colorClass}`}>
-                                                        {val}
-                                                    </div>
-                                                </td>
-                                            );
-                                        })}
+                        {filteredOperadores.length === 0 ? (
+                            <div className="p-8 text-center text-slate-500 bg-slate-50 border border-dashed rounded-xl">Sem funcionários com avaliações ativas nesta área.</div>
+                        ) : (
+                            <table className="w-full text-sm text-left border-collapse min-w-max">
+                                <thead>
+                                    <tr>
+                                        <th className="bg-slate-100 text-slate-700 font-black p-3 border border-slate-200 sticky left-0 z-10 w-64 uppercase text-xs print:static">Operador (RH)</th>
+                                        {filteredEstacoes.map(est => (
+                                            <th key={est.id} className="bg-slate-50 text-slate-600 font-bold p-3 border border-slate-200 text-center px-4 w-24">
+                                                <div className="text-[9px] uppercase text-slate-400 mb-1">{est.areas_fabrica?.nome_area}</div>
+                                                <div className="leading-tight text-xs">{est.nome_estacao}</div>
+                                            </th>
+                                        ))}
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    {filteredOperadores.map((op, index) => (
+                                        <tr key={op.operador_id} className="hover:bg-slate-50/50 print:break-inside-avoid">
+                                            <td className="p-3 border border-slate-200 bg-white sticky left-0 font-medium print:static">
+                                                <span className="text-xs font-mono text-slate-400 mr-2">{op.numero}</span>
+                                                {op.nome}
+                                            </td>
+                                            {filteredEstacoes.map(est => {
+                                                const val = op.skills[est.id];
+                                                let colorClass = "text-slate-300";
+                                                let bgClass = "bg-transparent";
+                                                if (val === 'I') { colorClass = "text-slate-800 font-black"; bgClass = "bg-slate-200 border-slate-400"; }
+                                                if (val === 'L') { colorClass = "text-amber-800 font-black"; bgClass = "bg-amber-100 border-amber-400"; }
+                                                if (val === 'U') { colorClass = "text-blue-800 font-black"; bgClass = "bg-blue-100 border-blue-400"; }
+                                                if (val === 'O') { colorClass = "text-emerald-800 font-black"; bgClass = "bg-emerald-100 border-emerald-400"; }
+                                                
+                                                if (!val) {
+                                                    return <td key={est.id} className="p-3 border border-slate-200 text-center"><span className="text-slate-200 text-xs">-</span></td>;
+                                                }
+
+                                                return (
+                                                    <td key={est.id} className="p-1.5 border border-slate-200 text-center">
+                                                        <div className={`w-8 h-8 rounded shrink-0 mx-auto flex items-center justify-center text-sm border ${bgClass} ${colorClass}`}>
+                                                            {val}
+                                                        </div>
+                                                    </td>
+                                                );
+                                            })}
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        )}
                     </div>
                 </div>
-            )}
+                );
+            })}
         </div>
     );
 }
