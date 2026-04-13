@@ -12,10 +12,10 @@ type RadarDashboardProps = {
     linhas: any[];
     estacoes: any[];
     operadores: any[];
-    presencasRfid: string[];
+    presencasRfidMap: Record<string, string>;
 };
 
-export default function RadarDashboardClient({ areas, linhas, estacoes, operadores, presencasRfid }: RadarDashboardProps) {
+export default function RadarDashboardClient({ areas, linhas, estacoes, operadores, presencasRfidMap }: RadarDashboardProps) {
     const [searchQuery, setSearchQuery] = useState('');
     const [filterArea, setFilterArea] = useState('Todas');
     const [filterLinha, setFilterLinha] = useState('Todas');
@@ -29,7 +29,21 @@ export default function RadarDashboardClient({ areas, linhas, estacoes, operador
     // ---------------------------------------------------------
     
     // Função Auxiliar: Verifica Presença
-    const isPresent = (rfid: string) => presencasRfid.includes(rfid);
+    const isPresent = (rfid: string) => !!presencasRfidMap[rfid];
+    // Função Auxiliar: Obtém Timestamp de Entrada Formatado (HH:MM)
+    const getEntranceTime = (rfid: string) => {
+        if (!presencasRfidMap[rfid]) return null;
+        const d = new Date(presencasRfidMap[rfid]);
+        return d.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
+    };
+    // Função Auxiliar: Verifica Atraso (Após as 08:15)
+    const isLate = (rfid: string) => {
+        if (!presencasRfidMap[rfid]) return false;
+        const d = new Date(presencasRfidMap[rfid]);
+        const start = new Date(d);
+        start.setHours(8, 15, 0, 0);
+        return d > start;
+    };
 
     // Mapeamentos Base da Estação
     const getOperatorsForStation = (stationId: string) => {
@@ -54,6 +68,11 @@ export default function RadarDashboardClient({ areas, linhas, estacoes, operador
         // Absenteísmo da estação: (Apenas entre os que aqui deveriam estar a trabalhar hoje)
         const workingButAbsentCount = workingHereHoje.length - presentCount;
 
+        // ILUO Risk: Nenhum operador na estação tem nível 'O' ou 'U' (Apenas Iniciantes/Learners)
+        // Assume ILUO is something like 'I' ou 'L' ou 'U' ou 'O', being U/O the masters.
+        const temMestre = workingHereHoje.some(op => op.iluo_nivel === 'U' || op.iluo_nivel === 'O');
+        const hasSkillRisk = workingHereHoje.length > 0 && !temMestre;
+
         return {
             baseResidentes,
             baseEmprestadosOut,
@@ -62,28 +81,13 @@ export default function RadarDashboardClient({ areas, linhas, estacoes, operador
             presentCount,
             headCountBase,
             headCountTatital,
-            workingButAbsentCount
+            workingButAbsentCount,
+            hasSkillRisk
         };
     };
 
     // ---------------------------------------------------------
-    // INDICADORES MACRO GLOBAIS (FÁBRICA STARTUP)
-    // ---------------------------------------------------------
-    const globalHeadcount = operadores.length;
-    let globalPresentes = 0;
-    let globalFaltas = 0;
-    let globalRealocacoes = 0;
-
-    operadores.forEach(op => {
-        if (isPresent(op.tag_rfid_operador)) globalPresentes++;
-        else globalFaltas++;
-        if (op.em_realocacao) globalRealocacoes++;
-    });
-
-    const taxaAbsenteismo = globalHeadcount > 0 ? ((globalFaltas / globalHeadcount) * 100).toFixed(1) : '0.0';
-
-    // ---------------------------------------------------------
-    // RENDER: GRID POR ÁREA
+    // RENDER: GRID POR ÁREA E ENGINE DE FILTROS CASCATA
     // ---------------------------------------------------------
     
     // Filtragem Geral de Ocultar Vazias e Search
@@ -108,6 +112,39 @@ export default function RadarDashboardClient({ areas, linhas, estacoes, operador
             filteredEstacoes
         };
     }).filter(a => a.filteredEstacoes.length > 0);
+
+    // ---------------------------------------------------------
+    // INDICADORES MACRO GLOBAIS (Reativos aos filtros)
+    // ---------------------------------------------------------
+    
+    const filteredOps = operadores.filter(op => {
+        // Op is visible if his base station OR temp station is inside the currently filtered grid
+        return visibleAreas.some(area => 
+            area.filteredEstacoes.some((est: any) => 
+                op.posto_base_id === est.id || op.estacao_alocada_temporaria === est.id
+            )
+        );
+    });
+
+    const globalHeadcount = filteredOps.length;
+    let globalPresentes = 0;
+    let globalFaltas = 0;
+    let globalRealocacoes = 0;
+
+    filteredOps.forEach(op => {
+        if (isPresent(op.tag_rfid_operador)) globalPresentes++;
+        else globalFaltas++;
+        if (op.em_realocacao) globalRealocacoes++;
+    });
+
+    const taxaAbsenteismo = globalHeadcount > 0 ? ((globalFaltas / globalHeadcount) * 100).toFixed(1) : '0.0';
+
+    let atrasosDiarios = 0;
+    filteredOps.forEach(op => {
+        if (isPresent(op.tag_rfid_operador) && isLate(op.tag_rfid_operador)) {
+            atrasosDiarios++;
+        }
+    });
 
     const openModal = (estacao: any) => {
         setSelectedEstacao({
@@ -233,12 +270,15 @@ export default function RadarDashboardClient({ areas, linhas, estacoes, operador
                 <Card className="bg-white border-0 shadow-sm ring-1 ring-slate-200 overflow-hidden relative group">
                     <CardContent className="p-5 relative z-10 flex flex-col">
                         <span className="text-slate-500 font-bold text-[10px] uppercase tracking-widest mb-1 flex justify-between items-center">
-                            Flexibilidade (Realocados)
+                            Flexibilidade & Atrasos
                             <Repeat size={14} className="text-indigo-400" />
                         </span>
                         <div className="flex items-baseline gap-2">
                             <span className="text-4xl font-black text-indigo-600">{globalRealocacoes}</span>
                             <span className="text-xs font-bold text-slate-400">cruzamentos</span>
+                            {atrasosDiarios > 0 && (
+                                <span className="ml-auto text-xs font-bold text-amber-500 bg-amber-50 px-2 rounded-full border border-amber-200">{atrasosDiarios} Atrasos</span>
+                            )}
                         </div>
                     </CardContent>
                 </Card>
@@ -280,11 +320,17 @@ export default function RadarDashboardClient({ areas, linhas, estacoes, operador
                             {area.filteredEstacoes.map((est: any) => {
                                 const metrics = getOperatorsForStation(est.id);
                                 
-                                // Progress Bar Color Logic
+                                // Progress Bar Color Logic // OVERSTAFFING OVERRIDING
                                 let progressColor = "bg-emerald-500";
                                 if (metrics.workingHereHoje.length === 0) progressColor = "bg-slate-200";
                                 else if (metrics.presentCount < metrics.workingHereHoje.length) progressColor = "bg-amber-400";
+                                
                                 if (metrics.presentCount === 0 && metrics.workingHereHoje.length > 0) progressColor = "bg-rose-500";
+
+                                // Overstaffing (if present > base)
+                                if (metrics.presentCount > metrics.headCountBase && metrics.headCountBase > 0) {
+                                    progressColor = "bg-cyan-500";
+                                }
 
                                 const percentage = metrics.workingHereHoje.length > 0 
                                     ? Math.round((metrics.presentCount / metrics.workingHereHoje.length) * 100)
@@ -294,8 +340,18 @@ export default function RadarDashboardClient({ areas, linhas, estacoes, operador
                                     <div 
                                         key={est.id} 
                                         onClick={() => openModal(est)}
-                                        className="border border-slate-100 bg-slate-50 rounded-xl p-4 hover:border-indigo-300 hover:shadow-md transition-all cursor-pointer group"
+                                        className={`border ${metrics.hasSkillRisk ? 'border-orange-400/70 shadow-orange-100 ring-2 ring-orange-100' : 'border-slate-100'} bg-slate-50 rounded-xl p-4 hover:border-indigo-300 hover:shadow-md transition-all cursor-pointer group relative`}
                                     >
+                                        {metrics.hasSkillRisk && (
+                                            <div className="absolute -top-2 -right-2 bg-orange-500 text-white text-[9px] font-black uppercase px-2 py-0.5 rounded shadow-sm">
+                                                Skill Risk (ILUO)
+                                            </div>
+                                        )}
+                                        {metrics.presentCount > metrics.headCountBase && metrics.headCountBase > 0 && (
+                                            <div className="absolute -top-2 -left-2 bg-cyan-500 text-white text-[9px] font-black uppercase px-2 py-0.5 rounded shadow-sm">
+                                                Overstaff
+                                            </div>
+                                        )}
                                         <div className="flex justify-between items-start mb-3">
                                             <h3 className="font-bold text-sm text-slate-700 leading-tight pr-4 group-hover:text-indigo-600 transition-colors">
                                                 {est.nome_estacao}
@@ -383,11 +439,22 @@ export default function RadarDashboardClient({ areas, linhas, estacoes, operador
                                         {selectedEstacao.metrics.baseResidentes.map((op: any) => (
                                             <li key={op.id} className="flex justify-between items-center bg-white p-2 rounded-lg border border-slate-100 shadow-sm">
                                                 <div className="flex flex-col">
-                                                    <span className="font-bold text-sm text-slate-800">{op.nome_operador}</span>
+                                                    <span className="font-bold text-sm text-slate-800 flex items-center gap-2">
+                                                        {op.nome_operador}
+                                                        {op.iluo_nivel && (
+                                                            <span className={`text-[10px] w-4 h-4 flex items-center justify-center rounded-full text-white font-black opacity-90
+                                                                ${['U','O'].includes(op.iluo_nivel) ? 'bg-emerald-500' : 'bg-orange-400'}`}>
+                                                                {op.iluo_nivel}
+                                                            </span>
+                                                        )}
+                                                    </span>
                                                     <span className="text-[10px] text-slate-500 uppercase">{op.funcao}</span>
                                                 </div>
                                                 {isPresent(op.tag_rfid_operador) ? (
-                                                    <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 font-bold uppercase text-[10px]">Ponto Passado</Badge>
+                                                    <div className="flex flex-col items-end">
+                                                        <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 font-bold uppercase text-[10px]">Ponto Passado</Badge>
+                                                        <span className="text-[9px] text-slate-400 mt-0.5 tracking-widest">{getEntranceTime(op.tag_rfid_operador)}</span>
+                                                    </div>
                                                 ) : (
                                                     <Badge className="bg-rose-100 text-rose-800 border-rose-200 font-bold uppercase text-[10px]">Falta / Ausente</Badge>
                                                 )}
@@ -433,11 +500,22 @@ export default function RadarDashboardClient({ areas, linhas, estacoes, operador
                                             return (
                                                 <li key={op.id} className="flex justify-between items-center bg-indigo-50 p-2 rounded-lg border border-indigo-100 shadow-sm">
                                                     <div className="flex flex-col">
-                                                        <span className="font-bold text-sm text-indigo-900">{op.nome_operador}</span>
+                                                        <span className="font-bold text-sm text-indigo-900 flex items-center gap-2">
+                                                            {op.nome_operador}
+                                                            {op.iluo_nivel && (
+                                                                <span className={`text-[10px] w-4 h-4 flex items-center justify-center rounded-full text-white font-black opacity-90
+                                                                    ${['U','O'].includes(op.iluo_nivel) ? 'bg-indigo-500' : 'bg-orange-400'}`}>
+                                                                    {op.iluo_nivel}
+                                                                </span>
+                                                            )}
+                                                        </span>
                                                         <span className="text-[10px] text-indigo-700">Origem base: {nomeOrigem}</span>
                                                     </div>
                                                     {isPresent(op.tag_rfid_operador) ? (
-                                                        <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200">Presente</Badge>
+                                                        <div className="flex flex-col items-end">
+                                                            <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200">Presente</Badge>
+                                                            <span className="text-[9px] text-slate-400 mt-0.5 tracking-widest">{getEntranceTime(op.tag_rfid_operador)}</span>
+                                                        </div>
                                                     ) : (
                                                         <Badge className="bg-rose-100 text-rose-800 border-rose-200">Falta Reforço</Badge>
                                                     )}

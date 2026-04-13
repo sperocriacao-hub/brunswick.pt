@@ -28,6 +28,7 @@ export default async function RadarShopfloorPage() {
             nome_operador,
             tag_rfid_operador,
             funcao,
+            iluo_nivel,
             posto_base_id,
             estacao_alocada_temporaria,
             em_realocacao
@@ -51,22 +52,20 @@ export default async function RadarShopfloorPage() {
         .lt('timestamp', endOfDay)
         .order('timestamp', { ascending: true });
 
-    // Determinar a lista de RFIDs presentes hoje. 
-    // Como regra geral de fábrica (Assiduidade Flexível), se o operador logou "ENTRADA" e não logou "SAÍDA" final, 
-    // ou se assumirmos que o facto de ter picado o ponto hoje já constitui Presença para o Radar Diário:
-    const presencasRfid = new Set<string>();
+    // Determinar a lista de RFIDs presentes hoje com o timestamp da entrada. 
+    const presencasTimestampMap: Record<string, string> = {};
     
     // Iterar kronos
     if (pontosHoje) {
         // Se quisermos apenas quem está com "ENTRADA" ativa sem "SAÍDA":
-        const statusMap = new Map<string, string>();
+        const statusMap = new Map<string, { tipo: string, ts: string }>();
         pontosHoje.forEach(p => {
-            statusMap.set(p.operador_rfid, p.tipo_registo);
+            statusMap.set(p.operador_rfid, { tipo: p.tipo_registo, ts: p.timestamp });
         });
         
-        statusMap.forEach((status, rfid) => {
-            if (status === 'ENTRADA') {
-                presencasRfid.add(rfid);
+        statusMap.forEach((data, rfid) => {
+            if (data.tipo === 'ENTRADA') {
+                presencasTimestampMap[rfid] = data.ts;
             }
         });
     }
@@ -77,7 +76,7 @@ export default async function RadarShopfloorPage() {
             linhas={linhas || []}
             estacoes={estacoes || []}
             operadores={operadores || []}
-            presencasRfid={Array.from(presencasRfid)}
+            presencasRfidMap={presencasTimestampMap}
         />
     );
 }
