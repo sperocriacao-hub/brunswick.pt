@@ -132,7 +132,7 @@ export default function RncKanbanBoardPage() {
     };
     const removeTask5w = (index: number) => setTasks5w(tasks5w.filter((_, i) => i !== index));
 
-    const StatusColumns = ["Aberto", "Em Investigacao", "Concluido"];
+    const StatusColumns = ["Aberto", "Em Investigacao", "Validacao", "Concluido"];
 
     return (
         <div className="p-8 space-y-8 pb-32 max-w-[1600px] mx-auto animate-in fade-in zoom-in-95 duration-500 bg-slate-50/50 min-h-screen">
@@ -178,7 +178,17 @@ export default function RncKanbanBoardPage() {
                             const sts = r.status || 'Aberto';
                             if (columnId === 'Aberto' && (sts === 'Aberto' || sts === 'Atribuinda')) matchStatus = true;
                             if (columnId === 'Em Investigacao' && sts === 'Em Investigacao') matchStatus = true;
-                            if (columnId === 'Concluido' && sts === 'Concluido') matchStatus = true;
+                            if (columnId === 'Validacao' && sts === 'Validacao') matchStatus = true;
+                            
+                            if (columnId === 'Concluido' && sts === 'Concluido') {
+                                // For Concluído, limit to max 30 days to avoid cluttering the board
+                                const msPerDay = 1000 * 60 * 60 * 24;
+                                const dataCriacao = new Date(r.created_at || Date.now());
+                                const diasPassados = (Date.now() - dataCriacao.getTime()) / msPerDay;
+                                if (diasPassados <= 30) {
+                                    matchStatus = true;
+                                }
+                            }
 
                             if (!matchStatus) return false;
 
@@ -195,6 +205,7 @@ export default function RncKanbanBoardPage() {
                         // Theme definitions
                         let headerTheme = "bg-rose-50 text-rose-800 border-rose-200";
                         if (columnId === 'Em Investigacao') headerTheme = "bg-indigo-100 text-indigo-800 border-indigo-200";
+                        if (columnId === 'Validacao') headerTheme = "bg-amber-100 text-amber-800 border-amber-200";
                         if (columnId === 'Concluido') headerTheme = "bg-emerald-100 text-emerald-800 border-emerald-200";
 
                         return (
@@ -203,6 +214,7 @@ export default function RncKanbanBoardPage() {
                                     <div className="flex items-center gap-2">
                                         {columnId === 'Aberto' && <AlertTriangle size={16} />}
                                         {columnId === 'Em Investigacao' && <Loader2 size={16} className="animate-spin" />}
+                                        {columnId === 'Validacao' && <ShieldAlert size={16} />}
                                         {columnId === 'Concluido' && <CheckCircle2 size={16} />}
                                         {columnId}
                                     </div>
@@ -286,6 +298,9 @@ export default function RncKanbanBoardPage() {
                                                                 {columnId !== 'Em Investigacao' && (
                                                                     <button onClick={() => moveCard(rnc.id, 'Em Investigacao')} className="w-6 h-6 rounded bg-indigo-50 text-indigo-600 flex items-center justify-center hover:bg-indigo-100" title="Mover para Em Investigação"><Loader2 className="w-3 h-3" /></button>
                                                                 )}
+                                                                {columnId !== 'Validacao' && (
+                                                                    <button onClick={() => moveCard(rnc.id, 'Validacao')} className="w-6 h-6 rounded bg-amber-50 text-amber-600 flex items-center justify-center hover:bg-amber-100" title="Mover para Validação"><ShieldAlert className="w-3 h-3" /></button>
+                                                                )}
                                                                 {columnId !== 'Concluido' && (
                                                                     <button onClick={() => moveCard(rnc.id, 'Concluido')} className="w-6 h-6 rounded bg-emerald-50 text-emerald-600 flex items-center justify-center hover:bg-emerald-100" title="Marcar como Concluído">»</button>
                                                                 )}
@@ -306,7 +321,7 @@ export default function RncKanbanBoardPage() {
             {/* MODAL IDÊNTICO AO LEAN AÇÕES */}
             <Dialog open={isA3Open} onOpenChange={setIsA3Open}>
                 <DialogContent className="max-w-[1000px] h-[90vh] flex flex-col p-0 border-slate-200 bg-slate-50 overflow-hidden">
-                    <DialogHeader className="bg-white px-8 py-6 border-b border-slate-200 shrink-0">
+                    <DialogHeader className="bg-white px-8 py-6 border-b border-slate-200 shrink-0 print:hidden">
                         <div className="flex justify-between items-start">
                             <div>
                                 <DialogTitle className="text-2xl font-black text-slate-800 flex items-center gap-3">
@@ -317,17 +332,60 @@ export default function RncKanbanBoardPage() {
                                     {selectedAction?.numero_rnc} - {selectedAction?.descricao_problema}
                                 </DialogDescription>
                             </div>
+                            <Button variant="outline" onClick={() => window.print()} className="font-bold border-slate-300 text-slate-700 bg-slate-50 shadow-sm print:hidden">
+                                🖨️ Imprimir Folha A3/8D
+                            </Button>
                         </div>
                     </DialogHeader>
 
-                    <div className="flex-1 overflow-y-auto w-full p-8 pb-32">
+                    {/* CABEÇALHO SÓ PARA IMPRESSÃO (Oculto no Ecrã) */}
+                    <div className="hidden print:flex flex-col mb-6 border-b border-black pb-4 print:p-0">
+                        <div className="flex justify-between items-end border-b-2 border-black pb-2 mb-4">
+                            <div>
+                                <div className="text-3xl font-black text-black">DOCUMENTO 8D / CANVAS A3</div>
+                                <div className="text-lg font-bold text-gray-700 uppercase">{selectedAction?.numero_rnc}</div>
+                            </div>
+                            <div className="text-right">
+                                <div className="text-xs font-bold text-gray-500 uppercase">Referência de Problema</div>
+                                <div className="text-sm font-black">{selectedAction?.contexto_producao || 'Geral'}</div>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-3 gap-4 mb-2">
+                            <div><strong className="text-xs uppercase text-gray-500">Data de Extração:</strong><div className="font-bold text-sm">{new Date().toLocaleDateString('pt-PT')}</div></div>
+                            <div><strong className="text-xs uppercase text-gray-500">Equipa Responsável:</strong><div className="font-bold text-sm">{equipa}</div></div>
+                            <div><strong className="text-xs uppercase text-gray-500">Gravidade Deteção:</strong><div className="font-bold text-sm uppercase">{selectedAction?.gravidade || 'Média'}</div></div>
+                        </div>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto w-full p-8 pb-32 print:p-0 print:overflow-visible">
                         <Tabs defaultValue="definicao" className="w-full">
-                            <TabsList className="grid w-full max-w-2xl grid-cols-4 bg-slate-200/50 p-1 mb-8">
+                            <TabsList className="grid w-full max-w-2xl grid-cols-4 bg-slate-200/50 p-1 mb-8 print:hidden">
                                 <TabsTrigger value="definicao" className="font-bold text-xs uppercase data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-sm">1. Definição</TabsTrigger>
                                 <TabsTrigger value="root_cause" className="font-bold text-xs uppercase data-[state=active]:bg-white data-[state=active]:text-amber-700 data-[state=active]:shadow-sm">2. Origem (5 Porquês)</TabsTrigger>
                                 <TabsTrigger value="plano" className="font-bold text-xs uppercase data-[state=active]:bg-white data-[state=active]:text-blue-700 data-[state=active]:shadow-sm">3. Plano 5W2H</TabsTrigger>
                                 <TabsTrigger value="verificacao" className="font-bold text-xs uppercase data-[state=active]:bg-white data-[state=active]:text-emerald-700 data-[state=active]:shadow-sm">4. Verificação</TabsTrigger>
                             </TabsList>
+
+                            {/* INJECTION OF PRINT CSS */}
+                            <style dangerouslySetInnerHTML={{__html:`
+                                @media print {
+                                    body * { visibility: hidden !important; }
+                                    div[role="dialog"], div[role="dialog"] * { visibility: visible !important; }
+                                    div[role="dialog"] { position: absolute; left: 0; top: 0; width: 100vw; margin: 0; padding: 0 !important; background: white; border: none; box-shadow: none; overflow: visible !important; }
+                                    
+                                    /* Force TabsContent to ALWAYS show in print sequentially */
+                                    div[role="tabpanel"] { 
+                                        display: block !important; 
+                                        page-break-inside: avoid;
+                                        border: 2px solid #e2e8f0;
+                                        margin-bottom: 1.5rem !important;
+                                        padding: 1rem !important;
+                                    }
+                                    .print\\:hidden { display: none !important; }
+                                    .print\\:block { display: block !important; }
+                                    .print\\:flex { display: flex !important; }
+                                }
+                            `}} />
 
                             {/* TAB 1: DEFINIÇÃO */}
                             <TabsContent value="definicao" className="space-y-6 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-300">
@@ -511,7 +569,7 @@ export default function RncKanbanBoardPage() {
                         </Tabs>
                     </div>
 
-                    <DialogFooter className="bg-white border-t border-slate-200 px-8 py-4 sm:justify-between absolute bottom-0 left-0 right-0 z-10 w-full shrink-0 items-center">
+                    <DialogFooter className="bg-white border-t border-slate-200 px-8 py-4 sm:justify-between absolute bottom-0 left-0 right-0 z-10 w-full shrink-0 items-center print:hidden">
                         <div className="text-sm font-medium text-slate-400 flex items-center gap-2">
                             <span>Estado da Ação Kanban:</span>
                             <span className="bg-slate-100 px-2 py-1 rounded border border-slate-200 text-slate-600 font-black uppercase text-xs">{selectedAction?.status}</span>

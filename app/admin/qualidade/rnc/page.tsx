@@ -20,8 +20,9 @@ export default function GestaoRncPage() {
     const [rncs, setRncs] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [filterStatus, setFilterStatus] = useState('ALL');
+    const [filterEstacao, setFilterEstacao] = useState('ALL');
+    const [filterInspetor, setFilterInspetor] = useState('ALL');
     const [searchTerm, setSearchTerm] = useState('');
-
     // History Data
     const [history8d, setHistory8d] = useState<any[]>([]);
     const [historyA3, setHistoryA3] = useState<any[]>([]);
@@ -206,12 +207,20 @@ export default function GestaoRncPage() {
         setLoadingHistory(false);
     }
 
+    const estacoesUnicas = Array.from(new Set(rncs.map(r => r.estacoes?.nome_estacao).filter(Boolean))) as string[];
+    const inspetoresUnicos = Array.from(new Set(rncs.map(r => r.detetado_por_nome).filter(Boolean))) as string[];
+
     const filteredRncs = rncs.filter(rnc => {
         if (filterStatus !== 'ALL' && rnc.status !== filterStatus) return false;
         
-        const estacaoStr = rnc.estacoes?.nome_estacao || '';
+        const estacaoMatch = rnc.estacoes?.nome_estacao || '';
+        if (filterEstacao !== 'ALL' && estacaoMatch !== filterEstacao) return false;
+
+        const inspetorMatch = rnc.detetado_por_nome || '';
+        if (filterInspetor !== 'ALL' && inspetorMatch !== filterInspetor) return false;
+
         const prodStr = rnc.contexto_producao || '';
-        const str = (rnc.numero_rnc + ' ' + rnc.descricao_problema + ' ' + rnc.tipo_defeito + ' ' + estacaoStr + ' ' + prodStr).toLowerCase();
+        const str = (rnc.numero_rnc + ' ' + rnc.descricao_problema + ' ' + rnc.tipo_defeito + ' ' + estacaoMatch + ' ' + prodStr).toLowerCase();
         return str.includes(searchTerm.toLowerCase());
     });
 
@@ -289,17 +298,39 @@ export default function GestaoRncPage() {
                                 />
                             </div>
 
-                            <div className="w-full sm:w-[250px] flex items-center gap-2">
-                                <Filter className="text-slate-400 w-4 h-4" />
+                            <div className="w-full flex flex-col sm:flex-row items-center gap-2">
                                 <Select value={filterStatus} onValueChange={setFilterStatus}>
-                                    <SelectTrigger className="bg-white">
+                                    <SelectTrigger className="bg-white lg:w-1/3">
+                                        <Filter className="text-slate-400 w-4 h-4 mr-2" />
                                         <SelectValue placeholder="Estado: Todos" />
                                     </SelectTrigger>
                                     <SelectContent className="bg-white">
-                                        <SelectItem value="ALL">Todo o Histórico</SelectItem>
+                                        <SelectItem value="ALL">Qualquer Estado</SelectItem>
                                         <SelectItem value="Aberto">Abertas / Por Tratar</SelectItem>
                                         <SelectItem value="Em Investigacao">Em Investigação (8D/A3 ativos)</SelectItem>
                                         <SelectItem value="Concluido">Casos Encerrados (Concluído)</SelectItem>
+                                    </SelectContent>
+                                </Select>
+
+                                <Select value={filterEstacao} onValueChange={setFilterEstacao}>
+                                    <SelectTrigger className="bg-white lg:w-1/3">
+                                        <Filter className="text-slate-400 w-4 h-4 mr-2" />
+                                        <SelectValue placeholder="Estação: Todas" />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-white">
+                                        <SelectItem value="ALL">Qualquer Estação</SelectItem>
+                                        {estacoesUnicas.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+
+                                <Select value={filterInspetor} onValueChange={setFilterInspetor}>
+                                    <SelectTrigger className="bg-white lg:w-1/3">
+                                        <Filter className="text-slate-400 w-4 h-4 mr-2" />
+                                        <SelectValue placeholder="Inspetor: Todos" />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-white">
+                                        <SelectItem value="ALL">Qualquer Inspetor</SelectItem>
+                                        {inspetoresUnicos.map(i => <SelectItem key={i} value={i}>{i}</SelectItem>)}
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -481,33 +512,60 @@ export default function GestaoRncPage() {
                                     <thead className="bg-slate-100 text-slate-600 uppercase text-xs">
                                         <tr>
                                             <th className="px-4 py-3 border-b">Data</th>
-                                            <th className="px-4 py-3 border-b">Documento</th>
                                             <th className="px-4 py-3 border-b">RNC Base</th>
                                             <th className="px-4 py-3 border-b">Problema Relatado</th>
-                                            <th className="px-4 py-3 border-b">Ação Corretiva / Contramedida</th>
+                                            <th className="px-4 py-3 border-b">Ações Corretivas / Contramedidas</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100">
                                         {filteredHistory.length === 0 ? (
                                             <tr>
-                                                <td colSpan={5} className="px-4 py-8 text-center text-slate-500 bg-white">
+                                                <td colSpan={4} className="px-4 py-8 text-center text-slate-500 bg-white">
                                                     Nenhum histórico encontrado.
                                                 </td>
                                             </tr>
                                         ) : (
-                                            filteredHistory.map((item, idx) => (
+                                            filteredHistory.map((item, idx) => {
+                                                // Definir parsing do JSON ou fallback text
+                                                let RenderedAction = <span className="text-slate-600">{item.action}</span>;
+                                                if (item.action.startsWith('[')) {
+                                                    try {
+                                                        const arr = JSON.parse(item.action);
+                                                        if (Array.isArray(arr)) {
+                                                            RenderedAction = (
+                                                                <ul className="space-y-1.5 list-disc pl-4 text-xs font-semibold text-slate-700">
+                                                                    {arr.map((task: any, tidx: number) => (
+                                                                        <li key={tidx}>
+                                                                            {task.o_que} <span className="text-slate-400 font-normal ml-1">por {task.quem}</span>
+                                                                            {task.status === 'Feito' ? (
+                                                                                <span className="ml-2 bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider">Feito</span>
+                                                                            ) : (
+                                                                                <span className="ml-2 bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider">Pendente</span>
+                                                                            )}
+                                                                        </li>
+                                                                    ))}
+                                                                </ul>
+                                                            );
+                                                        }
+                                                    } catch (e) {}
+                                                }
+
+                                                return (
                                                 <tr key={idx} className="hover:bg-slate-50 transition-colors bg-white">
-                                                    <td className="px-4 py-3 text-slate-500 whitespace-nowrap">{item.date}</td>
-                                                    <td className="px-4 py-3">
-                                                        <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${item.type === '8D' ? 'bg-indigo-100 text-indigo-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                                                    <td className="px-4 py-3 text-slate-500 whitespace-nowrap align-top">
+                                                        <div className="font-bold">{item.date}</div>
+                                                        <span className={`px-2 py-0.5 mt-1 inline-block rounded text-[9px] font-bold uppercase tracking-wider ${item.type === '8D' ? 'bg-indigo-100 text-indigo-700' : 'bg-emerald-100 text-emerald-700'}`}>
                                                             {item.type}
                                                         </span>
                                                     </td>
-                                                    <td className="px-4 py-3 font-bold text-rose-600 whitespace-nowrap">{item.rnc || 'N/A'}</td>
-                                                    <td className="px-4 py-3 text-slate-800 break-words max-w-[250px] font-medium">{item.desc || 'N/A'}</td>
-                                                    <td className="px-4 py-3 font-semibold text-slate-700 break-words max-w-[300px]">{item.action}</td>
+                                                    <td className="px-4 py-3 font-bold text-rose-600 whitespace-nowrap align-top">{item.rnc || 'N/A'}</td>
+                                                    <td className="px-4 py-3 text-slate-800 break-words max-w-[250px] font-medium align-top">{item.desc || 'N/A'}</td>
+                                                    <td className="px-4 py-3 align-top max-w-[400px]">
+                                                        {RenderedAction}
+                                                    </td>
                                                 </tr>
-                                            ))
+                                                );
+                                            })
                                         )}
                                     </tbody>
                                 </table>
