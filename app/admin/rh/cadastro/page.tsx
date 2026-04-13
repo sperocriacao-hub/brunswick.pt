@@ -5,6 +5,7 @@ import { createClient } from '@/utils/supabase/client';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader2, Save, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+import { Badge } from '@/components/ui/badge';
 import { criarContaAcesso } from './actions';
 
 // Componente Core contido em Fallback do Suspense Client
