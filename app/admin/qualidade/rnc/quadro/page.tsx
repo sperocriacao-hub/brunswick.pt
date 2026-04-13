@@ -338,54 +338,14 @@ export default function RncKanbanBoardPage() {
                         </div>
                     </DialogHeader>
 
-                    {/* CABEÇALHO SÓ PARA IMPRESSÃO (Oculto no Ecrã) */}
-                    <div className="hidden print:flex flex-col mb-6 border-b border-black pb-4 print:p-0">
-                        <div className="flex justify-between items-end border-b-2 border-black pb-2 mb-4">
-                            <div>
-                                <div className="text-3xl font-black text-black">DOCUMENTO 8D / CANVAS A3</div>
-                                <div className="text-lg font-bold text-gray-700 uppercase">{selectedAction?.numero_rnc}</div>
-                            </div>
-                            <div className="text-right">
-                                <div className="text-xs font-bold text-gray-500 uppercase">Referência de Problema</div>
-                                <div className="text-sm font-black">{selectedAction?.contexto_producao || 'Geral'}</div>
-                            </div>
-                        </div>
-                        <div className="grid grid-cols-3 gap-4 mb-2">
-                            <div><strong className="text-xs uppercase text-gray-500">Data de Extração:</strong><div className="font-bold text-sm">{new Date().toLocaleDateString('pt-PT')}</div></div>
-                            <div><strong className="text-xs uppercase text-gray-500">Equipa Responsável:</strong><div className="font-bold text-sm">{equipa}</div></div>
-                            <div><strong className="text-xs uppercase text-gray-500">Gravidade Deteção:</strong><div className="font-bold text-sm uppercase">{selectedAction?.gravidade || 'Média'}</div></div>
-                        </div>
-                    </div>
-
-                    <div className="flex-1 overflow-y-auto w-full p-8 pb-32 print:p-0 print:overflow-visible">
+                    <div className="flex-1 overflow-y-auto w-full p-8 pb-32">
                         <Tabs defaultValue="definicao" className="w-full">
-                            <TabsList className="grid w-full max-w-2xl grid-cols-4 bg-slate-200/50 p-1 mb-8 print:hidden">
+                            <TabsList className="grid w-full max-w-2xl grid-cols-4 bg-slate-200/50 p-1 mb-8">
                                 <TabsTrigger value="definicao" className="font-bold text-xs uppercase data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-sm">1. Definição</TabsTrigger>
                                 <TabsTrigger value="root_cause" className="font-bold text-xs uppercase data-[state=active]:bg-white data-[state=active]:text-amber-700 data-[state=active]:shadow-sm">2. Origem (5 Porquês)</TabsTrigger>
                                 <TabsTrigger value="plano" className="font-bold text-xs uppercase data-[state=active]:bg-white data-[state=active]:text-blue-700 data-[state=active]:shadow-sm">3. Plano 5W2H</TabsTrigger>
                                 <TabsTrigger value="verificacao" className="font-bold text-xs uppercase data-[state=active]:bg-white data-[state=active]:text-emerald-700 data-[state=active]:shadow-sm">4. Verificação</TabsTrigger>
                             </TabsList>
-
-                            {/* INJECTION OF PRINT CSS */}
-                            <style dangerouslySetInnerHTML={{__html:`
-                                @media print {
-                                    body * { visibility: hidden !important; }
-                                    div[role="dialog"], div[role="dialog"] * { visibility: visible !important; }
-                                    div[role="dialog"] { position: absolute; left: 0; top: 0; width: 100vw; margin: 0; padding: 0 !important; background: white; border: none; box-shadow: none; overflow: visible !important; }
-                                    
-                                    /* Force TabsContent to ALWAYS show in print sequentially */
-                                    div[role="tabpanel"] { 
-                                        display: block !important; 
-                                        page-break-inside: avoid;
-                                        border: 2px solid #e2e8f0;
-                                        margin-bottom: 1.5rem !important;
-                                        padding: 1rem !important;
-                                    }
-                                    .print\\:hidden { display: none !important; }
-                                    .print\\:block { display: block !important; }
-                                    .print\\:flex { display: flex !important; }
-                                }
-                            `}} />
 
                             {/* TAB 1: DEFINIÇÃO */}
                             <TabsContent value="definicao" className="space-y-6 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-300">
@@ -569,7 +529,7 @@ export default function RncKanbanBoardPage() {
                         </Tabs>
                     </div>
 
-                    <DialogFooter className="bg-white border-t border-slate-200 px-8 py-4 sm:justify-between absolute bottom-0 left-0 right-0 z-10 w-full shrink-0 items-center print:hidden">
+                    <DialogFooter className="bg-white border-t border-slate-200 px-8 py-4 sm:justify-between absolute bottom-0 left-0 right-0 z-10 w-full shrink-0 items-center">
                         <div className="text-sm font-medium text-slate-400 flex items-center gap-2">
                             <span>Estado da Ação Kanban:</span>
                             <span className="bg-slate-100 px-2 py-1 rounded border border-slate-200 text-slate-600 font-black uppercase text-xs">{selectedAction?.status}</span>
@@ -588,6 +548,166 @@ export default function RncKanbanBoardPage() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            {/* DEDICATED PRINT TEMPLATE FOR 8D / A3 (PROFESSIONAL LEVEL) */}
+            {selectedAction && (
+                <div className="print-8d-template hidden print:block pt-4">
+                    <style dangerouslySetInnerHTML={{__html:`
+                        @media print {
+                            body * { visibility: hidden !important; }
+                            .print-8d-template, .print-8d-template * { visibility: visible !important; color: black !important; }
+                            .print-8d-template { position: absolute; left: 0; top: 0; width: 100vw; box-sizing: border-box; padding: 20px; font-family: sans-serif; background: transparent; }
+                            @page { size: landscape; margin: 10mm; }
+                            table { page-break-inside: avoid; }
+                            .print-image-container { max-height: 200px; max-width: 300px; object-fit: contain; }
+                            .dialog-overlay, [role="dialog"] { display: none !important; }
+                        }
+                    `}} />
+
+                    {/* CABEÇALHO */}
+                    <div className="flex justify-between items-end border-b-4 border-slate-800 pb-4 mb-6">
+                        <div>
+                            <div className="text-4xl font-black tracking-tighter uppercase">Relatório 8D / Contramedida</div>
+                            <div className="text-lg font-bold text-slate-600 mt-1 uppercase">Resolvido através de Metodologia Lean</div>
+                        </div>
+                        <div className="text-right">
+                            <div className="text-xs font-bold text-slate-500 uppercase tracking-widest">Nº Registo Oficial</div>
+                            <div className="text-2xl font-black text-rose-700">{selectedAction?.numero_rnc}</div>
+                        </div>
+                    </div>
+
+                    {/* D1: EQUIPA E CONTEXTO */}
+                    <div className="grid grid-cols-4 gap-4 mb-6 border border-slate-300 rounded p-4 bg-slate-50">
+                        <div><strong className="text-[10px] uppercase text-slate-500 block mb-1">Data de Extração:</strong><div className="font-bold text-sm">{new Date().toLocaleDateString('pt-PT')}</div></div>
+                        <div><strong className="text-[10px] uppercase text-slate-500 block mb-1">Status do Kanban:</strong><div className="font-bold text-sm uppercase">{selectedAction?.status}</div></div>
+                        <div><strong className="text-[10px] uppercase text-slate-500 block mb-1">Equipa de Trabalho (D1):</strong><div className="font-bold text-sm">{equipa || 'Não definido'}</div></div>
+                        <div><strong className="text-[10px] uppercase text-slate-500 block mb-1">Gravidade Identificada:</strong><div className="font-bold text-sm uppercase">{selectedAction?.gravidade || 'Média'}</div></div>
+                    </div>
+
+                    <div className="flex gap-6 items-start">
+                        {/* COLUNA ESQUERDA (2/3) */}
+                        <div className="w-2/3 space-y-6">
+                            {/* D2: DESCRIÇÃO DO PROBLEMA */}
+                            <div className="border border-slate-300 rounded overflow-hidden">
+                                <div className="bg-slate-100 font-bold px-4 py-2 text-xs uppercase tracking-widest border-b border-slate-300">
+                                    D2: Definição e Descrição do Defeito (RNC Base)
+                                </div>
+                                <div className="p-4 text-sm font-medium whitespace-pre-wrap leading-relaxed">
+                                    {selectedAction?.descricao_problema}
+                                    {selectedAction?.contexto_producao && (
+                                        <p className="mt-4 pt-4 border-t border-slate-200 text-xs font-bold">Contexto/Localização: {selectedAction.contexto_producao}</p>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* D4: ANÁLISE CAUSA RAIZ (5WHY) */}
+                            <div className="border border-slate-300 rounded overflow-hidden">
+                                <div className="bg-slate-100 font-bold px-4 py-2 text-xs uppercase tracking-widest border-b border-slate-300">
+                                    D4: Causa Raiz / Investigação (5 Porquês)
+                                </div>
+                                <div className="p-4 text-sm">
+                                    {whys.some(w => w.trim() !== '') ? (
+                                        <ul className="space-y-2">
+                                            {whys.map((why, idx) => why && (
+                                                <li key={idx} className="flex gap-3">
+                                                    <span className="font-black text-rose-600 shrink-0">W{idx+1}.</span> 
+                                                    <span className="font-medium">{why}</span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    ) : (
+                                        <span className="text-slate-400 italic">Pesquisa de causa raiz não documentada.</span>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* D5: PLANO DE AÇÃO */}
+                            <div className="border border-slate-300 rounded overflow-hidden">
+                                <div className="bg-slate-100 font-bold px-4 py-2 text-xs uppercase tracking-widest border-b border-slate-300">
+                                    D5/D6: Plano de Contramedida (Ações Permanentes 5W2H)
+                                </div>
+                                <table className="w-full text-xs text-left border-collapse">
+                                    <thead className="bg-slate-50 border-b border-slate-200">
+                                        <tr>
+                                            <th className="px-4 py-2 font-bold uppercase">O que Fazer? (Definição da Ação)</th>
+                                            <th className="px-4 py-2 font-bold uppercase">Quem?</th>
+                                            <th className="px-4 py-2 font-bold uppercase">Até Quando?</th>
+                                            <th className="px-4 py-2 font-bold uppercase">Estado Fase</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-200">
+                                        {tasks5w.length === 0 ? (
+                                            <tr>
+                                                <td colSpan={4} className="px-4 py-4 text-center text-slate-400 italic">Nenhuma ação planeada na plataforma.</td>
+                                            </tr>
+                                        ) : (
+                                            tasks5w.map((t, idx) => (
+                                                <tr key={idx}>
+                                                    <td className="px-4 py-2 font-medium">{t.o_que}</td>
+                                                    <td className="px-4 py-2">{t.quem}</td>
+                                                    <td className="px-4 py-2 font-mono text-[10px]">{t.quando}</td>
+                                                    <td className="px-4 py-2 font-bold uppercase">{t.status}</td>
+                                                </tr>
+                                            ))
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        {/* COLUNA DIREITA (1/3) */}
+                        <div className="w-1/3 space-y-6">
+                            {/* D8: VALIDAÇÃO */}
+                            <div className="border border-slate-300 rounded overflow-hidden">
+                                <div className="bg-slate-100 font-bold px-4 py-2 text-xs uppercase tracking-widest border-b border-slate-300">
+                                    D8: Indicadores e Verificação de Sucesso
+                                </div>
+                                <div className="p-4 space-y-4">
+                                    <div className="text-xs font-bold text-slate-500 uppercase">Indicadores a Acompanhar:</div>
+                                    <div className="text-sm font-medium whitespace-pre-wrap">{indicadores || 'N/A'}</div>
+                                    
+                                    <div className="border-t border-slate-200 pt-4 mt-2">
+                                        <div className="text-xs font-bold text-slate-500 uppercase mb-2">Veredícto de Eficácia do Comitê:</div>
+                                        <div className={`font-black text-lg uppercase tracking-wider py-2 px-4 inline-block rounded-lg border-2 ${validacao === 'Eficaz' ? 'border-emerald-500 text-emerald-700' : validacao === 'Ineficaz' ? 'border-rose-500 text-rose-700' : 'border-amber-400 text-amber-700'}`}>
+                                            {validacao === 'Eficaz' ? 'PADRÃO EFICAZ (FECHADO)' : validacao === 'Ineficaz' ? 'INEFICAZ (REPENSAR)' : 'EM OBSERVAÇÃO'}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* ANEXOS / PROVAS */}
+                            {selectedAction?.anexos_url && selectedAction.anexos_url.length > 5 && (
+                                <div className="border border-slate-300 rounded overflow-hidden">
+                                    <div className="bg-slate-100 font-bold px-4 py-2 text-xs uppercase tracking-widest border-b border-slate-300">
+                                        Provas de Defeito Documentadas
+                                    </div>
+                                    <div className="p-4 flex flex-col gap-4">
+                                        {(() => {
+                                            try {
+                                                const urls = JSON.parse(selectedAction.anexos_url);
+                                                if (Array.isArray(urls)) {
+                                                    return urls.map((url: string, index: number) => url ? (
+                                                        <div key={index} className="border border-slate-200 p-1 bg-white rounded">
+                                                            <img src={url} alt={`Prova ${index + 1}`} className="w-full h-auto max-h-[160px] object-cover" />
+                                                        </div>
+                                                    ) : null);
+                                                }
+                                            } catch(e) {}
+                                            return null;
+                                        })()}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                    
+                    {/* ASSINATURAS */}
+                    <div className="grid grid-cols-2 gap-12 mt-12 pt-6 border-t-2 border-slate-200">
+                        <div className="border-t border-black text-center pt-2 text-xs font-bold uppercase text-slate-600">Assinatura Equipa Resolução</div>
+                        <div className="border-t border-black text-center pt-2 text-xs font-bold uppercase text-slate-600">Revisão por Assuntos de Qualidade</div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
