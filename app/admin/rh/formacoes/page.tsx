@@ -1,20 +1,26 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Plus, GraduationCap, CheckCircle, Crosshair, Users, MapPin, Search, Calendar, Star, ShieldAlert } from 'lucide-react';
+import { Plus, GraduationCap, CheckCircle, Crosshair, Users, MapPin, Search, Calendar, Star, ShieldAlert, Edit3, Map, Save, X } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { 
     listarFormacoes, criarPlanoFormacao, atualizarStatusFormacao, 
     obterTopFormadores, listarFormadoresParaSelect, listarEstacoesParaSelect,
-    preverEvolucaoILUO, PlanoFormacao 
+    preverEvolucaoILUO, editarFormacao, obterMatrizIluoGlobal, PlanoFormacao 
 } from './actions';
 
 export default function GestaoFormacoesRH() {
-    const [viewMode, setViewMode] = useState<'ativos' | 'historico' | 'ranking' | 'gantt'>('ativos');
+    const [viewMode, setViewMode] = useState<'ativos' | 'historico' | 'ranking' | 'gantt' | 'matriz'>('ativos');
     const [formacoes, setFormacoes] = useState<PlanoFormacao[]>([]);
     const [topFormadores, setTopFormadores] = useState<{nome: string, rating: string, votos: number}[]>([]);
+    const [matrizGlobal, setMatrizGlobal] = useState<{operadores: any[], estacoes: any[]}>({ operadores: [], estacoes: [] });
+
+    // Inline Edit State
+    const [editModeId, setEditModeId] = useState<string | null>(null);
+    const [editDataFim, setEditDataFim] = useState("");
+    const [editNotas, setEditNotas] = useState("");
     const [isLoading, setIsLoading] = useState(true);
 
     // Dicionários para novo formulário
@@ -37,15 +43,17 @@ export default function GestaoFormacoesRH() {
 
     const carregarDashboard = async () => {
         setIsLoading(true);
-        const [resForms, resTop, resOps, resEsts] = await Promise.all([
+        const [resForms, resTop, resOps, resEsts, resMatriz] = await Promise.all([
             listarFormacoes(),
             obterTopFormadores(),
             listarFormadoresParaSelect(),
-            listarEstacoesParaSelect()
+            listarEstacoesParaSelect(),
+            obterMatrizIluoGlobal()
         ]);
         
         if (resForms.success && resForms.data) setFormacoes(resForms.data);
         if (resTop.success && resTop.data) setTopFormadores(resTop.data);
+        if (resMatriz.success && resMatriz.data) setMatrizGlobal(resMatriz.data);
         
         setOperadoresList(resOps);
         setEstacoesList(resEsts);
@@ -97,6 +105,16 @@ export default function GestaoFormacoesRH() {
         const res = await atualizarStatusFormacao(id, novoStatus);
         if (res.success) await carregarDashboard();
         else alert("Erro: " + res.error);
+    };
+
+    const handleSaveEdit = async (id: string) => {
+        const res = await editarFormacao(id, editDataFim, editNotas);
+        if (res.success) {
+            setEditModeId(null);
+            await carregarDashboard();
+        } else {
+            alert("Erro ao editar plano: " + res.error);
+        }
     };
 
     const emCurso = formacoes.filter(f => f.status === 'Em Curso' || f.status === 'Planeado');
@@ -153,6 +171,12 @@ export default function GestaoFormacoesRH() {
                     className={`px-5 py-2.5 text-sm font-bold rounded-t-xl transition-all border-b-2 ${viewMode === 'ranking' ? 'bg-indigo-900 border-indigo-500 text-indigo-100 shadow-sm' : 'bg-slate-100 border-transparent text-slate-500 hover:bg-slate-200'}`}
                 >
                     <div className="flex items-center gap-2"><Star size={16}/> Top Formadores</div>
+                </button>
+                <button 
+                    onClick={() => setViewMode('matriz')}
+                    className={`px-5 py-2.5 text-sm font-bold rounded-t-xl transition-all border-b-2 ${viewMode === 'matriz' ? 'bg-emerald-700 border-emerald-500 text-emerald-50 shadow-sm' : 'bg-slate-100 border-transparent text-slate-500 hover:bg-slate-200'}`}
+                >
+                    <div className="flex items-center gap-2"><Map size={16}/> Relatório (Matriz ILUO)</div>
                 </button>
             </div>
 
@@ -242,8 +266,11 @@ export default function GestaoFormacoesRH() {
                         </div>
                     )}
                     
-                    {(viewMode === 'ativos' ? emCurso : historico).map(formacao => (
-                        <Card key={formacao.id} className="border-slate-200 hover:shadow-lg transition-all break-inside-avoid">
+                    {(viewMode === 'ativos' ? emCurso : historico).map(formacao => {
+                        const isVencida = viewMode === 'ativos' && formacao.status === 'Em Curso' && formacao.data_fim_estimada && new Date(formacao.data_fim_estimada).getTime() < new Date().getTime();
+                        
+                        return (
+                        <Card key={formacao.id} className={`hover:shadow-lg transition-all break-inside-avoid ${isVencida ? 'border-rose-300 shadow-sm shadow-rose-200' : 'border-slate-200'}`}>
                             <CardContent className="p-0">
                                 {/* Flex Row para Operadores */}
                                 <div className="flex flex-col md:flex-row border-b border-slate-100">
@@ -273,31 +300,52 @@ export default function GestaoFormacoesRH() {
                                     </div>
                                 </div>
                                 {/* Meta Data */}
-                                <div className="p-5 flex flex-col gap-4">
-                                    <div className="flex items-center gap-3">
-                                        <Badge variant="outline" className={`font-bold ${formacao.status === 'Em Curso' ? 'bg-blue-100 border-blue-400 text-blue-800 animate-pulse' : formacao.status === 'Concluída' ? 'bg-green-100 border-green-400 text-green-800' : 'bg-slate-100'}`}>{formacao.status}</Badge>
-                                        <div className="flex items-center text-sm font-bold text-slate-600 bg-slate-100 px-3 py-1 rounded">
-                                            <MapPin className="w-4 h-4 mr-2 text-slate-400" /> {formacao.estacao?.nome_estacao}
+                                {editModeId === formacao.id ? (
+                                    <div className="p-5 flex flex-col gap-4 bg-slate-50/50 border-t border-slate-100">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="text-[10px] font-bold text-slate-500 uppercase">Data Limite (Meta)</label>
+                                                <input type="date" value={editDataFim} onChange={e => setEditDataFim(e.target.value)} className="w-full h-9 px-2 border border-slate-300 rounded text-sm mt-1" />
+                                            </div>
+                                            <div>
+                                                <label className="text-[10px] font-bold text-slate-500 uppercase">Anotações do Plano</label>
+                                                <textarea value={editNotas} onChange={e => setEditNotas(e.target.value)} className="w-full h-16 p-2 border border-slate-300 rounded text-sm mt-1 resize-none" />
+                                            </div>
+                                        </div>
+                                        <div className="flex gap-2 mt-2">
+                                            <Button size="sm" onClick={() => handleSaveEdit(formacao.id)} className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold h-8 px-4 text-xs"><Save className="w-4 h-4 mr-2"/> Guardar</Button>
+                                            <Button size="sm" onClick={() => setEditModeId(null)} className="bg-slate-200 text-slate-700 hover:bg-slate-300 font-bold h-8 px-4 text-xs"><X className="w-4 h-4 mr-2"/> Cancelar</Button>
                                         </div>
                                     </div>
-                                    {formacao.notas_gerais && (
-                                        <p className="text-sm text-slate-500 italic border-l-2 border-blue-200 pl-3">"{formacao.notas_gerais}"</p>
-                                    )}
-                                    <div className="text-xs font-mono text-slate-400 flex items-center justify-between mt-2">
-                                        <span>Início: <strong className="text-slate-600">{new Date(formacao.data_inicio).toLocaleDateString('pt-PT')}</strong></span>
-                                        {viewMode === 'ativos' ? (
-                                            <div className="flex gap-2">
-                                                <Button size="sm" onClick={() => handleStatusChange(formacao.id, 'Concluída')} className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold h-7 px-3 text-[10px]">Aprovar ILUO (U)</Button>
-                                                <Button size="sm" onClick={() => handleStatusChange(formacao.id, 'Reprovada')} className="bg-rose-100 text-rose-700 hover:bg-rose-200 hover:text-rose-800 font-bold h-7 px-3 text-[10px]">Reprovar (I)</Button>
+                                ) : (
+                                    <div className="p-5 flex flex-col gap-4">
+                                        <div className="flex items-center gap-3">
+                                            <Badge variant="outline" className={`font-bold ${formacao.status === 'Em Curso' ? 'bg-blue-100 border-blue-400 text-blue-800 animate-pulse' : formacao.status === 'Concluída' ? 'bg-green-100 border-green-400 text-green-800' : 'bg-slate-100'}`}>{formacao.status}</Badge>
+                                            {isVencida && <Badge className="bg-rose-500 text-white animate-bounce-slow border-rose-600 shadow-sm"><ShieldAlert className="w-3 h-3 mr-1" /> ATRASADO</Badge>}
+                                            <div className="flex items-center text-sm font-bold text-slate-600 bg-slate-100 px-3 py-1 rounded ml-auto">
+                                                <MapPin className="w-4 h-4 mr-2 text-slate-400" /> {formacao.estacao?.nome_estacao}
                                             </div>
-                                        ) : (
-                                            <span>Fim: <strong className="text-slate-600">{formacao.data_fim ? new Date(formacao.data_fim).toLocaleDateString('pt-PT') : 'N/A'}</strong></span>
+                                        </div>
+                                        {formacao.notas_gerais && (
+                                            <p className="text-sm text-slate-500 italic border-l-2 border-blue-200 pl-3">"{formacao.notas_gerais}"</p>
                                         )}
+                                        <div className="text-xs font-mono text-slate-400 flex items-center justify-between mt-2">
+                                            <span>Início: <strong className="text-slate-600">{new Date(formacao.data_inicio).toLocaleDateString('pt-PT')}</strong></span>
+                                            {viewMode === 'ativos' ? (
+                                                <div className="flex gap-2">
+                                                    <Button size="sm" onClick={() => handleStatusChange(formacao.id, 'Concluída')} className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold h-7 px-3 text-[10px]">Aprovar ILUO (U)</Button>
+                                                    <Button size="sm" onClick={() => handleStatusChange(formacao.id, 'Reprovada')} className="bg-rose-100 text-rose-700 hover:bg-rose-200 hover:text-rose-800 font-bold h-7 px-3 text-[10px]">Reprovar (I)</Button>
+                                                    <Button size="sm" variant="ghost" className="h-7 px-2 text-slate-500 hover:bg-slate-100" onClick={() => { setEditModeId(formacao.id); setEditDataFim(formacao.data_fim_estimada || ""); setEditNotas(formacao.notas_gerais || ""); }}><Edit3 className="w-4 h-4"/></Button>
+                                                </div>
+                                            ) : (
+                                                <span>Fim: <strong className="text-slate-600">{formacao.data_fim ? new Date(formacao.data_fim).toLocaleDateString('pt-PT') : 'N/A'}</strong></span>
+                                            )}
+                                        </div>
                                     </div>
-                                </div>
+                                )}
                             </CardContent>
                         </Card>
-                    ))}
+                    )})}
                 </div>
             )}
 
@@ -400,6 +448,67 @@ export default function GestaoFormacoesRH() {
                                 })}
                             </div>
                         )}
+                    </div>
+                </div>
+            )}
+
+            {/* GLOBAL ILUO MATRIX */}
+            {viewMode === 'matriz' && (
+                <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm animate-in fade-in duration-700">
+                    <div className="flex justify-between items-end mb-8">
+                        <div>
+                            <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3"><Map className="text-emerald-500" /> Relatório ILUO (Matriz Global)</h2>
+                            <p className="text-slate-500 mt-1 font-medium">Cruzamento oficial de competências ativas de todos os operadores por Posto de Trabalho.</p>
+                        </div>
+                        <Button className="bg-slate-800 hover:bg-slate-700 font-bold" onClick={() => window.print()}>Imprimir Ficha</Button>
+                    </div>
+
+                    <div className="overflow-x-auto print:overflow-visible">
+                        <table className="w-full text-sm text-left border-collapse min-w-max">
+                            <thead>
+                                <tr>
+                                    <th className="bg-slate-100 text-slate-700 font-black p-3 border border-slate-200 sticky left-0 z-10 w-64 uppercase text-xs">Operador (RH)</th>
+                                    {matrizGlobal.estacoes.map(est => (
+                                        <th key={est.id} className="bg-slate-50 text-slate-600 font-bold p-3 border border-slate-200 text-center px-4 w-24">
+                                            <div className="text-[9px] uppercase text-slate-400 mb-1">{est.areas_fabrica?.nome_area}</div>
+                                            <div className="leading-tight">{est.nome_estacao}</div>
+                                        </th>
+                                    ))}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {matrizGlobal.operadores.map((op, index) => (
+                                    <tr key={op.operador_id} className="hover:bg-slate-50/50">
+                                        <td className="p-3 border border-slate-200 bg-white sticky left-0 font-medium">
+                                            <span className="text-xs font-mono text-slate-400 mr-2">{op.numero}</span>
+                                            {op.nome}
+                                        </td>
+                                        {matrizGlobal.estacoes.map(est => {
+                                            const val = op.skills[est.id];
+                                            let colorClass = "text-slate-300";
+                                            let bgClass = "bg-transparent";
+                                            if (val === 'I') { colorClass = "text-slate-800"; bgClass = "bg-slate-200 border-slate-400"; }
+                                            if (val === 'L') { colorClass = "text-amber-800"; bgClass = "bg-amber-100 border-amber-400"; }
+                                            if (val === 'U') { colorClass = "text-blue-800"; bgClass = "bg-blue-100 border-blue-400"; }
+                                            if (val === 'O') { colorClass = "text-emerald-800"; bgClass = "bg-emerald-100 border-emerald-400"; }
+                                            
+                                            // Empty cell logic
+                                            if (!val) {
+                                                return <td key={est.id} className="p-3 border border-slate-200 text-center"><span className="text-slate-200 text-xs">-</span></td>;
+                                            }
+
+                                            return (
+                                                <td key={est.id} className="p-1 border border-slate-200 text-center">
+                                                    <div className={`w-8 h-8 rounded shrink-0 mx-auto font-black flex items-center justify-center text-sm border-2 ${bgClass} ${colorClass}`}>
+                                                        {val}
+                                                    </div>
+                                                </td>
+                                            );
+                                        })}
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             )}

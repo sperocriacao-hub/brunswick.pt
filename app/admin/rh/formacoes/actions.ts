@@ -127,6 +127,20 @@ export async function atualizarStatusFormacao(id: string, novoStatus: string) {
     return { success: true };
 }
 
+export async function editarFormacao(id: string, data_fim_estimada: string, notas_gerais: string) {
+    const cookieStore = cookies();
+    const supabase = createClient(cookieStore);
+    
+    const { error } = await supabase
+        .from('rh_planos_formacao')
+        .update({ data_fim_estimada: data_fim_estimada || null, notas_gerais: notas_gerais || null, updated_at: new Date().toISOString() })
+        .eq('id', id);
+
+    if (error) return { success: false, error: error.message };
+    revalidatePath('/admin/rh/formacoes');
+    return { success: true };
+}
+
 // Predict Target ILUO for Frontend
 export async function preverEvolucaoILUO(operador_id: string, estacao_id: string) {
     if (!operador_id || !estacao_id) return null;
@@ -207,4 +221,49 @@ export async function listarEstacoesParaSelect() {
     const supabase = createClient(cookieStore);
     const { data } = await supabase.from('estacoes').select('id, nome_estacao, areas_fabrica(nome_area)').order('nome_estacao');
     return data || [];
+}
+
+export async function obterMatrizIluoGlobal() {
+    const cookieStore = cookies();
+    const supabase = createClient(cookieStore);
+    
+    // Obter todos os operadores ativos
+    const { data: operadores } = await supabase.from('operadores')
+        .select('id, nome_operador, numero_operador')
+        .eq('status', 'Ativo')
+        .order('nome_operador');
+        
+    // Obter todas as estações
+    const { data: estacoes } = await supabase.from('estacoes')
+        .select('id, nome_estacao, areas_fabrica(nome_area)')
+        .order('nome_estacao');
+        
+    // Obter a matriz ILUO inteira
+    const { data: matriz } = await supabase.from('operador_iluo_matriz')
+        .select('*');
+        
+    if (!operadores || !estacoes || !matriz) return { success: false, data: [] };
+    
+    // Construir o relatório para o frontend
+    // Mapeamos para cada operador, o seu nivel de habilidade em formato Dicionário { estacao_id: 'I' }
+    const result = operadores.map(op => {
+        const skillsDaPessoa = matriz.filter(m => m.operador_id === op.id);
+        const mapSkills: Record<string, string> = {};
+        skillsDaPessoa.forEach(s => mapSkills[s.estacao_id] = s.nivel_iluo);
+        
+        return {
+            operador_id: op.id,
+            nome: op.nome_operador,
+            numero: op.numero_operador,
+            skills: mapSkills
+        };
+    });
+    
+    return { 
+        success: true, 
+        data: {
+            operadores: result,
+            estacoes: estacoes
+        }
+    };
 }
