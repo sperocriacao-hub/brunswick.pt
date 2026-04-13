@@ -17,6 +17,10 @@ type RadarDashboardProps = {
 
 export default function RadarDashboardClient({ areas, linhas, estacoes, operadores, presencasRfid }: RadarDashboardProps) {
     const [searchQuery, setSearchQuery] = useState('');
+    const [filterArea, setFilterArea] = useState('Todas');
+    const [filterLinha, setFilterLinha] = useState('Todas');
+    const [filterEstacao, setFilterEstacao] = useState('Todas');
+
     const [selectedEstacao, setSelectedEstacao] = useState<any | null>(null);
     const [isStationModalOpen, setIsStationModalOpen] = useState(false);
 
@@ -84,8 +88,15 @@ export default function RadarDashboardClient({ areas, linhas, estacoes, operador
     
     // Filtragem Geral de Ocultar Vazias e Search
     const visibleAreas = areas.map(area => {
+        if (filterArea !== 'Todas' && area.id !== filterArea) {
+             return { ...area, filteredEstacoes: [] };
+        }
+
         const estacoesArea = estacoes.filter(e => e.area_id === area.id);
         const filteredEstacoes = estacoesArea.filter(est => {
+            if (filterEstacao !== 'Todas' && est.id !== filterEstacao) return false;
+            if (filterLinha !== 'Todas' && est.linha_id !== filterLinha) return false;
+
             const termo = searchQuery.toLowerCase();
             return est.nome_estacao.toLowerCase().includes(termo) || 
                    operadores.some(op => (op.posto_base_id === est.id || op.estacao_alocada_temporaria === est.id) && 
@@ -121,12 +132,53 @@ export default function RadarDashboardClient({ areas, linhas, estacoes, operador
                     </p>
                 </div>
 
-                <div className="flex bg-white p-2 rounded-lg border border-indigo-100 shadow-sm">
-                    <div className="relative w-full md:w-80">
+                <div className="flex flex-col md:flex-row gap-3 bg-white p-3 rounded-lg border border-indigo-100 shadow-sm w-full md:w-auto">
+                    <div className="flex w-full md:w-auto gap-2 flex-wrap md:flex-nowrap">
+                        <select
+                            value={filterArea}
+                            onChange={(e) => {
+                                setFilterArea(e.target.value);
+                                setFilterLinha('Todas');
+                                setFilterEstacao('Todas');
+                            }}
+                            className="flex-1 md:w-[150px] py-2 px-3 border border-slate-200 rounded-md text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 bg-slate-50"
+                        >
+                            <option value="Todas">Todas Áreas</option>
+                            {areas.map(a => <option key={a.id} value={a.id}>{a.nome_area}</option>)}
+                        </select>
+
+                        <select
+                            value={filterLinha}
+                            onChange={(e) => {
+                                setFilterLinha(e.target.value);
+                                setFilterEstacao('Todas');
+                            }}
+                            className="flex-1 md:w-[150px] py-2 px-3 border border-slate-200 rounded-md text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 bg-slate-50"
+                        >
+                            <option value="Todas">Todas Linhas</option>
+                            {linhas.map(l => <option key={l.id} value={l.id}>{l.descricao_linha}</option>)}
+                        </select>
+
+                        <select
+                            value={filterEstacao}
+                            onChange={(e) => setFilterEstacao(e.target.value)}
+                            className="flex-1 md:w-[180px] py-2 px-3 border border-slate-200 rounded-md text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 bg-slate-50"
+                        >
+                            <option value="Todas">Todas Estações</option>
+                            {estacoes
+                                .filter(e => filterArea === 'Todas' || e.area_id === filterArea)
+                                .filter(e => filterLinha === 'Todas' || e.linha_id === filterLinha)
+                                .map(e => <option key={e.id} value={e.id}>{e.nome_estacao}</option>)}
+                        </select>
+                    </div>
+
+                    <div className="h-px md:h-10 w-full md:w-px bg-slate-200"></div>
+
+                    <div className="relative w-full md:w-64">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-300" size={18} />
                         <input
                             type="text"
-                            placeholder="Buscar Estação ou Operário Ativo..."
+                            placeholder="Buscar Operário..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             className="w-full pl-10 pr-4 py-2 border-0 bg-transparent text-sm font-semibold text-indigo-900 placeholder:text-indigo-300 focus:outline-none focus:ring-0"
