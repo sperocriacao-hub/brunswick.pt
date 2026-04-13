@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { createClient } from '@/utils/supabase/client';
-import { Loader2, Search, UserPlus, Users, Edit, UserX, UserCheck, Shield, Repeat, X, Star, Save, MapPin } from 'lucide-react';
+import { Loader2, Search, UserPlus, Users, Edit, UserX, UserCheck, Shield, Repeat, X, Star, Save, MapPin, Radar } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -33,15 +33,22 @@ type AreaInfo = {
     nome_area: string;
 };
 
+type LinhaInfo = {
+    id: string;
+    descricao_linha: string;
+};
+
 export default function GestaoRHPage() {
     const supabase = createClient();
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(true);
     const [operadores, setOperadores] = useState<OperadorInfo[]>([]);
-    const [estacoes, setEstacoes] = useState<EstacaoInfo[]>([]);
+    const [estacoes, setEstacoes] = useState<any[]>([]);
     const [areas, setAreas] = useState<AreaInfo[]>([]);
+    const [linhas, setLinhas] = useState<LinhaInfo[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [filterArea, setFilterArea] = useState('Todas');
+    const [filterLinha, setFilterLinha] = useState('Todas');
     const [filterEstacao, setFilterEstacao] = useState('Todas');
 
     // Relocation Modal State
@@ -62,9 +69,11 @@ export default function GestaoRHPage() {
 
     useEffect(() => {
         const savedArea = sessionStorage.getItem('rh_filter_area');
+        const savedLinha = sessionStorage.getItem('rh_filter_linha');
         const savedEstacao = sessionStorage.getItem('rh_filter_estacao');
         const savedSearch = sessionStorage.getItem('rh_search_query');
         if (savedArea) setFilterArea(savedArea);
+        if (savedLinha) setFilterLinha(savedLinha);
         if (savedEstacao) setFilterEstacao(savedEstacao);
         if (savedSearch) setSearchQuery(savedSearch);
         setIsHydrated(true);
@@ -73,9 +82,10 @@ export default function GestaoRHPage() {
     useEffect(() => {
         if (!isHydrated) return;
         sessionStorage.setItem('rh_filter_area', filterArea);
+        sessionStorage.setItem('rh_filter_linha', filterLinha);
         sessionStorage.setItem('rh_filter_estacao', filterEstacao);
         sessionStorage.setItem('rh_search_query', searchQuery);
-    }, [filterArea, filterEstacao, searchQuery, isHydrated]);
+    }, [filterArea, filterLinha, filterEstacao, searchQuery, isHydrated]);
 
     const carregarEquipa = async () => {
         setIsLoading(true);
@@ -101,21 +111,26 @@ export default function GestaoRHPage() {
             }
         }
 
-        const [{ data: ops }, { data: ests }, { data: ars }] = await Promise.all([
+        const [{ data: ops }, { data: ests }, { data: ars }, { data: lins }] = await Promise.all([
             queryOps,
             supabase
                 .from('estacoes')
-                .select('id, nome_estacao, area_id')
+                .select('id, nome_estacao, area_id, linha_id')
                 .order('nome_estacao'),
             supabase
                 .from('areas_fabrica')
                 .select('id, nome_area')
-                .order('nome_area')
+                .order('nome_area'),
+            supabase
+                .from('linhas_producao')
+                .select('id, descricao_linha')
+                .order('descricao_linha')
         ]);
 
         if (ops) setOperadores(ops);
         if (ests) setEstacoes(ests);
         if (ars) setAreas(ars);
+        if (lins) setLinhas(lins);
         setIsLoading(false);
     };
 
@@ -169,7 +184,11 @@ export default function GestaoRHPage() {
         const areaMatch = filterArea === 'Todas' || op.area_base_id === filterArea;
         const estacaoMatch = filterEstacao === 'Todas' || op.posto_base_id === filterEstacao || op.estacao_alocada_temporaria === filterEstacao;
 
-        return textMatch && areaMatch && estacaoMatch;
+        const opEstacoesTarget = op.em_realocacao ? op.estacao_alocada_temporaria : op.posto_base_id;
+        const estacaoObj = estacoes.find(e => e.id === opEstacoesTarget);
+        const linhaMatch = filterLinha === 'Todas' || (estacaoObj && estacaoObj.linha_id === filterLinha);
+
+        return textMatch && areaMatch && estacaoMatch && linhaMatch;
     });
 
     return (
@@ -183,6 +202,9 @@ export default function GestaoRHPage() {
                     <p className="text-slate-500 font-medium">Controlo Cadastral, Permissões M.E.S e Níveis ILUO.</p>
                 </div>
                 <div className="flex gap-3">
+                    <Link href="/admin/rh/radar" className="bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100/80 px-4 py-2 rounded-md font-bold transition-colors flex gap-2 items-center shadow-sm">
+                        <Radar size={18} /> Radar Shopfloor
+                    </Link>
                     <Link href="/admin/rh/bussola" className="bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 px-4 py-2 rounded-md font-bold transition-colors flex gap-2 items-center shadow-sm">
                         <MapPin size={18} /> Bússola (Andon)
                     </Link>
@@ -204,27 +226,41 @@ export default function GestaoRHPage() {
                     />
                 </div>
                 
-                <div className="flex w-full md:w-auto gap-3">
+                <div className="flex w-full md:w-auto gap-3 flex-wrap">
                     <select
                         value={filterArea}
                         onChange={(e) => {
                             setFilterArea(e.target.value);
-                            setFilterEstacao('Todas'); // Reseta a sub-estação ao mudar de área
+                            setFilterLinha('Todas');
+                            setFilterEstacao('Todas'); // Reseta a sub-estação/linha ao mudar de área
                         }}
-                        className="flex-1 md:w-[180px] py-2 pl-3 pr-8 border border-slate-200 rounded-md text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 appearance-none bg-slate-50"
+                        className="flex-1 min-w-[150px] py-2 pl-3 pr-8 border border-slate-200 rounded-md text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 appearance-none bg-slate-50"
                     >
                         <option value="Todas">Todas as Áreas</option>
                         {areas.map(a => <option key={a.id} value={a.id}>{a.nome_area}</option>)}
                     </select>
 
                     <select
+                        value={filterLinha}
+                        onChange={(e) => {
+                            setFilterLinha(e.target.value);
+                            setFilterEstacao('Todas'); // Reseta a estação ao mudar o scope de linha
+                        }}
+                        className="flex-1 min-w-[150px] py-2 pl-3 pr-8 border border-slate-200 rounded-md text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 appearance-none bg-slate-50"
+                    >
+                        <option value="Todas">Todas as Linhas</option>
+                        {linhas.map(l => <option key={l.id} value={l.id}>{l.descricao_linha}</option>)}
+                    </select>
+
+                    <select
                         value={filterEstacao}
                         onChange={(e) => setFilterEstacao(e.target.value)}
-                        className="flex-1 md:w-[200px] py-2 pl-3 pr-8 border border-slate-200 rounded-md text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 appearance-none bg-slate-50"
+                        className="flex-1 min-w-[180px] py-2 pl-3 pr-8 border border-slate-200 rounded-md text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 appearance-none bg-slate-50"
                     >
                         <option value="Todas">Todas as Estações</option>
                         {estacoes
                             .filter(e => filterArea === 'Todas' || e.area_id === filterArea)
+                            .filter(e => filterLinha === 'Todas' || e.linha_id === filterLinha)
                             .map(e => <option key={e.id} value={e.id}>{e.nome_estacao}</option>)}
                     </select>
                 </div>
