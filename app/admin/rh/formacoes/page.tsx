@@ -124,6 +124,11 @@ export default function GestaoFormacoesRH() {
     const emCurso = formacoes.filter(f => f.status === 'Em Curso' || f.status === 'Planeado');
     const historico = formacoes.filter(f => f.status !== 'Em Curso' && f.status !== 'Planeado');
 
+    // Derived state for Matrix Filters
+    const allAreas = viewMode === 'matriz' ? (Array.from(new Set(matrizGlobal.estacoes.map(e => e.areas_fabrica?.nome_area).filter(Boolean))) as string[]) : [];
+    const filteredEstacoes = matrizFilterArea === "Todas" ? matrizGlobal.estacoes : matrizGlobal.estacoes.filter(e => e.areas_fabrica?.nome_area === matrizFilterArea);
+    const filteredOperadores = viewMode === 'matriz' ? matrizGlobal.operadores.filter(op => filteredEstacoes.some(est => op.skills[est.id])) : [];
+
     if (isLoading) return <div className="p-10 text-center animate-pulse text-indigo-500 font-mono font-bold">A carregar Academia Fabril...</div>;
 
     return (
@@ -457,13 +462,7 @@ export default function GestaoFormacoesRH() {
             )}
 
             {/* GLOBAL ILUO MATRIX */}
-            {viewMode === 'matriz' && (() => {
-                // Derived state for Matrix Filters
-                const allAreas = Array.from(new Set(matrizGlobal.estacoes.map(e => e.areas_fabrica?.nome_area).filter(Boolean))) as string[];
-                const filteredEstacoes = matrizFilterArea === "Todas" ? matrizGlobal.estacoes : matrizGlobal.estacoes.filter(e => e.areas_fabrica?.nome_area === matrizFilterArea);
-                const filteredOperadores = matrizGlobal.operadores.filter(op => filteredEstacoes.some(est => op.skills[est.id]));
-
-                return (
+            {viewMode === 'matriz' && (
                 <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm animate-in fade-in duration-700 print:p-0 print:border-none print:shadow-none print-matrix-container">
                     {/* Inject Print Styles globally when in this mode */}
                     <style dangerouslySetInnerHTML={{__html:`
@@ -554,8 +553,7 @@ export default function GestaoFormacoesRH() {
                         )}
                     </div>
                 </div>
-                );
-            })}
+            )}
         </div>
     );
 }
