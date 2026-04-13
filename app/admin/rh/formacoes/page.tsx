@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { 
     listarFormacoes, criarPlanoFormacao, atualizarStatusFormacao, 
     obterTopFormadores, listarFormadoresParaSelect, listarEstacoesParaSelect,
-    preverEvolucaoILUO, editarFormacao, obterMatrizIluoGlobal, PlanoFormacao 
+    preverEvolucaoILUO, editarFormacao, obterMatrizIluoGlobal, PlanoFormacao, excluirFormacao
 } from './actions';
 
 export default function GestaoFormacoesRH() {
@@ -118,6 +118,16 @@ export default function GestaoFormacoesRH() {
             await carregarDashboard();
         } else {
             alert("Erro ao editar plano: " + res.error);
+        }
+    };
+
+    const handleDelete = async (id: string) => {
+        if (!confirm("Tem certeza que deseja apagar este registo permanentemente?")) return;
+        const res = await excluirFormacao(id);
+        if (res.success) {
+            await carregarDashboard();
+        } else {
+            alert('Erro ao excluir: ' + res.error);
         }
     };
 
@@ -345,6 +355,7 @@ export default function GestaoFormacoesRH() {
                                                     <Button size="sm" onClick={() => handleStatusChange(formacao.id, 'Concluída')} className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold h-7 px-3 text-[10px]">Aprovar ILUO (U)</Button>
                                                     <Button size="sm" onClick={() => handleStatusChange(formacao.id, 'Reprovada')} className="bg-rose-100 text-rose-700 hover:bg-rose-200 hover:text-rose-800 font-bold h-7 px-3 text-[10px]">Reprovar (I)</Button>
                                                     <Button size="sm" variant="ghost" className="h-7 px-2 text-slate-500 hover:bg-slate-100" onClick={() => { setEditModeId(formacao.id); setEditDataFim(formacao.data_fim_estimada || ""); setEditNotas(formacao.notas_gerais || ""); }}><Edit3 className="w-4 h-4"/></Button>
+                                                    <Button size="sm" variant="ghost" className="h-7 px-2 text-rose-500 hover:bg-rose-50" onClick={() => handleDelete(formacao.id)}><X className="w-4 h-4"/></Button>
                                                 </div>
                                             ) : (
                                                 <span>Fim: <strong className="text-slate-600">{formacao.data_fim ? new Date(formacao.data_fim).toLocaleDateString('pt-PT') : 'N/A'}</strong></span>
