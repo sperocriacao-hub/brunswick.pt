@@ -141,6 +141,21 @@ export async function editarFormacao(id: string, data_fim_estimada: string, nota
     return { success: true };
 }
 
+export async function excluirFormacao(id: string) {
+    const cookieStore = cookies();
+    const supabase = createClient(cookieStore);
+    
+    const { error } = await supabase
+        .from('rh_planos_formacao')
+        .delete()
+        .eq('id', id);
+
+    if (error) return { success: false, error: error.message };
+    
+    revalidatePath('/admin/rh/formacoes');
+    return { success: true };
+}
+
 // Predict Target ILUO for Frontend
 export async function preverEvolucaoILUO(operador_id: string, estacao_id: string) {
     if (!operador_id || !estacao_id) return null;
