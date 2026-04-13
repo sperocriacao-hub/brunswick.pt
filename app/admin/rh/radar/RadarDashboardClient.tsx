@@ -194,12 +194,35 @@ export default function RadarDashboardClient({ areas, linhas, estacoes, operador
 
             {/* HEATMAP / GRELHA DAS ÁREAS */}
             <div className="space-y-6">
-                {visibleAreas.map(area => (
+                {visibleAreas.map(area => {
+                    let areaContratados = 0;
+                    let areaPresentesHoje = 0;
+
+                    area.filteredEstacoes.forEach((est: any) => {
+                        const m = getOperatorsForStation(est.id);
+                        areaContratados += m.headCountBase;
+                        areaPresentesHoje += m.presentCount;
+                    });
+
+                    return (
                     <div key={area.id} className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
-                        <h2 className="text-xl font-bold flex items-center gap-2 text-slate-800 mb-6 uppercase tracking-wider">
-                            <Factory size={20} className="text-slate-400" />
-                            {area.nome_area}
-                        </h2>
+                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 pb-4 border-b border-slate-100 gap-4">
+                            <h2 className="text-xl font-bold flex items-center gap-2 text-slate-800 uppercase tracking-wider">
+                                <Factory size={20} className="text-slate-400" />
+                                {area.nome_area}
+                            </h2>
+                            <div className="flex items-center gap-4 bg-slate-50 px-4 py-2 rounded-lg border border-slate-200 shadow-sm">
+                                <div className="text-center md:text-right">
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Contratos Base</span>
+                                    <span className="text-lg font-black text-slate-700">{areaContratados}</span>
+                                </div>
+                                <div className="h-6 w-px bg-slate-300"></div>
+                                <div className="text-center md:text-right">
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Força Presente</span>
+                                    <span className="text-lg font-black text-emerald-600">{areaPresentesHoje}</span>
+                                </div>
+                            </div>
+                        </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                             {area.filteredEstacoes.map((est: any) => {
@@ -277,7 +300,8 @@ export default function RadarDashboardClient({ areas, linhas, estacoes, operador
                             })}
                         </div>
                     </div>
-                ))}
+                );
+            })}
             </div>
 
             {/* ZOOM MODAL - MANIFESTO DA ESTAÇÃO */}
