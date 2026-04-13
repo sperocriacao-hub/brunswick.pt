@@ -52,6 +52,15 @@ export async function submitGembaAction(walkId: string, areaId: string, observat
             }]);
 
         if (error) throw error;
+
+        // Marcar o Gemba Walk como resolvido/delegado
+        const { error: walkError } = await supabase
+            .from("lean_gemba_walks")
+            .update({ resolvido: true })
+            .eq("id", walkId);
+
+        if (walkError) throw walkError;
+
         return { success: true };
     } catch (e: any) {
         return { success: false, error: e.message };

@@ -14,6 +14,7 @@ export default function GembaWalksPage() {
     const [walks, setWalks] = useState<any[]>([]);
     const [areas, setAreas] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [activeTab, setActiveTab] = useState<'abertas' | 'historico'>('abertas');
 
     // Modal State
     const [isNewWalkModalOpen, setIsNewWalkModalOpen] = useState(false);
@@ -63,12 +64,15 @@ export default function GembaWalksPage() {
         setIsCreatingAction(true);
         const res = await submitGembaAction(walk.id, walk.area_auditada_id, walk.oportunidades_melhoria || walk.observacoes);
         if (res.success) {
-            alert("Ação Lean gerada a partir desta Ronda e colocada na listagem 'To Do' (Fila de Trabalho).");
+            alert("Ação Lean gerada a partir desta Ronda! A ronda foi movida para o histórico.");
+            carregarDados();
         } else {
             alert("Erro ao gerar a Acão Lean: " + res.error);
         }
         setIsCreatingAction(false);
     };
+
+    const filtradas = walks.filter(w => activeTab === 'abertas' ? !w.resolvido : w.resolvido);
 
     return (
         <div className="p-8 space-y-8 pb-32 max-w-[1200px] mx-auto animate-in fade-in zoom-in-95 duration-500 bg-slate-50/50 min-h-screen">
@@ -84,18 +88,33 @@ export default function GembaWalksPage() {
                 </Button>
             </header>
 
+            <div className="flex space-x-2 border-b border-slate-200">
+                <button
+                    onClick={() => setActiveTab('abertas')}
+                    className={`flex items-center gap-2 px-6 py-3 font-semibold text-sm transition-colors border-b-2 ${activeTab === 'abertas' ? 'border-blue-600 text-blue-700 bg-blue-50/50' : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-white'}`}
+                >
+                    <Footprints size={16} /> Rondas Em Aberto
+                </button>
+                <button
+                    onClick={() => setActiveTab('historico')}
+                    className={`flex items-center gap-2 px-6 py-3 font-semibold text-sm transition-colors border-b-2 ${activeTab === 'historico' ? 'border-slate-600 text-slate-700 bg-slate-50/50' : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-white'}`}
+                >
+                    <CheckCircle2 size={16} /> Histórico de Inspeções
+                </button>
+            </div>
+
             {loading ? (
                 <div className="p-12 flex justify-center"><Loader2 className="w-8 h-8 text-blue-500 animate-spin" /></div>
-            ) : walks.length === 0 ? (
+            ) : filtradas.length === 0 ? (
                 <div className="p-12 text-center text-slate-500 border-2 border-dashed border-slate-200 rounded-xl bg-white">
-                    Nenhuma Ronda Gemba registada até ao momento.
+                    Nenhuma Ronda encontrada neste separador.
                 </div>
             ) : (
                 <div className="space-y-4 relative">
                     {/* Linha do tempo visual */}
                     <div className="absolute left-[27px] top-6 bottom-6 w-1 bg-blue-100 rounded-full z-0 hidden md:block"></div>
 
-                    {walks.map((w, i) => (
+                    {filtradas.map((w, i) => (
                         <div key={w.id} className="flex gap-6 relative z-10 w-full group">
                             {/* Dot */}
                             <div className="hidden md:flex w-14 h-14 shrink-0 mt-2 bg-white rounded-full border-4 border-blue-100 items-center justify-center shadow-sm group-hover:border-blue-400 group-hover:bg-blue-50 transition-colors">
@@ -138,15 +157,23 @@ export default function GembaWalksPage() {
                                     </div>
 
                                     <div className="mt-4 pt-4 border-t border-slate-100 flex justify-end">
-                                        <Button
-                                            variant="outline"
-                                            disabled={isCreatingAction}
-                                            onClick={() => handleDirectActionCreation(w)}
-                                            className="text-xs font-bold border-indigo-200 text-indigo-700 hover:bg-indigo-50 leading-none h-8"
-                                        >
-                                            {isCreatingAction ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <PlaySquare className="w-3 h-3 mr-1" />}
-                                            Delegar para "Lean Ações"
-                                        </Button>
+                                        {!w.resolvido && (
+                                            <Button
+                                                variant="outline"
+                                                disabled={isCreatingAction}
+                                                onClick={() => handleDirectActionCreation(w)}
+                                                className="text-xs font-bold border-indigo-200 text-indigo-700 hover:bg-indigo-50 leading-none h-8"
+                                            >
+                                                {isCreatingAction ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <PlaySquare className="w-3 h-3 mr-1" />}
+                                                Delegar para "Lean Ações"
+                                            </Button>
+                                        )}
+                                        {w.resolvido && (
+                                            <span className="text-xs font-bold text-slate-400 border border-slate-200 px-3 py-1.5 rounded bg-slate-50 flex items-center">
+                                                <CheckCircle2 className="w-3 h-3 mr-1" />
+                                                Devidamente Tratado (Arquivado)
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
                             </Card>
