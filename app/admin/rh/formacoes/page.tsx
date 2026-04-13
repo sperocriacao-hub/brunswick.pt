@@ -186,9 +186,8 @@ export default function GestaoFormacoesRH() {
                                         {estacoesList.map(e => <option key={e.id} value={e.id}>{e.areas_fabrica?.nome_area} » {e.nome_estacao}</option>)}
                                     </select>
                                 </div>
-                                </div>
                             </div>
-
+                            
                             {/* Intelligent Section */}
                             {iluoPrediction && (
                                 <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-xl flex items-center justify-between animate-in fade-in zoom-in duration-300">
