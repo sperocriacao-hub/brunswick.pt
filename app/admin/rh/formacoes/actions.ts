@@ -13,6 +13,7 @@ export type PlanoFormacao = {
     estacao_id: string;
     estacao: { nome_estacao: string };
     data_inicio: string;
+    data_fim_estimada: string | null;
     data_fim: string | null;
     status: 'Planeado' | 'Em Curso' | 'Concluída' | 'Reprovada' | 'Suspensa';
     notas_gerais: string | null;
@@ -46,6 +47,7 @@ export async function criarPlanoFormacao(dto: {
     formador_id: string;
     estacao_id: string;
     data_inicio: string;
+    data_fim_estimada?: string;
     notas_gerais?: string;
 }) {
     const cookieStore = cookies();
@@ -59,6 +61,7 @@ export async function criarPlanoFormacao(dto: {
             formador_id: dto.formador_id,
             estacao_id: dto.estacao_id,
             data_inicio: dto.data_inicio,
+            data_fim_estimada: dto.data_fim_estimada || null,
             notas_gerais: dto.notas_gerais || null,
             status: 'Em Curso' // Começa automaticamente
         });
@@ -88,9 +91,61 @@ export async function atualizarStatusFormacao(id: string, novoStatus: string) {
 
     if (error) return { success: false, error: error.message };
     
-    // Se foi concluída com sucesso, poderiamos auto-atribuir o ILUO (U), mas por enquanto só guardamos.
+    // Se foi concluída com sucesso, escalar o Nível ILUO (Gamification)
+    if (novoStatus === 'Concluída') {
+        // Obter formação para terIDs
+        const { data: formacao } = await supabase.from('rh_planos_formacao').select('formando_id, estacao_id').eq('id', id).single();
+        if (formacao) {
+            // Obter nivel atual
+            const { data: matrixData } = await supabase.from('operador_iluo_matriz')
+                .select('nivel_iluo')
+                .eq('operador_id', formacao.formando_id)
+                .eq('estacao_id', formacao.estacao_id)
+                .single();
+                
+            let targetNivel = 'I';
+            let exists = !!matrixData;
+            
+            if (matrixData?.nivel_iluo === 'I') targetNivel = 'L';
+            else if (matrixData?.nivel_iluo === 'L') targetNivel = 'U';
+            else if (matrixData?.nivel_iluo === 'U') targetNivel = 'O';
+            else if (matrixData?.nivel_iluo === 'O') targetNivel = 'O'; // Maxout
+            
+            if (exists) {
+                await supabase.from('operador_iluo_matriz')
+                    .update({ nivel_iluo: targetNivel, avaliador_nome: 'Academia Fabril (Aprovação)', data_avaliacao: new Date().toISOString() })
+                    .eq('operador_id', formacao.formando_id)
+                    .eq('estacao_id', formacao.estacao_id);
+            } else {
+                await supabase.from('operador_iluo_matriz')
+                    .insert({ operador_id: formacao.formando_id, estacao_id: formacao.estacao_id, nivel_iluo: targetNivel, avaliador_nome: 'Academia Fabril (Inicial)' });
+            }
+        }
+    }
+
     revalidatePath('/admin/rh/formacoes');
     return { success: true };
+}
+
+// Predict Target ILUO for Frontend
+export async function preverEvolucaoILUO(operador_id: string, estacao_id: string) {
+    if (!operador_id || !estacao_id) return null;
+    const cookieStore = cookies();
+    const supabase = createClient(cookieStore);
+    
+    const { data: matrixData } = await supabase.from('operador_iluo_matriz')
+        .select('nivel_iluo')
+        .eq('operador_id', operador_id)
+        .eq('estacao_id', estacao_id)
+        .single();
+        
+    let current = matrixData?.nivel_iluo || 'Nenhum';
+    let target = 'I';
+    if (matrixData?.nivel_iluo === 'I') target = 'L';
+    else if (matrixData?.nivel_iluo === 'L') target = 'U';
+    else if (matrixData?.nivel_iluo === 'U' || matrixData?.nivel_iluo === 'O') target = 'O';
+
+    return { current, target };
 }
 
 export async function obterTopFormadores() {

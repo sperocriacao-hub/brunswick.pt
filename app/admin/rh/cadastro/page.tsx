@@ -63,6 +63,9 @@ function FuncionarioFormCore() {
     
     // Novo State para ILUO Relacional Múltiplo
     const [iluoList, setIluoList] = useState<{estacao_id: string, nivel_iluo: string, avaliador_nome: string, data_avaliacao: string}[]>([]);
+    
+    // State para Histórico/Roadmap de Formações
+    const [historicoFormacoes, setHistoricoFormacoes] = useState<any[]>([]);
 
     useEffect(() => {
         // Carregar Estações (Para Alocação do Posto de Trabalho M.E.S)
@@ -138,6 +141,13 @@ function FuncionarioFormCore() {
                         })));
                     }
                 });
+
+            // Carregar Histórico e Roadmap de Formações
+            supabase.from('rh_planos_formacao')
+                .select('*, estacao:estacoes(nome_estacao), formador:operadores!formador_id(nome_operador)')
+                .eq('formando_id', id)
+                .order('data_inicio', { ascending: false })
+                .then(({ data }) => setHistoricoFormacoes(data || []));
 
             // Carregar e calcular Média Histórica de Avaliações em tempo real (Garante a precisão)
             Promise.all([
@@ -669,11 +679,51 @@ function FuncionarioFormCore() {
                                 </div>
                             </div>
 
-                            <div className="relative">
+                            <div className="relative mt-6">
                                 <label className="block text-xs font-semibold text-slate-600 mb-1">Anotações da Liderança Fabril / RH</label>
                                 <textarea rows={5} value={formData.notas_rh} onChange={e => setFormData({ ...formData, notas_rh: e.target.value })} className={`${inputClass} resize-none h-32 focus:bg-white`} placeholder="Registo de advertências, progressões ou absentismo grave..." />
                             </div>
                         </div>
+
+                        {/* Roadmap de Formações (Academia Fabril) */}
+                        {id && (
+                            <div className="lg:col-span-3 mt-6 pt-6 border-t border-slate-100">
+                                <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4 flex items-center justify-between">
+                                    <span>Roadmap de Capacitação & Formação Oficial (P.I.P / Academia)</span>
+                                    <Badge className="bg-purple-100 text-purple-700 hover:bg-purple-200">{historicoFormacoes.length} Registos</Badge>
+                                </h3>
+                                
+                                {historicoFormacoes.length === 0 ? (
+                                    <div className="p-8 text-center bg-slate-50 border border-slate-200 rounded-xl">
+                                        <p className="text-slate-500 font-medium text-sm">Sem histórico de capacitação na Academia.</p>
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                        {historicoFormacoes.map(f => (
+                                            <div key={f.id} className="bg-white border hover:border-purple-300 border-slate-200 rounded-xl p-4 shadow-sm transition-all group">
+                                                <div className="flex justify-between items-start mb-3">
+                                                    <div>
+                                                        <h4 className="font-black text-slate-800 text-sm group-hover:text-purple-700 transition-colors uppercase">
+                                                            {f.estacao?.nome_estacao}
+                                                        </h4>
+                                                        <p className="text-[10px] text-slate-500 font-bold uppercase mt-1">Formador: {f.formador?.nome_operador}</p>
+                                                    </div>
+                                                    <Badge variant="outline" className={`font-bold text-[9px] uppercase ${f.status === 'Concluída' ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : f.status === 'Em Curso' ? 'bg-blue-100 text-blue-800 border-blue-300 animate-pulse' : 'bg-slate-100 text-slate-600'}`}>
+                                                        {f.status}
+                                                    </Badge>
+                                                </div>
+
+                                                <div className="flex gap-2 text-[10px] items-center text-slate-400 font-mono mt-4 pt-4 border-t border-slate-100">
+                                                    <span>Início: <strong className="text-slate-600 font-sans">{new Date(f.data_inicio).toLocaleDateString('pt-PT')}</strong></span>
+                                                    <span>•</span>
+                                                    <span>Alvo/Fim: <strong className="text-purple-600 font-sans">{f.data_fim_estimada ? new Date(f.data_fim_estimada).toLocaleDateString('pt-PT') : (f.data_fim ? new Date(f.data_fim).toLocaleDateString('pt-PT') : 'N/A')}</strong></span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </section>
 

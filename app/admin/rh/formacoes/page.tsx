@@ -8,11 +8,11 @@ import { Badge } from "@/components/ui/badge";
 import { 
     listarFormacoes, criarPlanoFormacao, atualizarStatusFormacao, 
     obterTopFormadores, listarFormadoresParaSelect, listarEstacoesParaSelect,
-    PlanoFormacao 
+    preverEvolucaoILUO, PlanoFormacao 
 } from './actions';
 
 export default function GestaoFormacoesRH() {
-    const [viewMode, setViewMode] = useState<'ativos' | 'historico' | 'ranking'>('ativos');
+    const [viewMode, setViewMode] = useState<'ativos' | 'historico' | 'ranking' | 'gantt'>('ativos');
     const [formacoes, setFormacoes] = useState<PlanoFormacao[]>([]);
     const [topFormadores, setTopFormadores] = useState<{nome: string, rating: string, votos: number}[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -26,7 +26,9 @@ export default function GestaoFormacoesRH() {
     const [newFormando, setNewFormando] = useState("");
     const [newFormador, setNewFormador] = useState("");
     const [newEstacao, setNewEstacao] = useState("");
+    const [newDataFimPlaneada, setNewDataFimPlaneada] = useState("");
     const [newNotes, setNewNotes] = useState("");
+    const [iluoPrediction, setIluoPrediction] = useState<{current: string, target: string} | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
@@ -47,8 +49,23 @@ export default function GestaoFormacoesRH() {
         
         setOperadoresList(resOps);
         setEstacoesList(resEsts);
+        
+        // Predição inicial baseada em datas
+        const d = new Date();
+        d.setDate(d.getDate() + 14); // default 2 semanas
+        setNewDataFimPlaneada(d.toISOString().split('T')[0]);
+        
         setIsLoading(false);
     };
+
+    // Efeito para prever nível ILUO assim que o operador e a estação sejam selecionados
+    useEffect(() => {
+        if (newFormando && newEstacao) {
+            preverEvolucaoILUO(newFormando, newEstacao).then(res => setIluoPrediction(res));
+        } else {
+            setIluoPrediction(null);
+        }
+    }, [newFormando, newEstacao]);
 
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -60,6 +77,7 @@ export default function GestaoFormacoesRH() {
             formador_id: newFormador,
             estacao_id: newEstacao,
             data_inicio: new Date().toISOString().split('T')[0],
+            data_fim_estimada: newDataFimPlaneada,
             notas_gerais: newNotes
         };
 
@@ -125,6 +143,12 @@ export default function GestaoFormacoesRH() {
                     <div className="flex items-center gap-2"><CheckCircle size={16}/> Histórico ILUO</div>
                 </button>
                 <button 
+                    onClick={() => setViewMode('gantt')}
+                    className={`px-5 py-2.5 text-sm font-bold rounded-t-xl transition-all border-b-2 ${viewMode === 'gantt' ? 'bg-white border-purple-600 text-purple-700 shadow-sm' : 'bg-slate-100 border-transparent text-slate-500 hover:bg-slate-200'}`}
+                >
+                    <div className="flex items-center gap-2"><Calendar size={16}/> Roadmap Tático (Gantt)</div>
+                </button>
+                <button 
                     onClick={() => setViewMode('ranking')}
                     className={`px-5 py-2.5 text-sm font-bold rounded-t-xl transition-all border-b-2 ${viewMode === 'ranking' ? 'bg-indigo-900 border-indigo-500 text-indigo-100 shadow-sm' : 'bg-slate-100 border-transparent text-slate-500 hover:bg-slate-200'}`}
                 >
@@ -162,10 +186,43 @@ export default function GestaoFormacoesRH() {
                                         {estacoesList.map(e => <option key={e.id} value={e.id}>{e.areas_fabrica?.nome_area} » {e.nome_estacao}</option>)}
                                     </select>
                                 </div>
+                                </div>
                             </div>
-                            <div className="space-y-2">
-                                <label className="text-xs font-bold text-slate-500 uppercase">Anotações Preliminares do RH</label>
-                                <textarea value={newNotes} onChange={e => setNewNotes(e.target.value)} placeholder="Ex: Este jovem precisa de aprender a coser cabedal primeiro..." className="w-full h-24 p-3 border border-slate-300 rounded-lg resize-none" />
+
+                            {/* Intelligent Section */}
+                            {iluoPrediction && (
+                                <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-xl flex items-center justify-between animate-in fade-in zoom-in duration-300">
+                                    <div className="flex items-center gap-4">
+                                        <div className="bg-emerald-100 p-2 rounded-lg"><Crosshair className="text-emerald-600" /></div>
+                                        <div>
+                                            <h4 className="font-bold text-emerald-900">Previsão de Crescimento ILUO</h4>
+                                            <p className="text-sm text-emerald-700">Com base no currículo atual do operário nesta estação.</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        <div className="text-center bg-slate-100 rounded-lg px-4 py-2 border border-slate-200">
+                                            <span className="block text-[10px] uppercase font-bold text-slate-500">Atual</span>
+                                            <span className="block font-black text-xl text-slate-700">{iluoPrediction.current}</span>
+                                        </div>
+                                        <div className="text-emerald-500 font-bold">➔</div>
+                                        <div className="text-center bg-emerald-500 rounded-lg px-4 py-2 border border-emerald-600 shadow-sm">
+                                            <span className="block text-[10px] uppercase font-bold text-emerald-100">Meta</span>
+                                            <span className="block font-black text-xl text-white">{iluoPrediction.target}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-slate-500 uppercase">Anotações Preliminares do RH</label>
+                                    <textarea value={newNotes} onChange={e => setNewNotes(e.target.value)} placeholder="Ex: Este jovem precisa de aprender a coser cabedal primeiro..." className="w-full h-24 p-3 border border-slate-300 rounded-lg resize-none" />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-purple-600 uppercase flex items-center gap-1"><Calendar size={14} /> Data Limite Estimada (Meta)</label>
+                                    <input type="date" required value={newDataFimPlaneada} onChange={e => setNewDataFimPlaneada(e.target.value)} className="w-full h-11 px-3 border border-purple-200 bg-purple-50 rounded-lg focus:ring-2 focus:ring-purple-500 font-bold text-purple-900" />
+                                    <p className="text-[10px] text-slate-400 mt-1 uppercase font-bold tracking-widest">Usado no Gráfico de Roadmap</p>
+                                </div>
                             </div>
                             <div className="flex gap-4 pt-4 border-t border-slate-100">
                                 <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700 font-bold" disabled={isSubmitting}>{isSubmitting ? "A Registar..." : "Lançar Plano de Formação"}</Button>
@@ -278,6 +335,71 @@ export default function GestaoFormacoesRH() {
                                     </div>
                                 </div>
                             ))
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {/* ROADMAP GANTT CHART (Visão Tática) */}
+            {viewMode === 'gantt' && (
+                <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm animate-in fade-in duration-700 overflow-x-auto">
+                    <div className="mb-8">
+                        <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3"><Calendar className="text-purple-500" /> Timeline & Roadmap de Ensino</h2>
+                        <p className="text-slate-500 mt-1 font-medium">Cronograma dos mestres e aprendizes no piso fabril. Usado para não sobrecarregar as linhas de produção com excesso de treinos simultâneos.</p>
+                    </div>
+
+                    <div className="min-w-[800px]">
+                        {emCurso.length === 0 ? (
+                            <div className="p-10 text-center border-2 border-dashed border-slate-200 rounded-2xl">
+                                <ShieldAlert className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+                                <span className="text-slate-500 font-bold">Sem operações de treino a circular na fábrica neste momento.</span>
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+                                {emCurso.map((f, i) => {
+                                    // Math to calculate Gantt bar position relative to current month window
+                                    const now = new Date();
+                                    const start = new Date(f.data_inicio);
+                                    const end = f.data_fim_estimada ? new Date(f.data_fim_estimada) : new Date(start.getTime() + (14 * 24 * 60 * 60 * 1000));
+                                    
+                                    // Very basic math for visual rep (Not pixel perfect timeline, but visual)
+                                    // We create a relative timeline span of Next 30 Days.
+                                    const msPerDay = 1000 * 60 * 60 * 24;
+                                    const totalDays = Math.max((end.getTime() - start.getTime()) / msPerDay, 1);
+                                    const daysPassed = Math.max((now.getTime() - start.getTime()) / msPerDay, 0);
+                                    const progressPercent = Math.min((daysPassed / totalDays) * 100, 100);
+
+                                    return (
+                                        <div key={i} className="flex flex-col gap-2 p-4 bg-slate-50 border border-slate-100 rounded-xl relative overflow-hidden group">
+                                            <div className="flex justify-between items-center mb-1">
+                                                <div className="flex items-center gap-2">
+                                                    <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-200 font-bold uppercase">{f.estacao?.nome_estacao}</Badge>
+                                                    <h4 className="font-bold text-slate-700">{f.formando?.nome_operador}</h4>
+                                                    <span className="text-xs text-slate-400">c/</span>
+                                                    <h4 className="font-bold text-orange-600">{f.formador?.nome_operador}</h4>
+                                                </div>
+                                                <div className="text-xs font-mono font-bold text-slate-500">
+                                                    {start.toLocaleDateString('pt-PT')} — {end.toLocaleDateString('pt-PT')}
+                                                </div>
+                                            </div>
+
+                                            {/* Bar */}
+                                            <div className="h-4 w-full bg-slate-200 rounded-full overflow-hidden mt-2 relative">
+                                                <div 
+                                                    className={`h-full absolute left-0 top-0 bg-gradient-to-r ${progressPercent >= 100 ? 'from-rose-400 to-rose-500' : 'from-purple-400 to-purple-600'} transition-all`}
+                                                    style={{ width: `${progressPercent}%` }}
+                                                />
+                                            </div>
+                                            
+                                            {progressPercent >= 100 && (
+                                                <div className="absolute top-1/2 -translate-y-1/2 right-4 bg-rose-500 text-white text-[10px] uppercase font-black px-2 py-1 rounded shadow-sm animate-pulse">
+                                                    Excedeu Tempo Alvo! Verificar Graduação
+                                                </div>
+                                            )}
+                                        </div>
+                                    )
+                                })}
+                            </div>
                         )}
                     </div>
                 </div>
