@@ -29,16 +29,22 @@ export default async function AdminLayout({
         if (user.email === 'master@brunswick.pt') {
             nivelPermissao = 'Admin';
         } else {
-            // Fetch Admin/Operador row to get granular permissions safely (limit 1)
+            // Fetch Admin/Operador row to get granular permissions safely
             const { data: opDataArray, error: fetchErr } = await supabase
                 .from('operadores')
-                .select('nivel_permissao, permissoes_modulos')
-                .ilike('email_acesso', user.email)
-                .limit(1);
+                .select('nivel_permissao, permissoes_modulos, possui_acesso_sistema')
+                .ilike('email_acesso', user.email);
 
             if (opDataArray && opDataArray.length > 0) {
-                nivelPermissao = opDataArray[0].nivel_permissao || '';
-                permissoesModulos = opDataArray[0].permissoes_modulos || [];
+                // Em caso de duplicação orgânica de Fichas HR c/ o mesmo email, agrega as permissões!
+                // Prioriza as fichas que detêm "possui_acesso_sistema = true" para obter a role.
+                const validAuthRow = opDataArray.find(r => r.possui_acesso_sistema) || opDataArray[0];
+                
+                nivelPermissao = validAuthRow.nivel_permissao || '';
+                
+                // Mesclar as rotas de todas as fichas duplicadas para não deixar a operaria às cegas
+                const mergedModulos = opDataArray.flatMap(r => r.permissoes_modulos || []);
+                permissoesModulos = Array.from(new Set(mergedModulos));
             }
             if (fetchErr) {
                 console.error("Erro a buscar layout permissões:", fetchErr);
