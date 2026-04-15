@@ -781,13 +781,17 @@ function FuncionarioFormCore() {
 
                                             { path: "/operador", label: "Terminal HMI Central", group: "Produção" },
                                             { path: "/admin/producao/andon", label: "Saúde OEE do Andon", group: "Produção" },
+                                            { path: "/admin/engenharia/oee", label: "Analytics (Desperdício OEE)", group: "Produção" },
+                                            { path: "/admin/producao/financeiro", label: "OEE Ledger (Finanças)", group: "Produção" },
 
                                             { path: "/admin/rh/produtividade", label: "Feedback Produtividade", group: "Equipa & Talento" },
                                             { path: "/admin/rh", label: "Gerir Operadores", group: "Equipa & Talento" },
+                                            { path: "/admin/rh/iluo", label: "Matriz ILUO (Skills)", group: "Equipa & Talento" },
                                             { path: "/admin/rh/avaliacoes", label: "Avaliações Diárias", group: "Equipa & Talento" },
                                             { path: "/admin/rh/avaliacoes-lideranca", label: "Avaliações de Liderança", group: "Equipa & Talento" },
                                             { path: "/admin/rh/produtividade-lideranca", label: "Feedback Liderança", group: "Equipa & Talento" },
                                             { path: "/admin/rh/assiduidade", label: "Assiduidade Ativa", group: "Equipa & Talento" },
+                                            { path: "/admin/rh/formacoes", label: "Academia Fabril", group: "Clima & Academia" },
                                             { path: "/admin/rh/gestao-quizzes", label: "Gestão de Quizzes 360", group: "Clima & Academia" },
                                             { path: "/operador/quiz", label: "Quiosque (Rating Anónimo)", group: "Equipa & Talento" },
 
@@ -802,7 +806,8 @@ function FuncionarioFormCore() {
 
                                             { path: "/admin/manutencao/moldes", label: "Preventiva Moldes TPM", group: "Manutenção" },
 
-                                            { path: "/admin/qualidade/rnc", label: "Gestão RNC (8D/A3)", group: "Qualidade" },
+                                            { path: "/admin/qualidade/rnc", label: "Gestão RNC (Lançar)", group: "Qualidade" },
+                                            { path: "/admin/qualidade/rnc/quadro", label: "Scrum Board RNC", group: "Qualidade" },
                                             { path: "/admin/qualidade/templates", label: "Checklists Qualidade", group: "Qualidade" },
                                             { path: "/admin/qualidade/qcis", label: "QCIS Analytics", group: "Qualidade" },
 
