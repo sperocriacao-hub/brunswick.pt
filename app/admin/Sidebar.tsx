@@ -55,8 +55,8 @@ export function Sidebar({
     // 1. Master Admins bypass granular permissions, seeing everything.
     if (nivelPermissao === "Admin") return true;
 
-    // 2. Dashboard is implicitly open to anyone who has access to the Backoffice.
-    if (modulePath === "/admin" || modulePath === "/admin/dashboard/eficiencia") return true;
+    // 2. Dashboard principal is implicitly open to anyone who has access to the Backoffice.
+    if (modulePath === "/admin") return true;
 
     // 3. Otherwise, check if the exact path exists in their permitted modules array.
     return permissoesModulos.includes(modulePath);

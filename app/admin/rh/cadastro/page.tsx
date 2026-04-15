@@ -783,6 +783,7 @@ function FuncionarioFormCore() {
                                             { path: "/admin/producao/andon", label: "Saúde OEE do Andon", group: "Produção" },
                                             { path: "/admin/engenharia/oee", label: "Analytics (Desperdício OEE)", group: "Produção" },
                                             { path: "/admin/producao/financeiro", label: "OEE Ledger (Finanças)", group: "Produção" },
+                                            { path: "/admin/dashboard/eficiencia", label: "Dashboard Eficiência H/H", group: "Produção" },
 
                                             { path: "/admin/rh/produtividade", label: "Feedback Produtividade", group: "Equipa & Talento" },
                                             { path: "/admin/rh", label: "Gerir Operadores", group: "Equipa & Talento" },

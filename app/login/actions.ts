@@ -24,7 +24,7 @@ export async function login(formData: FormData) {
 
     // Acesso permitido, limpar cache e redirecionar para App!
     revalidatePath('/', 'layout')
-    redirect('/admin/producao/nova')
+    redirect('/admin/producao/andon')
 }
 
 export async function signup(formData: FormData) {
