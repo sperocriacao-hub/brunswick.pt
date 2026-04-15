@@ -29,16 +29,19 @@ export default async function AdminLayout({
         if (user.email === 'master@brunswick.pt') {
             nivelPermissao = 'Admin';
         } else {
-            // Fetch Admin/Operador row to get granular permissions
-            const { data: opData } = await supabase
+            // Fetch Admin/Operador row to get granular permissions safely (limit 1)
+            const { data: opDataArray, error: fetchErr } = await supabase
                 .from('operadores')
                 .select('nivel_permissao, permissoes_modulos')
                 .ilike('email_acesso', user.email)
-                .single();
+                .limit(1);
 
-            if (opData) {
-                nivelPermissao = opData.nivel_permissao || '';
-                permissoesModulos = opData.permissoes_modulos || [];
+            if (opDataArray && opDataArray.length > 0) {
+                nivelPermissao = opDataArray[0].nivel_permissao || '';
+                permissoesModulos = opDataArray[0].permissoes_modulos || [];
+            }
+            if (fetchErr) {
+                console.error("Erro a buscar layout permissões:", fetchErr);
             }
         }
     }
