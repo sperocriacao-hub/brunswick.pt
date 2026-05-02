@@ -651,33 +651,19 @@ export function Sidebar({
                           <span className="text-sm border-transparent">Gemba Walking</span>
                         </Link>
                       )}
-                        pathname.includes("/admin/lean/gemba")
-                          ? "text-white"
-                          : "text-amber-400"
-                      }
-                    />
-                    <span className="text-sm border-transparent">
-                      Gemba Walking
-                    </span>
-                  </Link>
-                  <Link
-                    onClick={() => setIsOpen(false)}
-                    href="/admin/lean/acoes"
-                    className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes("/admin/lean/acoes") ? "bg-amber-600 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
-                  >
-                    <ListTodo
-                      size={18}
-                      className={
-                        pathname.includes("/admin/lean/acoes")
-                          ? "text-white"
-                          : "text-amber-400"
-                      }
-                    />
-                    <span className="text-sm border-transparent">
-                      Scrum Board (Ações)
-                    </span>
-                  </Link>
-                </nav>
+                      {hasAccess("/admin/lean/acoes") && (
+                        <Link
+                          onClick={() => setIsOpen(false)}
+                          href="/admin/lean/acoes"
+                          className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname === "/admin/lean/acoes" ? "bg-amber-600 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
+                        >
+                          <ListTodo size={18} className={pathname === "/admin/lean/acoes" ? "text-white" : "text-amber-400"} />
+                          <span className="text-sm border-transparent">Scrum Board (Ações)</span>
+                        </Link>
+                      )}
+                    </nav>
+                  </>
+                )}
 
                 {(hasAccess("/admin/hst/ocorrencias") || hasAccess("/admin/hst/epis") || hasAccess("/admin/hst/certificacoes") || hasAccess("/admin/hst/auditorias") || hasAccess("/admin/hst/dashboard") || hasAccess("/admin/hst/8d/historico") || hasAccess("/admin/hst/acoes")) && (
                   <>
