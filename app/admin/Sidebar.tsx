@@ -46,9 +46,12 @@ export function Sidebar({
   userEmail: string | undefined;
   nivelPermissao?: string;
   permissoesModulos?: string[];
+  userName?: string;
+  notificacoesFormacaoCount?: number;
 }) {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
+  const [showTakeover, setShowTakeover] = useState(true); // Controla o modal takeover
 
   // Core Access Control Logic
   const hasAccess = (modulePath: string) => {
@@ -378,10 +381,17 @@ export function Sidebar({
                         <Link
                           onClick={() => setIsOpen(false)}
                           href="/admin/rh/formacoes"
-                          className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname === "/admin/rh/formacoes" ? "bg-blue-800 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
+                          className={`flex items-center justify-between rounded-md px-3 py-2 transition-all font-medium ${pathname === "/admin/rh/formacoes" ? "bg-blue-800 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
                         >
-                          <GraduationCap size={18} className={pathname === "/admin/rh/formacoes" ? "text-white" : "text-blue-300"} />
-                          <span className="text-sm border-transparent">Academia Fabril</span>
+                          <div className="flex items-center gap-3">
+                            <GraduationCap size={18} className={pathname === "/admin/rh/formacoes" ? "text-white" : "text-blue-300"} />
+                            <span className="text-sm border-transparent">Academia Fabril</span>
+                          </div>
+                          {(notificacoesFormacaoCount ?? 0) > 0 && (
+                            <span className="bg-rose-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full animate-pulse shadow-sm">
+                              {notificacoesFormacaoCount}
+                            </span>
+                          )}
                         </Link>
                       )}
                       {hasAccess("/admin/rh/gestao-quizzes") && (
@@ -908,7 +918,7 @@ export function Sidebar({
             </div>
             <div className="flex flex-col overflow-hidden">
               <span className="text-sm font-bold text-white truncate">
-                {userEmail}
+                {userName || userEmail?.split("@")[0] || "Administrador"}
               </span>
               <span className="text-[10px] font-extrabold text-blue-400 uppercase tracking-wider mt-0.5">
                 {nivelPermissao || "Utilizador"}
@@ -917,6 +927,32 @@ export function Sidebar({
           </Link>
         </div>
       </aside>
+
+      {/* MODAL DE TAKEOVER (Notificações Liderança) */}
+      {showTakeover && (notificacoesFormacaoCount ?? 0) > 0 && (
+        <div className="fixed inset-0 z-[9999] bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-300">
+          <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl relative border-t-8 border-rose-500 animate-in zoom-in-95 duration-500">
+            <button onClick={() => setShowTakeover(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-full p-2 transition-colors">
+              <X size={20} />
+            </button>
+            <div className="w-16 h-16 bg-rose-100 text-rose-600 rounded-2xl flex items-center justify-center mb-6 shadow-inner">
+              <AlertTriangle size={32} strokeWidth={2.5} />
+            </div>
+            <h2 className="text-2xl font-black text-slate-800 tracking-tight mb-2">Atenção Liderança!</h2>
+            <p className="text-slate-600 mb-6 leading-relaxed">
+              Olá <strong>{userName || "Líder"}</strong>, existem <span className="font-black text-rose-600 bg-rose-50 px-2 py-0.5 rounded">{notificacoesFormacaoCount} planos de formação</span> pendentes ou a decorrer com os seus Formandos. Verifique o seu Roadmap Tático.
+            </p>
+            <div className="flex gap-3">
+              <button onClick={() => setShowTakeover(false)} className="flex-1 px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-xl transition-colors text-sm">
+                Ver Mais Tarde
+              </button>
+              <Link href="/admin/rh/formacoes" onClick={() => setShowTakeover(false)} className="flex-1 text-center px-4 py-3 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded-xl shadow-lg shadow-rose-500/30 transition-all hover:-translate-y-0.5 text-sm">
+                Ir para Academia
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

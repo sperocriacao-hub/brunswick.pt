@@ -22,8 +22,11 @@ export default function GestaoFormacoesRH() {
     const [editDataFim, setEditDataFim] = useState("");
     const [editNotas, setEditNotas] = useState("");
     
-    // Matrix Filter State
-    const [matrizFilterArea, setMatrizFilterArea] = useState<string>("Todas");
+    // Global Filters State
+    const [filterArea, setFilterArea] = useState<string>("Todas");
+    const [filterLinha, setFilterLinha] = useState<string>("Todas");
+    const [filterSupervisor, setFilterSupervisor] = useState<string>("Todos");
+    const [filterCoordenador, setFilterCoordenador] = useState<string>("Todos");
     
     const [isLoading, setIsLoading] = useState(true);
 
@@ -131,13 +134,39 @@ export default function GestaoFormacoesRH() {
         }
     };
 
-    const emCurso = formacoes.filter(f => f.status === 'Em Curso' || f.status === 'Planeado');
-    const historico = formacoes.filter(f => f.status !== 'Em Curso' && f.status !== 'Planeado');
+    // Derived Global Filters Data
+    const uniqueAreas = Array.from(new Set(formacoes.map(f => f.estacao?.areas_fabrica?.nome_area).filter(Boolean))).sort() as string[];
+    const uniqueLinhas = Array.from(new Set(formacoes.map(f => f.estacao?.linhas_producao?.descricao_linha).filter(Boolean))).sort() as string[];
+    const uniqueSupervisores = Array.from(new Set(formacoes.map(f => f.formando?.supervisor_nome).filter(Boolean))).sort() as string[];
+    const uniqueCoordenadores = Array.from(new Set(formacoes.map(f => f.formando?.lider_nome).filter(Boolean))).sort() as string[];
+
+    const filteredFormacoes = formacoes.filter(f => {
+        if (filterArea !== "Todas" && f.estacao?.areas_fabrica?.nome_area !== filterArea) return false;
+        if (filterLinha !== "Todas" && f.estacao?.linhas_producao?.descricao_linha !== filterLinha) return false;
+        if (filterSupervisor !== "Todos" && f.formando?.supervisor_nome !== filterSupervisor) return false;
+        if (filterCoordenador !== "Todos" && f.formando?.lider_nome !== filterCoordenador) return false;
+        return true;
+    });
+
+    const emCurso = filteredFormacoes.filter(f => f.status === 'Em Curso' || f.status === 'Planeado');
+    const historico = filteredFormacoes.filter(f => f.status !== 'Em Curso' && f.status !== 'Planeado');
 
     // Derived state for Matrix Filters
-    const allAreas = viewMode === 'matriz' ? (Array.from(new Set(matrizGlobal.estacoes.map(e => e.areas_fabrica?.nome_area).filter(Boolean))) as string[]) : [];
-    const filteredEstacoes = matrizFilterArea === "Todas" ? matrizGlobal.estacoes : matrizGlobal.estacoes.filter(e => e.areas_fabrica?.nome_area === matrizFilterArea);
-    const filteredOperadores = viewMode === 'matriz' ? matrizGlobal.operadores.filter(op => filteredEstacoes.some(est => op.skills[est.id])) : [];
+    const allMatrizAreas = viewMode === 'matriz' ? (Array.from(new Set(matrizGlobal.estacoes.map(e => e.areas_fabrica?.nome_area).filter(Boolean))) as string[]) : [];
+    
+    // Matrix applies Global Filters
+    const filteredEstacoes = matrizGlobal.estacoes.filter(e => {
+        if (filterArea !== "Todas" && e.areas_fabrica?.nome_area !== filterArea) return false;
+        if (filterLinha !== "Todas" && e.linhas_producao?.descricao_linha !== filterLinha) return false;
+        return true;
+    });
+    
+    const filteredOperadores = viewMode === 'matriz' ? matrizGlobal.operadores.filter(op => {
+        if (filterSupervisor !== "Todos" && op.supervisor_nome !== filterSupervisor) return false;
+        if (filterCoordenador !== "Todos" && op.lider_nome !== filterCoordenador) return false;
+        // Só mostra se tiver skills nalguma estacao filtrada
+        return filteredEstacoes.some(est => op.skills[est.id]);
+    }) : [];
 
     if (isLoading) return <div className="p-10 text-center animate-pulse text-indigo-500 font-mono font-bold">A carregar Academia Fabril...</div>;
 
@@ -164,6 +193,43 @@ export default function GestaoFormacoesRH() {
                     <Crosshair className="w-[400px] h-[400px] text-white animate-spin-slow" />
                 </div>
             </div>
+
+            {/* GLOBAL FILTERS */}
+            <Card className="bg-slate-50 border-slate-200 shadow-sm relative z-0">
+                <CardContent className="p-4 flex flex-col lg:flex-row lg:items-end gap-4">
+                    <div className="flex-1 min-w-[200px]">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase">Área Fabril</label>
+                        <select value={filterArea} onChange={e => setFilterArea(e.target.value)} className="w-full h-10 px-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm">
+                            <option value="Todas">Todas as Áreas</option>
+                            {uniqueAreas.map(a => <option key={a} value={a}>{a}</option>)}
+                        </select>
+                    </div>
+                    <div className="flex-1 min-w-[200px]">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase">Linha Produção</label>
+                        <select value={filterLinha} onChange={e => setFilterLinha(e.target.value)} className="w-full h-10 px-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm">
+                            <option value="Todas">Todas as Linhas</option>
+                            {uniqueLinhas.map(l => <option key={l} value={l}>{l}</option>)}
+                        </select>
+                    </div>
+                    <div className="flex-1 min-w-[200px]">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase">Supervisor</label>
+                        <select value={filterSupervisor} onChange={e => setFilterSupervisor(e.target.value)} className="w-full h-10 px-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm">
+                            <option value="Todos">Qualquer Supervisor</option>
+                            {uniqueSupervisores.map(s => <option key={s} value={s}>{s}</option>)}
+                        </select>
+                    </div>
+                    <div className="flex-1 min-w-[200px]">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase">Coordenador (Líder)</label>
+                        <select value={filterCoordenador} onChange={e => setFilterCoordenador(e.target.value)} className="w-full h-10 px-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm">
+                            <option value="Todos">Qualquer Coordenador</option>
+                            {uniqueCoordenadores.map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                    </div>
+                    <div className="shrink-0">
+                        <Button variant="outline" className="h-10 text-slate-600 font-bold border-slate-300 hover:bg-slate-200" onClick={() => { setFilterArea("Todas"); setFilterLinha("Todas"); setFilterSupervisor("Todos"); setFilterCoordenador("Todos"); }}>Limpar Filtros</Button>
+                    </div>
+                </CardContent>
+            </Card>
 
             {/* TAB NAVIGATOR */}
             <div className="flex gap-2">
@@ -491,17 +557,6 @@ export default function GestaoFormacoesRH() {
                             <p className="text-slate-500 mt-1 font-medium">Cruzamento oficial de competências ativas de todos os operadores por Posto de Trabalho.</p>
                         </div>
                         <div className="flex gap-4 items-end">
-                            <div className="flex flex-col">
-                                <label className="text-[10px] uppercase font-bold text-slate-500 mb-1">Filtrar por Área:</label>
-                                <select 
-                                    className="h-10 px-3 py-1 border border-slate-300 rounded-lg text-sm bg-slate-50"
-                                    value={matrizFilterArea}
-                                    onChange={(e) => setMatrizFilterArea(e.target.value)}
-                                >
-                                    <option value="Todas">🏭 Todas as Áreas (Completa)</option>
-                                    {allAreas.map(area => <option key={area} value={area}>{area}</option>)}
-                                </select>
-                            </div>
                             <Button className="bg-slate-800 hover:bg-slate-700 font-bold h-10" onClick={() => window.print()}>🖨️ Imprimir Grelha</Button>
                         </div>
                     </div>
@@ -510,7 +565,7 @@ export default function GestaoFormacoesRH() {
                         {/* Cabecalho de Impressão (Só aparece no Papel) */}
                         <div className="hidden print:block mb-4">
                             <h1 className="text-2xl font-black text-slate-900 border-b-2 border-slate-900 pb-2 mb-2">Relatório de Competências ILUO da Fábrica</h1>
-                            <div className="text-sm text-slate-600 font-bold uppercase">Área Destaque: {matrizFilterArea}</div>
+                            <div className="text-sm text-slate-600 font-bold uppercase">Área Destaque: {filterArea}</div>
                             <div className="text-xs text-slate-400">Extraído a: {new Date().toLocaleDateString('pt-PT')}</div>
                         </div>
 

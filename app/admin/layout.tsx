@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import { createClient } from '@/utils/supabase/server';
 import { Sidebar } from './Sidebar';
+import { verificarNotificacoesFormacao } from './rh/formacoes/actions';
 
 export default async function AdminLayout({
     children,
@@ -24,6 +25,8 @@ export default async function AdminLayout({
 
     let permissoesModulos: string[] = [];
     let nivelPermissao = '';
+    let userName = '';
+    let notificacoesFormacaoCount = 0;
 
     if (user?.email) {
         if (user.email === 'master@brunswick.pt') {
@@ -32,7 +35,7 @@ export default async function AdminLayout({
             // Fetch Admin/Operador row to get granular permissions safely
             const { data: opDataArray, error: fetchErr } = await supabase
                 .from('operadores')
-                .select('nivel_permissao, permissoes_modulos, possui_acesso_sistema')
+                .select('nome_operador, nivel_permissao, permissoes_modulos, possui_acesso_sistema')
                 .ilike('email_acesso', user.email);
 
             if (opDataArray && opDataArray.length > 0) {
@@ -41,6 +44,7 @@ export default async function AdminLayout({
                 const validAuthRow = opDataArray.find(r => r.possui_acesso_sistema) || opDataArray[0];
                 
                 nivelPermissao = validAuthRow.nivel_permissao || '';
+                userName = validAuthRow.nome_operador || '';
                 
                 // Mesclar as rotas de todas as fichas duplicadas para não deixar a operaria às cegas
                 const mergedModulos = opDataArray.flatMap(r => r.permissoes_modulos || []);
@@ -49,6 +53,12 @@ export default async function AdminLayout({
             if (fetchErr) {
                 console.error("Erro a buscar layout permissões:", fetchErr);
             }
+            
+            // Buscar notificações
+            if (userName) {
+                const resNotif = await verificarNotificacoesFormacao(userName);
+                notificacoesFormacaoCount = resNotif.count;
+            }
         }
     }
 
@@ -56,8 +66,10 @@ export default async function AdminLayout({
         <div className="flex flex-col md:flex-row h-screen w-full bg-background text-foreground overflow-hidden">
             <Sidebar
                 userEmail={user?.email}
+                userName={userName}
                 nivelPermissao={nivelPermissao}
                 permissoesModulos={permissoesModulos}
+                notificacoesFormacaoCount={notificacoesFormacaoCount}
             />
 
             <main className="flex-1 overflow-y-auto bg-slate-100 p-4 md:p-8">

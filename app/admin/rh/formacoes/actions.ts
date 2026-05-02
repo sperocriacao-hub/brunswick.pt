@@ -7,11 +7,11 @@ import { cookies } from 'next/headers';
 export type PlanoFormacao = {
     id: string;
     formando_id: string;
-    formando: { nome_operador: string; numero_operador: string };
+    formando: { nome_operador: string; numero_operador: string; lider_nome?: string; supervisor_nome?: string; gestor_nome?: string };
     formador_id: string;
     formador: { nome_operador: string; numero_operador: string };
     estacao_id: string;
-    estacao: { nome_estacao: string };
+    estacao: { nome_estacao: string; areas_fabrica?: { id: string; nome_area: string }; linhas_producao?: { id: string; descricao_linha: string } };
     data_inicio: string;
     data_fim_estimada: string | null;
     data_fim: string | null;
@@ -28,9 +28,9 @@ export async function listarFormacoes() {
         .from('rh_planos_formacao')
         .select(`
             *,
-            formando:operadores!formando_id(nome_operador, numero_operador),
+            formando:operadores!formando_id(nome_operador, numero_operador, lider_nome, supervisor_nome, gestor_nome),
             formador:operadores!formador_id(nome_operador, numero_operador),
-            estacao:estacoes(nome_estacao)
+            estacao:estacoes(nome_estacao, areas_fabrica(id, nome_area), linhas_producao(id, descricao_linha))
         `)
         .order('created_at', { ascending: false });
 
@@ -244,7 +244,7 @@ export async function obterMatrizIluoGlobal() {
     
     // Obter todos os operadores ativos
     const { data: operadores } = await supabase.from('operadores')
-        .select('id, nome_operador, numero_operador')
+        .select('id, nome_operador, numero_operador, lider_nome, supervisor_nome')
         .eq('status', 'Ativo')
         .order('nome_operador');
         
@@ -270,6 +270,8 @@ export async function obterMatrizIluoGlobal() {
             operador_id: op.id,
             nome: op.nome_operador,
             numero: op.numero_operador,
+            lider_nome: op.lider_nome,
+            supervisor_nome: op.supervisor_nome,
             skills: mapSkills
         };
     });
@@ -281,4 +283,30 @@ export async function obterMatrizIluoGlobal() {
             estacoes: estacoes
         }
     };
+}
+
+export async function verificarNotificacoesFormacao(userName: string) {
+    if (!userName) return { count: 0 };
+    const cookieStore = cookies();
+    const supabase = createClient(cookieStore);
+
+    // Procuramos formações ativas ou atrasadas onde o userName do logado 
+    // seja o lider, supervisor ou gestor do Formando (Aprendiz).
+    const { data } = await supabase
+        .from('rh_planos_formacao')
+        .select(`
+            id,
+            formando:operadores!formando_id(lider_nome, supervisor_nome, gestor_nome)
+        `)
+        .in('status', ['Em Curso', 'Planeado']);
+
+    if (!data) return { count: 0 };
+
+    const count = data.filter((f: any) => {
+        const op = f.formando;
+        if (!op) return false;
+        return (op.lider_nome === userName || op.supervisor_nome === userName || op.gestor_nome === userName);
+    }).length;
+
+    return { count };
 }
