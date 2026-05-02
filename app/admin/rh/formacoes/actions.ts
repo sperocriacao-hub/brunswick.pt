@@ -250,7 +250,7 @@ export async function obterMatrizIluoGlobal() {
         
     // Obter todas as estações
     const { data: estacoes } = await supabase.from('estacoes')
-        .select('id, nome_estacao, areas_fabrica(nome_area)')
+        .select('id, nome_estacao, areas_fabrica(nome_area), linhas_producao(descricao_linha)')
         .order('nome_estacao');
         
     // Obter a matriz ILUO inteira

@@ -134,11 +134,11 @@ export default function GestaoFormacoesRH() {
         }
     };
 
-    // Derived Global Filters Data
-    const uniqueAreas = Array.from(new Set(formacoes.map(f => f.estacao?.areas_fabrica?.nome_area).filter(Boolean))).sort() as string[];
-    const uniqueLinhas = Array.from(new Set(formacoes.map(f => f.estacao?.linhas_producao?.descricao_linha).filter(Boolean))).sort() as string[];
-    const uniqueSupervisores = Array.from(new Set(formacoes.map(f => f.formando?.supervisor_nome).filter(Boolean))).sort() as string[];
-    const uniqueCoordenadores = Array.from(new Set(formacoes.map(f => f.formando?.lider_nome).filter(Boolean))).sort() as string[];
+    // Derived Global Filters Data (using matrizGlobal to ensure ALL options are visible regardless of active trainings)
+    const uniqueAreas = Array.from(new Set(matrizGlobal.estacoes.map(e => e.areas_fabrica?.nome_area).filter(Boolean))).sort() as string[];
+    const uniqueLinhas = Array.from(new Set(matrizGlobal.estacoes.map(e => e.linhas_producao?.descricao_linha).filter(Boolean))).sort() as string[];
+    const uniqueSupervisores = Array.from(new Set(matrizGlobal.operadores.map(op => op.supervisor_nome).filter(Boolean))).sort() as string[];
+    const uniqueCoordenadores = Array.from(new Set(matrizGlobal.operadores.map(op => op.lider_nome).filter(Boolean))).sort() as string[];
 
     const filteredFormacoes = formacoes.filter(f => {
         if (filterArea !== "Todas" && f.estacao?.areas_fabrica?.nome_area !== filterArea) return false;
