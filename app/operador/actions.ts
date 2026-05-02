@@ -109,7 +109,7 @@ export async function getAreaAndonStatus(currentEstacaoId: string) {
 // (Removed duplicate/legacy Session and Boat listing queries from Operator dashboard.
 // These actions are now routed entirely via the Hardware Emulator hitting `/api/mes/iot` REST endpoint.)
 
-export async function dispararAlertaAndon(estacao_id: string, rf_tag_operador: string, rf_tag_barco?: string, tipo_alerta: string = 'Outros', descricao_alerta: string = '', local_ocorrencia_id?: string) {
+export async function dispararAlertaAndon(estacao_id: string, rf_tag_operador: string, rf_tag_barco?: string, tipo_alerta: string = 'Outros', descricao_alerta: string = '', local_ocorrencia_id?: string, modelo_hin?: string) {
     try {
         if (!estacao_id) throw new Error("Terminal/Estação não definida.");
 
@@ -136,7 +136,10 @@ export async function dispararAlertaAndon(estacao_id: string, rf_tag_operador: s
                 op_id: opTargetId,
                 operador_rfid: rf_tag_operador || 'DESCONHECIDO',
                 tipo_alerta: tipo_alerta,
-                descricao_alerta: descricao_alerta
+                descricao_alerta: descricao_alerta,
+                situacao: 'EM_ABERTO',
+                resolvido: false,
+                modelo_hin: modelo_hin || null
             })
             .select('id')
             .single();

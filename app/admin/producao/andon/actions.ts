@@ -26,6 +26,7 @@ export async function getAndonHistory(mesesAtras: number = 4) {
                 resolvido_at,
                 resolvido,
                 operador_rfid,
+                modelo_hin,
                 estacao_id,
                 local_ocorrencia_id,
                 estacao_causadora:estacao_id (
@@ -274,5 +275,19 @@ export async function clonarAlertaAndon(alerta_id: string, operador_rfid: string
         return { success: true, data: newAlert };
     } catch (err: any) {
         return { success: false, error: err.message };
+    }
+}
+
+export async function getModelosList() {
+    try {
+        const { data, error } = await supabase
+            .from('modelos')
+            .select('nome_modelo')
+            .order('nome_modelo', { ascending: true });
+
+        if (error) throw error;
+        return { success: true, data: data || [] };
+    } catch (err: any) {
+        return { success: false, error: err.message, data: [] };
     }
 }

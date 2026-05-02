@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { getAndonHistory, fecharAlertaAndon, clonarAlertaAndon, getLoggedOperadorRfid, terceirizarAndon } from './actions';
+import { getAndonHistory, fecharAlertaAndon, clonarAlertaAndon, getLoggedOperadorRfid, terceirizarAndon, getModelosList } from './actions';
 import { getTVConfigs } from '../../configuracoes/tvs/actions';
 import { AlertCircle, ArrowRightLeft, Clock, CheckCircle2, Factory, Hammer, Tv, Filter, BarChart2, ListTodo, Activity, Timer, AlertTriangle, TrendingDown, TrendingUp, Trophy, ShieldCheck, Ship, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -29,6 +29,7 @@ export default function AndonDashPage() {
     const [filterProblema, setFilterProblema] = useState<string>('all');
     const [filterCausadora, setFilterCausadora] = useState<string>('all');
     const [filterLinha, setFilterLinha] = useState<string>('all');
+    const [filterModelo, setFilterModelo] = useState<string>('all');
     const [filterDate, setFilterDate] = useState<string>('');
 
     // Pagination
@@ -47,6 +48,9 @@ export default function AndonDashPage() {
     const [andonDesc, setAndonDesc] = useState('');
     const [causadoraEstacaoId, setCausadoraEstacaoId] = useState('');
     const [localOcorrenciaId, setLocalOcorrenciaId] = useState('');
+    const [modelosList, setModelosList] = useState<any[]>([]);
+    const [andonModelo, setAndonModelo] = useState('');
+    const [andonHin, setAndonHin] = useState('');
 
     // ANDON Transfer Modal State
     const [isTerceirizarModalOpen, setIsTerceirizarModalOpen] = useState(false);
@@ -60,11 +64,11 @@ export default function AndonDashPage() {
 
     useEffect(() => {
         setCurrentPage(1);
-    }, [filterStatus, filterProblema, filterCausadora, filterLinha, filterDate]);
+    }, [filterStatus, filterProblema, filterCausadora, filterLinha, filterModelo, filterDate]);
 
     async function loadData() {
         setIsLoading(true);
-        const [res, tvsRes, estsRes, rfidRes] = await Promise.all([getAndonHistory(), getTVConfigs(), buscarEstacoes(), getLoggedOperadorRfid()]);
+        const [res, tvsRes, estsRes, rfidRes, modRes] = await Promise.all([getAndonHistory(), getTVConfigs(), buscarEstacoes(), getLoggedOperadorRfid(), getModelosList()]);
 
         if (res.success) {
             setAlertas(res.data || []);
@@ -78,6 +82,9 @@ export default function AndonDashPage() {
         if (rfidRes) {
             setLoggedRfid(rfidRes);
         }
+        if (modRes.success) {
+            setModelosList(modRes.data || []);
+        }
         setIsLoading(false);
     }
 
@@ -87,12 +94,15 @@ export default function AndonDashPage() {
             return;
         }
         setIsAndonModalOpen(false);
-        const res = await dispararAlertaAndon(causadoraEstacaoId, loggedRfid, undefined, andonType, andonDesc, localOcorrenciaId);
+        const modeloHinFormatado = (andonModelo && andonHin) ? `${andonModelo} # ${andonHin}` : undefined;
+        const res = await dispararAlertaAndon(causadoraEstacaoId, loggedRfid, undefined, andonType, andonDesc, localOcorrenciaId, modeloHinFormatado);
 
         if (res.success) {
             alert("🚨 Alerta Andon disparado com sucesso!");
             loadData(); // Recarrega logo o front para aparecer na tabela
             setAndonDesc('');
+            setAndonModelo('');
+            setAndonHin('');
         } else {
             alert("Erro ao disparar alerta: " + res.error);
         }
@@ -147,10 +157,11 @@ export default function AndonDashPage() {
     };
 
     // USEMEMO: Filtros e Tabela Histórico (Previne lag de renderização)
-    const { uniqueAreasProblema, uniqueAreasCausadora, uniqueLinhas, filteredAlertas, paginatedAlertas, totalPages } = React.useMemo(() => {
+    const { uniqueAreasProblema, uniqueAreasCausadora, uniqueLinhas, uniqueModelos, filteredAlertas, paginatedAlertas, totalPages } = React.useMemo(() => {
         const mapAreasProblema = new Map<string, string>();
         const mapAreasCausadora = new Map<string, string>();
         const mapLinhas = new Map<string, string>();
+        const mapModelos = new Map<string, string>();
         
         alertas.forEach(a => {
             if (a.estacao_problema?.areas_fabrica) {
@@ -168,11 +179,16 @@ export default function AndonDashPage() {
             if (a.ordens_producao?.linhas_producao) {
                 mapLinhas.set(a.ordens_producao.linhas_producao.id, a.ordens_producao.linhas_producao.descricao_linha);
             }
+            if (a.modelo_hin) {
+                const modName = a.modelo_hin.split(' # ')[0];
+                if (modName) mapModelos.set(modName, modName);
+            }
         });
 
         const uniqueAreasProblemaArr = Array.from(mapAreasProblema.entries()).map(([id, nome]) => ({id, nome}));
         const uniqueAreasCausadoraArr = Array.from(mapAreasCausadora.entries()).map(([id, nome]) => ({id, nome}));
         const uniqueLinhasArr = Array.from(mapLinhas.entries()).map(([id, nome]) => ({id, nome})).sort((a,b) => a.nome.localeCompare(b.nome));
+        const uniqueModelosArr = Array.from(mapModelos.values()).sort();
 
         const filtered = alertas.filter(al => {
             if (filterStatus === 'em_alerta' && al.resolvido) return false;
@@ -180,6 +196,9 @@ export default function AndonDashPage() {
             if (filterProblema !== 'all' && al.estacao_problema?.areas_fabrica?.id !== filterProblema) return false;
             if (filterCausadora !== 'all' && al.estacao_causadora?.areas_fabrica?.id !== filterCausadora) return false;
             if (filterLinha !== 'all' && al.estacao_problema?.linhas_producao?.id !== filterLinha && al.estacao_causadora?.linhas_producao?.id !== filterLinha && al.ordens_producao?.linhas_producao?.id !== filterLinha) return false;
+            if (filterModelo !== 'all') {
+                if (!al.modelo_hin || !al.modelo_hin.startsWith(filterModelo)) return false;
+            }
             if (filterDate) {
                 const alDate = new Date(al.created_at).toISOString().split('T')[0];
                 if (alDate !== filterDate) return false;
@@ -194,11 +213,12 @@ export default function AndonDashPage() {
             uniqueAreasProblema: uniqueAreasProblemaArr, 
             uniqueAreasCausadora: uniqueAreasCausadoraArr, 
             uniqueLinhas: uniqueLinhasArr, 
+            uniqueModelos: uniqueModelosArr,
             filteredAlertas: filtered, 
             paginatedAlertas: paginated, 
             totalPages: totalPgs 
         };
-    }, [alertas, filterStatus, filterProblema, filterCausadora, filterLinha, filterDate, currentPage]);
+    }, [alertas, filterStatus, filterProblema, filterCausadora, filterLinha, filterModelo, filterDate, currentPage]);
 
     // USEMEMO: Cálculos dos KPIs (Previne lag de renderização durante o uso de inputs)
     const kpiData = React.useMemo(() => {
@@ -235,6 +255,7 @@ export default function AndonDashPage() {
         const causadorasPerdaCount: Record<string, number> = {};
         const heatmapAreasCount: Record<string, number> = {};
         const causasPerdaCount: Record<string, number> = {};
+        const modelosDefeitoCount: Record<string, number> = {};
         const mttrPorLider: Record<string, { andons: number, minutos: number, isSuporte: boolean }> = {};
 
         kpisCurrentMonth.forEach(a => {
@@ -243,6 +264,11 @@ export default function AndonDashPage() {
             const loss = calcActiveMinutes(a.created_at, a.resolvido_at, temT2);
 
             causasPerdaCount[a.tipo_alerta] = (causasPerdaCount[a.tipo_alerta] || 0) + loss;
+
+            if (a.modelo_hin) {
+                const modName = a.modelo_hin.split(' # ')[0];
+                if (modName) modelosDefeitoCount[modName] = (modelosDefeitoCount[modName] || 0) + 1;
+            }
 
             const areaName = estacao?.areas_fabrica?.nome_area || 'Desconhecida';
             heatmapAreasCount[areaName] = (heatmapAreasCount[areaName] || 0) + 1;
@@ -318,6 +344,11 @@ export default function AndonDashPage() {
             .sort((a,b) => b.horas - a.horas)
             .slice(0, 5);
 
+        const topModelosPareto = Object.entries(modelosDefeitoCount)
+            .map(([name, count]) => ({ name, incidentes: count }))
+            .sort((a,b) => b.incidentes - a.incidentes)
+            .slice(0, 10);
+
         const last15DaysStr = Array.from({ length: 15 }).map((_, i) => {
             const d = new Date();
             d.setDate(d.getDate() - (14 - i));
@@ -368,7 +399,8 @@ export default function AndonDashPage() {
             trend15Days,
             uniqueAreaList,
             topFiaveis,
-            heatmapAreasCount
+            heatmapAreasCount,
+            topModelosPareto
         };
     }, [alertas, selectedArea, selectedMonth, selectedDayKpi]);
 
@@ -386,7 +418,8 @@ export default function AndonDashPage() {
         trend15Days,
         uniqueAreaList,
         topFiaveis,
-        heatmapAreasCount
+        heatmapAreasCount,
+        topModelosPareto
     } = kpiData;
 
     return (
@@ -486,8 +519,14 @@ export default function AndonDashPage() {
                                     <option key={linha.id} value={linha.id}>{linha.nome}</option>
                                 ))}
                             </select>
+                            <select value={filterModelo} onChange={e => setFilterModelo(e.target.value)} className="border border-slate-300 rounded-md px-3 py-1.5 focus:border-blue-500 focus:outline-none max-w-[150px] truncate">
+                                <option value="all">Qualquer Modelo</option>
+                                {uniqueModelos.map((modName, i) => (
+                                    <option key={i} value={modName}>{modName}</option>
+                                ))}
+                            </select>
                             <Button variant="outline" size="sm" onClick={() => {
-                                setFilterDate(''); setFilterStatus('all'); setFilterProblema('all'); setFilterCausadora('all'); setFilterLinha('all'); loadData();
+                                setFilterDate(''); setFilterStatus('all'); setFilterProblema('all'); setFilterCausadora('all'); setFilterLinha('all'); setFilterModelo('all'); loadData();
                             }}>Reset</Button>
                         </div>
                     </CardHeader>
@@ -503,6 +542,7 @@ export default function AndonDashPage() {
                                         <th className="px-4 py-3">Onde (Problema)</th>
                                         <th className="px-4 py-3">Alvo (Causadora)</th>
                                         <th className="px-4 py-3">Criador</th>
+                                        <th className="px-4 py-3">Modelo / HIN</th>
                                         <th className="px-4 py-3 min-w-[200px]">Contexto OP / Motivo</th>
                                         <th className="px-4 py-3 text-right">Ação</th>
                                     </tr>
@@ -548,6 +588,11 @@ export default function AndonDashPage() {
                                                 <td className="px-4 py-3">
                                                     <div className="font-bold text-slate-700 text-[11px] whitespace-nowrap capitalize">
                                                         {al.operadores?.nome_operador?.split(' ').slice(0, 2).join(' ') || al.operador_rfid}
+                                                    </div>
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    <div className="font-bold text-slate-700 text-[11px] whitespace-nowrap">
+                                                        {al.modelo_hin || 'N/A'}
                                                     </div>
                                                 </td>
                                                 <td className="px-4 py-3">
@@ -936,6 +981,35 @@ export default function AndonDashPage() {
                         </Card>
                     </div>
 
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+                        <Card className="border-slate-200 shadow-sm">
+                            <CardHeader>
+                                <CardTitle className="text-slate-800 text-sm flex items-center gap-2 font-bold uppercase tracking-widest">
+                                    <Ship size={16} className="text-blue-500" /> Pareto: Incidências por Modelo
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="h-[250px]">
+                                {topModelosPareto.length > 0 ? (
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <BarChart data={topModelosPareto} layout="vertical" margin={{ left: -10, right: 20 }}>
+                                            <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" />
+                                            <XAxis type="number" hide />
+                                            <YAxis dataKey="name" type="category" width={110} fontSize={10} tickLine={false} axisLine={false} />
+                                            <RechartsTooltip cursor={{fill: '#f8fafc'}} formatter={(val) => [`${val} ocorrências`, 'Andons Disparados']} />
+                                            <Bar dataKey="incidentes" fill="#3b82f6" radius={[0, 4, 4, 0]}>
+                                                {topModelosPareto.map((entry, index) => (
+                                                    <Cell key={`cell-mod-${index}`} fill={index === 0 ? '#2563eb' : '#60a5fa'} />
+                                                ))}
+                                            </Bar>
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                ) : (
+                                    <div className="h-full flex items-center justify-center text-slate-400 text-sm">Sem dados suficientes.</div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </div>
+
                     <Card className="border-slate-200 shadow-sm mt-6">
                         <CardHeader>
                             <CardTitle className="text-slate-800 text-sm flex items-center gap-2 font-bold uppercase tracking-widest">
@@ -1027,6 +1101,31 @@ export default function AndonDashPage() {
                                 <option value="Scrap">🗑️ Scrap</option>
                                 <option value="Outros">❓ Outros</option>
                             </select>
+                        </div>
+                        <div className="flex gap-4">
+                            <div className="space-y-2 flex-1">
+                                <Label className="text-slate-300 font-bold uppercase tracking-widest block">Modelo</Label>
+                                <select
+                                    value={andonModelo}
+                                    onChange={(e) => setAndonModelo(e.target.value)}
+                                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white focus:ring-red-500 focus:border-red-500"
+                                >
+                                    <option value="" disabled>Selecione um Modelo...</option>
+                                    {modelosList.map((mod, i) => (
+                                        <option key={`mod-${i}`} value={mod.nome_modelo}>{mod.nome_modelo}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="space-y-2 flex-1">
+                                <Label className="text-slate-300 font-bold uppercase tracking-widest block">HIN</Label>
+                                <input
+                                    type="text"
+                                    value={andonHin}
+                                    onChange={(e) => setAndonHin(e.target.value)}
+                                    placeholder="Ex: 12"
+                                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white focus:ring-red-500 focus:border-red-500"
+                                />
+                            </div>
                         </div>
                         <div className="space-y-2">
                             <Label className="text-slate-300 font-bold uppercase tracking-widest block">Observação (Opcional)</Label>
