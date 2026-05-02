@@ -42,6 +42,8 @@ export function Sidebar({
   userEmail,
   nivelPermissao = "",
   permissoesModulos = [],
+  userName = "",
+  notificacoesFormacaoCount = 0,
 }: {
   userEmail: string | undefined;
   nivelPermissao?: string;
