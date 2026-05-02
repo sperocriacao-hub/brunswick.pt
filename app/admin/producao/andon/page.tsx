@@ -146,215 +146,246 @@ export default function AndonDashPage() {
         return `${minutes} min`;
     };
 
-    // Calculate unique AREAS for filter dropdowns
-    const mapAreasProblema = new Map<string, string>();
-    const mapAreasCausadora = new Map<string, string>();
-    const mapLinhas = new Map<string, string>();
-    alertas.forEach(a => {
-        if (a.estacao_problema?.areas_fabrica) {
-            mapAreasProblema.set(a.estacao_problema.areas_fabrica.id, a.estacao_problema.areas_fabrica.nome_area);
-        }
-        if (a.estacao_causadora?.areas_fabrica) {
-            mapAreasCausadora.set(a.estacao_causadora.areas_fabrica.id, a.estacao_causadora.areas_fabrica.nome_area);
-        }
-        if (a.estacao_problema?.linhas_producao) {
-            mapLinhas.set(a.estacao_problema.linhas_producao.id, a.estacao_problema.linhas_producao.descricao_linha);
-        }
-        if (a.estacao_causadora?.linhas_producao) {
-            mapLinhas.set(a.estacao_causadora.linhas_producao.id, a.estacao_causadora.linhas_producao.descricao_linha);
-        }
-        if (a.ordens_producao?.linhas_producao) {
-            mapLinhas.set(a.ordens_producao.linhas_producao.id, a.ordens_producao.linhas_producao.descricao_linha);
-        }
-    });
-
-    const uniqueAreasProblema = Array.from(mapAreasProblema.entries()).map(([id, nome]) => ({id, nome}));
-    const uniqueAreasCausadora = Array.from(mapAreasCausadora.entries()).map(([id, nome]) => ({id, nome}));
-    const uniqueLinhas = Array.from(mapLinhas.entries()).map(([id, nome]) => ({id, nome})).sort((a,b) => a.nome.localeCompare(b.nome));
-
-    // Apply Filters
-    const filteredAlertas = alertas.filter(al => {
-        if (filterStatus === 'em_alerta' && al.resolvido) return false;
-        if (filterStatus === 'solucionado' && !al.resolvido) return false;
-        if (filterProblema !== 'all' && al.estacao_problema?.areas_fabrica?.id !== filterProblema) return false;
-        if (filterCausadora !== 'all' && al.estacao_causadora?.areas_fabrica?.id !== filterCausadora) return false;
-        if (filterLinha !== 'all' && al.estacao_problema?.linhas_producao?.id !== filterLinha && al.estacao_causadora?.linhas_producao?.id !== filterLinha && al.ordens_producao?.linhas_producao?.id !== filterLinha) return false;
-        if (filterDate) {
-            const alDate = new Date(al.created_at).toISOString().split('T')[0];
-            if (alDate !== filterDate) return false;
-        }
-        return true;
-    });
-
-    const totalPages = Math.ceil(filteredAlertas.length / ITEMS_PER_PAGE);
-    const paginatedAlertas = filteredAlertas.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
-
-    // KPI Calculations (Filtered by Global Area Picker)
-    const kpisFilteredByArea = alertas.filter(a => {
-        if (selectedArea !== 'all' && a.estacao_causadora?.areas_fabrica?.id !== selectedArea) return false;
-        return true;
-    });
-
-    // Sub-filter for Current Month and optionally Day Selection
-    const kpisCurrentMonth = kpisFilteredByArea.filter(a => {
-        const alDateObj = new Date(a.created_at);
-        const alMonth = format(alDateObj, 'yyyy-MM');
-        if (alMonth !== selectedMonth) return false;
+    // USEMEMO: Filtros e Tabela Histórico (Previne lag de renderização)
+    const { uniqueAreasProblema, uniqueAreasCausadora, uniqueLinhas, filteredAlertas, paginatedAlertas, totalPages } = React.useMemo(() => {
+        const mapAreasProblema = new Map<string, string>();
+        const mapAreasCausadora = new Map<string, string>();
+        const mapLinhas = new Map<string, string>();
         
-        if (selectedDayKpi) {
-            const alDayDate = format(alDateObj, 'yyyy-MM-dd');
-            if (alDayDate !== selectedDayKpi) return false;
-        }
-
-        return true;
-    });
-
-    // Key Base KPIs (based on filtered month + area)
-    const totalOcorrencias = kpisCurrentMonth.length;
-    const resolvidos = kpisCurrentMonth.filter(a => a.resolvido).length;
-    const emAberto = totalOcorrencias - resolvidos;
-
-    let totalMinutosPerdidos = 0;
-    kpisCurrentMonth.forEach(a => {
-        const temT2 = a.estacao_causadora ? !!((a.estacao_causadora as any).lider_t2_id || (a.estacao_causadora as any).supervisor_t2_id) : false;
-        totalMinutosPerdidos += calcActiveMinutes(a.created_at, a.resolvido_at, temT2);
-    });
-
-    const mttr = resolvidos > 0 ? Math.round(totalMinutosPerdidos / resolvidos) : 0;
-
-    const mttrPorArea: Record<string, { resolvidos: number, minutos: number }> = {};
-    const causadorasPerdaCount: Record<string, number> = {};
-    const heatmapAreasCount: Record<string, number> = {};
-    const causasPerdaCount: Record<string, number> = {};
-    
-    // Aggregation for Leaders
-    const mttrPorLider: Record<string, { andons: number, minutos: number, isSuporte: boolean }> = {};
-
-    kpisCurrentMonth.forEach(a => {
-        const estacao = a.estacao_causadora as any;
-        const temT2 = estacao ? !!(estacao.lider_t2_id || estacao.supervisor_t2_id) : false;
-        const loss = calcActiveMinutes(a.created_at, a.resolvido_at, temT2);
-
-        // Agregação de Causas 
-        causasPerdaCount[a.tipo_alerta] = (causasPerdaCount[a.tipo_alerta] || 0) + loss;
-
-        // Agregação por Área
-        const areaName = estacao?.areas_fabrica?.nome_area || 'Desconhecida';
-        heatmapAreasCount[areaName] = (heatmapAreasCount[areaName] || 0) + 1;
-        causadorasPerdaCount[areaName] = (causadorasPerdaCount[areaName] || 0) + loss;
-
-        if (a.resolvido && a.resolvido_at) {
-            if (!mttrPorArea[areaName]) mttrPorArea[areaName] = { resolvidos: 0, minutos: 0 };
-            mttrPorArea[areaName].resolvidos++;
-            mttrPorArea[areaName].minutos += loss;
-
-            // --- Lógica de Imputação de Liderança (igual ao painel de RH) ---
-            if (estacao) {
-                const hora = new Date(a.created_at).getHours(); // UTC mismatch might be minimal here for just attribution
-                const isT2 = hora >= 14 && hora < 22;
-                const isT2Efetivo = isT2 && temT2;
-
-                const responsavelNome = isT2Efetivo 
-                    ? (estacao.lider_t2_nome || estacao.supervisor_t2_nome) 
-                    : (estacao.lider_t1_nome || estacao.supervisor_t1_nome);
-
-                let suporteNome = null;
-                const desc = (a.tipo_alerta || '').toLowerCase();
-                let wasSuporteTarget = false;
-                
-                if (desc.includes('manuten') || desc.includes('avaria') || desc.includes('quebra')) {
-                    suporteNome = estacao.manutencao_nome;
-                    wasSuporteTarget = true;
-                } else if (desc.includes('qualidade') || desc.includes('rnc') || desc.includes('defeito')) {
-                    suporteNome = estacao.qualidade_nome;
-                    wasSuporteTarget = true;
-                } else if (desc.includes('falta') || desc.includes('logistica')) {
-                    suporteNome = estacao.logistica_nome;
-                    wasSuporteTarget = true;
-                }
-
-                // Dá prioridade ao suporte chamado. Se não houver nome, recai sobre o lider da linha.
-                const activeLeader = suporteNome || responsavelNome || 'Desconhecido';
-                
-                if (!mttrPorLider[activeLeader]) mttrPorLider[activeLeader] = { andons: 0, minutos: 0, isSuporte: wasSuporteTarget };
-                mttrPorLider[activeLeader].andons++;
-                mttrPorLider[activeLeader].minutos += loss;
+        alertas.forEach(a => {
+            if (a.estacao_problema?.areas_fabrica) {
+                mapAreasProblema.set(a.estacao_problema.areas_fabrica.id, a.estacao_problema.areas_fabrica.nome_area);
             }
-        }
-    });
-
-    // Processamento MTR Líderes
-    const rankingLideres = Object.entries(mttrPorLider)
-        .map(([name, data]) => ({
-            name,
-            mtr: data.andons > 0 ? Math.round(data.minutos / data.andons) : 0,
-            andons: data.andons,
-            isSuporte: data.isSuporte
-        }))
-        .filter(item => item.name !== 'Desconhecido' && item.mtr > 0)
-        .sort((a, b) => a.mtr - b.mtr);
-
-    const top5LideresAgeis = rankingLideres.slice(0, 5);
-    const top3LideresAcompanhamento = rankingLideres.slice(-3).reverse();
-
-    // Processamento MTR Área
-    const rankingMttrData = Object.entries(mttrPorArea)
-        .map(([name, data]) => ({
-            name,
-            mttr: data.resolvidos > 0 ? Math.round(data.minutos / data.resolvidos) : 0
-        }))
-        .filter(item => item.mttr > 0)
-        .sort((a, b) => a.mttr - b.mttr)
-        .slice(0, 7); // top 7 de áreas
-
-    const topViloes = Object.entries(causadorasPerdaCount)
-        .map(([name, loss]) => ({ name, horas: Math.round(loss/60) }))
-        .sort((a,b) => b.horas - a.horas)
-        .slice(0,5);
-
-    const topCausas = Object.entries(causasPerdaCount)
-        .map(([name, loss]) => ({ name, horas: Math.round(loss/60) }))
-        .sort((a,b) => b.horas - a.horas)
-        .slice(0, 5);
-
-    // Tendência diária últimos 15 dias
-    const last15DaysStr = Array.from({ length: 15 }).map((_, i) => {
-        const d = new Date();
-        d.setDate(d.getDate() - (14 - i));
-        return d.toISOString().split('T')[0];
-    });
-
-    const trend15Days = last15DaysStr.map(dStr => {
-        const alDayList = kpisFilteredByArea.filter(a => a.created_at.startsWith(dStr));
-        const resolvedList = alDayList.filter(a => a.resolvido && a.resolvido_at);
-        let dTotalLoss = 0;
-        resolvedList.forEach(a => {
-            const temT2 = a.estacao_causadora ? !!((a.estacao_causadora as any).lider_t2_id || (a.estacao_causadora as any).supervisor_t2_id) : false;
-            dTotalLoss += calcActiveMinutes(a.created_at, a.resolvido_at, temT2);
+            if (a.estacao_causadora?.areas_fabrica) {
+                mapAreasCausadora.set(a.estacao_causadora.areas_fabrica.id, a.estacao_causadora.areas_fabrica.nome_area);
+            }
+            if (a.estacao_problema?.linhas_producao) {
+                mapLinhas.set(a.estacao_problema.linhas_producao.id, a.estacao_problema.linhas_producao.descricao_linha);
+            }
+            if (a.estacao_causadora?.linhas_producao) {
+                mapLinhas.set(a.estacao_causadora.linhas_producao.id, a.estacao_causadora.linhas_producao.descricao_linha);
+            }
+            if (a.ordens_producao?.linhas_producao) {
+                mapLinhas.set(a.ordens_producao.linhas_producao.id, a.ordens_producao.linhas_producao.descricao_linha);
+            }
         });
-        const dMttr = resolvedList.length > 0 ? Math.round(dTotalLoss / resolvedList.length) : 0;
-        return {
-            name: dStr.slice(-5), // MM-DD format para o eixo X
-            MTR: dMttr,
-            'Ocurrências': alDayList.length
+
+        const uniqueAreasProblemaArr = Array.from(mapAreasProblema.entries()).map(([id, nome]) => ({id, nome}));
+        const uniqueAreasCausadoraArr = Array.from(mapAreasCausadora.entries()).map(([id, nome]) => ({id, nome}));
+        const uniqueLinhasArr = Array.from(mapLinhas.entries()).map(([id, nome]) => ({id, nome})).sort((a,b) => a.nome.localeCompare(b.nome));
+
+        const filtered = alertas.filter(al => {
+            if (filterStatus === 'em_alerta' && al.resolvido) return false;
+            if (filterStatus === 'solucionado' && !al.resolvido) return false;
+            if (filterProblema !== 'all' && al.estacao_problema?.areas_fabrica?.id !== filterProblema) return false;
+            if (filterCausadora !== 'all' && al.estacao_causadora?.areas_fabrica?.id !== filterCausadora) return false;
+            if (filterLinha !== 'all' && al.estacao_problema?.linhas_producao?.id !== filterLinha && al.estacao_causadora?.linhas_producao?.id !== filterLinha && al.ordens_producao?.linhas_producao?.id !== filterLinha) return false;
+            if (filterDate) {
+                const alDate = new Date(al.created_at).toISOString().split('T')[0];
+                if (alDate !== filterDate) return false;
+            }
+            return true;
+        });
+
+        const totalPgs = Math.ceil(filtered.length / ITEMS_PER_PAGE);
+        const paginated = filtered.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+
+        return { 
+            uniqueAreasProblema: uniqueAreasProblemaArr, 
+            uniqueAreasCausadora: uniqueAreasCausadoraArr, 
+            uniqueLinhas: uniqueLinhasArr, 
+            filteredAlertas: filtered, 
+            paginatedAlertas: paginated, 
+            totalPages: totalPgs 
         };
-    });
+    }, [alertas, filterStatus, filterProblema, filterCausadora, filterLinha, filterDate, currentPage]);
 
-    // Generate unique areas for filter
-    const uniqueAreaList = Array.from(new Set(
-        alertas.map(a => {
-            const ar = a.estacao_causadora?.areas_fabrica;
-            return ar ? JSON.stringify({id: ar.id, nome: ar.nome_area}) : null;
-        }).filter(Boolean)
-    )).map(s => JSON.parse(s as string));
+    // USEMEMO: Cálculos dos KPIs (Previne lag de renderização durante o uso de inputs)
+    const kpiData = React.useMemo(() => {
+        const kpisFilteredByArea = alertas.filter(a => {
+            if (selectedArea !== 'all' && a.estacao_causadora?.areas_fabrica?.id !== selectedArea) return false;
+            return true;
+        });
 
-    // Heróis da fiabilidade
-    const allAreasNames = uniqueAreaList.map((a: any) => a.nome);
-    const areasComFalhas = new Set(kpisCurrentMonth.map(a => a.estacao_causadora?.areas_fabrica?.nome_area).filter(Boolean));
-    const areasLivresDeFalhas = allAreasNames.filter(a => !areasComFalhas.has(a));
-    const topFiaveis = areasLivresDeFalhas.length > 0 
-        ? areasLivresDeFalhas.map(name => ({name, alertas: 0})) 
-        : Object.entries(heatmapAreasCount).map(([name, count]) => ({name, alertas: count as number})).sort((a,b) => a.alertas - b.alertas).slice(0,3);
+        const kpisCurrentMonth = kpisFilteredByArea.filter(a => {
+            const alDateObj = new Date(a.created_at);
+            const alMonth = format(alDateObj, 'yyyy-MM');
+            if (alMonth !== selectedMonth) return false;
+            
+            if (selectedDayKpi) {
+                const alDayDate = format(alDateObj, 'yyyy-MM-dd');
+                if (alDayDate !== selectedDayKpi) return false;
+            }
+            return true;
+        });
+
+        const totalOcorrencias = kpisCurrentMonth.length;
+        const resolvidos = kpisCurrentMonth.filter(a => a.resolvido).length;
+        const emAberto = totalOcorrencias - resolvidos;
+
+        let totalMinutosPerdidos = 0;
+        kpisCurrentMonth.forEach(a => {
+            const temT2 = a.estacao_causadora ? !!((a.estacao_causadora as any).lider_t2_id || (a.estacao_causadora as any).supervisor_t2_id) : false;
+            totalMinutosPerdidos += calcActiveMinutes(a.created_at, a.resolvido_at, temT2);
+        });
+
+        const mttr = resolvidos > 0 ? Math.round(totalMinutosPerdidos / resolvidos) : 0;
+
+        const mttrPorArea: Record<string, { resolvidos: number, minutos: number }> = {};
+        const causadorasPerdaCount: Record<string, number> = {};
+        const heatmapAreasCount: Record<string, number> = {};
+        const causasPerdaCount: Record<string, number> = {};
+        const mttrPorLider: Record<string, { andons: number, minutos: number, isSuporte: boolean }> = {};
+
+        kpisCurrentMonth.forEach(a => {
+            const estacao = a.estacao_causadora as any;
+            const temT2 = estacao ? !!(estacao.lider_t2_id || estacao.supervisor_t2_id) : false;
+            const loss = calcActiveMinutes(a.created_at, a.resolvido_at, temT2);
+
+            causasPerdaCount[a.tipo_alerta] = (causasPerdaCount[a.tipo_alerta] || 0) + loss;
+
+            const areaName = estacao?.areas_fabrica?.nome_area || 'Desconhecida';
+            heatmapAreasCount[areaName] = (heatmapAreasCount[areaName] || 0) + 1;
+            causadorasPerdaCount[areaName] = (causadorasPerdaCount[areaName] || 0) + loss;
+
+            if (a.resolvido && a.resolvido_at) {
+                if (!mttrPorArea[areaName]) mttrPorArea[areaName] = { resolvidos: 0, minutos: 0 };
+                mttrPorArea[areaName].resolvidos++;
+                mttrPorArea[areaName].minutos += loss;
+
+                if (estacao) {
+                    const hora = new Date(a.created_at).getHours();
+                    const isT2 = hora >= 14 && hora < 22;
+                    const isT2Efetivo = isT2 && temT2;
+
+                    const responsavelNome = isT2Efetivo 
+                        ? (estacao.lider_t2_nome || estacao.supervisor_t2_nome) 
+                        : (estacao.lider_t1_nome || estacao.supervisor_t1_nome);
+
+                    let suporteNome = null;
+                    const desc = (a.tipo_alerta || '').toLowerCase();
+                    let wasSuporteTarget = false;
+                    
+                    if (desc.includes('manuten') || desc.includes('avaria') || desc.includes('quebra')) {
+                        suporteNome = estacao.manutencao_nome;
+                        wasSuporteTarget = true;
+                    } else if (desc.includes('qualidade') || desc.includes('rnc') || desc.includes('defeito')) {
+                        suporteNome = estacao.qualidade_nome;
+                        wasSuporteTarget = true;
+                    } else if (desc.includes('falta') || desc.includes('logistica')) {
+                        suporteNome = estacao.logistica_nome;
+                        wasSuporteTarget = true;
+                    }
+
+                    const activeLeader = suporteNome || responsavelNome || 'Desconhecido';
+                    
+                    if (!mttrPorLider[activeLeader]) mttrPorLider[activeLeader] = { andons: 0, minutos: 0, isSuporte: wasSuporteTarget };
+                    mttrPorLider[activeLeader].andons++;
+                    mttrPorLider[activeLeader].minutos += loss;
+                }
+            }
+        });
+
+        const rankingLideres = Object.entries(mttrPorLider)
+            .map(([name, data]) => ({
+                name,
+                mtr: data.andons > 0 ? Math.round(data.minutos / data.andons) : 0,
+                andons: data.andons,
+                isSuporte: data.isSuporte
+            }))
+            .filter(item => item.name !== 'Desconhecido' && item.mtr > 0)
+            .sort((a, b) => a.mtr - b.mtr);
+
+        const top5LideresAgeis = rankingLideres.slice(0, 5);
+        const top3LideresAcompanhamento = rankingLideres.slice(-3).reverse();
+
+        const rankingMttrData = Object.entries(mttrPorArea)
+            .map(([name, data]) => ({
+                name,
+                mttr: data.resolvidos > 0 ? Math.round(data.minutos / data.resolvidos) : 0
+            }))
+            .filter(item => item.mttr > 0)
+            .sort((a, b) => a.mttr - b.mttr)
+            .slice(0, 7);
+
+        const topViloes = Object.entries(causadorasPerdaCount)
+            .map(([name, loss]) => ({ name, horas: Math.round(loss/60) }))
+            .sort((a,b) => b.horas - a.horas)
+            .slice(0,5);
+
+        const topCausas = Object.entries(causasPerdaCount)
+            .map(([name, loss]) => ({ name, horas: Math.round(loss/60) }))
+            .sort((a,b) => b.horas - a.horas)
+            .slice(0, 5);
+
+        const last15DaysStr = Array.from({ length: 15 }).map((_, i) => {
+            const d = new Date();
+            d.setDate(d.getDate() - (14 - i));
+            return d.toISOString().split('T')[0];
+        });
+
+        const trend15Days = last15DaysStr.map(dStr => {
+            const alDayList = kpisFilteredByArea.filter(a => a.created_at.startsWith(dStr));
+            const resolvedList = alDayList.filter(a => a.resolvido && a.resolvido_at);
+            let dTotalLoss = 0;
+            resolvedList.forEach(a => {
+                const temT2 = a.estacao_causadora ? !!((a.estacao_causadora as any).lider_t2_id || (a.estacao_causadora as any).supervisor_t2_id) : false;
+                dTotalLoss += calcActiveMinutes(a.created_at, a.resolvido_at, temT2);
+            });
+            const dMttr = resolvedList.length > 0 ? Math.round(dTotalLoss / resolvedList.length) : 0;
+            return {
+                name: dStr.slice(-5),
+                MTR: dMttr,
+                'Ocurrências': alDayList.length
+            };
+        });
+
+        const uniqueAreaList = Array.from(new Set(
+            alertas.map(a => {
+                const ar = a.estacao_causadora?.areas_fabrica;
+                return ar ? JSON.stringify({id: ar.id, nome: ar.nome_area}) : null;
+            }).filter(Boolean)
+        )).map(s => JSON.parse(s as string));
+
+        const allAreasNames = uniqueAreaList.map((a: any) => a.nome);
+        const areasComFalhas = new Set(kpisCurrentMonth.map(a => a.estacao_causadora?.areas_fabrica?.nome_area).filter(Boolean));
+        const areasLivresDeFalhas = allAreasNames.filter(a => !areasComFalhas.has(a));
+        const topFiaveis = areasLivresDeFalhas.length > 0 
+            ? areasLivresDeFalhas.map(name => ({name, alertas: 0})) 
+            : Object.entries(heatmapAreasCount).map(([name, count]) => ({name, alertas: count as number})).sort((a,b) => a.alertas - b.alertas).slice(0,3);
+
+        return {
+            totalOcorrencias,
+            resolvidos,
+            emAberto,
+            totalMinutosPerdidos,
+            mttr,
+            top5LideresAgeis,
+            top3LideresAcompanhamento,
+            rankingMttrData,
+            topViloes,
+            topCausas,
+            trend15Days,
+            uniqueAreaList,
+            topFiaveis
+        };
+    }, [alertas, selectedArea, selectedMonth, selectedDayKpi]);
+
+    const {
+        totalOcorrencias,
+        resolvidos,
+        emAberto,
+        totalMinutosPerdidos,
+        mttr,
+        top5LideresAgeis,
+        top3LideresAcompanhamento,
+        rankingMttrData,
+        topViloes,
+        topCausas,
+        trend15Days,
+        uniqueAreaList,
+        topFiaveis
+    } = kpiData;
 
     return (
         <div className="p-8 pb-32 max-w-7xl mx-auto space-y-6 animate-in fade-in duration-500">
