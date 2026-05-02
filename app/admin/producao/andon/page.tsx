@@ -367,7 +367,8 @@ export default function AndonDashPage() {
             topCausas,
             trend15Days,
             uniqueAreaList,
-            topFiaveis
+            topFiaveis,
+            heatmapAreasCount
         };
     }, [alertas, selectedArea, selectedMonth, selectedDayKpi]);
 
@@ -384,7 +385,8 @@ export default function AndonDashPage() {
         topCausas,
         trend15Days,
         uniqueAreaList,
-        topFiaveis
+        topFiaveis,
+        heatmapAreasCount
     } = kpiData;
 
     return (
