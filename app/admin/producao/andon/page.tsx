@@ -423,7 +423,7 @@ export default function AndonDashPage() {
     } = kpiData;
 
     return (
-        <div className="p-8 pb-32 max-w-7xl mx-auto space-y-6 animate-in fade-in duration-500">
+        <div className="p-8 pb-32 max-w-[1600px] mx-auto space-y-6 animate-in fade-in duration-500">
             <header className="mb-8 flex flex-col md:flex-row md:items-start justify-between gap-6">
                 <div>
                     <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight flex items-center gap-3">
