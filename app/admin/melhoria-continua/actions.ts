@@ -72,3 +72,58 @@ Exemplo de output:
         return { success: false, error: e.message || "Falha a processar via IA." };
     }
 }
+
+export async function pedirAvaliacaoPlanoIA(textoPlano: string) {
+    if (!process.env.GEMINI_API_KEY) {
+        return { success: false, error: "Chave GEMINI_API_KEY em falta." };
+    }
+    try {
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
+        const prompt = `
+És um Auditor Master Black Belt em Lean Six Sigma.
+Vou dar-te o rascunho de um plano de ação que um líder de linha escreveu manualmente.
+Avalia a qualidade deste plano de ação (0 a 10) baseando-te na clareza, se ataca a causa raiz, e se é SMART (Específico, Mensurável, etc).
+
+Plano escrito pelo utilizador:
+"${textoPlano}"
+
+Devolve o resultado ESTRITAMENTE num JSON com o formato:
+{
+  "nota": 7,
+  "feedback_curto": "O plano é um pouco vago na medição do resultado.",
+  "sugestao_melhoria": "Adiciona qual é a máquina específica e define que o sensor deve ser limpo a cada turno."
+}
+`;
+        const result = await model.generateContent(prompt);
+        const responseText = result.response.text();
+        let cleanJson = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
+        const avaliacao = JSON.parse(cleanJson);
+        return { success: true, data: avaliacao };
+    } catch (e: any) {
+        return { success: false, error: "Erro ao pedir avaliação à IA: " + e.message };
+    }
+}
+
+export async function pivotarEstrategiaIA(descricaoFalha: string) {
+    if (!process.env.GEMINI_API_KEY) {
+        return { success: false, error: "Chave GEMINI_API_KEY em falta." };
+    }
+    try {
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
+        const prompt = `
+Atuas como um Conselheiro de Engenharia WCM. 
+Foi implementada a seguinte Ação Corretiva na fábrica, mas após a verificação de eficácia, concluiu-se que FALHOU (foi ineficaz) e o problema reincidiu.
+
+Descrição da ação que falhou:
+"${descricaoFalha}"
+
+Como a ação falhou, precisamos de "pivotar" a estratégia. 
+Surgere 2 ações corretivas alternativas, pensando fora da caixa (ex: Poka-Yoke, Automação, Mudança de Material), que ataquem o problema de um ângulo diferente.
+Responde num texto formatado curto e direto, sem formatações complexas, apenas parágrafos simples.
+`;
+        const result = await model.generateContent(prompt);
+        return { success: true, data: result.response.text() };
+    } catch (e: any) {
+        return { success: false, error: "Erro ao gerar estratégia alternativa: " + e.message };
+    }
+}
