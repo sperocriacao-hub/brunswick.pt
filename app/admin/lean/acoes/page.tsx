@@ -31,6 +31,8 @@ export default function GlobalLeanActionsPage() {
     const [indicadores, setIndicadores] = useState("");
     const [validacao, setValidacao] = useState("Pendente");
     const [whys, setWhys] = useState<string[]>(['', '', '', '', '']);
+    const [tipoAnalise, setTipoAnalise] = useState<'5-Whys' | 'Ishikawa'>('5-Whys');
+    const [ishikawa, setIshikawa] = useState({ man: '', machine: '', material: '', method: '', measurement: '', environment: '' });
     const [tasks5w, setTasks5w] = useState<any[]>([]);
 
     useEffect(() => {
@@ -67,10 +69,26 @@ export default function GlobalLeanActionsPage() {
         setIndicadores(action.indicadores_sucesso || "");
         setValidacao(action.validacao_eficacia || "Pendente");
 
-        const loadedWhys = Array.isArray(action.causa_raiz_5w) && action.causa_raiz_5w.length > 0
-            ? action.causa_raiz_5w
-            : ['', '', '', '', ''];
-        setWhys(loadedWhys);
+        setValidacao(action.validacao_eficacia || "Pendente");
+
+        const ishiDef = { man: '', machine: '', material: '', method: '', measurement: '', environment: '' };
+        setTipoAnalise(action.tipo_analise_causa || '5-Whys');
+        
+        if (action.tipo_analise_causa === 'Ishikawa') {
+            try {
+                const parsed = typeof action.causa_raiz_5w === 'string' ? JSON.parse(action.causa_raiz_5w) : action.causa_raiz_5w;
+                setIshikawa({ ...ishiDef, ...parsed });
+            } catch (e) {
+                setIshikawa(ishiDef);
+            }
+            setWhys(['', '', '', '', '']);
+        } else {
+            const loadedWhys = Array.isArray(action.causa_raiz_5w) && action.causa_raiz_5w.length > 0
+                ? action.causa_raiz_5w
+                : ['', '', '', '', ''];
+            setWhys(loadedWhys);
+            setIshikawa(ishiDef);
+        }
 
         const loadedTasks = Array.isArray(action.plano_acao_5w2h) ? action.plano_acao_5w2h : [];
         setTasks5w(loadedTasks);
@@ -84,7 +102,8 @@ export default function GlobalLeanActionsPage() {
 
         const payload = {
             equipa_trabalho: equipa,
-            causa_raiz_5w: whys,
+            tipo_analise_causa: tipoAnalise,
+            causa_raiz_5w: tipoAnalise === 'Ishikawa' ? ishikawa : whys,
             plano_acao_5w2h: tasks5w,
             indicadores_sucesso: indicadores,
             validacao_eficacia: validacao
@@ -114,7 +133,7 @@ export default function GlobalLeanActionsPage() {
         setTasks5w(tasks5w.filter((_, i) => i !== index));
     };
 
-    const StatusColumns = ["To Do", "In Progress", "Blocked", "Done"];
+    const StatusColumns = ["Aberto", "Em Investigacao", "Validacao", "Concluido"];
 
     const getOriginIcon = (tipo: string) => {
         if (tipo === 'Kaizen') return <Lightbulb className="w-3 h-3 text-amber-500" />;
@@ -261,11 +280,11 @@ export default function GlobalLeanActionsPage() {
                                                 {mainCause}
                                             </td>
                                             <td className="p-4 whitespace-nowrap">
-                                                <span className={`px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest print:bg-transparent print:border \${
-                                                task.status === 'Done' ? 'bg-emerald-100 text-emerald-600 print:border-emerald-600' :
-                                                task.status === 'In Progress' ? 'bg-indigo-100 text-indigo-600 print:border-indigo-600' :
-                                                task.status === 'Blocked' ? 'bg-rose-100 text-rose-600 print:border-rose-600' :
-                                                'bg-slate-100 text-slate-600 print:border-slate-600'
+                                                <span className={`px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest print:bg-transparent print:border ${
+                                                task.status === 'Concluido' ? 'bg-emerald-100 text-emerald-600 print:border-emerald-600' :
+                                                task.status === 'Em Investigacao' ? 'bg-indigo-100 text-indigo-600 print:border-indigo-600' :
+                                                task.status === 'Validacao' ? 'bg-amber-100 text-amber-600 print:border-amber-600' :
+                                                'bg-rose-50 text-rose-600 print:border-rose-600'
                                             }`}>
                                                     {task.status}
                                                 </span>
@@ -281,8 +300,8 @@ export default function GlobalLeanActionsPage() {
 
                     {StatusColumns.map(columnId => {
                         // Esconder colunas não pertencentes à tab
-                        if (activeTab === 'kanban' && columnId === 'Done') return null;
-                        if (activeTab === 'historico' && columnId !== 'Done') return null;
+                        if (activeTab === 'kanban' && columnId === 'Concluido') return null;
+                        if (activeTab === 'historico' && columnId !== 'Concluido') return null;
 
                         const colItems = acoes.filter(a => {
                             if (a.status !== columnId) return false;
@@ -298,19 +317,19 @@ export default function GlobalLeanActionsPage() {
                         });
 
                         // Theme definitions
-                        let headerTheme = "bg-slate-100 text-slate-700 border-slate-200";
-                        if (columnId === 'In Progress') headerTheme = "bg-indigo-100 text-indigo-800 border-indigo-200";
-                        if (columnId === 'Blocked') headerTheme = "bg-rose-100 text-rose-800 border-rose-200";
-                        if (columnId === 'Done') headerTheme = "bg-emerald-100 text-emerald-800 border-emerald-200";
+                        let headerTheme = "bg-rose-50 text-rose-800 border-rose-200";
+                        if (columnId === 'Em Investigacao') headerTheme = "bg-indigo-100 text-indigo-800 border-indigo-200";
+                        if (columnId === 'Validacao') headerTheme = "bg-amber-100 text-amber-800 border-amber-200";
+                        if (columnId === 'Concluido') headerTheme = "bg-emerald-100 text-emerald-800 border-emerald-200";
 
                         return (
                             <div key={columnId} className="flex-1 w-full flex flex-col gap-4">
-                                <div className={`px-4 py-3 rounded-xl border flex justify-between items-center font-black uppercase tracking-widest \${headerTheme}`}>
+                                <div className={`px-4 py-3 rounded-xl border flex justify-between items-center font-black uppercase tracking-widest ${headerTheme}`}>
                                     <div className="flex items-center gap-2">
-                                        {columnId === 'To Do' && <Clock size={16} />}
-                                        {columnId === 'In Progress' && <Loader2 size={16} className="animate-spin" />}
-                                        {columnId === 'Blocked' && <AlertTriangle size={16} />}
-                                        {columnId === 'Done' && <CheckCircle2 size={16} />}
+                                        {columnId === 'Aberto' && <AlertTriangle size={16} />}
+                                        {columnId === 'Em Investigacao' && <Loader2 size={16} className="animate-spin" />}
+                                        {columnId === 'Validacao' && <ShieldAlert size={16} />}
+                                        {columnId === 'Concluido' && <CheckCircle2 size={16} />}
                                         {columnId}
                                     </div>
                                     <span className="bg-white/50 text-black/60 px-2 py-0.5 rounded text-xs leading-none">
@@ -361,17 +380,17 @@ export default function GlobalLeanActionsPage() {
                                                             {task.areas_fabrica?.nome_area || 'Global'}
                                                         </div>
                                                         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                            {columnId !== 'To Do' && (
-                                                                <button onClick={() => moveCard(task.id, 'To Do')} className="w-6 h-6 rounded bg-slate-100 text-slate-500 flex items-center justify-center hover:bg-slate-200" title="Mover para To Do">«</button>
+                                                            {columnId !== 'Aberto' && (
+                                                                <button onClick={() => moveCard(task.id, 'Aberto')} className="w-6 h-6 rounded bg-rose-50 text-rose-500 flex items-center justify-center hover:bg-rose-100" title="Mover para Aberto">«</button>
                                                             )}
-                                                            {columnId !== 'In Progress' && (
-                                                                <button onClick={() => moveCard(task.id, 'In Progress')} className="w-6 h-6 rounded bg-indigo-100 text-indigo-600 flex items-center justify-center hover:bg-indigo-200" title="Mover para In Progress"><Loader2 className="w-3 h-3" /></button>
+                                                            {columnId !== 'Em Investigacao' && (
+                                                                <button onClick={() => moveCard(task.id, 'Em Investigacao')} className="w-6 h-6 rounded bg-indigo-100 text-indigo-600 flex items-center justify-center hover:bg-indigo-200" title="Mover para Em Investigação"><Loader2 className="w-3 h-3" /></button>
                                                             )}
-                                                            {columnId !== 'Blocked' && (
-                                                                <button onClick={() => moveCard(task.id, 'Blocked')} className="w-6 h-6 rounded bg-rose-100 text-rose-600 flex items-center justify-center hover:bg-rose-200" title="Marcar como Bloqueado"><AlertTriangle className="w-3 h-3" /></button>
+                                                            {columnId !== 'Validacao' && (
+                                                                <button onClick={() => moveCard(task.id, 'Validacao')} className="w-6 h-6 rounded bg-amber-50 text-amber-600 flex items-center justify-center hover:bg-amber-100" title="Marcar Validação"><ShieldAlert className="w-3 h-3" /></button>
                                                             )}
-                                                            {columnId !== 'Done' && (
-                                                                <button onClick={() => moveCard(task.id, 'Done')} className="w-6 h-6 rounded bg-emerald-100 text-emerald-600 flex items-center justify-center hover:bg-emerald-200" title="Concluir!"><Check className="w-3 h-3" /></button>
+                                                            {columnId !== 'Concluido' && (
+                                                                <button onClick={() => moveCard(task.id, 'Concluido')} className="w-6 h-6 rounded bg-emerald-100 text-emerald-600 flex items-center justify-center hover:bg-emerald-200" title="Concluir!"><CheckCircle2 className="w-3 h-3" /></button>
                                                             )}
                                                         </div>
                                                     </div>
@@ -432,32 +451,60 @@ export default function GlobalLeanActionsPage() {
                                 </div>
                             </TabsContent>
 
-                            {/* TAB 2: ROOT CAUSE (5 WHYS) */}
+                            {/* TAB 2: ROOT CAUSE (5 WHYS / ISHIKAWA) */}
                             <TabsContent value="root_cause" className="space-y-6 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-300">
                                 <div>
-                                    <h3 className="font-black text-lg text-slate-800 mb-1 flex items-center gap-2"><AlertTriangle size={18} className="text-amber-500" /> Causa Raiz (5 Porquês)</h3>
-                                    <p className="text-sm text-slate-500 mb-6 font-medium">Questione o sintoma repetidamente até chegar à verdadeira causa organizativa.</p>
+                                    <h3 className="font-black text-lg text-slate-800 mb-1 flex items-center gap-2"><AlertTriangle size={18} className="text-amber-500" /> Causa Raiz / Investigação</h3>
+                                    <p className="text-sm text-slate-500 mb-6 font-medium">Selecione o método e identifique a verdadeira causa organizativa.</p>
                                 </div>
 
-                                <div className="space-y-3 pl-4 border-l-2 border-amber-200">
-                                    {whys.map((why, idx) => (
-                                        <div key={idx} className="relative">
-                                            <div className="absolute -left-[30px] top-2 bg-amber-100 text-amber-800 w-6 h-6 rounded-full flex items-center justify-center font-black text-xs border border-amber-300 shadow-sm">
-                                                {idx + 1}
-                                            </div>
-                                            <Input
-                                                placeholder={`Porquê..?`}
-                                                value={why}
-                                                onChange={e => {
-                                                    const w = [...whys];
-                                                    w[idx] = e.target.value;
-                                                    setWhys(w);
-                                                }}
-                                                className="bg-slate-50 border-slate-200 focus-visible:ring-amber-500 font-medium"
-                                            />
-                                        </div>
-                                    ))}
+                                <div className="flex bg-slate-100 p-1 rounded-lg w-fit mb-6">
+                                    <button onClick={() => setTipoAnalise('5-Whys')} className={`px-4 py-2 rounded-md text-sm font-bold transition-all ${tipoAnalise === '5-Whys' ? 'bg-white text-amber-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>5 Porquês</button>
+                                    <button onClick={() => setTipoAnalise('Ishikawa')} className={`px-4 py-2 rounded-md text-sm font-bold transition-all ${tipoAnalise === 'Ishikawa' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Diagrama Ishikawa (6Ms)</button>
                                 </div>
+
+                                {tipoAnalise === '5-Whys' ? (
+                                    <div className="space-y-3 pl-4 border-l-2 border-amber-200">
+                                        {whys.map((why, idx) => (
+                                            <div key={idx} className="relative">
+                                                <div className="absolute -left-[30px] top-2 bg-amber-100 text-amber-800 w-6 h-6 rounded-full flex items-center justify-center font-black text-xs border border-amber-300 shadow-sm">
+                                                    {idx + 1}
+                                                </div>
+                                                <Input
+                                                    placeholder={`Porquê..?`}
+                                                    value={why}
+                                                    onChange={e => {
+                                                        const w = [...whys];
+                                                        w[idx] = e.target.value;
+                                                        setWhys(w);
+                                                    }}
+                                                    className="bg-slate-50 border-slate-200 focus-visible:ring-amber-500 font-medium"
+                                                />
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {[
+                                            { key: 'man', label: 'Mão-de-Obra', icon: '👷' },
+                                            { key: 'machine', label: 'Máquina', icon: '⚙️' },
+                                            { key: 'material', label: 'Material', icon: '📦' },
+                                            { key: 'method', label: 'Método', icon: '📋' },
+                                            { key: 'measurement', label: 'Medida', icon: '📏' },
+                                            { key: 'environment', label: 'Meio Ambiente', icon: '🌍' }
+                                        ].map(cat => (
+                                            <div key={cat.key} className="space-y-2 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                                                <label className="text-xs font-bold text-indigo-700 uppercase flex items-center gap-2">{cat.icon} {cat.label}</label>
+                                                <Textarea 
+                                                    value={(ishikawa as any)[cat.key]} 
+                                                    onChange={e => setIshikawa({ ...ishikawa, [cat.key]: e.target.value })} 
+                                                    className="min-h-[80px] bg-white text-sm" 
+                                                    placeholder="Identifique possíveis causas nesta categoria..." 
+                                                />
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </TabsContent>
 
                             {/* TAB 3: PLANO DE AÇÃO 5W2H */}

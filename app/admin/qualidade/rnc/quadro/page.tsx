@@ -27,6 +27,8 @@ export default function RncKanbanBoardPage() {
     const [selectedAction, setSelectedAction] = useState<any>(null); // For headers
     const [equipa, setEquipa] = useState('');
     const [whys, setWhys] = useState(['', '', '', '', '']);
+    const [tipoAnalise, setTipoAnalise] = useState<'5-Whys' | 'Ishikawa'>('5-Whys');
+    const [ishikawa, setIshikawa] = useState({ man: '', machine: '', material: '', method: '', measurement: '', environment: '' });
     const [tasks5w, setTasks5w] = useState<any[]>([]);
     const [indicadores, setIndicadores] = useState('');
     const [validacao, setValidacao] = useState<'Pendente'|'Eficaz'|'Ineficaz'>('Pendente');
@@ -79,13 +81,26 @@ export default function RncKanbanBoardPage() {
             
             setEquipa(res.report.autor || ''); // Mapped to 'autor'
             
-            // Map 'analise_causa' to WHYS
-            let w = ['', '', '', '', ''];
+            // Map 'analise_causa'
+            const ishiDef = { man: '', machine: '', material: '', method: '', measurement: '', environment: '' };
+            setTipoAnalise(res.report.tipo_analise_causa || '5-Whys');
             try {
-                if (res.report.analise_causa?.startsWith('[')) w = JSON.parse(res.report.analise_causa);
-                else w[0] = res.report.analise_causa || '';
+                if (res.report.tipo_analise_causa === 'Ishikawa') {
+                    const parsed = JSON.parse(res.report.analise_causa);
+                    setIshikawa({ ...ishiDef, ...parsed });
+                    setWhys(['', '', '', '', '']);
+                } else {
+                    const w = ['', '', '', '', ''];
+                    if (res.report.analise_causa?.startsWith('[')) {
+                        const parsed = JSON.parse(res.report.analise_causa);
+                        setWhys(Array.isArray(parsed) ? parsed : w);
+                    } else {
+                        w[0] = res.report.analise_causa || '';
+                        setWhys(w);
+                    }
+                    setIshikawa(ishiDef);
+                }
             } catch(e) {}
-            setWhys(w);
 
             // Map 'contramedidas' to 5W2H Tasks
             let t = [];
@@ -108,7 +123,8 @@ export default function RncKanbanBoardPage() {
 
         const payload = {
             autor: equipa,
-            analise_causa: JSON.stringify(whys),
+            tipo_analise_causa: tipoAnalise,
+            analise_causa: tipoAnalise === 'Ishikawa' ? JSON.stringify(ishikawa) : JSON.stringify(whys),
             contramedidas: JSON.stringify(tasks5w),
             seguimento: indicadores,
             status: newStatus
@@ -400,29 +416,57 @@ export default function RncKanbanBoardPage() {
                             {/* TAB 2: ROOT CAUSE (5 WHYS) */}
                             <TabsContent value="root_cause" className="space-y-6 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-300">
                                 <div>
-                                    <h3 className="font-black text-lg text-slate-800 mb-1 flex items-center gap-2"><AlertTriangle size={18} className="text-amber-500" /> Causa Raiz (5 Porquês)</h3>
-                                    <p className="text-sm text-slate-500 mb-6 font-medium">Questione o sintoma repetidamente até chegar à verdadeira causa organizativa.</p>
+                                    <h3 className="font-black text-lg text-slate-800 mb-1 flex items-center gap-2"><AlertTriangle size={18} className="text-amber-500" /> Causa Raiz / Investigação</h3>
+                                    <p className="text-sm text-slate-500 mb-6 font-medium">Selecione o método e identifique a verdadeira causa organizativa.</p>
                                 </div>
 
-                                <div className="space-y-3 pl-4 border-l-2 border-amber-200">
-                                    {whys.map((why, idx) => (
-                                        <div key={idx} className="relative">
-                                            <div className="absolute -left-[30px] top-2 bg-amber-100 text-amber-800 w-6 h-6 rounded-full flex items-center justify-center font-black text-xs border border-amber-300 shadow-sm">
-                                                {idx + 1}
-                                            </div>
-                                            <Input
-                                                placeholder={`Porquê..?`}
-                                                value={why}
-                                                onChange={e => {
-                                                    const w = [...whys];
-                                                    w[idx] = e.target.value;
-                                                    setWhys(w);
-                                                }}
-                                                className="bg-slate-50 border-slate-200 focus-visible:ring-amber-500 font-medium"
-                                            />
-                                        </div>
-                                    ))}
+                                <div className="flex bg-slate-100 p-1 rounded-lg w-fit mb-6">
+                                    <button onClick={() => setTipoAnalise('5-Whys')} className={`px-4 py-2 rounded-md text-sm font-bold transition-all ${tipoAnalise === '5-Whys' ? 'bg-white text-amber-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>5 Porquês</button>
+                                    <button onClick={() => setTipoAnalise('Ishikawa')} className={`px-4 py-2 rounded-md text-sm font-bold transition-all ${tipoAnalise === 'Ishikawa' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Diagrama Ishikawa (6Ms)</button>
                                 </div>
+
+                                {tipoAnalise === '5-Whys' ? (
+                                    <div className="space-y-3 pl-4 border-l-2 border-amber-200">
+                                        {whys.map((why, idx) => (
+                                            <div key={idx} className="relative">
+                                                <div className="absolute -left-[30px] top-2 bg-amber-100 text-amber-800 w-6 h-6 rounded-full flex items-center justify-center font-black text-xs border border-amber-300 shadow-sm">
+                                                    {idx + 1}
+                                                </div>
+                                                <Input
+                                                    placeholder={`Porquê..?`}
+                                                    value={why}
+                                                    onChange={e => {
+                                                        const w = [...whys];
+                                                        w[idx] = e.target.value;
+                                                        setWhys(w);
+                                                    }}
+                                                    className="bg-slate-50 border-slate-200 focus-visible:ring-amber-500 font-medium"
+                                                />
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {[
+                                            { key: 'man', label: 'Mão-de-Obra', icon: '👷' },
+                                            { key: 'machine', label: 'Máquina', icon: '⚙️' },
+                                            { key: 'material', label: 'Material', icon: '📦' },
+                                            { key: 'method', label: 'Método', icon: '📋' },
+                                            { key: 'measurement', label: 'Medida', icon: '📏' },
+                                            { key: 'environment', label: 'Meio Ambiente', icon: '🌍' }
+                                        ].map(cat => (
+                                            <div key={cat.key} className="space-y-2 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                                                <label className="text-xs font-bold text-indigo-700 uppercase flex items-center gap-2">{cat.icon} {cat.label}</label>
+                                                <Textarea 
+                                                    value={(ishikawa as any)[cat.key]} 
+                                                    onChange={e => setIshikawa({ ...ishikawa, [cat.key]: e.target.value })} 
+                                                    className="min-h-[80px] bg-white text-sm" 
+                                                    placeholder="Identifique possíveis causas nesta categoria..." 
+                                                />
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </TabsContent>
 
                             {/* TAB 3: PLANO DE AÇÃO 5W2H */}
@@ -600,23 +644,41 @@ export default function RncKanbanBoardPage() {
                                 </div>
                             </div>
 
-                            {/* D4: ANÁLISE CAUSA RAIZ (5WHY) */}
+                            {/* D4: ANÁLISE CAUSA RAIZ (5WHY / ISHIKAWA) */}
                             <div className="border border-slate-300 rounded overflow-hidden">
                                 <div className="bg-slate-100 font-bold px-4 py-2 text-xs uppercase tracking-widest border-b border-slate-300">
-                                    D4: Causa Raiz / Investigação (5 Porquês)
+                                    D4: Causa Raiz / Investigação ({tipoAnalise})
                                 </div>
                                 <div className="p-4 text-sm">
-                                    {whys.some(w => w.trim() !== '') ? (
-                                        <ul className="space-y-2">
-                                            {whys.map((why, idx) => why && (
-                                                <li key={idx} className="flex gap-3">
-                                                    <span className="font-black text-rose-600 shrink-0">W{idx+1}.</span> 
-                                                    <span className="font-medium">{why}</span>
-                                                </li>
-                                            ))}
-                                        </ul>
+                                    {tipoAnalise === '5-Whys' ? (
+                                        whys.some(w => w.trim() !== '') ? (
+                                            <ul className="space-y-2">
+                                                {whys.map((why, idx) => why && (
+                                                    <li key={idx} className="flex gap-3">
+                                                        <span className="font-black text-rose-600 shrink-0">W{idx+1}.</span> 
+                                                        <span className="font-medium">{why}</span>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        ) : (
+                                            <span className="text-slate-400 italic">Pesquisa de causa raiz não documentada.</span>
+                                        )
                                     ) : (
-                                        <span className="text-slate-400 italic">Pesquisa de causa raiz não documentada.</span>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            {[
+                                                { key: 'man', label: 'Mão-de-Obra' },
+                                                { key: 'machine', label: 'Máquina' },
+                                                { key: 'material', label: 'Material' },
+                                                { key: 'method', label: 'Método' },
+                                                { key: 'measurement', label: 'Medida' },
+                                                { key: 'environment', label: 'Ambiente' }
+                                            ].map(cat => (ishikawa as any)[cat.key] ? (
+                                                <div key={cat.key} className="bg-slate-50 p-2 rounded border border-slate-200">
+                                                    <div className="text-[10px] font-bold uppercase text-indigo-700 mb-1">{cat.label}</div>
+                                                    <div className="text-xs">{((ishikawa as any)[cat.key])}</div>
+                                                </div>
+                                            ) : null))}
+                                        </div>
                                     )}
                                 </div>
                             </div>

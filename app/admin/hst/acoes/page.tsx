@@ -62,7 +62,7 @@ export default function HstActionsKanbanPage() {
         }
     };
 
-    const StatusColumns = ["To Do", "In Progress", "Blocked", "Done"];
+    const StatusColumns = ["Aberto", "Em Investigacao", "Validacao", "Concluido"];
 
     const getOriginIcon = (tipo: string) => {
         if (!tipo) return <ShieldAlert className="w-3 h-3 text-slate-500" />;
@@ -88,7 +88,7 @@ export default function HstActionsKanbanPage() {
             (acao.operadores?.nome_operador || '').toUpperCase().includes(searchU) ||
             (acao.hst_ocorrencias?.tipo_ocorrencia || '').toUpperCase().includes(searchU);
 
-        const mTab = activeTab === 'kanban' ? acao.status !== 'Done' : acao.status === 'Done';
+        const mTab = activeTab === 'kanban' ? acao.status !== 'Concluido' : acao.status === 'Concluido';
 
         return mTerm && mTab;
     });
@@ -139,13 +139,13 @@ export default function HstActionsKanbanPage() {
             ) : activeTab === 'kanban' ? (
                 // BOARD KANBAN
                 <div className="flex gap-6 overflow-x-auto pb-8 snap-x">
-                    {StatusColumns.filter(c => c !== 'Done').map(column => {
+                    {StatusColumns.filter(c => c !== 'Concluido').map(column => {
                         const columnTasks = filteredAcoes.filter(a => a.status === column);
 
                         let colColor = "bg-slate-100 border-slate-200";
                         let headColor = "bg-slate-200 text-slate-700";
-                        if (column === 'In Progress') { colColor = "bg-rose-50 border-rose-100"; headColor = "bg-rose-100 text-rose-800"; }
-                        if (column === 'Blocked') { colColor = "bg-orange-50 border-orange-100"; headColor = "bg-orange-100 text-orange-800"; }
+                        if (column === 'Em Investigacao') { colColor = "bg-indigo-50 border-indigo-100"; headColor = "bg-indigo-100 text-indigo-800"; }
+                        if (column === 'Validacao') { colColor = "bg-amber-50 border-amber-100"; headColor = "bg-amber-100 text-amber-800"; }
 
                         return (
                             <div
@@ -210,7 +210,7 @@ export default function HstActionsKanbanPage() {
                                                             Abrir 8D <ArrowRight size={10} className="ml-1" />
                                                         </Button>
                                                     )}
-                                                    <Button variant="ghost" size="icon" className="h-6 w-6 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700" onClick={() => moveCard(task.id, 'Done')} title="Marcar Concluída">
+                                                    <Button variant="ghost" size="icon" className="h-6 w-6 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700" onClick={() => moveCard(task.id, 'Concluido')} title="Marcar Concluída">
                                                         <CheckCircle2 size={14} />
                                                     </Button>
                                                     <Button variant="ghost" size="icon" className="h-6 w-6 text-red-400 hover:bg-red-50 hover:text-red-600" onClick={() => handleDelete(task.id)} title="Eliminar">
@@ -269,7 +269,7 @@ export default function HstActionsKanbanPage() {
                                         ) : '-'}
                                     </td>
                                     <td className="px-6 py-4 text-right">
-                                        <Button size="sm" variant="outline" onClick={() => moveCard(task.id, 'In Progress')} className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 border-blue-200">
+                                        <Button size="sm" variant="outline" onClick={() => moveCard(task.id, 'Em Investigacao')} className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 border-blue-200">
                                             Reabrir
                                         </Button>
                                     </td>
