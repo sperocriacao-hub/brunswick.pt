@@ -49,6 +49,7 @@ export default function GestaoRHPage() {
     const [linhas, setLinhas] = useState<LinhaInfo[]>([]);
     const [matrizGlobal, setMatrizGlobal] = useState<any[]>([]);
     const [ausenciasGlobal, setAusenciasGlobal] = useState<any[]>([]);
+    const [formacoesGlobal, setFormacoesGlobal] = useState<any[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [filterArea, setFilterArea] = useState('Todas');
     const [filterLinha, setFilterLinha] = useState('Todas');
@@ -123,7 +124,7 @@ export default function GestaoRHPage() {
             }
         }
 
-        const [{ data: ops }, { data: ests }, { data: ars }, { data: lins }, { data: matriz }, { data: ausencias }] = await Promise.all([
+        const [{ data: ops }, { data: ests }, { data: ars }, { data: lins }, { data: matriz }, { data: ausencias }, { data: formacoes }] = await Promise.all([
             queryOps,
             supabase
                 .from('estacoes')
@@ -142,7 +143,11 @@ export default function GestaoRHPage() {
                 .select('*'),
             supabase
                 .from('rh_ausencias')
-                .select('*')
+                .select('*'),
+            supabase
+                .from('rh_planos_formacao')
+                .select('formando_id, status')
+                .eq('status', 'Em Curso')
         ]);
 
         if (ops) setOperadores(ops);
@@ -151,6 +156,7 @@ export default function GestaoRHPage() {
         if (lins) setLinhas(lins);
         if (matriz) setMatrizGlobal(matriz);
         if (ausencias) setAusenciasGlobal(ausencias);
+        if (formacoes) setFormacoesGlobal(formacoes);
         setIsLoading(false);
     };
 
@@ -372,6 +378,7 @@ export default function GestaoRHPage() {
                                 <th className="p-4 font-semibold text-slate-600 uppercase tracking-widest text-xs">Colaborador</th>
                                 <th className="p-4 font-semibold text-slate-600 uppercase tracking-widest text-xs">Função</th>
                                 <th className="p-4 font-semibold text-slate-600 uppercase tracking-widest text-xs">M.E.S</th>
+                                <th className="p-4 font-semibold text-slate-600 uppercase tracking-widest text-xs">Academia</th>
                                 <th className="p-4 font-semibold text-slate-600 uppercase tracking-widest text-xs">ILUO</th>
                                 <th className="p-4 font-semibold text-slate-600 uppercase tracking-widest text-xs">Avaliações</th>
                                 <th className="p-4 font-semibold text-slate-600 uppercase tracking-widest text-xs">Talento (Real)</th>
@@ -386,6 +393,7 @@ export default function GestaoRHPage() {
                                 const realScore = Math.round(((iluoScore + avalScore) / 2) * 10) / 10;
                                 const badge = getBadgeInfo(realScore);
                                 const activeAbsence = getCurrentAbsence(op.id);
+                                const isEmFormacao = formacoesGlobal.some(f => f.formando_id === op.id);
 
                                 return (
                                 <tr key={op.id} className="hover:bg-blue-50/50 transition-colors">
@@ -413,6 +421,15 @@ export default function GestaoRHPage() {
                                             </div>
                                         ) : (
                                             <span className="text-xs text-slate-400 italic font-medium">Sem Acesso</span>
+                                        )}
+                                    </td>
+                                    <td className="p-4">
+                                        {isEmFormacao ? (
+                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] uppercase font-bold tracking-wider bg-purple-50 text-purple-700 border border-purple-200">
+                                                🎓 Em Formação
+                                            </span>
+                                        ) : (
+                                            <span className="text-[10px] text-slate-400 font-medium">---</span>
                                         )}
                                     </td>
                                     <td className="p-4">
@@ -521,7 +538,7 @@ export default function GestaoRHPage() {
                             })}
                             {filtrados.length === 0 && (
                                 <tr>
-                                    <td colSpan={9} className="p-12 text-center text-slate-400 italic">Nenhum operador encontrado na lista.</td>
+                                    <td colSpan={10} className="p-12 text-center text-slate-400 italic">Nenhum operador encontrado na lista.</td>
                                 </tr>
                             )}
                         </tbody>
