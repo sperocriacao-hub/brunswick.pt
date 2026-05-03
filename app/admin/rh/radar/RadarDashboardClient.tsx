@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { Network, Users, UserCheck, UserX, Repeat, MapPin, Search, ChevronRight, Activity, Zap, Factory } from 'lucide-react';
+import { Network, Users, UserCheck, UserX, Repeat, MapPin, Search, ChevronRight, Activity, Zap, Factory, Calendar } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,9 +13,10 @@ type RadarDashboardProps = {
     estacoes: any[];
     operadores: any[];
     presencasRfidMap: Record<string, string>;
+    ausenciasHoje: { operador_id: string; tipo_ausencia: string }[];
 };
 
-export default function RadarDashboardClient({ areas, linhas, estacoes, operadores, presencasRfidMap }: RadarDashboardProps) {
+export default function RadarDashboardClient({ areas, linhas, estacoes, operadores, presencasRfidMap, ausenciasHoje }: RadarDashboardProps) {
     const [searchQuery, setSearchQuery] = useState('');
     const [filterArea, setFilterArea] = useState('Todas');
     const [filterLinha, setFilterLinha] = useState('Todas');
@@ -129,15 +130,26 @@ export default function RadarDashboardClient({ areas, linhas, estacoes, operador
     const globalHeadcount = filteredOps.length;
     let globalPresentes = 0;
     let globalFaltas = 0;
+    let globalFeriasBaixa = 0;
     let globalRealocacoes = 0;
 
     filteredOps.forEach(op => {
-        if (isPresent(op.tag_rfid_operador)) globalPresentes++;
-        else globalFaltas++;
+        if (isPresent(op.tag_rfid_operador)) {
+            globalPresentes++;
+        } else {
+            const ausente = ausenciasHoje.find(a => a.operador_id === op.id);
+            if (ausente) {
+                globalFeriasBaixa++;
+            } else {
+                globalFaltas++;
+            }
+        }
         if (op.em_realocacao) globalRealocacoes++;
     });
 
-    const taxaAbsenteismo = globalHeadcount > 0 ? ((globalFaltas / globalHeadcount) * 100).toFixed(1) : '0.0';
+    // O absenteísmo só conta quem deveria vir (tira as Férias/Baixas do denominador)
+    const utilHeadcount = globalHeadcount - globalFeriasBaixa;
+    const taxaAbsenteismo = utilHeadcount > 0 ? ((globalFaltas / utilHeadcount) * 100).toFixed(1) : '0.0';
 
     let atrasosDiarios = 0;
     filteredOps.forEach(op => {
@@ -225,7 +237,7 @@ export default function RadarDashboardClient({ areas, linhas, estacoes, operador
             </header>
 
             {/* KPIS MACRO ESTILO COCKPIT */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
                 <Card className="bg-white border-0 shadow-sm ring-1 ring-slate-200 overflow-hidden relative group">
                     <div className="absolute top-0 right-0 w-16 h-16 bg-slate-50 rounded-bl-full -z-0 transition-transform group-hover:scale-110"></div>
                     <CardContent className="p-5 relative z-10 flex flex-col">
@@ -263,6 +275,19 @@ export default function RadarDashboardClient({ areas, linhas, estacoes, operador
                         <div className="flex items-baseline gap-2">
                             <span className="text-4xl font-black text-rose-600">{taxaAbsenteismo}%</span>
                             <span className="text-xs font-bold text-slate-400">{globalFaltas} Ausências</span>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card className="bg-white border-0 shadow-sm ring-1 ring-slate-200 overflow-hidden relative group">
+                    <CardContent className="p-5 relative z-10 flex flex-col">
+                        <span className="text-slate-500 font-bold text-[10px] uppercase tracking-widest mb-1 flex justify-between items-center">
+                            Férias & Baixas (Aprovadas)
+                            <Calendar size={14} className="text-sky-400" />
+                        </span>
+                        <div className="flex items-baseline gap-2">
+                            <span className="text-4xl font-black text-sky-600">{globalFeriasBaixa}</span>
+                            <span className="text-xs font-bold text-slate-400">agendadas</span>
                         </div>
                     </CardContent>
                 </Card>

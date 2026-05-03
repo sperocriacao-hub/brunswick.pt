@@ -48,6 +48,7 @@ export default function GestaoRHPage() {
     const [areas, setAreas] = useState<AreaInfo[]>([]);
     const [linhas, setLinhas] = useState<LinhaInfo[]>([]);
     const [matrizGlobal, setMatrizGlobal] = useState<any[]>([]);
+    const [ausenciasGlobal, setAusenciasGlobal] = useState<any[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [filterArea, setFilterArea] = useState('Todas');
     const [filterLinha, setFilterLinha] = useState('Todas');
@@ -65,6 +66,15 @@ export default function GestaoRHPage() {
     const [isIluoLoading, setIsIluoLoading] = useState(false);
     const [newIluoEstacao, setNewIluoEstacao] = useState('');
     const [newIluoNivel, setNewIluoNivel] = useState('I');
+
+    // Absence Modal State
+    const [isAbsenceModalOpen, setIsAbsenceModalOpen] = useState(false);
+    const [absenceTargetOp, setAbsenceTargetOp] = useState<OperadorInfo | null>(null);
+    const [absenceType, setAbsenceType] = useState('Férias');
+    const [absenceStart, setAbsenceStart] = useState('');
+    const [absenceEnd, setAbsenceEnd] = useState('');
+    const [absenceNotes, setAbsenceNotes] = useState('');
+    const [isAbsenceLoading, setIsAbsenceLoading] = useState(false);
     
     // Hydration state for Session Storage
     const [isHydrated, setIsHydrated] = useState(false);
@@ -113,7 +123,7 @@ export default function GestaoRHPage() {
             }
         }
 
-        const [{ data: ops }, { data: ests }, { data: ars }, { data: lins }, { data: matriz }] = await Promise.all([
+        const [{ data: ops }, { data: ests }, { data: ars }, { data: lins }, { data: matriz }, { data: ausencias }] = await Promise.all([
             queryOps,
             supabase
                 .from('estacoes')
@@ -129,6 +139,9 @@ export default function GestaoRHPage() {
                 .order('descricao_linha'),
             supabase
                 .from('operador_iluo_matriz')
+                .select('*'),
+            supabase
+                .from('rh_ausencias')
                 .select('*')
         ]);
 
@@ -137,6 +150,7 @@ export default function GestaoRHPage() {
         if (ars) setAreas(ars);
         if (lins) setLinhas(lins);
         if (matriz) setMatrizGlobal(matriz);
+        if (ausencias) setAusenciasGlobal(ausencias);
         setIsLoading(false);
     };
 
@@ -202,6 +216,18 @@ export default function GestaoRHPage() {
         if (coeff >= 2.5) return { label: 'Contribuidor', classes: 'text-amber-800 bg-amber-100 border-amber-400' };
         if (coeff >= 2.0) return { label: 'Passageiro', classes: 'text-orange-800 bg-orange-100 border-orange-400' };
         return { label: 'Alerta RH', classes: 'text-red-800 bg-red-100 border-red-500' };
+    };
+
+    const getCurrentAbsence = (opId: string) => {
+        const today = new Date().toISOString().split('T')[0];
+        const opAusencias = ausenciasGlobal.filter(a => a.operador_id === opId);
+        
+        const active = opAusencias.find(a => {
+            if (a.data_inicio > today) return false;
+            if (a.data_fim && a.data_fim < today) return false;
+            return true;
+        });
+        return active;
     };
 
     const toggleStatus = async (id: string, currentStatus: string) => {
@@ -359,6 +385,7 @@ export default function GestaoRHPage() {
                                 const avalScore = parseFloat(op.matriz_talento_media || '0') || 0;
                                 const realScore = Math.round(((iluoScore + avalScore) / 2) * 10) / 10;
                                 const badge = getBadgeInfo(realScore);
+                                const activeAbsence = getCurrentAbsence(op.id);
 
                                 return (
                                 <tr key={op.id} className="hover:bg-blue-50/50 transition-colors">
@@ -404,14 +431,24 @@ export default function GestaoRHPage() {
                                     </td>
                                     <td className="p-4">
                                         <div className="flex flex-col gap-1 items-start">
-                                            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] uppercase font-bold tracking-wider border ${op.status === 'Ativo'
-                                                ? 'bg-green-50 text-green-700 border-green-200'
-                                                : 'bg-red-50 text-red-700 border-red-200'
+                                            {activeAbsence ? (
+                                                <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] uppercase font-bold tracking-wider border ${
+                                                    activeAbsence.tipo_ausencia === 'Férias' ? 'bg-sky-50 text-sky-700 border-sky-200' :
+                                                    activeAbsence.tipo_ausencia === 'Baixa Médica' ? 'bg-red-50 text-red-700 border-red-200' :
+                                                    'bg-amber-50 text-amber-700 border-amber-200'
                                                 }`}>
-                                                {op.status === 'Ativo' ? <UserCheck size={12} /> : <UserX size={12} />}
-                                                {op.status}
-                                            </span>
-                                            {op.em_realocacao && (
+                                                    {activeAbsence.tipo_ausencia === 'Férias' ? '🏖️' : '🏥'} {activeAbsence.tipo_ausencia}
+                                                </span>
+                                            ) : (
+                                                <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] uppercase font-bold tracking-wider border ${op.status === 'Ativo'
+                                                    ? 'bg-green-50 text-green-700 border-green-200'
+                                                    : 'bg-red-50 text-red-700 border-red-200'
+                                                    }`}>
+                                                    {op.status === 'Ativo' ? <UserCheck size={12} /> : <UserX size={12} />}
+                                                    {op.status}
+                                                </span>
+                                            )}
+                                            {op.em_realocacao && !activeAbsence && (
                                                 <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] uppercase font-bold tracking-wider bg-amber-50 text-amber-700 border border-amber-200">
                                                     <Repeat size={10} /> Emprestado
                                                 </span>
@@ -457,6 +494,16 @@ export default function GestaoRHPage() {
                                             title="Matriz de Competências ILUO"
                                         >
                                             <Star size={16} />
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                setAbsenceTargetOp(op);
+                                                setIsAbsenceModalOpen(true);
+                                            }}
+                                            className="p-2 text-slate-400 hover:bg-sky-50 hover:text-sky-600 rounded-md transition-colors border border-transparent hover:border-sky-100"
+                                            title="Registar Ausência / Férias"
+                                        >
+                                            <span className="text-sm">📅</span>
                                         </button>
                                         <button
                                             onClick={() => toggleStatus(op.id, op.status)}
@@ -674,6 +721,119 @@ export default function GestaoRHPage() {
                                     })}
                                 </div>
                             )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* MODAL DE AUSÊNCIAS E FÉRIAS */}
+            {isAbsenceModalOpen && absenceTargetOp && (
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-200 flex flex-col">
+                        <div className="px-6 py-4 border-b border-sky-100 flex justify-between items-center bg-sky-50/50">
+                            <h3 className="font-bold text-sky-900 flex items-center gap-2">
+                                <span className="text-lg">📅</span>
+                                Registar Ausência
+                            </h3>
+                            <button onClick={() => setIsAbsenceModalOpen(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <div className="p-6 overflow-y-auto">
+                            <div className="flex items-center gap-4 mb-6 pb-4 border-b border-slate-100">
+                                <div className="w-10 h-10 rounded-full bg-sky-100 flex items-center justify-center text-sky-700 font-extrabold text-lg shadow-inner">
+                                    {absenceTargetOp.nome_operador.charAt(0)}
+                                </div>
+                                <div>
+                                    <h4 className="text-lg font-black text-slate-800 leading-tight">{absenceTargetOp.nome_operador}</h4>
+                                    <p className="text-xs text-slate-500 font-medium uppercase tracking-widest">{absenceTargetOp.funcao || 'Operador Base'}</p>
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Tipo de Ausência</label>
+                                    <select 
+                                        value={absenceType} 
+                                        onChange={(e) => setAbsenceType(e.target.value)}
+                                        className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500/20 font-medium"
+                                    >
+                                        <option value="Férias">🏖️ Férias</option>
+                                        <option value="Baixa Médica">🏥 Baixa Médica</option>
+                                        <option value="Falta Justificada">✅ Falta Justificada</option>
+                                        <option value="Falta Injustificada">❌ Falta Injustificada</option>
+                                        <option value="Afastamento/Licença">⏸️ Afastamento/Licença</option>
+                                    </select>
+                                </div>
+                                
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Data Início</label>
+                                        <input 
+                                            type="date" 
+                                            value={absenceStart}
+                                            onChange={(e) => setAbsenceStart(e.target.value)}
+                                            className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500/20"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Data Fim (Opcional)</label>
+                                        <input 
+                                            type="date" 
+                                            value={absenceEnd}
+                                            onChange={(e) => setAbsenceEnd(e.target.value)}
+                                            className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500/20"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Observações / Motivo</label>
+                                    <textarea 
+                                        value={absenceNotes}
+                                        onChange={(e) => setAbsenceNotes(e.target.value)}
+                                        rows={2}
+                                        placeholder="Ex: Férias de Verão, Baixa prolongada, etc."
+                                        className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500/20"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-between items-center">
+                            <span className="text-[10px] text-slate-400 font-medium">As métricas de OEE excluem dias de ausência.</span>
+                            <div className="flex gap-3">
+                                <button onClick={() => setIsAbsenceModalOpen(false)} className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">Cancelar</button>
+                                <button 
+                                    disabled={isAbsenceLoading || !absenceStart}
+                                    onClick={async () => {
+                                        setIsAbsenceLoading(true);
+                                        const payload = {
+                                            operador_id: absenceTargetOp.id,
+                                            tipo_ausencia: absenceType,
+                                            data_inicio: absenceStart,
+                                            data_fim: absenceEnd || null,
+                                            observacoes: absenceNotes
+                                        };
+                                        const { error } = await supabase.from('rh_ausencias').insert([payload]);
+                                        if (error) {
+                                            alert("Erro ao registar ausência: " + error.message);
+                                        } else {
+                                            await carregarEquipa();
+                                            setIsAbsenceModalOpen(false);
+                                            setAbsenceStart('');
+                                            setAbsenceEnd('');
+                                            setAbsenceNotes('');
+                                        }
+                                        setIsAbsenceLoading(false);
+                                    }} 
+                                    className="px-6 py-2 bg-sky-600 hover:bg-sky-700 text-white text-sm font-bold rounded-md shadow-sm transition-colors flex items-center gap-2"
+                                >
+                                    {isAbsenceLoading ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                                    Registar
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

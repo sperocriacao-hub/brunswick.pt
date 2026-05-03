@@ -52,6 +52,14 @@ export default async function RadarShopfloorPage() {
         .lt('timestamp', endOfDay)
         .order('timestamp', { ascending: true });
 
+    // 4. Fetch Ausências (Férias, Baixa Médica, etc.) para Hoje
+    const dateTodayStr = today.toISOString().split('T')[0];
+    const { data: ausenciasHoje } = await supabase
+        .from('rh_ausencias')
+        .select('operador_id, tipo_ausencia')
+        .lte('data_inicio', dateTodayStr)
+        .or(`data_fim.gte.${dateTodayStr},data_fim.is.null`);
+
     // Determinar a lista de RFIDs presentes hoje com o timestamp da entrada. 
     const presencasTimestampMap: Record<string, string> = {};
     
@@ -77,6 +85,7 @@ export default async function RadarShopfloorPage() {
             estacoes={estacoes || []}
             operadores={operadores || []}
             presencasRfidMap={presencasTimestampMap}
+            ausenciasHoje={ausenciasHoje || []}
         />
     );
 }
