@@ -35,7 +35,8 @@ import {
   Heart,
   ThumbsDown,
   Star,
-  GraduationCap
+  GraduationCap,
+  BrainCircuit
 } from "lucide-react";
 
 export function Sidebar({
@@ -88,6 +89,11 @@ export function Sidebar({
           <rect x="3" y="16" width="7" height="5"></rect>
         </svg>
       ),
+    },
+    {
+      name: "Smart Action Hub",
+      href: "/admin/melhoria-continua",
+      icon: <BrainCircuit size={24} />,
     },
     {
       name: "Eficiência H/H",
