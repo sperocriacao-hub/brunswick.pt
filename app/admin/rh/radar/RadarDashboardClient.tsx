@@ -130,8 +130,12 @@ export default function RadarDashboardClient({ areas, linhas, estacoes, operador
     const globalHeadcount = filteredOps.length;
     let globalPresentes = 0;
     let globalFaltas = 0;
-    let globalFeriasBaixa = 0;
-    let globalRealocacoes = 0;
+    let globalFerias = 0;
+    let globalBaixas = 0;
+    let globalFaltasJustificadas = 0;
+    let globalFaltasInjustificadas = 0;
+    let globalOutros = 0;
+    let globalFaltasSemRegisto = 0;
 
     filteredOps.forEach(op => {
         if (isPresent(op.tag_rfid_operador)) {
@@ -139,17 +143,23 @@ export default function RadarDashboardClient({ areas, linhas, estacoes, operador
         } else {
             const ausente = ausenciasHoje.find(a => a.operador_id === op.id);
             if (ausente) {
-                globalFeriasBaixa++;
+                if (ausente.tipo_ausencia === 'Férias') globalFerias++;
+                else if (ausente.tipo_ausencia === 'Baixa Médica') globalBaixas++;
+                else if (ausente.tipo_ausencia === 'Falta Justificada') globalFaltasJustificadas++;
+                else if (ausente.tipo_ausencia === 'Falta Injustificada') globalFaltasInjustificadas++;
+                else globalOutros++;
             } else {
-                globalFaltas++;
+                globalFaltasSemRegisto++;
             }
         }
         if (op.em_realocacao) globalRealocacoes++;
     });
 
-    // O absenteísmo só conta quem deveria vir (tira as Férias/Baixas do denominador)
-    const utilHeadcount = globalHeadcount - globalFeriasBaixa;
-    const taxaAbsenteismo = utilHeadcount > 0 ? ((globalFaltas / utilHeadcount) * 100).toFixed(1) : '0.0';
+    // Absenteísmo Tático = Quem não está presente, e NÃO tem Férias, Baixa ou Falta Justificada aprovada
+    const totalAusenciasLegais = globalFerias + globalBaixas + globalFaltasJustificadas;
+    const utilHeadcount = globalHeadcount - totalAusenciasLegais;
+    const totalFaltasReais = globalFaltasSemRegisto + globalFaltasInjustificadas;
+    const taxaAbsenteismo = utilHeadcount > 0 ? ((totalFaltasReais / utilHeadcount) * 100).toFixed(1) : '0.0';
 
     let atrasosDiarios = 0;
     filteredOps.forEach(op => {
@@ -272,22 +282,40 @@ export default function RadarDashboardClient({ areas, linhas, estacoes, operador
                             Absenteísmo Tático
                             <UserX size={14} className="text-rose-400" />
                         </span>
-                        <div className="flex items-baseline gap-2">
+                        <div className="flex items-baseline gap-2 mb-2">
                             <span className="text-4xl font-black text-rose-600">{taxaAbsenteismo}%</span>
-                            <span className="text-xs font-bold text-slate-400">{globalFaltas} Ausências</span>
+                            <span className="text-xs font-bold text-slate-400">{totalFaltasReais} Ausências</span>
+                        </div>
+                        <div className="mt-auto space-y-1">
+                            {globalFaltasSemRegisto > 0 && <div className="text-[10px] font-bold text-slate-500 flex justify-between"><span>Sem Registo/Aviso:</span> <span className="text-rose-500">{globalFaltasSemRegisto}</span></div>}
+                            {globalFaltasInjustificadas > 0 && <div className="text-[10px] font-bold text-slate-500 flex justify-between"><span>Injustificadas:</span> <span className="text-rose-600">{globalFaltasInjustificadas}</span></div>}
                         </div>
                     </CardContent>
                 </Card>
 
                 <Card className="bg-white border-0 shadow-sm ring-1 ring-slate-200 overflow-hidden relative group">
-                    <CardContent className="p-5 relative z-10 flex flex-col">
+                    <CardContent className="p-4 relative z-10 flex flex-col">
                         <span className="text-slate-500 font-bold text-[10px] uppercase tracking-widest mb-1 flex justify-between items-center">
-                            Férias & Baixas (Aprovadas)
+                            Planeamento (Ausências Legais)
                             <Calendar size={14} className="text-sky-400" />
                         </span>
-                        <div className="flex items-baseline gap-2">
-                            <span className="text-4xl font-black text-sky-600">{globalFeriasBaixa}</span>
+                        <div className="flex items-baseline gap-2 mb-2">
+                            <span className="text-3xl font-black text-sky-600">{totalAusenciasLegais}</span>
                             <span className="text-xs font-bold text-slate-400">agendadas</span>
+                        </div>
+                        
+                        <div className="mt-auto flex h-2 w-full rounded-full overflow-hidden bg-slate-100 gap-[1px]">
+                            {globalFerias > 0 && <div style={{width: `${(globalFerias/totalAusenciasLegais)*100}%`}} className="bg-sky-400" title="Férias"></div>}
+                            {globalBaixas > 0 && <div style={{width: `${(globalBaixas/totalAusenciasLegais)*100}%`}} className="bg-red-400" title="Baixas Médicas"></div>}
+                            {globalFaltasJustificadas > 0 && <div style={{width: `${(globalFaltasJustificadas/totalAusenciasLegais)*100}%`}} className="bg-emerald-400" title="Justificadas"></div>}
+                            {globalOutros > 0 && <div style={{width: `${(globalOutros/totalAusenciasLegais)*100}%`}} className="bg-amber-400" title="Outros/Licenças"></div>}
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-x-2 mt-2 gap-y-1">
+                            <div className="text-[9px] font-bold text-slate-500 flex items-center justify-between"><span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-sky-400"></span>Férias</span> <span>{globalFerias}</span></div>
+                            <div className="text-[9px] font-bold text-slate-500 flex items-center justify-between"><span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-red-400"></span>Baixa</span> <span>{globalBaixas}</span></div>
+                            <div className="text-[9px] font-bold text-slate-500 flex items-center justify-between"><span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>F. Justificada</span> <span>{globalFaltasJustificadas}</span></div>
+                            <div className="text-[9px] font-bold text-slate-500 flex items-center justify-between"><span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>Outro/Lic.</span> <span>{globalOutros}</span></div>
                         </div>
                     </CardContent>
                 </Card>

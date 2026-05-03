@@ -69,3 +69,44 @@ export async function criarContaAcesso(email: string, password?: string, oldEmai
          return { success: false, error: e.message || 'Erro interno de servidor RH Auth.' };
     }
 }
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+export async function getAusencias() {
+    try {
+        const { data, error } = await supabase
+            .from('rh_ausencias')
+            .select(`
+                *,
+                operadores(nome_operador)
+            `)
+            .order('data_inicio', { ascending: false });
+
+        if (error) throw error;
+        return { success: true, data: data || [] };
+    } catch (e: any) {
+        return { success: false, error: e.message };
+    }
+}
+
+export async function createAusencia(payload: any) {
+    try {
+        const { error } = await supabase.from('rh_ausencias').insert(payload);
+        if (error) throw error;
+        return { success: true };
+    } catch (e: any) {
+        return { success: false, error: e.message };
+    }
+}
+
+export async function deleteAusencia(id: string) {
+    try {
+        const { error } = await supabase.from('rh_ausencias').delete().eq('id', id);
+        if (error) throw error;
+        return { success: true };
+    } catch (e: any) {
+        return { success: false, error: e.message };
+    }
+}
