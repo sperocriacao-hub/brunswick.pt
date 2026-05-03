@@ -677,7 +677,7 @@ export default function RncKanbanBoardPage() {
                                                     <div className="text-[10px] font-bold uppercase text-indigo-700 mb-1">{cat.label}</div>
                                                     <div className="text-xs">{((ishikawa as any)[cat.key])}</div>
                                                 </div>
-                                            ) : null))}
+                                            ) : null)}
                                         </div>
                                     )}
                                 </div>
