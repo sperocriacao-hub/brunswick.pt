@@ -2,17 +2,18 @@
 
 import React, { useState } from 'react';
 import { processarTextoIA, submitNovaAcao, pedirAvaliacaoPlanoIA, pivotarEstrategiaIA, addCategoriaAcao, warRoomAnalyticsIA } from './actions';
-import { Sparkles, BrainCircuit, Activity, CheckCircle2, Filter, Layers, ListChecks, Bot, MessageSquareText, FilePlus, AlertCircle, RefreshCw, XCircle, Send, Plus } from 'lucide-react';
+import { Sparkles, BrainCircuit, Activity, CheckCircle2, Filter, Layers, ListChecks, Bot, MessageSquareText, FilePlus, AlertCircle, RefreshCw, XCircle, Send, Plus, MapPin } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useRouter } from 'next/navigation';
 
-export default function SmartActionHubClient({ initialActions, initialCategorias }: { initialActions: any[], initialCategorias: string[] }) {
+export default function SmartActionHubClient({ initialActions, initialCategorias, initialAreas }: { initialActions: any[], initialCategorias: string[], initialAreas: any[] }) {
     const router = useRouter();
     
     // UI State
     const [activeTab, setActiveTab] = useState<'KANBAN' | 'COGNITIVE_INBOX' | 'MANUAL_FORM' | 'WAR_ROOM'>('KANBAN');
     const [filterModule, setFilterModule] = useState('Todos');
+    const [filterArea, setFilterArea] = useState('Todas');
 
     // Categorias Dinâmicas
     const [categorias, setCategorias] = useState<string[]>(initialCategorias || []);
@@ -25,7 +26,7 @@ export default function SmartActionHubClient({ initialActions, initialCategorias
     const [suggestedActions, setSuggestedActions] = useState<any[]>([]);
     
     // Manual Form State
-    const [manualForm, setManualForm] = useState({ titulo: '', descricao: '', responsavel_nome: '', categoria: categorias[0] || 'Outro' });
+    const [manualForm, setManualForm] = useState({ titulo: '', descricao: '', responsavel_nome: '', categoria: categorias[0] || 'Outro', area_id: '' });
     const [aiFeedback, setAiFeedback] = useState<{nota: number, feedback_curto: string, sugestao_melhoria: string} | null>(null);
     const [isEvaluating, setIsEvaluating] = useState(false);
 
@@ -40,7 +41,12 @@ export default function SmartActionHubClient({ initialActions, initialCategorias
 
     // Calculate Dates & Status
     const today = new Date();
-    const filteredActions = filterModule === 'Todos' ? initialActions : initialActions.filter(a => a.modulo_origem === filterModule);
+    
+    // Aplicar Filtros (Módulo e Área)
+    let filteredActions = initialActions;
+    if (filterModule !== 'Todos') filteredActions = filteredActions.filter(a => a.modulo_origem === filterModule);
+    if (filterArea !== 'Todas') filteredActions = filteredActions.filter(a => a.area_id === filterArea);
+
     const totalAbertas = filteredActions.filter(a => ['Aberto', 'To Do', 'Em Investigacao', 'In Progress'].includes(a.status)).length;
     const totalConcluidas = filteredActions.filter(a => ['Concluido', 'Done'].includes(a.status)).length;
     
@@ -101,10 +107,14 @@ export default function SmartActionHubClient({ initialActions, initialCategorias
     };
 
     const handleSubmitManual = async () => {
-        const payload = { ...manualForm, origem_ia: false };
+        const payload = { 
+            ...manualForm, 
+            area_id: manualForm.area_id === '' ? null : manualForm.area_id,
+            origem_ia: false 
+        };
         const res = await submitNovaAcao(payload);
         if (res.success) {
-            setManualForm({ titulo: '', descricao: '', responsavel_nome: '', categoria: categorias[0] || 'Outro' });
+            setManualForm({ titulo: '', descricao: '', responsavel_nome: '', categoria: categorias[0] || 'Outro', area_id: '' });
             setAiFeedback(null);
             setActiveTab('KANBAN');
             router.refresh();
@@ -128,14 +138,13 @@ export default function SmartActionHubClient({ initialActions, initialCategorias
         setWarRoomHistory(prev => [...prev, {role: 'user', content: q}]);
         setIsWarRoomThinking(true);
 
-        // Formatar o "Dashboard Text" para a IA analisar
         const dados = `
 TOTAL AÇÕES ABERTAS: ${totalAbertas}
 TOTAL ATRASADAS (CRÍTICAS): ${overdueActions}
 TOTAL RESOLVIDAS: ${totalConcluidas}
 
 AÇÕES RECENTES (AMOSTRA):
-${filteredActions.slice(0, 10).map(a => `- [${a.modulo_origem}] Resp: ${a.responsavel_nome || 'N/A'}, Status: ${a.status}, Prazo: ${a.data_limite ? new Date(a.data_limite).toLocaleDateString() : 'S/ Data'}. Desc: ${a.titulo}`).join('\n')}
+${filteredActions.slice(0, 10).map(a => `- [${a.modulo_origem}] [Área: ${a.nome_area || 'N/A'}] Resp: ${a.responsavel_nome || 'N/A'}, Status: ${a.status}, Prazo: ${a.data_limite ? new Date(a.data_limite).toLocaleDateString() : 'S/ Data'}. Desc: ${a.titulo}`).join('\n')}
         `;
 
         const res = await warRoomAnalyticsIA(q, dados);
@@ -219,19 +228,36 @@ ${filteredActions.slice(0, 10).map(a => `- [${a.modulo_origem}] Resp: ${a.respon
                         <h3 className="font-bold text-slate-700 text-sm uppercase tracking-wider flex items-center gap-2">
                             <Layers size={16} className="text-blue-500" /> Tabela de Ações (Ledger)
                         </h3>
-                        <div className="flex gap-2 items-center">
-                            <Filter size={16} className="text-slate-400" />
-                            <select 
-                                value={filterModule}
-                                onChange={(e) => setFilterModule(e.target.value)}
-                                className="text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded py-1 px-3 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                            >
-                                <option value="Todos">Visão Global</option>
-                                <option value="Qualidade">Qualidade (A3/RNC)</option>
-                                <option value="Lean/Kaizen">Lean & Kaizen</option>
-                                <option value="HST">Saúde e Segurança (HST)</option>
-                                <option value="Geral">Central de Eficiência</option>
-                            </select>
+                        <div className="flex gap-4 items-center">
+                            {/* Filtro de Área */}
+                            <div className="flex items-center gap-2">
+                                <MapPin size={16} className="text-slate-400" />
+                                <select 
+                                    value={filterArea}
+                                    onChange={(e) => setFilterArea(e.target.value)}
+                                    className="text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded py-1 px-3 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                >
+                                    <option value="Todas">Todas as Áreas</option>
+                                    {initialAreas.map(a => (
+                                        <option key={a.id} value={a.id}>{a.nome_area}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            {/* Filtro de Módulo */}
+                            <div className="flex items-center gap-2 border-l border-slate-200 pl-4">
+                                <Filter size={16} className="text-slate-400" />
+                                <select 
+                                    value={filterModule}
+                                    onChange={(e) => setFilterModule(e.target.value)}
+                                    className="text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded py-1 px-3 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                >
+                                    <option value="Todos">Todos os Módulos</option>
+                                    <option value="Qualidade">Qualidade (A3/RNC)</option>
+                                    <option value="Lean/Kaizen">Lean & Kaizen</option>
+                                    <option value="HST">Saúde e Segurança (HST)</option>
+                                    <option value="Geral">Central de Eficiência</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
 
@@ -240,12 +266,13 @@ ${filteredActions.slice(0, 10).map(a => `- [${a.modulo_origem}] Resp: ${a.respon
                             <thead className="bg-slate-100 text-xs font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200">
                                 <tr>
                                     <th className="px-4 py-3">Tarefa / Descrição</th>
+                                    <th className="px-4 py-3 w-40">Área</th>
                                     <th className="px-4 py-3 w-32">Origem</th>
                                     <th className="px-4 py-3 w-32">Responsável</th>
                                     <th className="px-4 py-3 w-32">Abertura</th>
                                     <th className="px-4 py-3 w-32">Limite (Meta)</th>
                                     <th className="px-4 py-3 w-28 text-center">Estado</th>
-                                    <th className="px-4 py-3 w-28 text-center">PDCA (Eficácia)</th>
+                                    <th className="px-4 py-3 w-28 text-center">PDCA</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
@@ -255,7 +282,7 @@ ${filteredActions.slice(0, 10).map(a => `- [${a.modulo_origem}] Resp: ${a.respon
 
                                     return (
                                         <tr key={action.id} className={`hover:bg-blue-50/50 transition-colors group ${isOverdue ? 'bg-rose-50' : ''}`}>
-                                            <td className="px-4 py-3 max-w-md">
+                                            <td className="px-4 py-3 max-w-[300px]">
                                                 <div className="font-bold text-slate-800 truncate">{action.titulo}</div>
                                                 <div className="text-xs text-slate-500 truncate mt-1" title={action.descricao}>{action.descricao}</div>
                                                 {isIneficaz && (
@@ -265,7 +292,7 @@ ${filteredActions.slice(0, 10).map(a => `- [${a.modulo_origem}] Resp: ${a.respon
                                                             className="text-[10px] font-bold uppercase bg-amber-100 text-amber-700 border border-amber-200 px-3 py-1.5 rounded-md hover:bg-amber-200 transition-all flex items-center gap-1.5 shadow-sm"
                                                         >
                                                             {isPivoting === action.id ? <RefreshCw size={12} className="animate-spin"/> : <Sparkles size={12}/>}
-                                                            Consultor I.A. (Pivotar Solução)
+                                                            Consultor I.A. (Pivotar)
                                                         </button>
                                                         {pivotSuggestion && isPivoting !== action.id && (
                                                             <div className="mt-2 p-3 bg-white border border-amber-200 rounded-md text-[11px] text-amber-900 whitespace-pre-wrap font-medium shadow-sm">
@@ -274,6 +301,13 @@ ${filteredActions.slice(0, 10).map(a => `- [${a.modulo_origem}] Resp: ${a.respon
                                                         )}
                                                     </div>
                                                 )}
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                {action.nome_area ? (
+                                                    <span className="text-xs font-bold text-slate-600 flex items-center gap-1">
+                                                        <MapPin size={12} className="text-slate-400" /> {action.nome_area}
+                                                    </span>
+                                                ) : <span className="text-xs text-slate-400">--</span>}
                                             </td>
                                             <td className="px-4 py-3">
                                                 <Badge className="bg-slate-100 text-slate-600 border-slate-200 uppercase text-[9px] font-bold">{action.modulo_origem}</Badge>
@@ -397,7 +431,7 @@ ${filteredActions.slice(0, 10).map(a => `- [${a.modulo_origem}] Resp: ${a.respon
                                     placeholder="Detalha o que vai ser feito, como, e porquê."
                                 />
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-3 gap-4">
                                 <div>
                                     <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Responsável</label>
                                     <input 
@@ -407,6 +441,17 @@ ${filteredActions.slice(0, 10).map(a => `- [${a.modulo_origem}] Resp: ${a.respon
                                         className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm text-slate-800 focus:border-blue-500 outline-none"
                                         placeholder="Ex: Rui Costureiro"
                                     />
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Área (Destino)</label>
+                                    <select 
+                                        value={manualForm.area_id}
+                                        onChange={e => setManualForm({...manualForm, area_id: e.target.value})}
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm text-slate-800 focus:border-blue-500 outline-none"
+                                    >
+                                        <option value="">Sem Área Fixa</option>
+                                        {initialAreas.map(a => <option key={a.id} value={a.id}>{a.nome_area}</option>)}
+                                    </select>
                                 </div>
                                 <div>
                                     <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Categoria Dinâmica</label>

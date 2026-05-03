@@ -23,11 +23,18 @@ export default async function MelhoriaContinuaPage() {
         
     const categorias = categoriasData ? categoriasData.map(c => c.nome) : ['Eficiência', 'Scraps', 'Consumíveis', 'Outro'];
 
+    // 3. Fetch Factory Areas
+    const { data: areasData } = await supabase
+        .from('areas_fabrica')
+        .select('id, nome_area')
+        .order('ordem_sequencial');
+
     return (
         <div className="bg-slate-50 min-h-screen">
             <SmartActionHubClient
                 initialActions={actionsMaster || []}
                 initialCategorias={categorias}
+                initialAreas={areasData || []}
             />
         </div>
     );
