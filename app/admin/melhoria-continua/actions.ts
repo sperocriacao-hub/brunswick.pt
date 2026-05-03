@@ -28,7 +28,7 @@ export async function processarTextoIA(texto: string) {
     }
 
     try {
-        const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
         const prompt = `
 És um experiente Gestor de Melhoria Contínua Industrial.
@@ -78,7 +78,7 @@ export async function pedirAvaliacaoPlanoIA(textoPlano: string) {
         return { success: false, error: "Chave GEMINI_API_KEY em falta." };
     }
     try {
-        const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
         const prompt = `
 És um Auditor Master Black Belt em Lean Six Sigma.
 Vou dar-te o rascunho de um plano de ação que um líder de linha escreveu manualmente.
@@ -109,7 +109,7 @@ export async function pivotarEstrategiaIA(descricaoFalha: string) {
         return { success: false, error: "Chave GEMINI_API_KEY em falta." };
     }
     try {
-        const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
         const prompt = `
 Atuas como um Conselheiro de Engenharia WCM. 
 Foi implementada a seguinte Ação Corretiva na fábrica, mas após a verificação de eficácia, concluiu-se que FALHOU (foi ineficaz) e o problema reincidiu.
@@ -159,7 +159,7 @@ export async function warRoomAnalyticsIA(pergunta: string, dadosDashboardText: s
         return { success: false, error: "Chave GEMINI_API_KEY em falta." };
     }
     try {
-        const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
         const prompt = `
 És o Diretor de Operações de uma Fábrica (Sistema M.E.S).
 Estás na Sala de Análise (War Room). O Diretor Geral fez-te a seguinte pergunta sobre a fábrica:
