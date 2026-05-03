@@ -81,11 +81,7 @@ export async function updateA3Report(id: string, payload: any) {
         return { success: false, error: e.message };
     }
 }
-        return { success: true, data };
-    } catch (e: any) {
-        return { success: false, error: e.message };
-    }
-}
+
 
 export async function deleteHstAcao(id: string) {
     try {
