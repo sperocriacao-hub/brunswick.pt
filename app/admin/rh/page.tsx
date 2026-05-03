@@ -20,6 +20,7 @@ type OperadorInfo = {
     em_realocacao: boolean;
     permissoes_modulos: string[];
     area_base_id: string | null;
+    matriz_talento_media?: string | null;
 };
 
 type EstacaoInfo = {
@@ -46,6 +47,7 @@ export default function GestaoRHPage() {
     const [estacoes, setEstacoes] = useState<any[]>([]);
     const [areas, setAreas] = useState<AreaInfo[]>([]);
     const [linhas, setLinhas] = useState<LinhaInfo[]>([]);
+    const [matrizGlobal, setMatrizGlobal] = useState<any[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [filterArea, setFilterArea] = useState('Todas');
     const [filterLinha, setFilterLinha] = useState('Todas');
@@ -93,7 +95,7 @@ export default function GestaoRHPage() {
         const { data: userData } = await supabase.auth.getUser();
         let queryOps = supabase
             .from('operadores')
-            .select('id, numero_operador, nome_operador, tag_rfid_operador, funcao, status, iluo_nivel, possui_acesso_sistema, posto_base_id, estacao_alocada_temporaria, em_realocacao, permissoes_modulos, area_base_id')
+            .select('id, numero_operador, nome_operador, tag_rfid_operador, funcao, status, iluo_nivel, possui_acesso_sistema, posto_base_id, estacao_alocada_temporaria, em_realocacao, permissoes_modulos, area_base_id, matriz_talento_media')
             .order('nome_operador');
 
         // Se não for Master Admin fixo, aplicamos as fronteiras de Segurança de Visibilidade
@@ -111,7 +113,7 @@ export default function GestaoRHPage() {
             }
         }
 
-        const [{ data: ops }, { data: ests }, { data: ars }, { data: lins }] = await Promise.all([
+        const [{ data: ops }, { data: ests }, { data: ars }, { data: lins }, { data: matriz }] = await Promise.all([
             queryOps,
             supabase
                 .from('estacoes')
@@ -124,13 +126,17 @@ export default function GestaoRHPage() {
             supabase
                 .from('linhas_producao')
                 .select('id, descricao_linha')
-                .order('descricao_linha')
+                .order('descricao_linha'),
+            supabase
+                .from('operador_iluo_matriz')
+                .select('*')
         ]);
 
         if (ops) setOperadores(ops);
         if (ests) setEstacoes(ests);
         if (ars) setAreas(ars);
         if (lins) setLinhas(lins);
+        if (matriz) setMatrizGlobal(matriz);
         setIsLoading(false);
     };
 
@@ -138,6 +144,64 @@ export default function GestaoRHPage() {
         carregarEquipa();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    // ILUO Calculation Helpers
+    const getIluoPoints = (nivel: string) => {
+        if (nivel === 'I') return 1;
+        if (nivel === 'L') return 2;
+        if (nivel === 'U') return 3;
+        if (nivel === 'O') return 4;
+        return 0;
+    };
+
+    const calculateIluoScore = (op: OperadorInfo) => {
+        if (!op.posto_base_id) return 0;
+        
+        const estacaoPrincipalInfo = estacoes.find(e => e.id === op.posto_base_id);
+        const areaIdBase = estacaoPrincipalInfo?.area_id;
+        const linhaIdBase = estacaoPrincipalInfo?.linha_id;
+
+        if (!areaIdBase) return 0;
+
+        const opSkills = matrizGlobal.filter(m => m.operador_id === op.id);
+        if (opSkills.length === 0) return 0;
+
+        let totalPoints = 0;
+        opSkills.forEach(iluo => {
+            const pts = getIluoPoints(iluo.nivel_iluo);
+            const estInfo = estacoes.find(e => e.id === iluo.estacao_id);
+            
+            if (estInfo) {
+                const areaIdSkill = estInfo.area_id;
+                const linhaIdSkill = estInfo.linha_id;
+
+                if (areaIdSkill === areaIdBase) {
+                    if (linhaIdBase && linhaIdSkill === linhaIdBase) {
+                        totalPoints += pts; // Zona 1
+                    } else {
+                        totalPoints += pts * 1.5; // Zona 2
+                    }
+                } else {
+                    totalPoints += pts * 2.0; // Zona 3
+                }
+            }
+        });
+
+        const BENCHMARK = 40.0;
+        let coeff = (totalPoints / BENCHMARK) * 4.0;
+        if (coeff > 4.0) coeff = 4.0;
+        
+        return Math.round(coeff * 10) / 10;
+    };
+
+    const getBadgeInfo = (coeff: number) => {
+        if (coeff > 3.8) return { label: 'Super Estrela', classes: 'text-emerald-800 bg-emerald-100 border-emerald-400' };
+        if (coeff >= 3.5) return { label: 'Estrela', classes: 'text-sky-800 bg-sky-100 border-sky-400' };
+        if (coeff >= 3.0) return { label: 'Potencial', classes: 'text-fuchsia-800 bg-fuchsia-100 border-fuchsia-400' };
+        if (coeff >= 2.5) return { label: 'Contribuidor', classes: 'text-amber-800 bg-amber-100 border-amber-400' };
+        if (coeff >= 2.0) return { label: 'Passageiro', classes: 'text-orange-800 bg-orange-100 border-orange-400' };
+        return { label: 'Alerta RH', classes: 'text-red-800 bg-red-100 border-red-500' };
+    };
 
     const toggleStatus = async (id: string, currentStatus: string) => {
         const newStatus = currentStatus === 'Ativo' ? 'Inativo' : 'Ativo';
@@ -280,13 +344,22 @@ export default function GestaoRHPage() {
                                 <th className="p-4 font-semibold text-slate-600 uppercase tracking-widest text-xs">Nº</th>
                                 <th className="p-4 font-semibold text-slate-600 uppercase tracking-widest text-xs">Colaborador</th>
                                 <th className="p-4 font-semibold text-slate-600 uppercase tracking-widest text-xs">Função</th>
-                                <th className="p-4 font-semibold text-slate-600 uppercase tracking-widest text-xs">Permissões M.E.S</th>
-                                <th className="p-4 font-semibold text-slate-600 uppercase tracking-widest text-xs">Status / IoT</th>
+                                <th className="p-4 font-semibold text-slate-600 uppercase tracking-widest text-xs">M.E.S</th>
+                                <th className="p-4 font-semibold text-slate-600 uppercase tracking-widest text-xs">ILUO</th>
+                                <th className="p-4 font-semibold text-slate-600 uppercase tracking-widest text-xs">Avaliações</th>
+                                <th className="p-4 font-semibold text-slate-600 uppercase tracking-widest text-xs">Talento (Real)</th>
+                                <th className="p-4 font-semibold text-slate-600 uppercase tracking-widest text-xs">Status IoT</th>
                                 <th className="p-4 font-semibold text-slate-600 uppercase tracking-widest text-xs text-right">Ações</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
-                            {filtrados.map(op => (
+                            {filtrados.map(op => {
+                                const iluoScore = calculateIluoScore(op);
+                                const avalScore = parseFloat(op.matriz_talento_media || '0') || 0;
+                                const realScore = Math.round(((iluoScore + avalScore) / 2) * 10) / 10;
+                                const badge = getBadgeInfo(realScore);
+
+                                return (
                                 <tr key={op.id} className="hover:bg-blue-50/50 transition-colors">
                                     <td className="p-4 font-mono text-slate-500 text-xs">{op.numero_operador || '---'}</td>
                                     <td className="p-4">
@@ -311,8 +384,22 @@ export default function GestaoRHPage() {
                                                 )}
                                             </div>
                                         ) : (
-                                            <span className="text-xs text-slate-400 italic font-medium">Sem Acesso Sistémico</span>
+                                            <span className="text-xs text-slate-400 italic font-medium">Sem Acesso</span>
                                         )}
+                                    </td>
+                                    <td className="p-4">
+                                        <div className="font-bold text-indigo-700 text-sm">{iluoScore.toFixed(1)} <span className="text-[10px] text-slate-400 font-medium">/ 4.0</span></div>
+                                    </td>
+                                    <td className="p-4">
+                                        <div className="font-bold text-blue-700 text-sm">{avalScore.toFixed(1)} <span className="text-[10px] text-slate-400 font-medium">/ 4.0</span></div>
+                                    </td>
+                                    <td className="p-4">
+                                        <div className="flex flex-col gap-1 items-start">
+                                            <div className="font-black text-slate-800 text-sm">{realScore.toFixed(1)}</div>
+                                            <span className={`text-[9px] uppercase tracking-widest font-bold px-1.5 py-0.5 rounded border ${badge.classes}`}>
+                                                {badge.label}
+                                            </span>
+                                        </div>
                                     </td>
                                     <td className="p-4">
                                         <div className="flex flex-col gap-1 items-start">
@@ -382,10 +469,11 @@ export default function GestaoRHPage() {
                                         </button>
                                     </td>
                                 </tr>
-                            ))}
+                                );
+                            })}
                             {filtrados.length === 0 && (
                                 <tr>
-                                    <td colSpan={6} className="p-12 text-center text-slate-400 italic">Nenhum operador encontrado na lista.</td>
+                                    <td colSpan={9} className="p-12 text-center text-slate-400 italic">Nenhum operador encontrado na lista.</td>
                                 </tr>
                             )}
                         </tbody>
