@@ -127,3 +127,55 @@ Responde num texto formatado curto e direto, sem formatações complexas, apenas
         return { success: false, error: "Erro ao gerar estratégia alternativa: " + e.message };
     }
 }
+// ---- Gestão de Categorias Dinâmicas ----
+
+export async function getCategoriasAcoes() {
+    try {
+        const cookieStore = cookies();
+        const supabase = createClient(cookieStore);
+        const { data, error } = await supabase.from('central_acoes_categorias').select('nome').order('nome');
+        if (error) throw error;
+        return { success: true, data: data.map(c => c.nome) };
+    } catch (e: any) {
+        return { success: false, error: e.message };
+    }
+}
+
+export async function addCategoriaAcao(nome: string) {
+    try {
+        const cookieStore = cookies();
+        const supabase = createClient(cookieStore);
+        const { error } = await supabase.from('central_acoes_categorias').insert([{ nome }]);
+        if (error) throw error;
+        return { success: true };
+    } catch (e: any) {
+        return { success: false, error: e.message };
+    }
+}
+
+// ---- War Room Analytics (V4 Preparação) ----
+export async function warRoomAnalyticsIA(pergunta: string, dadosDashboardText: string) {
+    if (!process.env.GEMINI_API_KEY) {
+        return { success: false, error: "Chave GEMINI_API_KEY em falta." };
+    }
+    try {
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
+        const prompt = `
+És o Diretor de Operações de uma Fábrica (Sistema M.E.S).
+Estás na Sala de Análise (War Room). O Diretor Geral fez-te a seguinte pergunta sobre a fábrica:
+"${pergunta}"
+
+Eu extraí o painel de todas as ações atuais na fábrica para te ajudar a responder com base em dados reais:
+DADOS DA FÁBRICA:
+"""
+${dadosDashboardText}
+"""
+
+Responde diretamente à pergunta dele de forma executiva, baseando-te EXCLUSIVAMENTE nos dados fornecidos acima. Sê analítico, deteta tendências (qual o módulo com mais atrasos, qual o responsável com mais carga) e recomenda um foco tático. Responde em Português corporativo, usando formatação simples (bullet points, etc).
+`;
+        const result = await model.generateContent(prompt);
+        return { success: true, data: result.response.text() };
+    } catch (e: any) {
+        return { success: false, error: "Erro na War Room IA: " + e.message };
+    }
+}

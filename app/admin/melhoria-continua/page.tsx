@@ -15,10 +15,19 @@ export default async function MelhoriaContinuaPage() {
         .select('*')
         .order('created_at', { ascending: false });
 
+    // 2. Fetch Categories
+    const { data: categoriasData } = await supabase
+        .from('central_acoes_categorias')
+        .select('nome')
+        .order('nome');
+        
+    const categorias = categoriasData ? categoriasData.map(c => c.nome) : ['Eficiência', 'Scraps', 'Consumíveis', 'Outro'];
+
     return (
         <div className="bg-slate-50 min-h-screen">
             <SmartActionHubClient
                 initialActions={actionsMaster || []}
+                initialCategorias={categorias}
             />
         </div>
     );
