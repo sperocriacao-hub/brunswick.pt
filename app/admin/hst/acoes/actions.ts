@@ -18,7 +18,7 @@ export async function getHstAcoes() {
                     areas_fabrica:area_id (nome_area)
                 ),
                 hst_8d (
-                    status
+                    *
                 )
             `)
             .order('created_at', { ascending: false });
@@ -48,7 +48,7 @@ export async function criarHstAcao(payload: any) {
 export async function updateHstAcaoStatus(id: string, newStatus: string) {
     try {
         const payload: any = { status: newStatus };
-        if (newStatus === 'Done') {
+        if (newStatus === 'Concluido') {
             payload.data_conclusao = new Date().toISOString();
         } else {
             payload.data_conclusao = null;
@@ -58,10 +58,29 @@ export async function updateHstAcaoStatus(id: string, newStatus: string) {
             .from('hst_acoes')
             .update(payload)
             .eq('id', id)
-            .select()
-            .single();
+            .select();
 
         if (error) throw error;
+        return { success: true };
+    } catch (e: any) {
+        return { success: false, error: e.message };
+    }
+}
+
+export async function updateA3Report(id: string, payload: any) {
+    try {
+        const { data, error } = await supabase
+            .from('hst_8d')
+            .update(payload)
+            .eq('id', id)
+            .select();
+
+        if (error) throw error;
+        return { success: true };
+    } catch (e: any) {
+        return { success: false, error: e.message };
+    }
+}
         return { success: true, data };
     } catch (e: any) {
         return { success: false, error: e.message };

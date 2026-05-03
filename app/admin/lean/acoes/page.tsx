@@ -21,6 +21,9 @@ export default function GlobalLeanActionsPage() {
     const [dataInicio, setDataInicio] = useState('');
     const [dataFim, setDataFim] = useState('');
 
+    // Drag State
+    const [draggedItem, setDraggedItem] = useState<string | null>(null);
+
     // A3 Modal State
     const [selectedAction, setSelectedAction] = useState<any | null>(null);
     const [isA3Open, setIsA3Open] = useState(false);
@@ -300,11 +303,17 @@ export default function GlobalLeanActionsPage() {
 
                     {StatusColumns.map(columnId => {
                         // Esconder colunas não pertencentes à tab
-                        if (activeTab === 'kanban' && columnId === 'Concluido') return null;
                         if (activeTab === 'historico' && columnId !== 'Concluido') return null;
 
                         const colItems = acoes.filter(a => {
                             if (a.status !== columnId) return false;
+
+                            if (columnId === 'Concluido') {
+                                const msPerDay = 1000 * 60 * 60 * 24;
+                                const dataCriacao = new Date(a.data_conclusao || a.created_at || Date.now());
+                                const diasPassados = (Date.now() - dataCriacao.getTime()) / msPerDay;
+                                if (diasPassados > 30) return false;
+                            }
 
                             if (searchTerm === '') return true;
                             const term = searchTerm.toLowerCase();
@@ -323,7 +332,22 @@ export default function GlobalLeanActionsPage() {
                         if (columnId === 'Concluido') headerTheme = "bg-emerald-100 text-emerald-800 border-emerald-200";
 
                         return (
-                            <div key={columnId} className="flex-1 w-full flex flex-col gap-4">
+                            <div 
+                                key={columnId} 
+                                className="flex-1 w-full flex flex-col gap-4 rounded-2xl transition-all"
+                                onDragOver={e => {
+                                    e.preventDefault();
+                                    e.currentTarget.classList.add('ring-2', 'ring-rose-400', 'ring-offset-4');
+                                }}
+                                onDragLeave={e => {
+                                    e.currentTarget.classList.remove('ring-2', 'ring-rose-400', 'ring-offset-4');
+                                }}
+                                onDrop={e => {
+                                    e.preventDefault();
+                                    e.currentTarget.classList.remove('ring-2', 'ring-rose-400', 'ring-offset-4');
+                                    if (draggedItem) moveCard(draggedItem, columnId);
+                                }}
+                            >
                                 <div className={`px-4 py-3 rounded-xl border flex justify-between items-center font-black uppercase tracking-widest ${headerTheme}`}>
                                     <div className="flex items-center gap-2">
                                         {columnId === 'Aberto' && <AlertTriangle size={16} />}
@@ -346,12 +370,14 @@ export default function GlobalLeanActionsPage() {
                                         colItems.map(task => (
                                             <Card
                                                 key={task.id}
+                                                draggable
+                                                onDragStart={() => setDraggedItem(task.id)}
+                                                onDragEnd={() => setDraggedItem(null)}
                                                 onClick={(e) => {
-                                                    // Only open modal if we didn't click an action button
                                                     if ((e.target as HTMLElement).closest('button')) return;
                                                     openA3Modal(task);
                                                 }}
-                                                className="cursor-pointer border-slate-200 shadow-sm hover:shadow-md hover:border-indigo-300 transition-all active:scale-95 group relative bg-white overflow-hidden"
+                                                className="cursor-grab active:cursor-grabbing border-slate-200 shadow-sm hover:shadow-md hover:border-indigo-300 transition-all group relative bg-white overflow-hidden"
                                             >
                                                 {/* Sidebar accent color */}
                                                 <div className={`absolute left-0 top-0 bottom-0 w-1 \${
@@ -380,18 +406,6 @@ export default function GlobalLeanActionsPage() {
                                                             {task.areas_fabrica?.nome_area || 'Global'}
                                                         </div>
                                                         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                            {columnId !== 'Aberto' && (
-                                                                <button onClick={() => moveCard(task.id, 'Aberto')} className="w-6 h-6 rounded bg-rose-50 text-rose-500 flex items-center justify-center hover:bg-rose-100" title="Mover para Aberto">«</button>
-                                                            )}
-                                                            {columnId !== 'Em Investigacao' && (
-                                                                <button onClick={() => moveCard(task.id, 'Em Investigacao')} className="w-6 h-6 rounded bg-indigo-100 text-indigo-600 flex items-center justify-center hover:bg-indigo-200" title="Mover para Em Investigação"><Loader2 className="w-3 h-3" /></button>
-                                                            )}
-                                                            {columnId !== 'Validacao' && (
-                                                                <button onClick={() => moveCard(task.id, 'Validacao')} className="w-6 h-6 rounded bg-amber-50 text-amber-600 flex items-center justify-center hover:bg-amber-100" title="Marcar Validação"><ShieldAlert className="w-3 h-3" /></button>
-                                                            )}
-                                                            {columnId !== 'Concluido' && (
-                                                                <button onClick={() => moveCard(task.id, 'Concluido')} className="w-6 h-6 rounded bg-emerald-100 text-emerald-600 flex items-center justify-center hover:bg-emerald-200" title="Concluir!"><CheckCircle2 className="w-3 h-3" /></button>
-                                                            )}
                                                         </div>
                                                     </div>
                                                 </CardContent>

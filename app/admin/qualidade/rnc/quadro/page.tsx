@@ -18,6 +18,9 @@ export default function RncKanbanBoardPage() {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
 
+    // Drag State
+    const [draggedItem, setDraggedItem] = useState<string | null>(null);
+
     // Modal State
     const [isA3Open, setIsA3Open] = useState(false);
     const [selectedA3Id, setSelectedA3Id] = useState<string | null>(null);
@@ -103,7 +106,7 @@ export default function RncKanbanBoardPage() {
             } catch(e) {}
 
             // Map 'contramedidas' to 5W2H Tasks
-            let t = [];
+            let t: any[] = [];
             try {
                 if (res.report.contramedidas?.startsWith('[')) t = JSON.parse(res.report.contramedidas);
             } catch(e) {}
@@ -132,6 +135,13 @@ export default function RncKanbanBoardPage() {
 
         const res = await updateA3(selectedA3Id, payload);
         if (res.success) {
+            let rncStatus = 'Em Investigacao';
+            if (validacao === 'Eficaz') rncStatus = 'Concluido';
+            if (validacao === 'Pendente') rncStatus = 'Validacao';
+            if (validacao === 'Ineficaz') rncStatus = 'Em Investigacao';
+
+            await updateRncStatus(selectedAction.id, rncStatus);
+
             setIsA3Open(false);
             carregarQuadro(); // Refresh board statuses if they affected RNC
         } else {
@@ -225,7 +235,22 @@ export default function RncKanbanBoardPage() {
                         if (columnId === 'Concluido') headerTheme = "bg-emerald-100 text-emerald-800 border-emerald-200";
 
                         return (
-                            <div key={columnId} className="flex-1 w-full flex flex-col gap-4">
+                            <div 
+                                key={columnId} 
+                                className="flex-1 w-full flex flex-col gap-4 rounded-2xl transition-all"
+                                onDragOver={e => {
+                                    e.preventDefault();
+                                    e.currentTarget.classList.add('ring-2', 'ring-rose-400', 'ring-offset-4');
+                                }}
+                                onDragLeave={e => {
+                                    e.currentTarget.classList.remove('ring-2', 'ring-rose-400', 'ring-offset-4');
+                                }}
+                                onDrop={e => {
+                                    e.preventDefault();
+                                    e.currentTarget.classList.remove('ring-2', 'ring-rose-400', 'ring-offset-4');
+                                    if (draggedItem) moveCard(draggedItem, columnId);
+                                }}
+                            >
                                 <div className={`px-4 py-3 rounded-xl border flex justify-between items-center font-black uppercase tracking-widest ${headerTheme}`}>
                                     <div className="flex items-center gap-2">
                                         {columnId === 'Aberto' && <AlertTriangle size={16} />}
@@ -252,6 +277,9 @@ export default function RncKanbanBoardPage() {
                                             return (
                                                 <Card
                                                     key={rnc.id}
+                                                    draggable
+                                                    onDragStart={() => setDraggedItem(rnc.id)}
+                                                    onDragEnd={() => setDraggedItem(null)}
                                                     onClick={async (e) => {
                                                         if ((e.target as HTMLElement).closest('.scrum-arrow')) return;
                                                         
@@ -279,7 +307,7 @@ export default function RncKanbanBoardPage() {
                                                             }
                                                         }
                                                     }}
-                                                    className={`cursor-pointer shadow-sm hover:shadow-md transition-all group relative bg-white overflow-hidden border ${isCritical ? 'border-rose-300' : 'border-slate-200 hover:border-emerald-300'}`}
+                                                    className={`cursor-grab active:cursor-grabbing shadow-sm hover:shadow-md transition-all group relative bg-white overflow-hidden border ${isCritical ? 'border-rose-300' : 'border-slate-200 hover:border-emerald-300'}`}
                                                 >
                                                     <div className={`absolute left-0 top-0 bottom-0 w-1 ${hasA3 ? 'bg-emerald-400' : 'bg-slate-300'}`}></div>
 
@@ -308,18 +336,6 @@ export default function RncKanbanBoardPage() {
                                                                 )}
                                                             </div>
                                                             <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity scrum-arrow">
-                                                                {columnId !== 'Aberto' && (
-                                                                    <button onClick={() => moveCard(rnc.id, 'Aberto')} className="w-6 h-6 rounded bg-rose-50 text-rose-500 flex items-center justify-center hover:bg-rose-100" title="Mover para Aberto">«</button>
-                                                                )}
-                                                                {columnId !== 'Em Investigacao' && (
-                                                                    <button onClick={() => moveCard(rnc.id, 'Em Investigacao')} className="w-6 h-6 rounded bg-indigo-50 text-indigo-600 flex items-center justify-center hover:bg-indigo-100" title="Mover para Em Investigação"><Loader2 className="w-3 h-3" /></button>
-                                                                )}
-                                                                {columnId !== 'Validacao' && (
-                                                                    <button onClick={() => moveCard(rnc.id, 'Validacao')} className="w-6 h-6 rounded bg-amber-50 text-amber-600 flex items-center justify-center hover:bg-amber-100" title="Mover para Validação"><ShieldAlert className="w-3 h-3" /></button>
-                                                                )}
-                                                                {columnId !== 'Concluido' && (
-                                                                    <button onClick={() => moveCard(rnc.id, 'Concluido')} className="w-6 h-6 rounded bg-emerald-50 text-emerald-600 flex items-center justify-center hover:bg-emerald-100" title="Marcar como Concluído">»</button>
-                                                                )}
                                                             </div>
                                                         </div>
                                                     </CardContent>
