@@ -150,7 +150,7 @@ export default function GestaoRHPage() {
         if (nivel === 'I') return 1;
         if (nivel === 'L') return 2;
         if (nivel === 'U') return 3;
-        if (nivel === 'O') return 4;
+        if (nivel === 'O') return 6; // Dobro do valor para valorizar Formadores!
         return 0;
     };
 
@@ -187,7 +187,8 @@ export default function GestaoRHPage() {
             }
         });
 
-        const BENCHMARK = 40.0;
+        // Novo Benchmark Excelência (35 Pontos Ponderados)
+        const BENCHMARK = 35.0;
         let coeff = (totalPoints / BENCHMARK) * 4.0;
         if (coeff > 4.0) coeff = 4.0;
         

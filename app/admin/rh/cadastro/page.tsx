@@ -300,7 +300,7 @@ function FuncionarioFormCore() {
         if (nivel === 'I') return 1;
         if (nivel === 'L') return 2;
         if (nivel === 'U') return 3;
-        if (nivel === 'O') return 4;
+        if (nivel === 'O') return 6; // Formador vale o dobro
         return 0;
     };
 
@@ -338,8 +338,8 @@ function FuncionarioFormCore() {
             }
         });
 
-        // Novo Benchmark Excelência (40 Pontos Ponderados = Max 4.0)
-        const BENCHMARK = 40.0;
+        // Novo Benchmark Excelência (35 Pontos Ponderados = Max 4.0)
+        const BENCHMARK = 35.0;
         let coeff = (totalPoints / BENCHMARK) * 4.0;
         if (coeff > 4.0) coeff = 4.0;
         
