@@ -306,7 +306,7 @@ export default function SmartActionHubClient({ initialActions }: { initialAction
                                     </div>
                                     <p className="text-sm text-slate-300 mb-4">{action.descricao}</p>
                                     <div className="bg-indigo-950/50 p-3 rounded-lg text-xs text-indigo-200 mb-4 border border-indigo-500/20 font-mono">
-                                        <span className="font-bold text-indigo-400">>> WCM DIRECTIVE:</span> {action.sugestao_conclusao}
+                                        <span className="font-bold text-indigo-400">{'>>'} WCM DIRECTIVE:</span> {action.sugestao_conclusao}
                                     </div>
                                     <div className="flex justify-between items-center pt-2 border-t border-slate-700">
                                         <span className="text-[10px] font-mono text-slate-500 uppercase">Assigned to: <span className="text-slate-300">{action.responsavel_nome || 'UNASSIGNED'}</span></span>
@@ -409,8 +409,8 @@ export default function SmartActionHubClient({ initialActions }: { initialAction
                         ) : (
                             <div className="space-y-4 animate-in slide-in-from-right-4">
                                 <div className="flex items-center gap-4">
-                                    <div className="w-16 h-16 rounded-full border-4 flex items-center justify-center font-black text-2xl shadow-[0_0_20px_rgba(16,185,129,0.3)] 
-                                        ${aiFeedback.nota >= 7 ? 'border-emerald-500 text-emerald-400' : 'border-amber-500 text-amber-400'}">
+                                    <div className={`w-16 h-16 rounded-full border-4 flex items-center justify-center font-black text-2xl shadow-[0_0_20px_rgba(16,185,129,0.3)] 
+                                        ${aiFeedback.nota >= 7 ? 'border-emerald-500 text-emerald-400' : 'border-amber-500 text-amber-400'}`}>
                                         {aiFeedback.nota}
                                     </div>
                                     <div>
