@@ -5,8 +5,37 @@ import { cookies } from 'next/headers';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // Initialize Gemini AI
-// Assumes you have process.env.GEMINI_API_KEY
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+
+// Helper function to dynamically find an available model for the user's API Key
+async function getValidModel() {
+    // Try preferred stable models first
+    const preferredModels = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-1.0-pro", "gemini-pro"];
+    let firstValidModel = "gemini-1.5-flash"; // default fallback
+
+    try {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${process.env.GEMINI_API_KEY}`);
+        const data = await res.json();
+        if (data && data.models) {
+            const validModels = data.models.filter((m: any) => m.supportedGenerationMethods?.includes('generateContent'));
+            if (validModels.length > 0) {
+                // Check if any of our preferred models exist
+                const availableNames = validModels.map((m: any) => m.name.replace('models/', ''));
+                for (const pref of preferredModels) {
+                    if (availableNames.includes(pref)) {
+                        return genAI.getGenerativeModel({ model: pref });
+                    }
+                }
+                // If none of preferred exist, just grab the first one that supports generateContent
+                firstValidModel = availableNames[0];
+            }
+        }
+    } catch (e) {
+        console.warn("Failed to fetch dynamic models list, using fallback.");
+    }
+    
+    return genAI.getGenerativeModel({ model: firstValidModel });
+}
 
 export async function submitNovaAcao(payload: any) {
     try {
@@ -28,7 +57,7 @@ export async function processarTextoIA(texto: string) {
     }
 
     try {
-        const model = genAI.getGenerativeModel({ model: "gemini-1.0-pro" });
+        const model = await getValidModel();
 
         const prompt = `
 És um experiente Gestor de Melhoria Contínua Industrial.
@@ -78,7 +107,7 @@ export async function pedirAvaliacaoPlanoIA(textoPlano: string) {
         return { success: false, error: "Chave GEMINI_API_KEY em falta." };
     }
     try {
-        const model = genAI.getGenerativeModel({ model: "gemini-1.0-pro" });
+        const model = await getValidModel();
         const prompt = `
 És um Auditor Master Black Belt em Lean Six Sigma.
 Vou dar-te o rascunho de um plano de ação que um líder de linha escreveu manualmente.
@@ -109,7 +138,7 @@ export async function pivotarEstrategiaIA(descricaoFalha: string) {
         return { success: false, error: "Chave GEMINI_API_KEY em falta." };
     }
     try {
-        const model = genAI.getGenerativeModel({ model: "gemini-1.0-pro" });
+        const model = await getValidModel();
         const prompt = `
 Atuas como um Conselheiro de Engenharia WCM. 
 Foi implementada a seguinte Ação Corretiva na fábrica, mas após a verificação de eficácia, concluiu-se que FALHOU (foi ineficaz) e o problema reincidiu.
@@ -159,7 +188,7 @@ export async function warRoomAnalyticsIA(pergunta: string, dadosDashboardText: s
         return { success: false, error: "Chave GEMINI_API_KEY em falta." };
     }
     try {
-        const model = genAI.getGenerativeModel({ model: "gemini-1.0-pro" });
+        const model = await getValidModel();
         const prompt = `
 És o Diretor de Operações de uma Fábrica (Sistema M.E.S).
 Estás na Sala de Análise (War Room). O Diretor Geral fez-te a seguinte pergunta sobre a fábrica:
