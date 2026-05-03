@@ -136,6 +136,7 @@ export default function RadarDashboardClient({ areas, linhas, estacoes, operador
     let globalFaltasInjustificadas = 0;
     let globalOutros = 0;
     let globalFaltasSemRegisto = 0;
+    let globalRealocacoes = 0;
 
     filteredOps.forEach(op => {
         if (isPresent(op.tag_rfid_operador)) {
