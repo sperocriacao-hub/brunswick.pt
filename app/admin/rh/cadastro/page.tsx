@@ -69,8 +69,8 @@ function FuncionarioFormCore() {
     const [historicoFormacoes, setHistoricoFormacoes] = useState<any[]>([]);
 
     useEffect(() => {
-        // Carregar Estações (Para Alocação do Posto de Trabalho M.E.S)
-        supabase.from('estacoes').select('id, nome_estacao, areas_fabrica(id)').order('nome_estacao')
+        // Carregar Estações (Para Alocação do Posto de Trabalho M.E.S e Cálculo de Zonas ILUO)
+        supabase.from('estacoes').select('id, nome_estacao, areas_fabrica(id), linhas_producao(id)').order('nome_estacao')
             .then(({ data }) => setEstacoesDisponiveis(data || []));
 
         // Carregar Áreas de Fábrica (Para Equipa / Grupo)
@@ -307,25 +307,39 @@ function FuncionarioFormCore() {
     const getIluoCoefficient = () => {
         if (!formData.posto_base_id || iluoList.length === 0) return 0;
         
-        // Find Area of the Primary Station
+        // Find Area and Linha of the Primary Station
         const estacaoPrincipalInfo = estacoesDisponiveis.find(e => e.id === formData.posto_base_id);
-        const areaId = estacaoPrincipalInfo?.areas_fabrica?.id;
+        const areaIdBase = estacaoPrincipalInfo?.areas_fabrica?.id;
+        const linhaIdBase = estacaoPrincipalInfo?.linhas_producao?.id;
 
-        if (!areaId) return 0;
+        if (!areaIdBase) return 0;
 
         let totalPoints = 0;
         iluoList.forEach(iluo => {
             const pts = getIluoPoints(iluo.nivel_iluo);
             const estInfo = estacoesDisponiveis.find(e => e.id === iluo.estacao_id);
-            if (estInfo && estInfo.areas_fabrica?.id === areaId) {
-                totalPoints += pts; // Mesma área
-            } else {
-                totalPoints += pts * 1.25; // Bonus polivalência externa
+            
+            if (estInfo) {
+                const areaIdSkill = estInfo.areas_fabrica?.id;
+                const linhaIdSkill = estInfo.linhas_producao?.id;
+
+                if (areaIdSkill === areaIdBase) {
+                    if (linhaIdBase && linhaIdSkill === linhaIdBase) {
+                        // Zona 1: Mesma Linha = 1.0x
+                        totalPoints += pts;
+                    } else {
+                        // Zona 2: Mesma Área, mas Linha Diferente (ou estações soltas na área) = 1.5x
+                        totalPoints += pts * 1.5;
+                    }
+                } else {
+                    // Zona 3: Outra Área Fabril = 2.0x
+                    totalPoints += pts * 2.0;
+                }
             }
         });
 
-        // Benchmark Excelência (12 Pontos na Área = Max 4.0)
-        const BENCHMARK = 12.0;
+        // Novo Benchmark Excelência (40 Pontos Ponderados = Max 4.0)
+        const BENCHMARK = 40.0;
         let coeff = (totalPoints / BENCHMARK) * 4.0;
         if (coeff > 4.0) coeff = 4.0;
         
