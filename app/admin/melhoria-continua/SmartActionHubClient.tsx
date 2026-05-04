@@ -98,15 +98,15 @@ export default function SmartActionHubClient({ initialActions, initialCategorias
     }).length;
 
     // KPI Data Calculations (WCM Advanced Analytics)
-    const thirtyDaysAgo = new Date(today);
-    thirtyDaysAgo.setDate(today.getDate() - 30);
+    const ninetyDaysAgo = new Date(today);
+    ninetyDaysAgo.setDate(today.getDate() - 90);
 
     // 1. Backlog Trend & Timeline
     const timelineMap: Record<string, {name: string, Criadas: number, Resolvidas: number}> = {};
     initialActions.forEach(a => {
         if (!a.created_at) return;
         const dt = new Date(a.created_at);
-        if (dt < thirtyDaysAgo) return; // Only last 30 days
+        if (dt < ninetyDaysAgo) return; // Last 90 days for better visibility in test envs
         const dateStr = dt.toISOString().split('T')[0];
         if (!timelineMap[dateStr]) timelineMap[dateStr] = { name: dateStr, Criadas: 0, Resolvidas: 0 };
         timelineMap[dateStr].Criadas++;
@@ -145,7 +145,7 @@ export default function SmartActionHubClient({ initialActions, initialCategorias
 
     // 3. Hotspot (Gargalo Atual por Área)
     const areaTrendData = initialAreas.map(area => {
-        const actionsForArea = initialActions.filter(a => a.area_id === area.id);
+        const actionsForArea = initialActions.filter(a => a.area_id == area.id);
         const inProgress = actionsForArea.filter(a => ['Aberto', 'To Do', 'Em Investigacao', 'In Progress', 'Validacao', 'Pendente'].includes(a.status)).length;
         const resolved = actionsForArea.filter(a => ['Concluido', 'Concluído', 'Done', 'Encerrado'].includes(a.status)).length;
         const delayed = actionsForArea.filter(a => !['Concluido', 'Concluído', 'Done', 'Encerrado'].includes(a.status) && a.data_limite && new Date(a.data_limite) < today).length;
@@ -168,8 +168,8 @@ export default function SmartActionHubClient({ initialActions, initialCategorias
     });
     const onTimeRate = closedActions.length > 0 ? Math.round((onTimeCount / closedActions.length) * 100) : 100;
     
-    const recentCreated = initialActions.filter(a => new Date(a.created_at) >= thirtyDaysAgo).length;
-    const recentClosed = closedActions.filter(a => new Date(a.created_at) >= thirtyDaysAgo).length; // Cohort based
+    const recentCreated = initialActions.filter(a => new Date(a.created_at) >= ninetyDaysAgo).length;
+    const recentClosed = closedActions.filter(a => new Date(a.created_at) >= ninetyDaysAgo).length; // Cohort based
     const backlogRatio = recentClosed > 0 ? (recentCreated / recentClosed).toFixed(1) : (recentCreated > 0 ? "Crítico" : "1.0");
 
     // Handlers
@@ -547,7 +547,7 @@ ${filteredActions.slice(0, 10).map(a => `- [${a.modulo_origem}] [Área: ${a.nome
                             <CardContent className="p-5 relative z-10">
                                 <div className="flex items-center gap-2 mb-2 text-blue-600">
                                     <TrendingUp size={18} />
-                                    <span className="font-bold text-xs uppercase tracking-widest">Rácio Fluxo (30d)</span>
+                                    <span className="font-bold text-xs uppercase tracking-widest">Rácio Fluxo (90d)</span>
                                 </div>
                                 <div className="text-3xl font-black text-blue-900 mb-1">{backlogRatio}x</div>
                                 <p className="text-xs text-blue-700 font-medium">Novas vs Fechadas. <span className="opacity-70">(&gt; 1.0 = acumular backlog)</span></p>
@@ -611,7 +611,7 @@ ${filteredActions.slice(0, 10).map(a => `- [${a.modulo_origem}] [Área: ${a.nome
                         <Card className="bg-white border border-slate-200 shadow-sm">
                             <CardHeader className="p-5 border-b border-slate-100 bg-slate-50/50">
                                 <CardTitle className="font-bold text-slate-700 text-sm uppercase tracking-wider flex items-center gap-2">
-                                    <Activity size={16} className="text-emerald-500" /> Fluxo Contínuo (Últimos 30 Dias)
+                                    <Activity size={16} className="text-emerald-500" /> Fluxo Contínuo (Últimos 90 Dias)
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="p-6">
