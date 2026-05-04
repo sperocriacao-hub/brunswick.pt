@@ -60,7 +60,17 @@ export default function SmartActionHubClient({ initialActions, initialCategorias
     if (filterModule !== 'Todos') filteredActions = filteredActions.filter(a => a.modulo_origem === filterModule);
     if (filterArea !== 'Todas') filteredActions = filteredActions.filter(a => a.area_id === filterArea);
     if (filterCategoria !== 'Todas') filteredActions = filteredActions.filter(a => a.categoria === filterCategoria);
-    if (filterStatus !== 'Todos') filteredActions = filteredActions.filter(a => a.status === filterStatus);
+    if (filterStatus !== 'Todos') {
+        filteredActions = filteredActions.filter(a => {
+            const st = (a.status || '').toLowerCase();
+            if (filterStatus === 'Aberto') return ['aberto', 'to do', 'pendente', 'in progress', 'em investigacao', 'em andamento'].includes(st);
+            if (filterStatus === 'Em Investigacao') return ['em investigacao', 'validacao', 'em análise'].includes(st);
+            if (filterStatus === 'Validacao') return ['validacao', 'validação'].includes(st);
+            if (filterStatus === 'Concluido') return ['concluido', 'concluído', 'done', 'encerrado'].includes(st);
+            if (filterStatus === 'Cancelado') return ['cancelado'].includes(st);
+            return st === filterStatus.toLowerCase();
+        });
+    }
     if (searchDesc.trim()) {
         const q = searchDesc.toLowerCase();
         filteredActions = filteredActions.filter(a => 
@@ -75,11 +85,14 @@ export default function SmartActionHubClient({ initialActions, initialCategorias
         filteredActions = filteredActions.filter(a => a.data_limite && new Date(a.data_limite) <= new Date(filterDateTo));
     }
 
-    const totalAbertas = filteredActions.filter(a => ['Aberto', 'To Do', 'Em Investigacao', 'In Progress'].includes(a.status)).length;
-    const totalConcluidas = filteredActions.filter(a => ['Concluido', 'Done'].includes(a.status)).length;
+    // Force Descending Order (Newest First)
+    filteredActions.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+    const totalAbertas = filteredActions.filter(a => ['Aberto', 'To Do', 'Em Investigacao', 'In Progress', 'Pendente'].includes(a.status)).length;
+    const totalConcluidas = filteredActions.filter(a => ['Concluido', 'Concluído', 'Done', 'Encerrado'].includes(a.status)).length;
     
     const overdueActions = filteredActions.filter(a => {
-        if (['Concluido', 'Done'].includes(a.status)) return false;
+        if (['Concluido', 'Concluído', 'Done', 'Encerrado'].includes(a.status)) return false;
         if (!a.data_limite) return false;
         return new Date(a.data_limite) < today;
     }).length;
@@ -87,9 +100,9 @@ export default function SmartActionHubClient({ initialActions, initialCategorias
     // KPI Data Calculations (Based on All Actions for holistic view)
     const areaTrendData = initialAreas.map(area => {
         const actionsForArea = initialActions.filter(a => a.area_id === area.id);
-        const inProgress = actionsForArea.filter(a => ['Aberto', 'To Do', 'Em Investigacao', 'In Progress', 'Validacao'].includes(a.status)).length;
-        const resolved = actionsForArea.filter(a => ['Concluido', 'Done'].includes(a.status)).length;
-        const delayed = actionsForArea.filter(a => !['Concluido', 'Done'].includes(a.status) && a.data_limite && new Date(a.data_limite) < today).length;
+        const inProgress = actionsForArea.filter(a => ['Aberto', 'To Do', 'Em Investigacao', 'In Progress', 'Validacao', 'Pendente'].includes(a.status)).length;
+        const resolved = actionsForArea.filter(a => ['Concluido', 'Concluído', 'Done', 'Encerrado'].includes(a.status)).length;
+        const delayed = actionsForArea.filter(a => !['Concluido', 'Concluído', 'Done', 'Encerrado'].includes(a.status) && a.data_limite && new Date(a.data_limite) < today).length;
         return { name: area.nome_area, "Em Curso": inProgress, "Resolvido": resolved, "Atrasado": delayed };
     }).filter(d => d["Em Curso"] > 0 || d["Resolvido"] > 0 || d["Atrasado"] > 0);
 
@@ -324,7 +337,7 @@ ${filteredActions.slice(0, 10).map(a => `- [${a.modulo_origem}] [Área: ${a.nome
                                 onChange={(e) => setFilterModule(e.target.value)}
                                 className="w-full text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded py-1.5 px-3 focus:outline-none focus:ring-1 focus:ring-blue-500"
                             >
-                                <option value="Todos">Todos os Módulos</option>
+                                <option value="Todos">Todas as Origens</option>
                                 <option value="Qualidade">Qualidade (A3/RNC)</option>
                                 <option value="Lean/Kaizen">Lean & Kaizen</option>
                                 <option value="HST">Saúde e Segurança (HST)</option>
@@ -444,8 +457,8 @@ ${filteredActions.slice(0, 10).map(a => `- [${a.modulo_origem}] [Área: ${a.nome
                                             </td>
                                             <td className="px-4 py-3 text-center">
                                                 <Badge className={`uppercase text-[9px] font-bold border-0
-                                                    ${['Concluido', 'Done'].includes(action.status) ? 'bg-emerald-100 text-emerald-700' : 
-                                                    ['Aberto', 'To Do'].includes(action.status) ? 'bg-blue-100 text-blue-700' : 
+                                                    ${['Concluido', 'Concluído', 'Done', 'Encerrado'].includes(action.status) ? 'bg-emerald-100 text-emerald-700' : 
+                                                    ['Aberto', 'To Do', 'Pendente'].includes(action.status) ? 'bg-blue-100 text-blue-700' : 
                                                     'bg-amber-100 text-amber-700'}`
                                                 }>
                                                     {action.status}
