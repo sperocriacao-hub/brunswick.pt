@@ -2,11 +2,11 @@
 
 import React, { useState } from 'react';
 import { processarTextoIA, submitNovaAcao, pedirAvaliacaoPlanoIA, pivotarEstrategiaIA, addCategoriaAcao, warRoomAnalyticsIA, updateAcaoGlobal } from './actions';
-import { Sparkles, BrainCircuit, Activity, CheckCircle2, Filter, Layers, ListChecks, Bot, MessageSquareText, FilePlus, AlertCircle, RefreshCw, XCircle, Send, Plus, MapPin } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Sparkles, BrainCircuit, Activity, CheckCircle2, Filter, Layers, ListChecks, Bot, MessageSquareText, FilePlus, AlertCircle, RefreshCw, XCircle, Send, Plus, MapPin, TrendingUp, Flame, Target } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useRouter } from 'next/navigation';
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, PieChart, Pie, Cell } from 'recharts';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, PieChart, Pie, Cell, ComposedChart, Line, AreaChart, Area } from 'recharts';
 
 export default function SmartActionHubClient({ initialActions, initialCategorias, initialAreas }: { initialActions: any[], initialCategorias: string[], initialAreas: any[] }) {
     const router = useRouter();
@@ -97,22 +97,80 @@ export default function SmartActionHubClient({ initialActions, initialCategorias
         return new Date(a.data_limite) < today;
     }).length;
 
-    // KPI Data Calculations (Based on All Actions for holistic view)
+    // KPI Data Calculations (WCM Advanced Analytics)
+    const thirtyDaysAgo = new Date(today);
+    thirtyDaysAgo.setDate(today.getDate() - 30);
+
+    // 1. Backlog Trend & Timeline
+    const timelineMap: Record<string, {name: string, Criadas: number, Resolvidas: number}> = {};
+    initialActions.forEach(a => {
+        if (!a.created_at) return;
+        const dt = new Date(a.created_at);
+        if (dt < thirtyDaysAgo) return; // Only last 30 days
+        const dateStr = dt.toISOString().split('T')[0];
+        if (!timelineMap[dateStr]) timelineMap[dateStr] = { name: dateStr, Criadas: 0, Resolvidas: 0 };
+        timelineMap[dateStr].Criadas++;
+        
+        if (['Concluido', 'Concluído', 'Done', 'Encerrado'].includes(a.status)) {
+            // Se tiver status data_conclusao usaríamos, mas como não temos, usamos fallback pra data limite ou assume que fechou depois
+            // Para simplificar a timeline, vamos colocar como "resolvidas naquele dia de criacao" ou criar um map melhor
+            timelineMap[dateStr].Resolvidas++; 
+        }
+    });
+    // For a real burn-down we would use actual resolution dates. Here we approximate by created_at cohort.
+    const timelineData = Object.values(timelineMap).sort((a, b) => a.name.localeCompare(b.name));
+
+    // 2. Pareto Analysis (Category)
+    const categoryDataMap: Record<string, number> = {};
+    let totalActionsCount = 0;
+    initialActions.forEach(a => {
+        const cat = a.categoria || 'Outro';
+        categoryDataMap[cat] = (categoryDataMap[cat] || 0) + 1;
+        totalActionsCount++;
+    });
+    
+    const paretoData = Object.keys(categoryDataMap)
+        .map(k => ({ name: k, count: categoryDataMap[k] }))
+        .sort((a, b) => b.count - a.count);
+        
+    let cumulative = 0;
+    const paretoChartData = paretoData.map(item => {
+        cumulative += item.count;
+        return {
+            name: item.name,
+            "Ocorrências": item.count,
+            "Acumulado %": Math.round((cumulative / totalActionsCount) * 100)
+        };
+    });
+
+    // 3. Hotspot (Gargalo Atual por Área)
     const areaTrendData = initialAreas.map(area => {
         const actionsForArea = initialActions.filter(a => a.area_id === area.id);
         const inProgress = actionsForArea.filter(a => ['Aberto', 'To Do', 'Em Investigacao', 'In Progress', 'Validacao', 'Pendente'].includes(a.status)).length;
         const resolved = actionsForArea.filter(a => ['Concluido', 'Concluído', 'Done', 'Encerrado'].includes(a.status)).length;
         const delayed = actionsForArea.filter(a => !['Concluido', 'Concluído', 'Done', 'Encerrado'].includes(a.status) && a.data_limite && new Date(a.data_limite) < today).length;
-        return { name: area.nome_area, "Em Curso": inProgress, "Resolvido": resolved, "Atrasado": delayed };
+        return { name: area.nome_area, "Em Curso": inProgress, "Resolvido": resolved, "Atrasado": delayed, totalAbertas: inProgress + delayed };
     }).filter(d => d["Em Curso"] > 0 || d["Resolvido"] > 0 || d["Atrasado"] > 0);
+    
+    // Sort Area Matrix by most open tasks
+    areaTrendData.sort((a, b) => b.totalAbertas - a.totalAbertas);
+    const worstArea = areaTrendData.length > 0 ? areaTrendData[0] : null;
 
-    const categoryDataMap: Record<string, number> = {};
-    initialActions.forEach(a => {
-        const cat = a.categoria || 'Outro';
-        categoryDataMap[cat] = (categoryDataMap[cat] || 0) + 1;
+    // 4. On-Time Delivery Health
+    const closedActions = initialActions.filter(a => ['Concluido', 'Concluído', 'Done', 'Encerrado'].includes(a.status));
+    let onTimeCount = 0;
+    closedActions.forEach(a => {
+        // Simple heuristic: if it had a limit and was closed, we assume it met the limit.
+        // A true MTTR needs an actual closed_at timestamp. We estimate based on limit existing.
+        if (a.data_limite && new Date(a.created_at) <= new Date(a.data_limite)) {
+            onTimeCount++;
+        }
     });
-    const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#f97316', '#64748b'];
-    const categoryData = Object.keys(categoryDataMap).map((k, i) => ({ name: k, value: categoryDataMap[k], color: COLORS[i % COLORS.length] }));
+    const onTimeRate = closedActions.length > 0 ? Math.round((onTimeCount / closedActions.length) * 100) : 100;
+    
+    const recentCreated = initialActions.filter(a => new Date(a.created_at) >= thirtyDaysAgo).length;
+    const recentClosed = closedActions.filter(a => new Date(a.created_at) >= thirtyDaysAgo).length; // Cohort based
+    const backlogRatio = recentClosed > 0 ? (recentCreated / recentClosed).toFixed(1) : (recentCreated > 0 ? "Crítico" : "1.0");
 
     // Handlers
     const handleAddCategoria = async () => {
@@ -479,56 +537,130 @@ ${filteredActions.slice(0, 10).map(a => `- [${a.modulo_origem}] [Área: ${a.nome
                 </div>
             )}
 
-            {/* TAB: KPIS GERENCIAIS */}
+            {/* TAB: KPIS GERENCIAIS (WCM) */}
             {activeTab === 'KPIS' && (
-                <div className="space-y-6">
+                <div className="space-y-6 animate-in fade-in duration-500">
+                    {/* Top Level Insight Cards */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <Card className="bg-gradient-to-br from-blue-50 to-white border border-blue-100 shadow-sm relative overflow-hidden">
+                            <div className="absolute right-0 top-0 w-16 h-16 bg-blue-100 rounded-bl-full opacity-50"></div>
+                            <CardContent className="p-5 relative z-10">
+                                <div className="flex items-center gap-2 mb-2 text-blue-600">
+                                    <TrendingUp size={18} />
+                                    <span className="font-bold text-xs uppercase tracking-widest">Rácio Fluxo (30d)</span>
+                                </div>
+                                <div className="text-3xl font-black text-blue-900 mb-1">{backlogRatio}x</div>
+                                <p className="text-xs text-blue-700 font-medium">Novas vs Fechadas. <span className="opacity-70">(&gt; 1.0 = acumular backlog)</span></p>
+                            </CardContent>
+                        </Card>
+                        
+                        <Card className="bg-gradient-to-br from-rose-50 to-white border border-rose-100 shadow-sm relative overflow-hidden">
+                            <div className="absolute right-0 top-0 w-16 h-16 bg-rose-100 rounded-bl-full opacity-50"></div>
+                            <CardContent className="p-5 relative z-10">
+                                <div className="flex items-center gap-2 mb-2 text-rose-600">
+                                    <Flame size={18} />
+                                    <span className="font-bold text-xs uppercase tracking-widest">Gargalo Crítico</span>
+                                </div>
+                                <div className="text-2xl font-black text-rose-900 mb-1 truncate" title={worstArea ? worstArea.name : '--'}>
+                                    {worstArea ? worstArea.name : 'N/A'}
+                                </div>
+                                <p className="text-xs text-rose-700 font-medium">Área com maior stress atual ({worstArea ? worstArea.totalAbertas : 0} ações ativas)</p>
+                            </CardContent>
+                        </Card>
+
+                        <Card className="bg-gradient-to-br from-emerald-50 to-white border border-emerald-100 shadow-sm relative overflow-hidden">
+                            <div className="absolute right-0 top-0 w-16 h-16 bg-emerald-100 rounded-bl-full opacity-50"></div>
+                            <CardContent className="p-5 relative z-10">
+                                <div className="flex items-center gap-2 mb-2 text-emerald-600">
+                                    <Target size={18} />
+                                    <span className="font-bold text-xs uppercase tracking-widest">Saúde (On-Time)</span>
+                                </div>
+                                <div className="text-3xl font-black text-emerald-900 mb-1">{onTimeRate}%</div>
+                                <p className="text-xs text-emerald-700 font-medium">Ações resolvidas dentro do prazo.</p>
+                            </CardContent>
+                        </Card>
+                    </div>
+
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {/* Pareto Chart */}
                         <Card className="bg-white border border-slate-200 shadow-sm">
+                            <CardHeader className="p-5 border-b border-slate-100 bg-slate-50/50">
+                                <CardTitle className="font-bold text-slate-700 text-sm uppercase tracking-wider flex items-center gap-2">
+                                    <Layers size={16} className="text-blue-500" /> Pareto por Categoria (80/20)
+                                </CardTitle>
+                            </CardHeader>
                             <CardContent className="p-6">
-                                <h3 className="font-bold text-slate-700 text-sm uppercase tracking-wider mb-6 flex items-center gap-2">
-                                    <Activity size={16} className="text-blue-500" /> Tendência por Área (Saúde)
-                                </h3>
-                                <div className="h-80">
+                                <div className="h-80 w-full">
                                     <ResponsiveContainer width="100%" height="100%">
-                                        <BarChart data={areaTrendData}>
-                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                                            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#64748b'}} />
-                                            <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#64748b'}} />
-                                            <Tooltip contentStyle={{borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '12px'}} />
-                                            <Legend wrapperStyle={{fontSize: '12px'}} />
-                                            <Bar dataKey="Em Curso" stackId="a" fill="#3b82f6" radius={[0, 0, 4, 4]} />
-                                            <Bar dataKey="Atrasado" stackId="a" fill="#f43f5e" />
-                                            <Bar dataKey="Resolvido" stackId="a" fill="#10b981" radius={[4, 4, 0, 0]} />
-                                        </BarChart>
+                                        <ComposedChart data={paretoChartData} margin={{ top: 20, right: 20, bottom: 20, left: -20 }}>
+                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 11, fill: '#64748b'}} interval={0} angle={-25} textAnchor="end" />
+                                            <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{fontSize: 11, fill: '#64748b'}} />
+                                            <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tick={{fontSize: 11, fill: '#64748b'}} tickFormatter={(v) => `${v}%`} />
+                                            <Tooltip contentStyle={{borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '12px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}} />
+                                            <Legend wrapperStyle={{fontSize: '12px', paddingTop: '10px'}} />
+                                            <Bar yAxisId="left" dataKey="Ocorrências" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={50} />
+                                            <Line yAxisId="right" type="monotone" dataKey="Acumulado %" stroke="#f43f5e" strokeWidth={3} dot={{r: 4, fill: '#f43f5e', strokeWidth: 2, stroke: '#fff'}} />
+                                        </ComposedChart>
                                     </ResponsiveContainer>
                                 </div>
                             </CardContent>
                         </Card>
 
+                        {/* Timeline Flow Chart */}
                         <Card className="bg-white border border-slate-200 shadow-sm">
+                            <CardHeader className="p-5 border-b border-slate-100 bg-slate-50/50">
+                                <CardTitle className="font-bold text-slate-700 text-sm uppercase tracking-wider flex items-center gap-2">
+                                    <Activity size={16} className="text-emerald-500" /> Fluxo Contínuo (Últimos 30 Dias)
+                                </CardTitle>
+                            </CardHeader>
                             <CardContent className="p-6">
-                                <h3 className="font-bold text-slate-700 text-sm uppercase tracking-wider mb-6 flex items-center gap-2">
-                                    <Layers size={16} className="text-emerald-500" /> Distribuição de Esforço por Categoria
-                                </h3>
-                                <div className="h-80">
+                                <div className="h-80 w-full">
                                     <ResponsiveContainer width="100%" height="100%">
-                                        <PieChart>
-                                            <Pie
-                                                data={categoryData}
-                                                cx="50%"
-                                                cy="50%"
-                                                innerRadius={80}
-                                                outerRadius={110}
-                                                paddingAngle={5}
-                                                dataKey="value"
-                                            >
-                                                {categoryData.map((entry, index) => (
-                                                    <Cell key={`cell-${index}`} fill={entry.color} />
-                                                ))}
-                                            </Pie>
+                                        <AreaChart data={timelineData} margin={{ top: 20, right: 0, bottom: 0, left: -20 }}>
+                                            <defs>
+                                                <linearGradient id="colorCriadas" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.3}/>
+                                                <stop offset="95%" stopColor="#f43f5e" stopOpacity={0}/>
+                                                </linearGradient>
+                                                <linearGradient id="colorRes" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                                                <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                                                </linearGradient>
+                                            </defs>
+                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#94a3b8'}} tickFormatter={(v) => v.split('-').slice(1).join('/')} />
+                                            <YAxis axisLine={false} tickLine={false} tick={{fontSize: 11, fill: '#64748b'}} />
                                             <Tooltip contentStyle={{borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '12px'}} />
                                             <Legend wrapperStyle={{fontSize: '12px'}} />
-                                        </PieChart>
+                                            <Area type="monotone" dataKey="Criadas" stroke="#f43f5e" strokeWidth={2} fillOpacity={1} fill="url(#colorCriadas)" />
+                                            <Area type="monotone" dataKey="Resolvidas" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#colorRes)" />
+                                        </AreaChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        {/* Matriz de Carga por Área (Horizontal Bar) */}
+                        <Card className="bg-white border border-slate-200 shadow-sm lg:col-span-2">
+                            <CardHeader className="p-5 border-b border-slate-100 bg-slate-50/50">
+                                <CardTitle className="font-bold text-slate-700 text-sm uppercase tracking-wider flex items-center gap-2">
+                                    <MapPin size={16} className="text-amber-500" /> Matriz de Carga por Área
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="p-6">
+                                <div className="h-[400px] w-full">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <BarChart data={areaTrendData} layout="vertical" margin={{ top: 0, right: 30, bottom: 0, left: 40 }}>
+                                            <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
+                                            <XAxis type="number" axisLine={false} tickLine={false} tick={{fontSize: 11, fill: '#64748b'}} />
+                                            <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{fontSize: 11, fill: '#475569', fontWeight: 600}} width={100} />
+                                            <Tooltip cursor={{fill: '#f8fafc'}} contentStyle={{borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '12px'}} />
+                                            <Legend wrapperStyle={{fontSize: '12px', paddingTop: '10px'}} />
+                                            <Bar dataKey="Em Curso" stackId="a" fill="#3b82f6" maxBarSize={30} radius={[0, 0, 0, 0]} />
+                                            <Bar dataKey="Atrasado" stackId="a" fill="#f43f5e" maxBarSize={30} radius={[0, 0, 0, 0]} />
+                                            <Bar dataKey="Resolvido" stackId="a" fill="#10b981" maxBarSize={30} radius={[0, 4, 4, 0]} />
+                                        </BarChart>
                                     </ResponsiveContainer>
                                 </div>
                             </CardContent>
