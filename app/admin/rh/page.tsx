@@ -831,7 +831,7 @@ export default function GestaoRHPage() {
                                             tipo_ausencia: absenceType,
                                             data_inicio: absenceStart,
                                             data_fim: absenceEnd || null,
-                                            motivo_observacao: absenceNotes
+                                            observacoes: absenceNotes
                                         };
                                         const { error } = await supabase.from('rh_ausencias').insert([payload]);
                                         if (error) {

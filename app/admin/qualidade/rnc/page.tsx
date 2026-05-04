@@ -145,7 +145,7 @@ export default function GestaoRncPage() {
             return;
         }
         setIsSaving(true);
-        const res = await updateRnc(encerrarRncId, { status: 'Encerrado', justificativa_fecho: justificativaFecho });
+        const res = await updateRnc(encerrarRncId, { status: 'Concluido', justificativa_fecho: justificativaFecho });
         if (res.success) {
             setIsEncerrarModalOpen(false);
             carregarRncs();
@@ -440,7 +440,7 @@ export default function GestaoRncPage() {
                                                             </>
                                                         )}
 
-                                                        {rnc.status !== 'Pendente' && !hasA3 && rnc.status !== 'Encerrado' && (
+                                                        {rnc.status !== 'Pendente' && !hasA3 && rnc.status !== 'Concluido' && (
                                                             <>
                                                                 {/* O botão "Gerar" via lista central é descontinuado. Os A3 são gerados e respondem exclusivamente pelo Kanban */}
                                                                 <Button variant="outline" size="sm" className="h-8 border-slate-200 text-slate-600 hover:bg-indigo-50 hover:text-indigo-700 font-bold text-xs" onClick={() => router.push(`/admin/qualidade/rnc/quadro`)}>
