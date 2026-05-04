@@ -51,13 +51,29 @@ export async function submitNovaAcao(payload: any) {
     }
 }
 
-export async function processarTextoIA(texto: string) {
+export async function updateAcaoGlobal(id: string, payload: any) {
+    try {
+        const cookieStore = cookies();
+        const supabase = createClient(cookieStore);
+
+        const { error } = await supabase.from('central_acoes_globais').update(payload).eq('id', id);
+        if (error) throw error;
+
+        return { success: true };
+    } catch (e: any) {
+        return { success: false, error: e.message };
+    }
+}
+
+export async function processarTextoIA(texto: string, areasFabrica: any[] = []) {
     if (!process.env.GEMINI_API_KEY) {
         return { success: false, error: "A chave GEMINI_API_KEY não está configurada no servidor." };
     }
 
     try {
         const model = await getValidModel();
+
+        const areasList = areasFabrica.map(a => `- ID: ${a.id} | Nome: ${a.nome_area}`).join('\n');
 
         const prompt = `
 És um experiente Gestor de Melhoria Contínua Industrial.
@@ -74,7 +90,12 @@ Cada objeto deve ter:
 - descricao (string)
 - categoria (deve ser exatamente um destes: 'Eficiencia', 'Entregas', 'Scraps', 'Andons', 'Gargalos', 'Consumiveis', 'Material Variance', 'Produtividade', 'Formacoes', 'Outro')
 - responsavel_nome (string ou null)
+- area_id (string com o ID da área, ou null se não for possível deduzir. Usa APENAS os IDs da lista abaixo)
+- data_limite (string no formato YYYY-MM-DD se mencionarem datas ou prazos, ou null)
 - sugestao_conclusao (string, a tua ideia brilhante baseada em WCM ou TPM para como resolver isto de forma permanente)
+
+Áreas da Fábrica disponíveis:
+${areasList || 'Sem áreas definidas.'}
 
 Exemplo de output:
 [
@@ -83,6 +104,8 @@ Exemplo de output:
     "descricao": "A máquina bloqueou 3 vezes ontem causando refugos.",
     "categoria": "Scraps",
     "responsavel_nome": "João Manutenção",
+    "area_id": "uuid-da-area",
+    "data_limite": "2026-05-10",
     "sugestao_conclusao": "Implementar plano de manutenção autónoma na lâmina e sensor."
   }
 ]

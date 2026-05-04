@@ -1,17 +1,18 @@
 'use client';
 
 import React, { useState } from 'react';
-import { processarTextoIA, submitNovaAcao, pedirAvaliacaoPlanoIA, pivotarEstrategiaIA, addCategoriaAcao, warRoomAnalyticsIA } from './actions';
+import { processarTextoIA, submitNovaAcao, pedirAvaliacaoPlanoIA, pivotarEstrategiaIA, addCategoriaAcao, warRoomAnalyticsIA, updateAcaoGlobal } from './actions';
 import { Sparkles, BrainCircuit, Activity, CheckCircle2, Filter, Layers, ListChecks, Bot, MessageSquareText, FilePlus, AlertCircle, RefreshCw, XCircle, Send, Plus, MapPin } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useRouter } from 'next/navigation';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, PieChart, Pie, Cell } from 'recharts';
 
 export default function SmartActionHubClient({ initialActions, initialCategorias, initialAreas }: { initialActions: any[], initialCategorias: string[], initialAreas: any[] }) {
     const router = useRouter();
     
     // UI State
-    const [activeTab, setActiveTab] = useState<'KANBAN' | 'COGNITIVE_INBOX' | 'MANUAL_FORM' | 'WAR_ROOM'>('KANBAN');
+    const [activeTab, setActiveTab] = useState<'KANBAN' | 'COGNITIVE_INBOX' | 'MANUAL_FORM' | 'WAR_ROOM' | 'KPIS'>('KANBAN');
     const [filterModule, setFilterModule] = useState('Todos');
     const [filterArea, setFilterArea] = useState('Todas');
 
@@ -19,6 +20,18 @@ export default function SmartActionHubClient({ initialActions, initialCategorias
     const [categorias, setCategorias] = useState<string[]>(initialCategorias || []);
     const [novaCategoria, setNovaCategoria] = useState('');
     const [showAddCategoria, setShowAddCategoria] = useState(false);
+
+    // List Filters
+    const [searchDesc, setSearchDesc] = useState('');
+    const [filterCategoria, setFilterCategoria] = useState('Todas');
+    const [filterStatus, setFilterStatus] = useState('Todos');
+    const [filterDateFrom, setFilterDateFrom] = useState('');
+    const [filterDateTo, setFilterDateTo] = useState('');
+
+    // Edit State
+    const [editModalOpen, setEditModalOpen] = useState(false);
+    const [editingAction, setEditingAction] = useState<any>(null);
+    const [isSavingEdit, setIsSavingEdit] = useState(false);
 
     // Inbox State
     const [rawText, setRawText] = useState('');
@@ -42,10 +55,25 @@ export default function SmartActionHubClient({ initialActions, initialCategorias
     // Calculate Dates & Status
     const today = new Date();
     
-    // Aplicar Filtros (Módulo e Área)
+    // Aplicar Filtros (Módulo e Área e Novos Filtros)
     let filteredActions = initialActions;
     if (filterModule !== 'Todos') filteredActions = filteredActions.filter(a => a.modulo_origem === filterModule);
     if (filterArea !== 'Todas') filteredActions = filteredActions.filter(a => a.area_id === filterArea);
+    if (filterCategoria !== 'Todas') filteredActions = filteredActions.filter(a => a.categoria === filterCategoria);
+    if (filterStatus !== 'Todos') filteredActions = filteredActions.filter(a => a.status === filterStatus);
+    if (searchDesc.trim()) {
+        const q = searchDesc.toLowerCase();
+        filteredActions = filteredActions.filter(a => 
+            (a.titulo && a.titulo.toLowerCase().includes(q)) || 
+            (a.descricao && a.descricao.toLowerCase().includes(q))
+        );
+    }
+    if (filterDateFrom) {
+        filteredActions = filteredActions.filter(a => a.data_limite && new Date(a.data_limite) >= new Date(filterDateFrom));
+    }
+    if (filterDateTo) {
+        filteredActions = filteredActions.filter(a => a.data_limite && new Date(a.data_limite) <= new Date(filterDateTo));
+    }
 
     const totalAbertas = filteredActions.filter(a => ['Aberto', 'To Do', 'Em Investigacao', 'In Progress'].includes(a.status)).length;
     const totalConcluidas = filteredActions.filter(a => ['Concluido', 'Done'].includes(a.status)).length;
@@ -55,6 +83,23 @@ export default function SmartActionHubClient({ initialActions, initialCategorias
         if (!a.data_limite) return false;
         return new Date(a.data_limite) < today;
     }).length;
+
+    // KPI Data Calculations (Based on All Actions for holistic view)
+    const areaTrendData = initialAreas.map(area => {
+        const actionsForArea = initialActions.filter(a => a.area_id === area.id);
+        const inProgress = actionsForArea.filter(a => ['Aberto', 'To Do', 'Em Investigacao', 'In Progress', 'Validacao'].includes(a.status)).length;
+        const resolved = actionsForArea.filter(a => ['Concluido', 'Done'].includes(a.status)).length;
+        const delayed = actionsForArea.filter(a => !['Concluido', 'Done'].includes(a.status) && a.data_limite && new Date(a.data_limite) < today).length;
+        return { name: area.nome_area, "Em Curso": inProgress, "Resolvido": resolved, "Atrasado": delayed };
+    }).filter(d => d["Em Curso"] > 0 || d["Resolvido"] > 0 || d["Atrasado"] > 0);
+
+    const categoryDataMap: Record<string, number> = {};
+    initialActions.forEach(a => {
+        const cat = a.categoria || 'Outro';
+        categoryDataMap[cat] = (categoryDataMap[cat] || 0) + 1;
+    });
+    const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#f97316', '#64748b'];
+    const categoryData = Object.keys(categoryDataMap).map((k, i) => ({ name: k, value: categoryDataMap[k], color: COLORS[i % COLORS.length] }));
 
     // Handlers
     const handleAddCategoria = async () => {
@@ -71,7 +116,7 @@ export default function SmartActionHubClient({ initialActions, initialCategorias
     const handleGenerateAi = async () => {
         if (!rawText.trim()) return;
         setIsAiProcessing(true);
-        const res = await processarTextoIA(rawText);
+        const res = await processarTextoIA(rawText, initialAreas);
         if (res.success && res.data) {
             setSuggestedActions(res.data);
             setRawText('');
@@ -87,6 +132,8 @@ export default function SmartActionHubClient({ initialActions, initialCategorias
             descricao: action.descricao + '\n\n🤖 Sugestão IA: ' + action.sugestao_conclusao,
             categoria: action.categoria,
             responsavel_nome: action.responsavel_nome,
+            area_id: action.area_id || null,
+            data_limite: action.data_limite || null,
             origem_ia: true
         };
         const res = await submitNovaAcao(payload);
@@ -156,6 +203,29 @@ ${filteredActions.slice(0, 10).map(a => `- [${a.modulo_origem}] [Área: ${a.nome
         setIsWarRoomThinking(false);
     };
 
+    const handleSaveEdit = async () => {
+        if (!editingAction || editingAction.modulo_origem !== 'Geral') return;
+        setIsSavingEdit(true);
+        const payload = {
+            titulo: editingAction.titulo,
+            descricao: editingAction.descricao,
+            categoria: editingAction.categoria,
+            status: editingAction.status,
+            area_id: editingAction.area_id === 'none' ? null : editingAction.area_id,
+            data_limite: editingAction.data_limite || null,
+            responsavel_nome: editingAction.responsavel_nome || null
+        };
+        const res = await updateAcaoGlobal(editingAction.id, payload);
+        if (res.success) {
+            setEditModalOpen(false);
+            setEditingAction(null);
+            router.refresh();
+        } else {
+            alert("Erro ao gravar edição: " + res.error);
+        }
+        setIsSavingEdit(false);
+    };
+
     return (
         <div className="p-6 md:p-8 max-w-[1600px] mx-auto animate-in fade-in duration-500 bg-slate-50 min-h-screen text-slate-800 font-sans">
             
@@ -173,6 +243,7 @@ ${filteredActions.slice(0, 10).map(a => `- [${a.modulo_origem}] [Área: ${a.nome
 
                 <div className="flex gap-2 bg-white p-1.5 rounded-lg border border-slate-200 shadow-sm">
                     <button onClick={() => setActiveTab('KANBAN')} className={`px-4 py-2 text-sm font-bold rounded-md transition-all ${activeTab === 'KANBAN' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-500 hover:text-blue-600 hover:bg-blue-50'}`}><ListChecks size={16} className="inline mr-2"/> Lista Global</button>
+                    <button onClick={() => setActiveTab('KPIS')} className={`px-4 py-2 text-sm font-bold rounded-md transition-all ${activeTab === 'KPIS' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-500 hover:text-blue-600 hover:bg-blue-50'}`}><Activity size={16} className="inline mr-2"/> KPIs Gerenciais</button>
                     <button onClick={() => setActiveTab('COGNITIVE_INBOX')} className={`px-4 py-2 text-sm font-bold rounded-md transition-all flex items-center ${activeTab === 'COGNITIVE_INBOX' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-500 hover:text-blue-600 hover:bg-blue-50'}`}><Bot size={16} className="inline mr-2"/> Entrada I.A. {suggestedActions.length > 0 && <span className="ml-2 bg-rose-500 text-white px-1.5 py-0.5 rounded-full text-[10px]">{suggestedActions.length}</span>}</button>
                     <button onClick={() => setActiveTab('MANUAL_FORM')} className={`px-4 py-2 text-sm font-bold rounded-md transition-all ${activeTab === 'MANUAL_FORM' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-500 hover:text-blue-600 hover:bg-blue-50'}`}><FilePlus size={16} className="inline mr-2"/> Nova Ação</button>
                     <button onClick={() => setActiveTab('WAR_ROOM')} className={`px-4 py-2 text-sm font-bold rounded-md transition-all ${activeTab === 'WAR_ROOM' ? 'bg-amber-600 text-white shadow-md' : 'text-slate-500 hover:text-amber-600 hover:bg-amber-50'}`}><MessageSquareText size={16} className="inline mr-2"/> Sala de Análise</button>
@@ -224,39 +295,76 @@ ${filteredActions.slice(0, 10).map(a => `- [${a.modulo_origem}] [Área: ${a.nome
             {/* TAB: LISTA GLOBAL */}
             {activeTab === 'KANBAN' && (
                 <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                    <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-                        <h3 className="font-bold text-slate-700 text-sm uppercase tracking-wider flex items-center gap-2">
-                            <Layers size={16} className="text-blue-500" /> Tabela de Ações (Ledger)
-                        </h3>
-                        <div className="flex gap-4 items-center">
-                            {/* Filtro de Área */}
-                            <div className="flex items-center gap-2">
-                                <MapPin size={16} className="text-slate-400" />
-                                <select 
-                                    value={filterArea}
-                                    onChange={(e) => setFilterArea(e.target.value)}
-                                    className="text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded py-1 px-3 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                                >
-                                    <option value="Todas">Todas as Áreas</option>
-                                    {initialAreas.map(a => (
-                                        <option key={a.id} value={a.id}>{a.nome_area}</option>
-                                    ))}
-                                </select>
+                    <div className="p-4 border-b border-slate-100 bg-slate-50">
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="font-bold text-slate-700 text-sm uppercase tracking-wider flex items-center gap-2">
+                                <Layers size={16} className="text-blue-500" /> Tabela de Ações (Ledger)
+                            </h3>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-3">
+                            <div className="xl:col-span-2">
+                                <input 
+                                    type="text" 
+                                    placeholder="Pesquisar título ou descrição..." 
+                                    value={searchDesc}
+                                    onChange={e => setSearchDesc(e.target.value)}
+                                    className="w-full text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded py-1.5 px-3 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                />
                             </div>
-                            {/* Filtro de Módulo */}
-                            <div className="flex items-center gap-2 border-l border-slate-200 pl-4">
-                                <Filter size={16} className="text-slate-400" />
-                                <select 
-                                    value={filterModule}
-                                    onChange={(e) => setFilterModule(e.target.value)}
-                                    className="text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded py-1 px-3 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                                >
-                                    <option value="Todos">Todos os Módulos</option>
-                                    <option value="Qualidade">Qualidade (A3/RNC)</option>
-                                    <option value="Lean/Kaizen">Lean & Kaizen</option>
-                                    <option value="HST">Saúde e Segurança (HST)</option>
-                                    <option value="Geral">Central de Eficiência</option>
-                                </select>
+                            <select 
+                                value={filterArea}
+                                onChange={(e) => setFilterArea(e.target.value)}
+                                className="w-full text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded py-1.5 px-3 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            >
+                                <option value="Todas">Todas as Áreas</option>
+                                {initialAreas.map(a => <option key={a.id} value={a.id}>{a.nome_area}</option>)}
+                            </select>
+                            <select 
+                                value={filterModule}
+                                onChange={(e) => setFilterModule(e.target.value)}
+                                className="w-full text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded py-1.5 px-3 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            >
+                                <option value="Todos">Todos os Módulos</option>
+                                <option value="Qualidade">Qualidade (A3/RNC)</option>
+                                <option value="Lean/Kaizen">Lean & Kaizen</option>
+                                <option value="HST">Saúde e Segurança (HST)</option>
+                                <option value="Geral">Central de Eficiência</option>
+                            </select>
+                            <select 
+                                value={filterCategoria}
+                                onChange={(e) => setFilterCategoria(e.target.value)}
+                                className="w-full text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded py-1.5 px-3 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            >
+                                <option value="Todas">Todas as Categorias</option>
+                                {categorias.map(c => <option key={c} value={c}>{c}</option>)}
+                            </select>
+                            <select 
+                                value={filterStatus}
+                                onChange={(e) => setFilterStatus(e.target.value)}
+                                className="w-full text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded py-1.5 px-3 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            >
+                                <option value="Todos">Todos os Estados</option>
+                                <option value="Aberto">Aberto / To Do</option>
+                                <option value="Em Investigacao">Em Investigação</option>
+                                <option value="Validacao">Validação</option>
+                                <option value="Concluido">Concluído / Done</option>
+                                <option value="Cancelado">Cancelado</option>
+                            </select>
+                            <div className="flex gap-1 xl:col-span-1">
+                                <input 
+                                    type="date" 
+                                    value={filterDateFrom}
+                                    onChange={e => setFilterDateFrom(e.target.value)}
+                                    title="Data Limite De"
+                                    className="w-1/2 text-xs font-semibold text-slate-700 bg-white border border-slate-300 rounded py-1.5 px-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                />
+                                <input 
+                                    type="date" 
+                                    value={filterDateTo}
+                                    onChange={e => setFilterDateTo(e.target.value)}
+                                    title="Data Limite Até"
+                                    className="w-1/2 text-xs font-semibold text-slate-700 bg-white border border-slate-300 rounded py-1.5 px-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                />
                             </div>
                         </div>
                     </div>
@@ -281,14 +389,29 @@ ${filteredActions.slice(0, 10).map(a => `- [${a.modulo_origem}] [Área: ${a.nome
                                     const isIneficaz = action.status_eficacia === 'Ineficaz';
 
                                     return (
-                                        <tr key={action.id} className={`hover:bg-blue-50/50 transition-colors group ${isOverdue ? 'bg-rose-50' : ''}`}>
+                                        <tr 
+                                            key={action.id} 
+                                            onClick={() => {
+                                                if (action.modulo_origem === 'Geral') {
+                                                    setEditingAction(action);
+                                                    setEditModalOpen(true);
+                                                } else {
+                                                    alert(`Esta ação pertence ao módulo ${action.modulo_origem}. Por favor edite-a no respetivo módulo.`);
+                                                }
+                                            }}
+                                            className={`hover:bg-blue-50/50 transition-colors group cursor-pointer ${isOverdue ? 'bg-rose-50' : ''}`}
+                                            title={action.modulo_origem === 'Geral' ? "Clique para editar esta ação global" : `Gerido via ${action.modulo_origem}`}
+                                        >
                                             <td className="px-4 py-3 max-w-[300px]">
                                                 <div className="font-bold text-slate-800 truncate">{action.titulo}</div>
                                                 <div className="text-xs text-slate-500 truncate mt-1" title={action.descricao}>{action.descricao}</div>
                                                 {isIneficaz && (
                                                     <div className="mt-3">
                                                         <button 
-                                                            onClick={() => handlePivotStrategy(action.id, action.descricao)}
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handlePivotStrategy(action.id, action.descricao);
+                                                            }}
                                                             className="text-[10px] font-bold uppercase bg-amber-100 text-amber-700 border border-amber-200 px-3 py-1.5 rounded-md hover:bg-amber-200 transition-all flex items-center gap-1.5 shadow-sm"
                                                         >
                                                             {isPivoting === action.id ? <RefreshCw size={12} className="animate-spin"/> : <Sparkles size={12}/>}
@@ -342,6 +465,65 @@ ${filteredActions.slice(0, 10).map(a => `- [${a.modulo_origem}] [Área: ${a.nome
                     </div>
                 </div>
             )}
+
+            {/* TAB: KPIS GERENCIAIS */}
+            {activeTab === 'KPIS' && (
+                <div className="space-y-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <Card className="bg-white border border-slate-200 shadow-sm">
+                            <CardContent className="p-6">
+                                <h3 className="font-bold text-slate-700 text-sm uppercase tracking-wider mb-6 flex items-center gap-2">
+                                    <Activity size={16} className="text-blue-500" /> Tendência por Área (Saúde)
+                                </h3>
+                                <div className="h-80">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <BarChart data={areaTrendData}>
+                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                                            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#64748b'}} />
+                                            <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#64748b'}} />
+                                            <Tooltip contentStyle={{borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '12px'}} />
+                                            <Legend wrapperStyle={{fontSize: '12px'}} />
+                                            <Bar dataKey="Em Curso" stackId="a" fill="#3b82f6" radius={[0, 0, 4, 4]} />
+                                            <Bar dataKey="Atrasado" stackId="a" fill="#f43f5e" />
+                                            <Bar dataKey="Resolvido" stackId="a" fill="#10b981" radius={[4, 4, 0, 0]} />
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        <Card className="bg-white border border-slate-200 shadow-sm">
+                            <CardContent className="p-6">
+                                <h3 className="font-bold text-slate-700 text-sm uppercase tracking-wider mb-6 flex items-center gap-2">
+                                    <Layers size={16} className="text-emerald-500" /> Distribuição de Esforço por Categoria
+                                </h3>
+                                <div className="h-80">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <PieChart>
+                                            <Pie
+                                                data={categoryData}
+                                                cx="50%"
+                                                cy="50%"
+                                                innerRadius={80}
+                                                outerRadius={110}
+                                                paddingAngle={5}
+                                                dataKey="value"
+                                            >
+                                                {categoryData.map((entry, index) => (
+                                                    <Cell key={`cell-${index}`} fill={entry.color} />
+                                                ))}
+                                            </Pie>
+                                            <Tooltip contentStyle={{borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '12px'}} />
+                                            <Legend wrapperStyle={{fontSize: '12px'}} />
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
+                </div>
+            )}
+
 
             {/* TAB: ENTRADA I.A. (COGNITIVE INBOX) */}
             {activeTab === 'COGNITIVE_INBOX' && (
@@ -604,6 +786,111 @@ ${filteredActions.slice(0, 10).map(a => `- [${a.modulo_origem}] [Área: ${a.nome
                         >
                             <Send size={16} /> Enviar
                         </button>
+                    </div>
+                </div>
+            )}
+
+            {/* EDIT MODAL */}
+            {editModalOpen && editingAction && (
+                <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl flex flex-col overflow-hidden animate-in zoom-in-95">
+                        <div className="p-4 bg-blue-600 text-white flex justify-between items-center">
+                            <h3 className="font-bold uppercase tracking-wider flex items-center gap-2">
+                                <FilePlus size={18} /> Editar Ação Central
+                            </h3>
+                            <button onClick={() => setEditModalOpen(false)} className="text-blue-100 hover:text-white">
+                                <XCircle size={20} />
+                            </button>
+                        </div>
+                        <div className="p-6 space-y-4 flex-1 overflow-y-auto">
+                            <div>
+                                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Título</label>
+                                <input 
+                                    type="text" 
+                                    value={editingAction.titulo || ''}
+                                    onChange={e => setEditingAction({...editingAction, titulo: e.target.value})}
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm text-slate-800 focus:border-blue-500 outline-none"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Descrição</label>
+                                <textarea 
+                                    value={editingAction.descricao || ''}
+                                    onChange={e => setEditingAction({...editingAction, descricao: e.target.value})}
+                                    rows={4}
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm text-slate-800 focus:border-blue-500 outline-none resize-none"
+                                />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Área</label>
+                                    <select 
+                                        value={editingAction.area_id || 'none'}
+                                        onChange={e => setEditingAction({...editingAction, area_id: e.target.value})}
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm text-slate-800 focus:border-blue-500 outline-none"
+                                    >
+                                        <option value="none">Sem Área Atribuída</option>
+                                        {initialAreas.map(a => <option key={a.id} value={a.id}>{a.nome_area}</option>)}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Responsável</label>
+                                    <input 
+                                        type="text" 
+                                        value={editingAction.responsavel_nome || ''}
+                                        onChange={e => setEditingAction({...editingAction, responsavel_nome: e.target.value})}
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm text-slate-800 focus:border-blue-500 outline-none"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Categoria</label>
+                                    <select 
+                                        value={editingAction.categoria || ''}
+                                        onChange={e => setEditingAction({...editingAction, categoria: e.target.value})}
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm text-slate-800 focus:border-blue-500 outline-none"
+                                    >
+                                        {categorias.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Estado</label>
+                                    <select 
+                                        value={editingAction.status || 'Aberto'}
+                                        onChange={e => setEditingAction({...editingAction, status: e.target.value})}
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm text-slate-800 focus:border-blue-500 outline-none"
+                                    >
+                                        <option value="Aberto">Aberto</option>
+                                        <option value="Em Investigacao">Em Investigação</option>
+                                        <option value="Validacao">Validação</option>
+                                        <option value="Concluido">Concluído</option>
+                                    </select>
+                                </div>
+                                <div className="col-span-2">
+                                    <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Data Limite</label>
+                                    <input 
+                                        type="date" 
+                                        value={editingAction.data_limite ? new Date(editingAction.data_limite).toISOString().split('T')[0] : ''}
+                                        onChange={e => setEditingAction({...editingAction, data_limite: e.target.value ? new Date(e.target.value).toISOString() : null})}
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm text-slate-800 focus:border-blue-500 outline-none"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                        <div className="p-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-2">
+                            <button 
+                                onClick={() => setEditModalOpen(false)}
+                                className="px-4 py-2 text-sm font-bold text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-100"
+                            >
+                                Cancelar
+                            </button>
+                            <button 
+                                onClick={handleSaveEdit}
+                                disabled={isSavingEdit}
+                                className="px-4 py-2 text-sm font-bold text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                            >
+                                {isSavingEdit ? 'A gravar...' : 'Gravar Alterações'}
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
