@@ -56,7 +56,7 @@ export default function SmartActionHubClient({ initialActions, initialCategorias
     const today = new Date();
     
     // Aplicar Filtros (Módulo e Área e Novos Filtros)
-    let filteredActions = initialActions;
+    let filteredActions = [...initialActions];
     if (filterModule !== 'Todos') filteredActions = filteredActions.filter(a => a.modulo_origem === filterModule);
     if (filterArea !== 'Todas') filteredActions = filteredActions.filter(a => a.area_id === filterArea);
     if (filterCategoria !== 'Todas') filteredActions = filteredActions.filter(a => a.categoria === filterCategoria);
@@ -397,13 +397,13 @@ ${filteredActions.slice(0, 10).map(a => `- [${a.modulo_origem}] [Área: ${a.nome
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
-                                {filteredActions.map(action => {
-                                    const isOverdue = !['Concluido', 'Done'].includes(action.status) && action.data_limite && new Date(action.data_limite) < today;
+                                {filteredActions.map((action, idx) => {
+                                    const isOverdue = !['Concluido', 'Concluído', 'Done', 'Encerrado'].includes(action.status) && action.data_limite && new Date(action.data_limite) < today;
                                     const isIneficaz = action.status_eficacia === 'Ineficaz';
 
                                     return (
                                         <tr 
-                                            key={action.id} 
+                                            key={`${action.id}-${idx}`} 
                                             onClick={() => {
                                                 if (action.modulo_origem === 'Geral') {
                                                     setEditingAction(action);
