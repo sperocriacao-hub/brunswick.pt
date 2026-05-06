@@ -8,13 +8,15 @@ import { Badge } from '@/components/ui/badge';
 import { useRouter } from 'next/navigation';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, PieChart, Pie, Cell, ComposedChart, Line, AreaChart, Area } from 'recharts';
 
-export default function SmartActionHubClient({ initialActions, initialCategorias, initialAreas }: { initialActions: any[], initialCategorias: string[], initialAreas: any[] }) {
+export default function SmartActionHubClient({ initialActions, initialCategorias, initialAreas, initialLinhas }: { initialActions: any[], initialCategorias: string[], initialAreas: any[], initialLinhas: any[] }) {
     const router = useRouter();
     
     // UI State
     const [activeTab, setActiveTab] = useState<'KANBAN' | 'COGNITIVE_INBOX' | 'MANUAL_FORM' | 'WAR_ROOM' | 'KPIS'>('KANBAN');
-    const [filterModule, setFilterModule] = useState('Todos');
-    const [filterArea, setFilterArea] = useState('Todas');
+    const [filterModule, setFilterModule] = useState<string>('Todos');
+    const [filterArea, setFilterArea] = useState<string>('Todas');
+    const [filterLinha, setFilterLinha] = useState<string>('Todas');
+    const [filterCategoria, setFilterCategoria] = useState<string>('Todas');
 
     // Categorias Dinâmicas
     const [categorias, setCategorias] = useState<string[]>(initialCategorias || []);
@@ -23,7 +25,6 @@ export default function SmartActionHubClient({ initialActions, initialCategorias
 
     // List Filters
     const [searchDesc, setSearchDesc] = useState('');
-    const [filterCategoria, setFilterCategoria] = useState('Todas');
     const [filterStatus, setFilterStatus] = useState('Todos');
     const [filterDateFrom, setFilterDateFrom] = useState('');
     const [filterDateTo, setFilterDateTo] = useState('');
@@ -39,7 +40,7 @@ export default function SmartActionHubClient({ initialActions, initialCategorias
     const [suggestedActions, setSuggestedActions] = useState<any[]>([]);
     
     // Manual Form State
-    const [manualForm, setManualForm] = useState({ titulo: '', descricao: '', responsavel_nome: '', categoria: categorias[0] || 'Outro', area_id: '' });
+    const [manualForm, setManualForm] = useState({ titulo: '', descricao: '', responsavel_nome: '', categoria: initialCategorias[0] || 'Outro', area_id: '', linha_id: '' });
     const [aiFeedback, setAiFeedback] = useState<{nota: number, feedback_curto: string, sugestao_melhoria: string} | null>(null);
     const [isEvaluating, setIsEvaluating] = useState(false);
 
@@ -59,6 +60,7 @@ export default function SmartActionHubClient({ initialActions, initialCategorias
     let filteredActions = [...initialActions];
     if (filterModule !== 'Todos') filteredActions = filteredActions.filter(a => a.modulo_origem === filterModule);
     if (filterArea !== 'Todas') filteredActions = filteredActions.filter(a => a.area_id === filterArea);
+    if (filterLinha !== 'Todas') filteredActions = filteredActions.filter(a => a.linha_id === filterLinha);
     if (filterCategoria !== 'Todas') filteredActions = filteredActions.filter(a => a.categoria === filterCategoria);
     if (filterStatus !== 'Todos') {
         filteredActions = filteredActions.filter(a => {
@@ -112,12 +114,9 @@ export default function SmartActionHubClient({ initialActions, initialCategorias
         timelineMap[dateStr].Criadas++;
         
         if (['Concluido', 'Concluído', 'Done', 'Encerrado'].includes(a.status)) {
-            // Se tiver status data_conclusao usaríamos, mas como não temos, usamos fallback pra data limite ou assume que fechou depois
-            // Para simplificar a timeline, vamos colocar como "resolvidas naquele dia de criacao" ou criar um map melhor
             timelineMap[dateStr].Resolvidas++; 
         }
     });
-    // For a real burn-down we would use actual resolution dates. Here we approximate by created_at cohort.
     const timelineData = Object.values(timelineMap).sort((a, b) => a.name.localeCompare(b.name));
 
     // 2. Pareto Analysis (Category)
@@ -152,7 +151,6 @@ export default function SmartActionHubClient({ initialActions, initialCategorias
         return { name: area.nome_area, "Em Curso": inProgress, "Resolvido": resolved, "Atrasado": delayed, totalAbertas: inProgress + delayed };
     }).filter(d => d["Em Curso"] > 0 || d["Resolvido"] > 0 || d["Atrasado"] > 0);
     
-    // Sort Area Matrix by most open tasks
     areaTrendData.sort((a, b) => b.totalAbertas - a.totalAbertas);
     const worstArea = areaTrendData.length > 0 ? areaTrendData[0] : null;
 
@@ -160,8 +158,6 @@ export default function SmartActionHubClient({ initialActions, initialCategorias
     const closedActions = initialActions.filter(a => ['Concluido', 'Concluído', 'Done', 'Encerrado'].includes(a.status));
     let onTimeCount = 0;
     closedActions.forEach(a => {
-        // Simple heuristic: if it had a limit and was closed, we assume it met the limit.
-        // A true MTTR needs an actual closed_at timestamp. We estimate based on limit existing.
         if (a.data_limite && new Date(a.created_at) <= new Date(a.data_limite)) {
             onTimeCount++;
         }
@@ -169,7 +165,7 @@ export default function SmartActionHubClient({ initialActions, initialCategorias
     const onTimeRate = closedActions.length > 0 ? Math.round((onTimeCount / closedActions.length) * 100) : 100;
     
     const recentCreated = initialActions.filter(a => new Date(a.created_at) >= ninetyDaysAgo).length;
-    const recentClosed = closedActions.filter(a => new Date(a.created_at) >= ninetyDaysAgo).length; // Cohort based
+    const recentClosed = closedActions.filter(a => new Date(a.created_at) >= ninetyDaysAgo).length; 
     const backlogRatio = recentClosed > 0 ? (recentCreated / recentClosed).toFixed(1) : (recentCreated > 0 ? "Crítico" : "1.0");
 
     // Handlers
@@ -187,7 +183,7 @@ export default function SmartActionHubClient({ initialActions, initialCategorias
     const handleGenerateAi = async () => {
         if (!rawText.trim()) return;
         setIsAiProcessing(true);
-        const res = await processarTextoIA(rawText, initialAreas);
+        const res = await processarTextoIA(rawText, initialAreas, initialLinhas);
         if (res.success && res.data) {
             setSuggestedActions(res.data);
             setRawText('');
@@ -204,6 +200,7 @@ export default function SmartActionHubClient({ initialActions, initialCategorias
             categoria: action.categoria,
             responsavel_nome: action.responsavel_nome,
             area_id: action.area_id || null,
+            linha_id: action.linha_id || null,
             data_limite: action.data_limite || null,
             origem_ia: true
         };
@@ -228,11 +225,12 @@ export default function SmartActionHubClient({ initialActions, initialCategorias
         const payload = { 
             ...manualForm, 
             area_id: manualForm.area_id === '' ? null : manualForm.area_id,
+            linha_id: manualForm.linha_id === '' ? null : manualForm.linha_id,
             origem_ia: false 
         };
         const res = await submitNovaAcao(payload);
         if (res.success) {
-            setManualForm({ titulo: '', descricao: '', responsavel_nome: '', categoria: categorias[0] || 'Outro', area_id: '' });
+            setManualForm({ titulo: '', descricao: '', responsavel_nome: '', categoria: categorias[0] || 'Outro', area_id: '', linha_id: '' });
             setAiFeedback(null);
             setActiveTab('KANBAN');
             router.refresh();
@@ -283,6 +281,7 @@ ${filteredActions.slice(0, 10).map(a => `- [${a.modulo_origem}] [Área: ${a.nome
             categoria: editingAction.categoria,
             status: editingAction.status,
             area_id: editingAction.area_id === 'none' ? null : editingAction.area_id,
+            linha_id: editingAction.linha_id === 'none' ? null : editingAction.linha_id,
             data_limite: editingAction.data_limite || null,
             responsavel_nome: editingAction.responsavel_nome || null,
             status_eficacia: editingAction.status_eficacia || 'Pendente'
@@ -301,7 +300,6 @@ ${filteredActions.slice(0, 10).map(a => `- [${a.modulo_origem}] [Área: ${a.nome
     return (
         <div className="p-6 md:p-8 max-w-[1600px] mx-auto animate-in fade-in duration-500 bg-slate-50 min-h-screen text-slate-800 font-sans">
             
-            {/* CABEÇALHO PADRÃO */}
             <header className="mb-6 border-b border-slate-200 pb-6 flex flex-col md:flex-row justify-between items-start md:items-end gap-4 relative">
                 <div>
                     <h1 className="text-4xl font-extrabold flex items-center gap-3 text-blue-900 tracking-tight">
@@ -322,7 +320,6 @@ ${filteredActions.slice(0, 10).map(a => `- [${a.modulo_origem}] [Área: ${a.nome
                 </div>
             </header>
 
-            {/* KPIs */}
             {activeTab === 'KANBAN' && (
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                     <Card className="bg-white border border-slate-200 shadow-sm overflow-hidden relative">
@@ -364,7 +361,6 @@ ${filteredActions.slice(0, 10).map(a => `- [${a.modulo_origem}] [Área: ${a.nome
                 </div>
             )}
 
-            {/* TAB: LISTA GLOBAL */}
             {activeTab === 'KANBAN' && (
                 <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                     <div className="p-4 border-b border-slate-100 bg-slate-50">
@@ -390,6 +386,14 @@ ${filteredActions.slice(0, 10).map(a => `- [${a.modulo_origem}] [Área: ${a.nome
                             >
                                 <option value="Todas">Todas as Áreas</option>
                                 {initialAreas.map(a => <option key={a.id} value={a.id}>{a.nome_area}</option>)}
+                            </select>
+                            <select 
+                                value={filterLinha} 
+                                onChange={e => setFilterLinha(e.target.value)}
+                                className="w-full text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded py-1.5 px-3 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            >
+                                <option value="Todas">Todas as Linhas</option>
+                                {initialLinhas.map(l => <option key={l.id} value={l.id}>Linha {l.letra_linha}</option>)}
                             </select>
                             <select 
                                 value={filterModule}
@@ -422,22 +426,6 @@ ${filteredActions.slice(0, 10).map(a => `- [${a.modulo_origem}] [Área: ${a.nome
                                 <option value="Concluido">Concluído / Done</option>
                                 <option value="Cancelado">Cancelado</option>
                             </select>
-                            <div className="flex gap-1 xl:col-span-1">
-                                <input 
-                                    type="date" 
-                                    value={filterDateFrom}
-                                    onChange={e => setFilterDateFrom(e.target.value)}
-                                    title="Data Limite De"
-                                    className="w-1/2 text-xs font-semibold text-slate-700 bg-white border border-slate-300 rounded py-1.5 px-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                                />
-                                <input 
-                                    type="date" 
-                                    value={filterDateTo}
-                                    onChange={e => setFilterDateTo(e.target.value)}
-                                    title="Data Limite Até"
-                                    className="w-1/2 text-xs font-semibold text-slate-700 bg-white border border-slate-300 rounded py-1.5 px-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                                />
-                            </div>
                         </div>
                     </div>
 
@@ -446,7 +434,8 @@ ${filteredActions.slice(0, 10).map(a => `- [${a.modulo_origem}] [Área: ${a.nome
                             <thead className="bg-slate-100 text-xs font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200">
                                 <tr>
                                     <th className="px-4 py-3">Tarefa / Descrição</th>
-                                    <th className="px-4 py-3 w-40">Área</th>
+                                    <th className="px-4 py-3 w-32">Área</th>
+                                    <th className="px-4 py-3 w-16">Linha</th>
                                     <th className="px-4 py-3 w-32">Origem</th>
                                     <th className="px-4 py-3 w-32">Responsável</th>
                                     <th className="px-4 py-3 w-32">Abertura</th>
@@ -504,6 +493,9 @@ ${filteredActions.slice(0, 10).map(a => `- [${a.modulo_origem}] [Área: ${a.nome
                                                     </span>
                                                 ) : <span className="text-xs text-slate-400">--</span>}
                                             </td>
+                                            <td className="px-4 py-3 font-bold text-slate-600 text-xs">
+                                                {action.nome_linha ? `L-${action.nome_linha}` : <span className="text-slate-300">-</span>}
+                                            </td>
                                             <td className="px-4 py-3">
                                                 <Badge className="bg-slate-100 text-slate-600 border-slate-200 uppercase text-[9px] font-bold">{action.modulo_origem}</Badge>
                                             </td>
@@ -538,10 +530,8 @@ ${filteredActions.slice(0, 10).map(a => `- [${a.modulo_origem}] [Área: ${a.nome
                 </div>
             )}
 
-            {/* TAB: KPIS GERENCIAIS (WCM) */}
             {activeTab === 'KPIS' && (
                 <div className="space-y-6 animate-in fade-in duration-500">
-                    {/* Top Level Insight Cards */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <Card className="bg-gradient-to-br from-blue-50 to-white border border-blue-100 shadow-sm relative overflow-hidden">
                             <div className="absolute right-0 top-0 w-16 h-16 bg-blue-100 rounded-bl-full opacity-50"></div>
@@ -583,7 +573,6 @@ ${filteredActions.slice(0, 10).map(a => `- [${a.modulo_origem}] [Área: ${a.nome
                     </div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        {/* Pareto Chart */}
                         <Card className="bg-white border border-slate-200 shadow-sm">
                             <CardHeader className="p-5 border-b border-slate-100 bg-slate-50/50">
                                 <CardTitle className="font-bold text-slate-700 text-sm uppercase tracking-wider flex items-center gap-2">
@@ -608,7 +597,6 @@ ${filteredActions.slice(0, 10).map(a => `- [${a.modulo_origem}] [Área: ${a.nome
                             </CardContent>
                         </Card>
 
-                        {/* Timeline Flow Chart */}
                         <Card className="bg-white border border-slate-200 shadow-sm">
                             <CardHeader className="p-5 border-b border-slate-100 bg-slate-50/50">
                                 <CardTitle className="font-bold text-slate-700 text-sm uppercase tracking-wider flex items-center gap-2">
@@ -642,7 +630,6 @@ ${filteredActions.slice(0, 10).map(a => `- [${a.modulo_origem}] [Área: ${a.nome
                             </CardContent>
                         </Card>
 
-                        {/* Matriz de Carga por Área (Horizontal Bar) */}
                         <Card className="bg-white border border-slate-200 shadow-sm lg:col-span-2">
                             <CardHeader className="p-5 border-b border-slate-100 bg-slate-50/50">
                                 <CardTitle className="font-bold text-slate-700 text-sm uppercase tracking-wider flex items-center gap-2">
@@ -670,8 +657,6 @@ ${filteredActions.slice(0, 10).map(a => `- [${a.modulo_origem}] [Área: ${a.nome
                 </div>
             )}
 
-
-            {/* TAB: ENTRADA I.A. (COGNITIVE INBOX) */}
             {activeTab === 'COGNITIVE_INBOX' && (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <div className="bg-white border border-blue-100 shadow-sm rounded-xl p-6 relative overflow-hidden">
@@ -731,7 +716,6 @@ ${filteredActions.slice(0, 10).map(a => `- [${a.modulo_origem}] [Área: ${a.nome
                 </div>
             )}
 
-            {/* TAB: CRIAR AÇÃO MANUAL (COPILOT) */}
             {activeTab === 'MANUAL_FORM' && (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <div className="bg-white border border-slate-200 shadow-sm rounded-xl p-6">
@@ -771,16 +755,38 @@ ${filteredActions.slice(0, 10).map(a => `- [${a.modulo_origem}] [Área: ${a.nome
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Área (Destino)</label>
+                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Área da Fábrica</label>
                                     <select 
                                         value={manualForm.area_id}
-                                        onChange={e => setManualForm({...manualForm, area_id: e.target.value})}
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm text-slate-800 focus:border-blue-500 outline-none"
+                                        onChange={e => {
+                                            const areaId = e.target.value;
+                                            setManualForm({...manualForm, area_id: areaId, linha_id: ''}); 
+                                        }}
+                                        className="w-full bg-white border border-slate-200 rounded-lg p-3 text-sm focus:border-blue-500 outline-none shadow-sm"
                                     >
-                                        <option value="">Sem Área Fixa</option>
+                                        <option value="">-- Opcional --</option>
                                         {initialAreas.map(a => <option key={a.id} value={a.id}>{a.nome_area}</option>)}
                                     </select>
                                 </div>
+                                {(() => {
+                                    const areaNome = initialAreas.find(a => a.id === manualForm.area_id)?.nome_area || '';
+                                    if (areaNome.toLowerCase().includes('montagem')) {
+                                        return (
+                                            <div>
+                                                <label className="block text-xs font-bold text-amber-600 uppercase mb-1">Linha (Montagem)</label>
+                                                <select 
+                                                    value={manualForm.linha_id}
+                                                    onChange={e => setManualForm({...manualForm, linha_id: e.target.value})}
+                                                    className="w-full bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm focus:border-amber-500 outline-none shadow-sm"
+                                                >
+                                                    <option value="">-- Selecione --</option>
+                                                    {initialLinhas.map(l => <option key={l.id} value={l.id}>Linha {l.letra_linha}</option>)}
+                                                </select>
+                                            </div>
+                                        );
+                                    }
+                                    return null;
+                                })()}
                                 <div>
                                     <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Categoria Dinâmica</label>
                                     <div className="flex gap-2">
@@ -972,13 +978,35 @@ ${filteredActions.slice(0, 10).map(a => `- [${a.modulo_origem}] [Área: ${a.nome
                                     <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Área</label>
                                     <select 
                                         value={editingAction.area_id || 'none'}
-                                        onChange={e => setEditingAction({...editingAction, area_id: e.target.value})}
+                                        onChange={e => {
+                                            const areaId = e.target.value;
+                                            setEditingAction({...editingAction, area_id: areaId, linha_id: 'none'});
+                                        }}
                                         className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm text-slate-800 focus:border-blue-500 outline-none"
                                     >
                                         <option value="none">Sem Área Atribuída</option>
                                         {initialAreas.map(a => <option key={a.id} value={a.id}>{a.nome_area}</option>)}
                                     </select>
                                 </div>
+                                {(() => {
+                                    const areaNomeEdit = initialAreas.find(a => a.id === editingAction.area_id)?.nome_area || '';
+                                    if (areaNomeEdit.toLowerCase().includes('montagem')) {
+                                        return (
+                                            <div>
+                                                <label className="block text-[10px] font-bold text-amber-600 uppercase mb-1">Linha de Prod.</label>
+                                                <select 
+                                                    value={editingAction.linha_id || 'none'}
+                                                    onChange={e => setEditingAction({...editingAction, linha_id: e.target.value})}
+                                                    className="w-full bg-amber-50 border border-amber-200 rounded-lg p-2.5 text-sm text-amber-800 focus:border-amber-500 outline-none"
+                                                >
+                                                    <option value="none">-- Selecione --</option>
+                                                    {initialLinhas.map(l => <option key={l.id} value={l.id}>Linha {l.letra_linha}</option>)}
+                                                </select>
+                                            </div>
+                                        );
+                                    }
+                                    return null;
+                                })()}
                                 <div>
                                     <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Responsável</label>
                                     <input 

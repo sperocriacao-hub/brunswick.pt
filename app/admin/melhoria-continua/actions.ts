@@ -65,7 +65,7 @@ export async function updateAcaoGlobal(id: string, payload: any) {
     }
 }
 
-export async function processarTextoIA(texto: string, areasFabrica: any[] = []) {
+export async function processarTextoIA(texto: string, areasFabrica: any[] = [], linhasProducao: any[] = []) {
     if (!process.env.GEMINI_API_KEY) {
         return { success: false, error: "A chave GEMINI_API_KEY não está configurada no servidor." };
     }
@@ -74,6 +74,7 @@ export async function processarTextoIA(texto: string, areasFabrica: any[] = []) 
         const model = await getValidModel();
 
         const areasList = areasFabrica.map(a => `- ID: ${a.id} | Nome: ${a.nome_area}`).join('\n');
+        const linhasList = linhasProducao.map(l => `- ID: ${l.id} | Linha: ${l.letra_linha}`).join('\n');
 
         const prompt = `
 És um experiente Gestor de Melhoria Contínua Industrial.
@@ -91,11 +92,15 @@ Cada objeto deve ter:
 - categoria (deve ser exatamente um destes: 'Eficiencia', 'Entregas', 'Scraps', 'Andons', 'Gargalos', 'Consumiveis', 'Material Variance', 'Produtividade', 'Formacoes', 'Outro')
 - responsavel_nome (string ou null)
 - area_id (string com o ID da área, ou null se não for possível deduzir. Usa APENAS os IDs da lista abaixo)
-- data_limite (string no formato YYYY-MM-DD se mencionarem datas ou prazos, ou null)
+- linha_id (string com o ID da Linha de Produção, ou null. Apenas aplicável se a área for relacionada com "Montagem" e se o texto mencionar letras de linha como "Linha A", "Linha B")
+- data_limite (MUITO IMPORTANTE: string no formato exato "YYYY-MM-DD" se o texto mencionar datas, prazos como "até dia X", "amanhã", "na próxima sexta", ou null apenas se for impossível deduzir uma data limite. Força a extração de data limite sempre que possível, o utilizador queixa-se que tu ignoras prazos claros.)
 - sugestao_conclusao (string, a tua ideia brilhante baseada em WCM ou TPM para como resolver isto de forma permanente)
 
 Áreas da Fábrica disponíveis:
 ${areasList || 'Sem áreas definidas.'}
+
+Linhas de Produção disponíveis (Para Montagem):
+${linhasList || 'Sem linhas definidas.'}
 
 Exemplo de output:
 [
@@ -105,6 +110,7 @@ Exemplo de output:
     "categoria": "Scraps",
     "responsavel_nome": "João Manutenção",
     "area_id": "uuid-da-area",
+    "linha_id": "uuid-da-linha",
     "data_limite": "2026-05-10",
     "sugestao_conclusao": "Implementar plano de manutenção autónoma na lâmina e sensor."
   }

@@ -29,12 +29,19 @@ export default async function MelhoriaContinuaPage() {
         .select('id, nome_area')
         .order('ordem_sequencial');
 
+    // 4. Fetch Production Lines
+    const { data: linhasData } = await supabase
+        .from('linhas_producao')
+        .select('id, letra_linha')
+        .order('letra_linha');
+
     return (
         <div className="bg-slate-50 min-h-screen">
             <SmartActionHubClient
                 initialActions={actionsMaster || []}
                 initialCategorias={categorias}
                 initialAreas={areasData || []}
+                initialLinhas={linhasData || []}
             />
         </div>
     );
