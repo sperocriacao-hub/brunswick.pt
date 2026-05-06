@@ -102,6 +102,9 @@ export async function iniciarInvestigacaoHST(ocorrenciaId: string, tipoOcorrenci
                     status: 'Aberto'
                 }]);
             if (errAcao) throw errAcao;
+        } else {
+            // Se já existia (possivelmente preso com o status antigo 'To Do'), forçamos para 'Aberto'
+            await supabase.from('hst_acoes').update({ status: 'Aberto' }).eq('id', extAcao.id);
         }
 
         return { success: true };
