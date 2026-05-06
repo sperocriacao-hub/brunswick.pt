@@ -683,7 +683,7 @@ export function Sidebar({
                   </>
                 )}
 
-                {(hasAccess("/admin/hst/ocorrencias") || hasAccess("/admin/hst/epis") || hasAccess("/admin/hst/certificacoes") || hasAccess("/admin/hst/auditorias") || hasAccess("/admin/hst/dashboard") || hasAccess("/admin/hst/8d/historico") || hasAccess("/admin/hst/acoes")) && (
+                {(hasAccess("/admin/hst/ocorrencias") || hasAccess("/admin/hst/epis") || hasAccess("/admin/hst/certificacoes") || hasAccess("/admin/hst/auditorias") || hasAccess("/admin/hst/dashboard") || hasAccess("/admin/hst/acoes")) && (
                   <>
                     <p className="px-3 text-[10px] font-extrabold text-[#f43f5e] uppercase tracking-widest mb-2">
                       Saúde, Seg e Ambiente
@@ -739,16 +739,7 @@ export function Sidebar({
                           <span className="text-sm border-transparent">Cruz de Segurança</span>
                         </Link>
                       )}
-                      {hasAccess("/admin/hst/8d/historico") && (
-                        <Link
-                          onClick={() => setIsOpen(false)}
-                          href="/admin/hst/8d/historico"
-                          className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes("/admin/hst/8d") ? "bg-rose-600 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
-                        >
-                          <History size={18} className={pathname.includes("/admin/hst/8d") ? "text-white" : "text-rose-400"} />
-                          <span className="text-sm border-transparent">Investigações 8D</span>
-                        </Link>
-                      )}
+
                       {hasAccess("/admin/hst/acoes") && (
                         <Link
                           onClick={() => setIsOpen(false)}
