@@ -99,7 +99,7 @@ export async function iniciarInvestigacaoHST(ocorrenciaId: string, tipoOcorrenci
                     relatorio_8d_id: relatorioId,
                     descricao_acao: tituloAcao,
                     prioridade: 'Alta',
-                    status: 'To Do'
+                    status: 'Aberto'
                 }]);
             if (errAcao) throw errAcao;
         }

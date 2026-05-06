@@ -123,7 +123,7 @@ export async function submeterAuditoria(payload: {
                 return {
                     titulo: `Melhoria Pós-Auditoria: ${textTopico}`,
                     descricao: `Ação gerada automaticamente por falha na Auditoria HST.\n\nObservação do Auditor:\n${r.observacao}`,
-                    status: 'To Do',
+                    status: 'Aberto',
                     prioridade: 'Alta', // Default high priority for failed safety audits
                     responsavel_id: payload.auditor_id, // Default assign to auditor to distribute later
                     area_id: payload.area_id
