@@ -284,7 +284,8 @@ ${filteredActions.slice(0, 10).map(a => `- [${a.modulo_origem}] [Área: ${a.nome
             status: editingAction.status,
             area_id: editingAction.area_id === 'none' ? null : editingAction.area_id,
             data_limite: editingAction.data_limite || null,
-            responsavel_nome: editingAction.responsavel_nome || null
+            responsavel_nome: editingAction.responsavel_nome || null,
+            status_eficacia: editingAction.status_eficacia || 'Pendente'
         };
         const res = await updateAcaoGlobal(editingAction.id, payload);
         if (res.success) {
@@ -1010,7 +1011,7 @@ ${filteredActions.slice(0, 10).map(a => `- [${a.modulo_origem}] [Área: ${a.nome
                                         <option value="Concluido">Concluído</option>
                                     </select>
                                 </div>
-                                <div className="col-span-2">
+                                <div>
                                     <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Data Limite</label>
                                     <input 
                                         type="date" 
@@ -1018,6 +1019,18 @@ ${filteredActions.slice(0, 10).map(a => `- [${a.modulo_origem}] [Área: ${a.nome
                                         onChange={e => setEditingAction({...editingAction, data_limite: e.target.value ? new Date(e.target.value).toISOString() : null})}
                                         className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm text-slate-800 focus:border-blue-500 outline-none"
                                     />
+                                </div>
+                                <div className="col-span-2">
+                                    <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Verificação PDCA (Eficácia)</label>
+                                    <select 
+                                        value={editingAction.status_eficacia || 'Pendente'}
+                                        onChange={e => setEditingAction({...editingAction, status_eficacia: e.target.value})}
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm text-slate-800 focus:border-blue-500 outline-none"
+                                    >
+                                        <option value="Pendente">Não Verificado (Pendente)</option>
+                                        <option value="Eficaz">Eficaz (Problema Resolvido)</option>
+                                        <option value="Ineficaz">Ineficaz (Problema Persiste)</option>
+                                    </select>
                                 </div>
                             </div>
                         </div>
