@@ -88,7 +88,11 @@ export default function HstActionsKanbanPage() {
             return;
         }
 
-        setSelectedAction(acao);
+        setSelectedAction({
+            ...acao,
+            descricao_acao: acao.hst_ocorrencias?.descricao_ocorrencia || acao.descricao_acao,
+            anexos_url: acao.hst_ocorrencias?.anexos_url || acao.anexos_url
+        });
         setSelectedA3Id(id8d);
 
         // Map from hst_8d schema to A3 generic state
@@ -286,53 +290,62 @@ export default function HstActionsKanbanPage() {
                                 </div>
                                 <div className="p-3 gap-3 flex flex-col overflow-y-auto flex-1 custom-scrollbar">
                                     {columnTasks.map(task => (
-                                        <div
-                                            key={task.id}
-                                            draggable
-                                            onDragStart={() => setDraggedItem(task.id)}
-                                            onDragEnd={() => setDraggedItem(null)}
-                                            className="bg-white p-4 rounded-lg shadow-sm border border-slate-200 cursor-grab active:cursor-grabbing hover:border-rose-300 hover:shadow-md transition-all group relative animate-in zoom-in-95"
-                                        >
-                                            <div className="flex justify-between items-start mb-2 gap-2">
-                                                <div className="flex items-center gap-1.5 bg-slate-100 px-2 py-0.5 rounded text-[10px] font-bold text-slate-600 truncate max-w-[200px]" title={task.hst_ocorrencias?.tipo_ocorrencia}>
-                                                    {getOriginIcon(task.hst_ocorrencias?.tipo_ocorrencia)}
-                                                    {task.hst_ocorrencias ? `Origem: \${task.hst_ocorrencias.tipo_ocorrencia.substring(0,15)}... (\${task.hst_ocorrencias.areas_fabrica?.nome_area || 'N/A'})` : 'Ação Avulsa'}
-                                                </div>
-                                                <div className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider shrink-0 \${getPrioridadeColor(task.prioridade)}`}>
-                                                    {task.prioridade}
-                                                </div>
-                                            </div>
+                                        const hasA3 = task.hst_8d != null || task.relatorio_8d_id != null;
+                                        const isCritical = task.prioridade === 'Critica' || task.prioridade === 'Alta';
 
-                                            <h4 className="text-sm font-bold text-slate-800 leading-snug mb-3">
-                                                {task.descricao_acao}
-                                            </h4>
+                                        return (
+                                            <Card
+                                                key={task.id}
+                                                draggable
+                                                onDragStart={() => setDraggedItem(task.id)}
+                                                onDragEnd={() => setDraggedItem(null)}
+                                                onClick={(e) => {
+                                                    if ((e.target as HTMLElement).closest('.scrum-arrow')) return;
+                                                    openA3Modal(task);
+                                                }}
+                                                className={`cursor-grab active:cursor-grabbing shadow-sm hover:shadow-md transition-all group relative bg-white overflow-hidden border ${isCritical ? 'border-rose-300' : 'border-slate-200 hover:border-indigo-300'}`}
+                                            >
+                                                <div className={`absolute left-0 top-0 bottom-0 w-1 ${hasA3 ? 'bg-indigo-400' : 'bg-slate-300'}`}></div>
 
-                                            <div className="flex justify-between items-end mt-3 border-t border-slate-100 pt-3">
-                                                <div className="flex flex-col gap-1">
-                                                    <div className="text-xs text-slate-500 flex items-center gap-1.5 font-medium">
-                                                        <Target size={12} className="text-slate-400" />
-                                                        Resp: {task.operadores?.nome_operador || <span className="text-rose-500 italic">Por atribuir</span>}
-                                                    </div>
-                                                    {task.data_prevista && (
-                                                        <div className="text-[10px] font-mono text-slate-400 flex items-center gap-1">
-                                                            <Calendar size={10} /> Meta: {format(new Date(task.data_prevista), 'dd/MM/yyyy')}
+                                                <CardContent className="p-4 pl-5">
+                                                    <div className="flex justify-between items-start mb-2 gap-2">
+                                                        <div className="flex items-center gap-1.5 bg-slate-100 px-2 py-0.5 rounded text-[10px] font-bold text-slate-600 truncate max-w-[150px]" title={task.hst_ocorrencias?.tipo_ocorrencia}>
+                                                            {getOriginIcon(task.hst_ocorrencias?.tipo_ocorrencia)}
+                                                            {task.hst_ocorrencias?.tipo_ocorrencia || 'Ação'}
                                                         </div>
-                                                    )}
-                                                </div>
+                                                        <span className={`text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded border ${isCritical ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-amber-50 text-amber-600 border-amber-200'}`}>
+                                                            {task.prioridade}
+                                                        </span>
+                                                    </div>
 
-                                                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity items-center">
-                                                    <Button variant="outline" size="sm" className="h-6 text-[10px] px-2 py-0 border-slate-200 text-slate-600 hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50" onClick={() => openA3Modal(task)} title="Análise Causa Raiz A3/8D">
-                                                        <FileText size={10} className="mr-1" /> Modal A3/8D
-                                                    </Button>
-                                                    <Button variant="ghost" size="icon" className="h-6 w-6 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700" onClick={() => moveCard(task.id, 'Concluido')} title="Marcar Concluída">
-                                                        <CheckCircle2 size={14} />
-                                                    </Button>
-                                                    <Button variant="ghost" size="icon" className="h-6 w-6 text-red-400 hover:bg-red-50 hover:text-red-600" onClick={() => handleDelete(task.id)} title="Eliminar">
-                                                        <Trash2 size={14} />
-                                                    </Button>
-                                                </div>
-                                            </div>
-                                        </div>
+                                                    <h3 className="font-bold text-slate-800 leading-tight mb-2 text-sm">
+                                                        {task.hst_ocorrencias?.descricao_ocorrencia || task.descricao_acao}
+                                                    </h3>
+                                                    
+                                                    <div className="text-[11px] text-slate-400 font-medium mb-3">
+                                                        Contexto: {task.hst_ocorrencias?.areas_fabrica?.nome_area || 'N/A'}
+                                                    </div>
+
+                                                    <div className="flex justify-between items-end border-t border-slate-100 pt-3">
+                                                        <div>
+                                                            {hasA3 ? (
+                                                                <div className="text-[10px] font-black text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded">A3 ATIVO</div>
+                                                            ) : (
+                                                                <div className="text-[10px] font-black text-slate-500 bg-slate-50 border border-slate-200 px-2 py-0.5 rounded">PENDENTE</div>
+                                                            )}
+                                                        </div>
+                                                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity scrum-arrow items-center">
+                                                            <Button variant="ghost" size="icon" className="h-6 w-6 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700" onClick={(e) => { e.stopPropagation(); moveCard(task.id, 'Concluido'); }} title="Marcar Concluída">
+                                                                <CheckCircle2 size={14} />
+                                                            </Button>
+                                                            <Button variant="ghost" size="icon" className="h-6 w-6 text-red-400 hover:bg-red-50 hover:text-red-600" onClick={(e) => { e.stopPropagation(); handleDelete(task.id); }} title="Eliminar">
+                                                                <Trash2 size={14} />
+                                                            </Button>
+                                                        </div>
+                                                    </div>
+                                                </CardContent>
+                                            </Card>
+                                        )
                                     ))}
                                     {columnTasks.length === 0 && (
                                         <div className="h-full flex items-center justify-center text-sm font-medium text-slate-400/50 border-2 border-dashed border-slate-200/50 rounded-lg">
