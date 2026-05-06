@@ -289,7 +289,7 @@ export default function HstActionsKanbanPage() {
                                     <span className="bg-white/50 px-2 py-0.5 rounded-full text-xs">{columnTasks.length}</span>
                                 </div>
                                 <div className="p-3 gap-3 flex flex-col overflow-y-auto flex-1 custom-scrollbar">
-                                    {columnTasks.map(task => (
+                                    {columnTasks.map(task => {
                                         const hasA3 = task.hst_8d != null || task.relatorio_8d_id != null;
                                         const isCritical = task.prioridade === 'Critica' || task.prioridade === 'Alta';
 
@@ -345,8 +345,8 @@ export default function HstActionsKanbanPage() {
                                                     </div>
                                                 </CardContent>
                                             </Card>
-                                        )
-                                    ))}
+                                        );
+                                    })}
                                     {columnTasks.length === 0 && (
                                         <div className="h-full flex items-center justify-center text-sm font-medium text-slate-400/50 border-2 border-dashed border-slate-200/50 rounded-lg">
                                             Arraste cards para aqui
