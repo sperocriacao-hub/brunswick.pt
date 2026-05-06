@@ -90,8 +90,7 @@ export default function HstActionsKanbanPage() {
 
         setSelectedAction({
             ...acao,
-            descricao_acao: acao.hst_ocorrencias?.descricao_ocorrencia || acao.descricao_acao,
-            anexos_url: acao.hst_ocorrencias?.anexos_url || acao.anexos_url
+            descricao_acao: acao.hst_ocorrencias?.descricao_evento || acao.descricao_acao
         });
         setSelectedA3Id(id8d);
 
@@ -319,7 +318,7 @@ export default function HstActionsKanbanPage() {
                                                     </div>
 
                                                     <h3 className="font-bold text-slate-800 leading-tight mb-2 text-sm">
-                                                        {task.hst_ocorrencias?.descricao_ocorrencia || task.descricao_acao}
+                                                        {task.hst_ocorrencias?.descricao_evento || task.descricao_acao}
                                                     </h3>
                                                     
                                                     <div className="text-[11px] text-slate-400 font-medium mb-3">

@@ -18,8 +18,7 @@ export async function getHstAcoes() {
                 operadores:responsavel_id (nome_operador),
                 hst_ocorrencias (
                     tipo_ocorrencia,
-                    descricao_ocorrencia,
-                    anexos_url,
+                    descricao_evento,
                     areas_fabrica:area_id (nome_area)
                 ),
                 hst_8d (
