@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, ArrowRight, Activity, TrendingUp, TrendingDown, Settings2, ClipboardCheck, Trophy, Target, AlertTriangle } from 'lucide-react';
+import { Loader2, ArrowRight, Activity, TrendingUp, TrendingDown, Settings2, ClipboardCheck, Trophy, Target, AlertTriangle, Crosshair } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getAuditoriasRecentes } from './actions';
 import Link from 'next/link';
