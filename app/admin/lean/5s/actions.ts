@@ -15,7 +15,7 @@ export async function getAreasE_Estacoes() {
             .select(`
                 id, 
                 nome_area,
-                estacoes (id, nome_estacao, linha_producao_id)
+                estacoes (id, nome_estacao, linha_id)
             `)
             .order('nome_area');
 
@@ -31,14 +31,17 @@ export async function getAreasE_Estacoes() {
     }
 }
 
-export async function getChecklist(areaId: string) {
+export async function getChecklist(areaId: string, linhaId?: string, estacaoId?: string) {
     noStore();
     try {
-        // Puxa as perguntas universais (area_id = null) + as perguntas especificas da area_id
+        let orConditions = [`area_id.is.null`, `area_id.eq.\${areaId}`];
+        if (linhaId) orConditions.push(`linha_id.eq.\${linhaId}`);
+        if (estacaoId) orConditions.push(`estacao_id.eq.\${estacaoId}`);
+
         const { data, error } = await supabase
             .from('lean_5s_perguntas')
             .select('*')
-            .or(`area_id.is.null,area_id.eq.\${areaId}`)
+            .or(orConditions.join(','))
             .order('categoria', { ascending: true })
             .order('ordem', { ascending: true });
 

@@ -48,7 +48,7 @@ export default function ExecutarAuditoria5S() {
     const startAudit = async () => {
         if (!areaId) return;
         setLoading(true);
-        const reqP = await getChecklist(areaId);
+        const reqP = await getChecklist(areaId, linhaId, estacaoId);
         if (reqP.success) {
             setPerguntas(reqP.data || []);
             // init empty respostas
@@ -139,19 +139,38 @@ export default function ExecutarAuditoria5S() {
     let estacoesArea = areaSelecionada?.estacoes || [];
 
     if (isMontagem && linhaId) {
-        estacoesArea = estacoesArea.filter((e: any) => e.linha_producao_id === linhaId);
+        estacoesArea = estacoesArea.filter((e: any) => e.linha_id === linhaId);
     }
 
+    const isKiosk = typeof window !== 'undefined' && window.location.pathname.includes('/operador');
+
+    const theme = {
+        bgMain: isKiosk ? 'bg-[#0a0a0a] text-slate-200' : 'bg-slate-50 text-slate-800',
+        header: isKiosk ? 'bg-slate-900 border-slate-800 text-white shadow-xl' : 'bg-white border-slate-200 text-slate-800 shadow-sm',
+        title: isKiosk ? 'text-white' : 'text-slate-800',
+        subtitle: isKiosk ? 'text-slate-400' : 'text-slate-500',
+        card: isKiosk ? 'bg-slate-900 border-slate-700 shadow-2xl' : 'bg-white border-slate-200 shadow-sm',
+        cardInner: isKiosk ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200',
+        input: isKiosk ? 'bg-slate-950 border-slate-700 text-white focus:border-blue-500' : 'bg-slate-50 border-slate-200 text-slate-800 focus:ring-blue-500',
+        label: isKiosk ? 'text-slate-400' : 'text-slate-500',
+        buttonBase: isKiosk ? 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700 hover:text-white' : 'bg-white border-slate-100 text-slate-400 hover:bg-slate-50',
+        buttonPass: isKiosk ? 'bg-green-950/40 border-green-800 text-green-400' : 'bg-emerald-50 border-emerald-500 text-emerald-700',
+        buttonFail: isKiosk ? 'bg-red-950/40 border-red-800 text-red-400' : 'bg-rose-50 border-rose-500 text-rose-700',
+        buttonNA: isKiosk ? 'bg-slate-800 border-slate-500 text-slate-300' : 'bg-slate-100 border-slate-400 text-slate-700',
+        failBox: isKiosk ? 'bg-red-950/20 border-red-900/50' : 'bg-rose-50 border-rose-100',
+        textarea: isKiosk ? 'bg-slate-950 border-red-900/50 text-white' : 'bg-white border-rose-200 text-slate-800'
+    };
+
     return (
-        <div className="bg-slate-50 min-h-screen pb-32">
-            <header className="bg-white border-b border-slate-200 sticky top-0 z-10 px-4 md:px-8 py-4 flex items-center justify-between shadow-sm">
+        <div className={`\${theme.bgMain} min-h-screen pb-32`}>
+            <header className={`\${theme.header} sticky top-0 z-10 px-4 md:px-8 py-4 flex items-center justify-between`}>
                 <div className="flex items-center gap-4">
                     <Button variant="ghost" size="icon" onClick={() => step === 2 ? setStep(1) : router.back()}>
                         <ArrowLeft />
                     </Button>
                     <div>
-                        <h1 className="text-xl md:text-2xl font-black text-slate-800 tracking-tight uppercase">Ronda 5S</h1>
-                        {step === 2 && <p className="text-xs font-bold text-slate-500">{areaSelecionada?.nome_area}</p>}
+                        <h1 className={`text-xl md:text-2xl font-black tracking-tight uppercase \${theme.title}`}>Ronda 5S {isKiosk && ' (Quiosque)'}</h1>
+                        {step === 2 && <p className={`text-xs font-bold \${theme.subtitle}`}>{areaSelecionada?.nome_area}</p>}
                     </div>
                 </div>
                 {step === 2 && (
@@ -163,11 +182,11 @@ export default function ExecutarAuditoria5S() {
 
             <main className="max-w-[800px] mx-auto p-4 md:p-8">
                 {step === 1 && (
-                    <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-200 space-y-6 animate-in slide-in-from-bottom-4">
-                        <h2 className="text-2xl font-black text-slate-800 text-center mb-8">Onde estamos a auditar?</h2>
+                    <div className={`\${theme.card} p-6 md:p-8 rounded-2xl border space-y-6 animate-in slide-in-from-bottom-4`}>
+                        <h2 className={`text-2xl font-black text-center mb-8 \${theme.title}`}>Onde estamos a auditar?</h2>
                         
                         <div className="space-y-3">
-                            <label className="text-xs font-bold text-slate-500 uppercase">Seu Nome / Número (Auditor)</label>
+                            <label className={`text-xs font-bold uppercase \${theme.label}`}>Seu Nome / Número (Auditor)</label>
                             <SearchableSelect 
                                 value={auditorId} 
                                 onChange={setAuditorId}
@@ -180,8 +199,8 @@ export default function ExecutarAuditoria5S() {
                         </div>
 
                         <div className="space-y-3">
-                            <label className="text-xs font-bold text-slate-500 uppercase">Área Fabril</label>
-                            <select value={areaId} onChange={e => { setAreaId(e.target.value); setLinhaId(""); setEstacaoId(""); }} className="w-full h-14 bg-slate-50 border border-slate-200 rounded-xl px-4 text-lg font-medium outline-none focus:ring-2 focus:ring-blue-500">
+                            <label className={`text-xs font-bold uppercase \${theme.label}`}>Área Fabril</label>
+                            <select value={areaId} onChange={e => { setAreaId(e.target.value); setLinhaId(""); setEstacaoId(""); }} className={`w-full h-14 border rounded-xl px-4 text-lg font-medium outline-none focus:ring-2 \${theme.input}`}>
                                 <option value="">Selecione...</option>
                                 {areas.map(a => <option key={a.id} value={a.id}>{a.nome_area}</option>)}
                             </select>
@@ -189,8 +208,8 @@ export default function ExecutarAuditoria5S() {
 
                         {areaId && isMontagem && (
                             <div className="space-y-3 animate-in fade-in">
-                                <label className="text-xs font-bold text-slate-500 uppercase">Linha de Produção</label>
-                                <select value={linhaId} onChange={e => { setLinhaId(e.target.value); setEstacaoId(""); }} className="w-full h-14 bg-slate-50 border border-slate-200 rounded-xl px-4 text-lg font-medium outline-none focus:ring-2 focus:ring-blue-500">
+                                <label className={`text-xs font-bold uppercase \${theme.label}`}>Linha de Produção</label>
+                                <select value={linhaId} onChange={e => { setLinhaId(e.target.value); setEstacaoId(""); }} className={`w-full h-14 border rounded-xl px-4 text-lg font-medium outline-none focus:ring-2 \${theme.input}`}>
                                     <option value="">Selecione a Linha...</option>
                                     {linhas.map((l: any) => <option key={l.id} value={l.id}>Linha {l.letra_linha}</option>)}
                                 </select>
@@ -199,8 +218,8 @@ export default function ExecutarAuditoria5S() {
 
                         {areaId && (!isMontagem || linhaId) && estacoesArea.length > 0 && (
                             <div className="space-y-3 animate-in fade-in">
-                                <label className="text-xs font-bold text-slate-500 uppercase">Estação (Opcional)</label>
-                                <select value={estacaoId} onChange={e => setEstacaoId(e.target.value)} className="w-full h-14 bg-slate-50 border border-slate-200 rounded-xl px-4 text-lg font-medium outline-none focus:ring-2 focus:ring-blue-500">
+                                <label className={`text-xs font-bold uppercase \${theme.label}`}>Estação (Opcional)</label>
+                                <select value={estacaoId} onChange={e => setEstacaoId(e.target.value)} className={`w-full h-14 border rounded-xl px-4 text-lg font-medium outline-none focus:ring-2 \${theme.input}`}>
                                     <option value="">Geral {isMontagem ? 'da Linha' : 'da Área'}</option>
                                     {estacoesArea.map((e: any) => <option key={e.id} value={e.id}>{e.nome_estacao}</option>)}
                                 </select>
@@ -227,32 +246,32 @@ export default function ExecutarAuditoria5S() {
                                 const isFail = resp?.resultado === 'Fail';
                                 
                                 return (
-                                    <div key={p.id} className={`bg-white rounded-2xl shadow-sm border-2 overflow-hidden transition-all \${isFail ? 'border-rose-300' : 'border-slate-200'}`}>
-                                        <div className="bg-slate-50 px-4 py-2 border-b border-slate-100 flex justify-between items-center">
-                                            <span className="text-xs font-black text-slate-400 uppercase tracking-widest">{p.categoria}</span>
-                                            <span className="text-xs font-bold text-slate-400">#{index + 1}</span>
+                                    <div key={p.id} className={`\${theme.cardInner} rounded-2xl border-2 overflow-hidden transition-all \${isFail ? (isKiosk ? 'border-red-500' : 'border-rose-300') : ''}`}>
+                                        <div className={`\${isKiosk ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-100'} px-4 py-2 border-b flex justify-between items-center`}>
+                                            <span className={`text-xs font-black uppercase tracking-widest \${theme.subtitle}`}>{p.categoria}</span>
+                                            <span className={`text-xs font-bold \${theme.subtitle}`}>#{index + 1}</span>
                                         </div>
                                         <div className="p-6">
-                                            <h3 className="text-lg md:text-xl font-bold text-slate-800 leading-snug mb-6">{p.pergunta}</h3>
+                                            <h3 className={`text-lg md:text-xl font-bold leading-snug mb-6 \${theme.title}`}>{p.pergunta}</h3>
                                             
                                             <div className="grid grid-cols-3 gap-3 mb-4">
                                                 <button
                                                     onClick={() => handleAnswer(p.id, 'Pass')}
-                                                    className={`flex flex-col items-center justify-center gap-2 p-4 rounded-xl border-2 transition-all font-bold \${resp?.resultado === 'Pass' ? 'bg-emerald-50 border-emerald-500 text-emerald-700 shadow-sm' : 'bg-white border-slate-100 text-slate-400 hover:border-emerald-200 hover:bg-emerald-50'}`}
+                                                    className={`flex flex-col items-center justify-center gap-2 p-4 rounded-xl border-2 transition-all font-bold \${resp?.resultado === 'Pass' ? theme.buttonPass : theme.buttonBase}`}
                                                 >
-                                                    <Check size={28} className={resp?.resultado === 'Pass' ? 'text-emerald-500' : ''} />
+                                                    <Check size={28} className={resp?.resultado === 'Pass' ? (isKiosk ? 'text-green-500' : 'text-emerald-500') : ''} />
                                                     OK
                                                 </button>
                                                 <button
                                                     onClick={() => handleAnswer(p.id, 'Fail')}
-                                                    className={`flex flex-col items-center justify-center gap-2 p-4 rounded-xl border-2 transition-all font-bold \${resp?.resultado === 'Fail' ? 'bg-rose-50 border-rose-500 text-rose-700 shadow-sm' : 'bg-white border-slate-100 text-slate-400 hover:border-rose-200 hover:bg-rose-50'}`}
+                                                    className={`flex flex-col items-center justify-center gap-2 p-4 rounded-xl border-2 transition-all font-bold \${resp?.resultado === 'Fail' ? theme.buttonFail : theme.buttonBase}`}
                                                 >
-                                                    <X size={28} className={resp?.resultado === 'Fail' ? 'text-rose-500' : ''} />
+                                                    <X size={28} className={resp?.resultado === 'Fail' ? (isKiosk ? 'text-red-500' : 'text-rose-500') : ''} />
                                                     FALHA
                                                 </button>
                                                 <button
                                                     onClick={() => handleAnswer(p.id, 'N/A')}
-                                                    className={`flex flex-col items-center justify-center gap-2 p-4 rounded-xl border-2 transition-all font-bold \${resp?.resultado === 'N/A' ? 'bg-slate-100 border-slate-400 text-slate-700 shadow-sm' : 'bg-white border-slate-100 text-slate-400 hover:border-slate-300 hover:bg-slate-50'}`}
+                                                    className={`flex flex-col items-center justify-center gap-2 p-4 rounded-xl border-2 transition-all font-bold \${resp?.resultado === 'N/A' ? theme.buttonNA : theme.buttonBase}`}
                                                 >
                                                     <Minus size={28} className={resp?.resultado === 'N/A' ? 'text-slate-500' : ''} />
                                                     N/A
@@ -261,15 +280,15 @@ export default function ExecutarAuditoria5S() {
 
                                             {isFail && (
                                                 <div className="mt-4 space-y-3 animate-in fade-in slide-in-from-top-2">
-                                                    <div className="p-3 bg-rose-50 border border-rose-100 rounded-lg">
-                                                        <p className="text-xs font-bold text-rose-700 uppercase mb-2 flex items-center gap-1">
+                                                    <div className={`p-3 border rounded-lg \${theme.failBox}`}>
+                                                        <p className={`text-xs font-bold uppercase mb-2 flex items-center gap-1 \${isKiosk ? 'text-red-400' : 'text-rose-700'}`}>
                                                             <X size={12}/> Ação de Melhoria Obrigatória
                                                         </p>
                                                         <textarea 
                                                             placeholder="Descreva a não conformidade encontrada..."
                                                             value={resp?.observacoes}
                                                             onChange={e => handleObs(p.id, e.target.value)}
-                                                            className="w-full p-3 text-sm bg-white border border-rose-200 rounded-md outline-none focus:ring-2 focus:ring-rose-400 resize-none h-20"
+                                                            className={`w-full p-3 text-sm rounded-md outline-none resize-none h-20 border \${theme.textarea}`}
                                                         />
                                                     </div>
                                                 </div>

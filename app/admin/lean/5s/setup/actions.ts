@@ -14,7 +14,9 @@ export async function get5SPerguntas() {
             .from('lean_5s_perguntas')
             .select(`
                 *,
-                areas_fabrica (nome_area)
+                areas_fabrica (nome_area),
+                estacoes (nome_estacao),
+                linhas_producao (letra_linha)
             `)
             .order('categoria', { ascending: true })
             .order('ordem', { ascending: true });
