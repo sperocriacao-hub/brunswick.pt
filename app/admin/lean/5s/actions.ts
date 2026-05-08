@@ -143,7 +143,7 @@ export async function getAuditoriaDetalhes(auditoriaId: string) {
     noStore();
     try {
         const { data, error } = await supabase
-            .from('lean_5s_resultados')
+            .from('lean_5s_respostas')
             .select(`
                 id,
                 resultado,
