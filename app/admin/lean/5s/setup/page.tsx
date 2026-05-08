@@ -245,9 +245,9 @@ export default function Setup5SPage() {
                                                     <div>
                                                         <p className="font-medium text-slate-800 text-sm">{p.pergunta}</p>
                                                         <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">
-                                                            {p.areas_fabrica?.nome_area ? `📍 \${p.areas_fabrica.nome_area}` : '🌐 Universal'}
+                                                            {p.areas_fabrica?.nome_area ? `📍 ${p.areas_fabrica.nome_area}` : '🌐 Universal'}
                                                             {p.linha_id && ` > Linha Selecionada`}
-                                                            {p.estacoes?.nome_estacao && ` > \${p.estacoes.nome_estacao}`}
+                                                            {p.estacoes?.nome_estacao && ` > ${p.estacoes.nome_estacao}`}
                                                         </p>
                                                     </div>
                                                     <Button 
@@ -286,7 +286,7 @@ export default function Setup5SPage() {
                                     onChange={setCronogramaAuditor}
                                     options={operadoresLideranca.map(o => ({
                                         value: o.id,
-                                        label: `\${o.nome_operador} (\${o.funcao || 'Liderança'})`
+                                        label: `${o.nome_operador} (${o.funcao || 'Liderança'})`
                                     }))}
                                     placeholder="Pesquise o líder..."
                                 />

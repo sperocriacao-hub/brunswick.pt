@@ -81,7 +81,7 @@ export default function ExecutarAuditoria5S() {
         // Validation
         const unanswered = perguntas.filter(p => !respostas[p.id]?.resultado);
         if (unanswered.length > 0) {
-            alert(`Ainda faltam responder a \${unanswered.length} perguntas!`);
+            alert(`Ainda faltam responder a ${unanswered.length} perguntas!`);
             return;
         }
 
@@ -117,7 +117,7 @@ export default function ExecutarAuditoria5S() {
         });
 
         if (res.success) {
-            alert(`Auditoria Finalizada com Score de \${percent.toFixed(0)}%!`);
+            alert(`Auditoria Finalizada com Score de ${percent.toFixed(0)}%!`);
             if (window.location.pathname.includes('/operador')) {
                 router.push('/operador/5s');
             } else {
@@ -161,15 +161,15 @@ export default function ExecutarAuditoria5S() {
     };
 
     return (
-        <div className={`\${theme.bgMain} min-h-screen pb-32`}>
-            <header className={`\${theme.header} sticky top-0 z-10 px-4 md:px-8 py-4 flex items-center justify-between`}>
+        <div className={`${theme.bgMain} min-h-screen pb-32`}>
+            <header className={`${theme.header} sticky top-0 z-10 px-4 md:px-8 py-4 flex items-center justify-between`}>
                 <div className="flex items-center gap-4">
                     <Button variant="ghost" size="icon" onClick={() => step === 2 ? setStep(1) : router.back()}>
                         <ArrowLeft />
                     </Button>
                     <div>
-                        <h1 className={`text-xl md:text-2xl font-black tracking-tight uppercase \${theme.title}`}>Ronda 5S {isKiosk && ' (Quiosque)'}</h1>
-                        {step === 2 && <p className={`text-xs font-bold \${theme.subtitle}`}>{areaSelecionada?.nome_area}</p>}
+                        <h1 className={`text-xl md:text-2xl font-black tracking-tight uppercase ${theme.title}`}>Ronda 5S {isKiosk && ' (Quiosque)'}</h1>
+                        {step === 2 && <p className={`text-xs font-bold ${theme.subtitle}`}>{areaSelecionada?.nome_area}</p>}
                     </div>
                 </div>
                 {step === 2 && (
@@ -181,11 +181,11 @@ export default function ExecutarAuditoria5S() {
 
             <main className="max-w-[800px] mx-auto p-4 md:p-8">
                 {step === 1 && (
-                    <div className={`\${theme.card} p-6 md:p-8 rounded-2xl border space-y-6 animate-in slide-in-from-bottom-4`}>
-                        <h2 className={`text-2xl font-black text-center mb-8 \${theme.title}`}>Onde estamos a auditar?</h2>
+                    <div className={`${theme.card} p-6 md:p-8 rounded-2xl border space-y-6 animate-in slide-in-from-bottom-4`}>
+                        <h2 className={`text-2xl font-black text-center mb-8 ${theme.title}`}>Onde estamos a auditar?</h2>
                         
                         <div className="space-y-3">
-                            <label className={`text-xs font-bold uppercase \${theme.label}`}>Seu Nome / Número (Auditor)</label>
+                            <label className={`text-xs font-bold uppercase ${theme.label}`}>Seu Nome / Número (Auditor)</label>
                             <SearchableSelect 
                                 value={auditorId} 
                                 onChange={setAuditorId}
@@ -198,8 +198,8 @@ export default function ExecutarAuditoria5S() {
                         </div>
 
                         <div className="space-y-3">
-                            <label className={`text-xs font-bold uppercase \${theme.label}`}>Área Fabril</label>
-                            <select value={areaId} onChange={e => { setAreaId(e.target.value); setLinhaId(""); setEstacaoId(""); }} className={`w-full h-14 border rounded-xl px-4 text-lg font-medium outline-none focus:ring-2 \${theme.input}`}>
+                            <label className={`text-xs font-bold uppercase ${theme.label}`}>Área Fabril</label>
+                            <select value={areaId} onChange={e => { setAreaId(e.target.value); setLinhaId(""); setEstacaoId(""); }} className={`w-full h-14 border rounded-xl px-4 text-lg font-medium outline-none focus:ring-2 ${theme.input}`}>
                                 <option value="">Selecione...</option>
                                 {areas.map(a => <option key={a.id} value={a.id}>{a.nome_area}</option>)}
                             </select>
@@ -207,8 +207,8 @@ export default function ExecutarAuditoria5S() {
 
                         {areaId && isMontagem && (
                             <div className="space-y-3 animate-in fade-in">
-                                <label className={`text-xs font-bold uppercase \${theme.label}`}>Linha de Produção</label>
-                                <select value={linhaId} onChange={e => { setLinhaId(e.target.value); setEstacaoId(""); }} className={`w-full h-14 border rounded-xl px-4 text-lg font-medium outline-none focus:ring-2 \${theme.input}`}>
+                                <label className={`text-xs font-bold uppercase ${theme.label}`}>Linha de Produção</label>
+                                <select value={linhaId} onChange={e => { setLinhaId(e.target.value); setEstacaoId(""); }} className={`w-full h-14 border rounded-xl px-4 text-lg font-medium outline-none focus:ring-2 ${theme.input}`}>
                                     <option value="">Selecione a Linha...</option>
                                     {linhas.map((l: any) => <option key={l.id} value={l.id}>Linha {l.letra_linha}</option>)}
                                 </select>
@@ -217,8 +217,8 @@ export default function ExecutarAuditoria5S() {
 
                         {areaId && (!isMontagem || linhaId) && estacoesArea.length > 0 && (
                             <div className="space-y-3 animate-in fade-in">
-                                <label className={`text-xs font-bold uppercase \${theme.label}`}>Estação (Opcional)</label>
-                                <select value={estacaoId} onChange={e => setEstacaoId(e.target.value)} className={`w-full h-14 border rounded-xl px-4 text-lg font-medium outline-none focus:ring-2 \${theme.input}`}>
+                                <label className={`text-xs font-bold uppercase ${theme.label}`}>Estação (Opcional)</label>
+                                <select value={estacaoId} onChange={e => setEstacaoId(e.target.value)} className={`w-full h-14 border rounded-xl px-4 text-lg font-medium outline-none focus:ring-2 ${theme.input}`}>
                                     <option value="">Geral {isMontagem ? 'da Linha' : 'da Área'}</option>
                                     {estacoesArea.map((e: any) => <option key={e.id} value={e.id}>{e.nome_estacao}</option>)}
                                 </select>
@@ -245,32 +245,32 @@ export default function ExecutarAuditoria5S() {
                                 const isFail = resp?.resultado === 'Fail';
                                 
                                 return (
-                                    <div key={p.id} className={`\${theme.cardInner} rounded-2xl border-2 overflow-hidden transition-all \${isFail ? (isKiosk ? 'border-red-500' : 'border-rose-300') : ''}`}>
-                                        <div className={`\${isKiosk ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-100'} px-4 py-2 border-b flex justify-between items-center`}>
-                                            <span className={`text-xs font-black uppercase tracking-widest \${theme.subtitle}`}>{p.categoria}</span>
-                                            <span className={`text-xs font-bold \${theme.subtitle}`}>#{index + 1}</span>
+                                    <div key={p.id} className={`${theme.cardInner} rounded-2xl border-2 overflow-hidden transition-all ${isFail ? (isKiosk ? 'border-red-500' : 'border-rose-300') : ''}`}>
+                                        <div className={`${isKiosk ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-100'} px-4 py-2 border-b flex justify-between items-center`}>
+                                            <span className={`text-xs font-black uppercase tracking-widest ${theme.subtitle}`}>{p.categoria}</span>
+                                            <span className={`text-xs font-bold ${theme.subtitle}`}>#{index + 1}</span>
                                         </div>
                                         <div className="p-6">
-                                            <h3 className={`text-lg md:text-xl font-bold leading-snug mb-6 \${theme.title}`}>{p.pergunta}</h3>
+                                            <h3 className={`text-lg md:text-xl font-bold leading-snug mb-6 ${theme.title}`}>{p.pergunta}</h3>
                                             
                                             <div className="grid grid-cols-3 gap-3 mb-4">
                                                 <button
                                                     onClick={() => handleAnswer(p.id, 'Pass')}
-                                                    className={`flex flex-col items-center justify-center gap-2 p-4 rounded-xl border-2 transition-all font-bold \${resp?.resultado === 'Pass' ? theme.buttonPass : theme.buttonBase}`}
+                                                    className={`flex flex-col items-center justify-center gap-2 p-4 rounded-xl border-2 transition-all font-bold ${resp?.resultado === 'Pass' ? theme.buttonPass : theme.buttonBase}`}
                                                 >
                                                     <Check size={28} className={resp?.resultado === 'Pass' ? (isKiosk ? 'text-green-500' : 'text-emerald-500') : ''} />
                                                     OK
                                                 </button>
                                                 <button
                                                     onClick={() => handleAnswer(p.id, 'Fail')}
-                                                    className={`flex flex-col items-center justify-center gap-2 p-4 rounded-xl border-2 transition-all font-bold \${resp?.resultado === 'Fail' ? theme.buttonFail : theme.buttonBase}`}
+                                                    className={`flex flex-col items-center justify-center gap-2 p-4 rounded-xl border-2 transition-all font-bold ${resp?.resultado === 'Fail' ? theme.buttonFail : theme.buttonBase}`}
                                                 >
                                                     <X size={28} className={resp?.resultado === 'Fail' ? (isKiosk ? 'text-red-500' : 'text-rose-500') : ''} />
                                                     FALHA
                                                 </button>
                                                 <button
                                                     onClick={() => handleAnswer(p.id, 'N/A')}
-                                                    className={`flex flex-col items-center justify-center gap-2 p-4 rounded-xl border-2 transition-all font-bold \${resp?.resultado === 'N/A' ? theme.buttonNA : theme.buttonBase}`}
+                                                    className={`flex flex-col items-center justify-center gap-2 p-4 rounded-xl border-2 transition-all font-bold ${resp?.resultado === 'N/A' ? theme.buttonNA : theme.buttonBase}`}
                                                 >
                                                     <Minus size={28} className={resp?.resultado === 'N/A' ? 'text-slate-500' : ''} />
                                                     N/A
@@ -279,15 +279,15 @@ export default function ExecutarAuditoria5S() {
 
                                             {isFail && (
                                                 <div className="mt-4 space-y-3 animate-in fade-in slide-in-from-top-2">
-                                                    <div className={`p-3 border rounded-lg \${theme.failBox}`}>
-                                                        <p className={`text-xs font-bold uppercase mb-2 flex items-center gap-1 \${isKiosk ? 'text-red-400' : 'text-rose-700'}`}>
+                                                    <div className={`p-3 border rounded-lg ${theme.failBox}`}>
+                                                        <p className={`text-xs font-bold uppercase mb-2 flex items-center gap-1 ${isKiosk ? 'text-red-400' : 'text-rose-700'}`}>
                                                             <X size={12}/> Ação de Melhoria Obrigatória
                                                         </p>
                                                         <textarea 
                                                             placeholder="Descreva a não conformidade encontrada..."
                                                             value={resp?.observacoes}
                                                             onChange={e => handleObs(p.id, e.target.value)}
-                                                            className={`w-full p-3 text-sm rounded-md outline-none resize-none h-20 border \${theme.textarea}`}
+                                                            className={`w-full p-3 text-sm rounded-md outline-none resize-none h-20 border ${theme.textarea}`}
                                                         />
                                                     </div>
                                                 </div>

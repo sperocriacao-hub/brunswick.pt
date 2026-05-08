@@ -34,9 +34,9 @@ export async function getAreasE_Estacoes() {
 export async function getChecklist(areaId: string, linhaId?: string, estacaoId?: string) {
     noStore();
     try {
-        let orConditions = [`area_id.is.null`, `area_id.eq.\${areaId}`];
-        if (linhaId) orConditions.push(`linha_id.eq.\${linhaId}`);
-        if (estacaoId) orConditions.push(`estacao_id.eq.\${estacaoId}`);
+        let orConditions = [`area_id.is.null`, `area_id.eq.${areaId}`];
+        if (linhaId) orConditions.push(`linha_id.eq.${linhaId}`);
+        if (estacaoId) orConditions.push(`estacao_id.eq.${estacaoId}`);
 
         const { data, error } = await supabase
             .from('lean_5s_perguntas')
