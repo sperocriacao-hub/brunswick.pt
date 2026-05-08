@@ -699,6 +699,17 @@ export function Sidebar({
                           <span className="text-sm border-transparent">Hub de Auditorias 5S</span>
                         </Link>
                       )}
+                      {hasAccess("/operador/5s") && (
+                        <Link
+                          onClick={() => setIsOpen(false)}
+                          href="/operador/5s"
+                          target="_blank"
+                          className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium text-blue-100 hover:bg-blue-800/50 hover:text-white`}
+                        >
+                          <Crosshair size={18} className="text-emerald-400" />
+                          <span className="text-sm border-transparent text-emerald-100">Lançar Quiosque 5S</span>
+                        </Link>
+                      )}
                     </nav>
                   </>
                 )}
