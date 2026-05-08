@@ -67,12 +67,16 @@ export default function Setup5SPage() {
             setLinhas(reqA.linhas || []);
         }
         if (reqO.success && reqO.operadores) {
-        // Mock schedule loading
-        setMockAgendamentos([
-            { id: 1, auditor: 'Engenheiro Lean', area: 'Montagem Final', data: '2026-05-10' },
-            { id: 2, auditor: 'Gestor da Qualidade', area: 'Pré-Montagem', data: '2026-05-12' },
-        ]);
-
+            const lideres = reqO.operadores.filter((o: any) => {
+                const func = (o.funcao || '').toLowerCase();
+                return func.includes('manager') || func.includes('supervisor') || func.includes('engenheir') || func.includes('coordenador') || func.includes('gestor') || func.includes('lider');
+            });
+            setOperadoresLideranca(lideres.length > 0 ? lideres : reqO.operadores);
+        }
+        if (reqC.success) {
+            setMockAgendamentos(reqC.data || []);
+        }
+        
         setLoading(false);
     }
 
