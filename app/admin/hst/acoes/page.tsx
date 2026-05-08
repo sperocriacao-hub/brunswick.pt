@@ -98,20 +98,21 @@ export default function HstActionsKanbanPage() {
         setEquipa(hst8d?.d1_equipa || '');
         setIndicadores(hst8d?.d7_prevencao || '');
         setValidacao(hst8d?.status === 'Concluido' ? 'Eficaz' : 'Pendente');
-        setTipoAnalise(hst8d?.tipo_analise_causa || '5-Whys');
-
-        // Parse whys from d4_causa_raiz
+        // Infer analysis type from JSON shape
+        let inferredType = '5-Whys';
         try {
-            if (hst8d?.d4_causa_raiz && hst8d.d4_causa_raiz.startsWith('[')) {
-                const w = JSON.parse(hst8d.d4_causa_raiz);
-                if (Array.isArray(w)) setWhys(w.length === 5 ? w : [...w, '', '', '', '', ''].slice(0, 5));
-            } else if (hst8d?.d4_causa_raiz && hst8d.d4_causa_raiz.startsWith('{')) {
+            if (hst8d?.d4_causa_raiz && hst8d.d4_causa_raiz.startsWith('{')) {
+                inferredType = 'Ishikawa';
                 const ish = JSON.parse(hst8d.d4_causa_raiz);
                 setIshikawa(ish);
+            } else if (hst8d?.d4_causa_raiz && hst8d.d4_causa_raiz.startsWith('[')) {
+                const w = JSON.parse(hst8d.d4_causa_raiz);
+                if (Array.isArray(w)) setWhys(w.length === 5 ? w : [...w, '', '', '', '', ''].slice(0, 5));
             }
         } catch {
             // Keep default empty whys
         }
+        setTipoAnalise(inferredType);
 
         // Parse tasks from d5_acao_corretiva
         try {
@@ -139,7 +140,6 @@ export default function HstActionsKanbanPage() {
             d4_causa_raiz: causa_raiz_data,
             d5_acao_corretiva: JSON.stringify(tasks5w),
             d7_prevencao: indicadores,
-            tipo_analise_causa: tipoAnalise,
             status: validacao === 'Eficaz' ? 'Concluido' : 'Em Investigacao'
         };
 
