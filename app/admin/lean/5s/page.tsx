@@ -247,7 +247,7 @@ export default function Dashboard5SPage() {
                             {loadingDetalhes ? (
                                 <div className="flex justify-center p-12"><Loader2 className="w-10 h-10 text-blue-500 animate-spin" /></div>
                             ) : (
-                                ['1S - Utilização', '2S - Organização', '3S - Limpeza', '4S - Padronização', '5S - Disciplina'].map((cat) => {
+                                ['1S - Utilização', '2S - Arrumação', '3S - Limpeza', '4S - Normalização', '5S - Disciplina'].map((cat) => {
                                     const itensCat = auditoriaDetalhes.filter(d => d.lean_5s_perguntas?.categoria === cat);
                                     if (itensCat.length === 0) return null;
                                     
