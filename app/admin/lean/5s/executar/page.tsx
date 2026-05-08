@@ -191,7 +191,7 @@ export default function ExecutarAuditoria5S() {
                                 onChange={setAuditorId}
                                 options={operadores.map(o => ({
                                     value: o.id,
-                                    label: `\${o.numero_operador || 'S/N'} - \${o.nome_operador}`
+                                    label: o.nome_operador
                                 }))}
                                 placeholder="Pesquise pelo seu nome ou número mec."
                             />

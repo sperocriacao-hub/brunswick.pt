@@ -57,7 +57,7 @@ export async function getOperadores() {
     try {
         const { data, error } = await supabase
             .from('operadores')
-            .select('id, nome_operador, numero_operador')
+            .select('id, nome_operador')
             .order('nome_operador', { ascending: true });
 
         if (error) throw error;
