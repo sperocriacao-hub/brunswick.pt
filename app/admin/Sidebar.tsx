@@ -643,7 +643,7 @@ export function Sidebar({
                   </>
                 )}
 
-                {(hasAccess("/admin/lean/kaizen") || hasAccess("/admin/lean/gemba") || hasAccess("/admin/lean/acoes")) && (
+                {(hasAccess("/admin/lean/kaizen") || hasAccess("/admin/lean/gemba") || hasAccess("/admin/lean/acoes") || hasAccess("/admin/lean/5s/setup")) && (
                   <>
                     <p className="px-3 text-[10px] font-extrabold text-[#f59e0b] uppercase tracking-widest mb-2">
                       Lean & Manufacture lean
@@ -677,6 +677,16 @@ export function Sidebar({
                         >
                           <ListTodo size={18} className={pathname === "/admin/lean/acoes" ? "text-white" : "text-amber-400"} />
                           <span className="text-sm border-transparent">Scrum Board (Ações)</span>
+                        </Link>
+                      )}
+                      {hasAccess("/admin/lean/5s/setup") && (
+                        <Link
+                          onClick={() => setIsOpen(false)}
+                          href="/admin/lean/5s/setup"
+                          className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname === "/admin/lean/5s/setup" ? "bg-amber-600 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
+                        >
+                          <Settings size={18} className={pathname === "/admin/lean/5s/setup" ? "text-white" : "text-amber-400"} />
+                          <span className="text-sm border-transparent">Configuração 5S</span>
                         </Link>
                       )}
                     </nav>
