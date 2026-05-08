@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
-import { Loader2, ArrowLeft, Check, X, Minus, Camera, Save } from 'lucide-react';
+import { Loader2, ArrowLeft, ArrowRight, Check, X, Minus, Camera, Save } from 'lucide-react';
 import { getAreasE_Estacoes, getChecklist, salvarRonda5S, getOperadores } from '../actions';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import { useRouter } from 'next/navigation';
@@ -27,6 +27,7 @@ export default function ExecutarAuditoria5S() {
     // Execution State
     const [perguntas, setPerguntas] = useState<any[]>([]);
     const [respostas, setRespostas] = useState<Record<string, { resultado: string, observacoes: string }>>({});
+    const [currentIndex, setCurrentIndex] = useState(0);
     
     useEffect(() => {
         carregarConfig();
@@ -56,6 +57,7 @@ export default function ExecutarAuditoria5S() {
                 initial[p.id] = { resultado: '', observacoes: '' };
             });
             setRespostas(initial);
+            setCurrentIndex(0);
             setStep(2);
         } else {
             alert("Erro ao carregar checklist: " + reqP.error);
@@ -63,11 +65,13 @@ export default function ExecutarAuditoria5S() {
         setLoading(false);
     };
 
-    const handleAnswer = (perguntaId: string, value: string) => {
-        setRespostas(prev => ({
-            ...prev,
-            [perguntaId]: { ...prev[perguntaId], resultado: value }
-        }));
+    const handleAnswer = (pId: string, result: string) => {
+        setRespostas(prev => ({ ...prev, [pId]: { ...prev[pId], resultado: result } }));
+        if (result !== 'Fail' && currentIndex < perguntas.length - 1) {
+            setTimeout(() => {
+                setCurrentIndex(prev => prev + 1);
+            }, 300);
+        }
     };
 
     const handleObs = (perguntaId: string, obs: string) => {
@@ -240,62 +244,101 @@ export default function ExecutarAuditoria5S() {
                                 Não existem perguntas configuradas para esta área.
                             </div>
                         ) : (
-                            perguntas.map((p, index) => {
+                            (() => {
+                                const p = perguntas[currentIndex];
+                                if (!p) return null;
                                 const resp = respostas[p.id];
                                 const isFail = resp?.resultado === 'Fail';
+                                const progress = ((currentIndex + 1) / perguntas.length) * 100;
                                 
                                 return (
-                                    <div key={p.id} className={`${theme.cardInner} rounded-2xl border-2 overflow-hidden transition-all ${isFail ? (isKiosk ? 'border-red-500' : 'border-rose-300') : ''}`}>
-                                        <div className={`${isKiosk ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-100'} px-4 py-2 border-b flex justify-between items-center`}>
-                                            <span className={`text-xs font-black uppercase tracking-widest ${theme.subtitle}`}>{p.categoria}</span>
-                                            <span className={`text-xs font-bold ${theme.subtitle}`}>#{index + 1}</span>
+                                    <div className="space-y-6 animate-in fade-in zoom-in-95 duration-300">
+                                        <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-2 mb-6 overflow-hidden">
+                                            <div className="bg-teal-500 h-2 rounded-full transition-all duration-500 ease-out" style={{ width: `${progress}%` }}></div>
                                         </div>
-                                        <div className="p-6">
-                                            <h3 className={`text-lg md:text-xl font-bold leading-snug mb-6 ${theme.title}`}>{p.pergunta}</h3>
-                                            
-                                            <div className="grid grid-cols-3 gap-3 mb-4">
-                                                <button
-                                                    onClick={() => handleAnswer(p.id, 'Pass')}
-                                                    className={`flex flex-col items-center justify-center gap-2 p-4 rounded-xl border-2 transition-all font-bold ${resp?.resultado === 'Pass' ? theme.buttonPass : theme.buttonBase}`}
-                                                >
-                                                    <Check size={28} className={resp?.resultado === 'Pass' ? (isKiosk ? 'text-green-500' : 'text-emerald-500') : ''} />
-                                                    OK
-                                                </button>
-                                                <button
-                                                    onClick={() => handleAnswer(p.id, 'Fail')}
-                                                    className={`flex flex-col items-center justify-center gap-2 p-4 rounded-xl border-2 transition-all font-bold ${resp?.resultado === 'Fail' ? theme.buttonFail : theme.buttonBase}`}
-                                                >
-                                                    <X size={28} className={resp?.resultado === 'Fail' ? (isKiosk ? 'text-red-500' : 'text-rose-500') : ''} />
-                                                    FALHA
-                                                </button>
-                                                <button
-                                                    onClick={() => handleAnswer(p.id, 'N/A')}
-                                                    className={`flex flex-col items-center justify-center gap-2 p-4 rounded-xl border-2 transition-all font-bold ${resp?.resultado === 'N/A' ? theme.buttonNA : theme.buttonBase}`}
-                                                >
-                                                    <Minus size={28} className={resp?.resultado === 'N/A' ? 'text-slate-500' : ''} />
-                                                    N/A
-                                                </button>
-                                            </div>
 
-                                            {isFail && (
-                                                <div className="mt-4 space-y-3 animate-in fade-in slide-in-from-top-2">
-                                                    <div className={`p-3 border rounded-lg ${theme.failBox}`}>
-                                                        <p className={`text-xs font-bold uppercase mb-2 flex items-center gap-1 ${isKiosk ? 'text-red-400' : 'text-rose-700'}`}>
-                                                            <X size={12}/> Ação de Melhoria Obrigatória
-                                                        </p>
-                                                        <textarea 
-                                                            placeholder="Descreva a não conformidade encontrada..."
-                                                            value={resp?.observacoes}
-                                                            onChange={e => handleObs(p.id, e.target.value)}
-                                                            className={`w-full p-3 text-sm rounded-md outline-none resize-none h-20 border ${theme.textarea}`}
-                                                        />
+                                        <div key={p.id} className={`${theme.cardInner} rounded-3xl border-2 overflow-hidden transition-all shadow-xl ${isFail ? (isKiosk ? 'border-red-500/50 shadow-red-900/20' : 'border-rose-300') : (isKiosk ? 'border-slate-700/50' : 'border-slate-200')}`}>
+                                            <div className={`${isKiosk ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-100'} px-6 py-4 border-b flex justify-between items-center`}>
+                                                <div className="flex items-center gap-3">
+                                                    <span className={`px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest ${isKiosk ? 'bg-teal-950/50 text-teal-400' : 'bg-blue-100 text-blue-700'}`}>{p.categoria}</span>
+                                                </div>
+                                                <span className={`text-sm font-bold ${theme.subtitle}`}>Pergunta {currentIndex + 1} de {perguntas.length}</span>
+                                            </div>
+                                            <div className="p-6 md:p-10">
+                                                <h3 className={`text-2xl md:text-3xl font-black leading-snug mb-10 ${theme.title}`}>{p.pergunta}</h3>
+                                                
+                                                <div className="grid grid-cols-3 gap-4 mb-4">
+                                                    <button
+                                                        onClick={() => handleAnswer(p.id, 'Pass')}
+                                                        className={`flex flex-col items-center justify-center gap-3 p-6 rounded-2xl border-2 transition-all font-black text-lg ${resp?.resultado === 'Pass' ? theme.buttonPass + ' scale-[1.02] shadow-lg' : theme.buttonBase + ' hover:scale-105'}`}
+                                                    >
+                                                        <Check size={36} strokeWidth={3} className={resp?.resultado === 'Pass' ? (isKiosk ? 'text-green-500' : 'text-emerald-500') : ''} />
+                                                        OK
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleAnswer(p.id, 'Fail')}
+                                                        className={`flex flex-col items-center justify-center gap-3 p-6 rounded-2xl border-2 transition-all font-black text-lg ${resp?.resultado === 'Fail' ? theme.buttonFail + ' scale-[1.02] shadow-lg' : theme.buttonBase + ' hover:scale-105'}`}
+                                                    >
+                                                        <X size={36} strokeWidth={3} className={resp?.resultado === 'Fail' ? (isKiosk ? 'text-red-500' : 'text-rose-500') : ''} />
+                                                        FALHA
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleAnswer(p.id, 'N/A')}
+                                                        className={`flex flex-col items-center justify-center gap-3 p-6 rounded-2xl border-2 transition-all font-black text-lg ${resp?.resultado === 'N/A' ? theme.buttonNA + ' scale-[1.02] shadow-lg' : theme.buttonBase + ' hover:scale-105'}`}
+                                                    >
+                                                        <Minus size={36} strokeWidth={3} className={resp?.resultado === 'N/A' ? 'text-slate-500' : ''} />
+                                                        N/A
+                                                    </button>
+                                                </div>
+
+                                                {isFail && (
+                                                    <div className="mt-6 space-y-3 animate-in fade-in slide-in-from-top-2">
+                                                        <div className={`p-4 border rounded-xl ${theme.failBox}`}>
+                                                            <p className={`text-sm font-bold uppercase mb-3 flex items-center gap-2 ${isKiosk ? 'text-red-400' : 'text-rose-700'}`}>
+                                                                <X size={16}/> Ação de Melhoria Obrigatória
+                                                            </p>
+                                                            <textarea 
+                                                                placeholder="Descreva a não conformidade encontrada..."
+                                                                value={resp?.observacoes}
+                                                                onChange={e => handleObs(p.id, e.target.value)}
+                                                                className={`w-full p-4 text-base rounded-lg outline-none resize-none h-24 border focus:ring-2 focus:ring-red-500/50 transition-all ${theme.textarea}`}
+                                                            />
+                                                        </div>
                                                     </div>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        <div className="flex justify-between items-center mt-8 px-2">
+                                            <Button 
+                                                variant="outline" 
+                                                onClick={() => setCurrentIndex(prev => Math.max(0, prev - 1))}
+                                                disabled={currentIndex === 0}
+                                                className={`h-14 px-6 text-lg font-bold rounded-xl transition-all ${isKiosk ? 'bg-slate-900 border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white' : ''} disabled:opacity-30`}
+                                            >
+                                                <ArrowLeft className="w-5 h-5 mr-2" /> Anterior
+                                            </Button>
+                                            
+                                            {currentIndex < perguntas.length - 1 ? (
+                                                <Button 
+                                                    onClick={() => setCurrentIndex(prev => prev + 1)}
+                                                    disabled={!resp?.resultado || (isFail && !resp?.observacoes)}
+                                                    className={`h-14 px-8 text-lg font-bold rounded-xl transition-all ${isKiosk ? 'bg-slate-800 border-slate-700 text-teal-400 hover:bg-slate-700 hover:text-teal-300' : 'bg-slate-200 text-slate-700 hover:bg-slate-300'} disabled:opacity-30 disabled:cursor-not-allowed`}
+                                                >
+                                                    Próxima <ArrowRight className="w-5 h-5 ml-2" />
+                                                </Button>
+                                            ) : (
+                                                <div className="flex items-center gap-4 animate-in fade-in slide-in-from-right-4">
+                                                    <span className="text-sm font-bold text-teal-500 hidden md:block">Ronda Completa!</span>
+                                                    <Button onClick={finalizar} disabled={saving || !resp?.resultado || (isFail && !resp?.observacoes)} className={`h-14 px-8 text-lg font-bold rounded-xl shadow-lg shadow-teal-500/20 ${isKiosk ? "bg-teal-600 hover:bg-teal-500 text-white" : "bg-blue-600 hover:bg-blue-700 text-white"} disabled:opacity-50`}>
+                                                        {saving ? <Loader2 className="w-6 h-6 animate-spin mr-2" /> : <Save className="w-6 h-6 mr-2" />} Terminar Auditoria
+                                                    </Button>
                                                 </div>
                                             )}
                                         </div>
                                     </div>
                                 )
-                            })
+                            })()
                         )}
                     </div>
                 )}
