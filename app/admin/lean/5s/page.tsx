@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, ArrowRight, Activity, TrendingUp, TrendingDown, Settings2, ClipboardCheck } from 'lucide-react';
+import { Loader2, ArrowRight, Activity, TrendingUp, TrendingDown, Settings2, ClipboardCheck, Trophy, Target, AlertTriangle } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getAuditoriasRecentes } from './actions';
 import Link from 'next/link';
 
@@ -46,6 +47,14 @@ export default function Dashboard5SPage() {
                     </Link>
                 </div>
             </header>
+
+            <Tabs defaultValue="historico" className="w-full">
+                <TabsList className="mb-6 grid w-full max-w-md grid-cols-2">
+                    <TabsTrigger value="historico" className="font-bold">Histórico de Rondas</TabsTrigger>
+                    <TabsTrigger value="kpis" className="font-bold text-amber-600 data-[state=active]:bg-amber-600 data-[state=active]:text-white">KPIs & Gincana</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="historico">
 
             {loading ? (
                 <div className="p-12 flex justify-center"><Loader2 className="w-8 h-8 text-blue-500 animate-spin" /></div>
@@ -104,6 +113,85 @@ export default function Dashboard5SPage() {
                     })}
                 </div>
             )}
+            </TabsContent>
+
+            <TabsContent value="kpis" className="space-y-6">
+                {auditorias.length > 0 ? (
+                    <>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <Card className="bg-gradient-to-br from-blue-600 to-blue-800 text-white border-0 shadow-lg">
+                                <CardContent className="p-6">
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <p className="text-blue-100 font-medium uppercase tracking-widest text-xs mb-1">Média Global 5S</p>
+                                            <h3 className="text-5xl font-black">{(auditorias.reduce((a, b) => a + Number(b.percentagem), 0) / auditorias.length).toFixed(0)}%</h3>
+                                        </div>
+                                        <Activity size={32} className="text-blue-300 opacity-50" />
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            <Card className="bg-gradient-to-br from-amber-400 to-amber-600 text-white border-0 shadow-lg relative overflow-hidden">
+                                <div className="absolute -right-4 -top-4 opacity-20"><Trophy size={100} /></div>
+                                <CardContent className="p-6 relative z-10">
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <p className="text-amber-100 font-medium uppercase tracking-widest text-xs mb-1">Campeão da Gincana</p>
+                                            <h3 className="text-2xl font-black leading-tight">
+                                                {auditorias.reduce((max, obj) => Number(obj.percentagem) > Number(max.percentagem) ? obj : max, auditorias[0])?.areas_fabrica?.nome_area}
+                                            </h3>
+                                            <p className="text-amber-100 font-bold mt-2 text-lg">{Math.max(...auditorias.map(a => Number(a.percentagem))).toFixed(0)}% Score</p>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            <Card className="bg-gradient-to-br from-rose-500 to-rose-700 text-white border-0 shadow-lg">
+                                <CardContent className="p-6">
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <p className="text-rose-100 font-medium uppercase tracking-widest text-xs mb-1">Maior Foco de Atenção</p>
+                                            <h3 className="text-2xl font-black leading-tight">
+                                                {auditorias.reduce((min, obj) => Number(obj.percentagem) < Number(min.percentagem) ? obj : min, auditorias[0])?.areas_fabrica?.nome_area}
+                                            </h3>
+                                            <p className="text-rose-100 font-bold mt-2 text-lg flex items-center gap-2">
+                                                <AlertTriangle size={16}/>
+                                                {Math.min(...auditorias.map(a => Number(a.percentagem))).toFixed(0)}% Score
+                                            </p>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </div>
+                        
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="text-lg font-bold text-slate-700 flex items-center gap-2">
+                                    <Target className="text-blue-500" size={20} /> Roadmap & Metas
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="space-y-4">
+                                    <div className="bg-slate-50 p-4 rounded-lg border border-slate-100 flex items-center justify-between">
+                                        <div>
+                                            <h4 className="font-bold text-slate-800">Meta Fabril: 85%</h4>
+                                            <p className="text-sm text-slate-500">Objetivo de conformidade global 5S até ao fim do trimestre.</p>
+                                        </div>
+                                        <div className="text-right">
+                                            <span className="text-2xl font-black text-blue-600">
+                                                {((auditorias.reduce((a, b) => a + Number(b.percentagem), 0) / auditorias.length) >= 85) ? 'Atingido!' : 'Em Curso'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </>
+                ) : (
+                    <div className="p-12 text-center text-slate-500">Sem dados suficientes para calcular KPIs.</div>
+                )}
+            </TabsContent>
+            </Tabs>
         </div>
     );
 }

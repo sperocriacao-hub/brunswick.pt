@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, ArrowLeft, Check, X, Minus, Camera, Save } from 'lucide-react';
 import { getAreasE_Estacoes, getChecklist, salvarRonda5S } from '../actions';
 import { getLeanFormData } from '@/app/operador/ideias/actions'; // para operadores
+import { SearchableSelect } from '@/components/ui/searchable-select';
 import { useRouter } from 'next/navigation';
 
 export default function ExecutarAuditoria5S() {
@@ -20,7 +21,9 @@ export default function ExecutarAuditoria5S() {
     // Selection State
     const [auditorId, setAuditorId] = useState("");
     const [areaId, setAreaId] = useState("");
+    const [linhaId, setLinhaId] = useState("");
     const [estacaoId, setEstacaoId] = useState("");
+    const [linhas, setLinhas] = useState<any[]>([]);
 
     // Execution State
     const [perguntas, setPerguntas] = useState<any[]>([]);
@@ -34,7 +37,10 @@ export default function ExecutarAuditoria5S() {
         setLoading(true);
         const reqA = await getAreasE_Estacoes();
         const reqO = await getLeanFormData();
-        if (reqA.success) setAreas(reqA.data || []);
+        if (reqA.success) {
+            setAreas(reqA.data || []);
+            setLinhas(reqA.linhas || []);
+        }
         if (reqO.success) setOperadores(reqO.operadores || []);
         setLoading(false);
     }
@@ -113,7 +119,11 @@ export default function ExecutarAuditoria5S() {
 
         if (res.success) {
             alert(`Auditoria Finalizada com Score de \${percent.toFixed(0)}%!`);
-            router.push('/admin/lean/5s');
+            if (window.location.pathname.includes('/operador')) {
+                router.push('/operador');
+            } else {
+                router.push('/admin/lean/5s');
+            }
         } else {
             alert("Erro a gravar: " + res.error);
             setSaving(false);
@@ -125,7 +135,12 @@ export default function ExecutarAuditoria5S() {
     }
 
     const areaSelecionada = areas.find(a => a.id === areaId);
-    const estacoesArea = areaSelecionada?.estacoes || [];
+    const isMontagem = areaSelecionada?.nome_area?.toLowerCase().includes('montagem');
+    let estacoesArea = areaSelecionada?.estacoes || [];
+
+    if (isMontagem && linhaId) {
+        estacoesArea = estacoesArea.filter((e: any) => e.linha_producao_id === linhaId);
+    }
 
     return (
         <div className="bg-slate-50 min-h-screen pb-32">
@@ -152,32 +167,47 @@ export default function ExecutarAuditoria5S() {
                         <h2 className="text-2xl font-black text-slate-800 text-center mb-8">Onde estamos a auditar?</h2>
                         
                         <div className="space-y-3">
-                            <label className="text-xs font-bold text-slate-500 uppercase">Seu Nome (Auditor)</label>
-                            <select value={auditorId} onChange={e => setAuditorId(e.target.value)} className="w-full h-14 bg-slate-50 border border-slate-200 rounded-xl px-4 text-lg font-medium outline-none focus:ring-2 focus:ring-blue-500">
-                                <option value="">Selecione...</option>
-                                {operadores.map(o => <option key={o.id} value={o.id}>{o.nome_operador}</option>)}
-                            </select>
+                            <label className="text-xs font-bold text-slate-500 uppercase">Seu Nome / Número (Auditor)</label>
+                            <SearchableSelect 
+                                value={auditorId} 
+                                onChange={setAuditorId}
+                                options={operadores.map(o => ({
+                                    value: o.id,
+                                    label: `\${o.numero_operador || 'S/N'} - \${o.nome_operador}`
+                                }))}
+                                placeholder="Pesquise pelo seu nome ou número mec."
+                            />
                         </div>
 
                         <div className="space-y-3">
                             <label className="text-xs font-bold text-slate-500 uppercase">Área Fabril</label>
-                            <select value={areaId} onChange={e => setAreaId(e.target.value)} className="w-full h-14 bg-slate-50 border border-slate-200 rounded-xl px-4 text-lg font-medium outline-none focus:ring-2 focus:ring-blue-500">
+                            <select value={areaId} onChange={e => { setAreaId(e.target.value); setLinhaId(""); setEstacaoId(""); }} className="w-full h-14 bg-slate-50 border border-slate-200 rounded-xl px-4 text-lg font-medium outline-none focus:ring-2 focus:ring-blue-500">
                                 <option value="">Selecione...</option>
                                 {areas.map(a => <option key={a.id} value={a.id}>{a.nome_area}</option>)}
                             </select>
                         </div>
 
-                        {areaId && estacoesArea.length > 0 && (
+                        {areaId && isMontagem && (
+                            <div className="space-y-3 animate-in fade-in">
+                                <label className="text-xs font-bold text-slate-500 uppercase">Linha de Produção</label>
+                                <select value={linhaId} onChange={e => { setLinhaId(e.target.value); setEstacaoId(""); }} className="w-full h-14 bg-slate-50 border border-slate-200 rounded-xl px-4 text-lg font-medium outline-none focus:ring-2 focus:ring-blue-500">
+                                    <option value="">Selecione a Linha...</option>
+                                    {linhas.map((l: any) => <option key={l.id} value={l.id}>Linha {l.letra_linha}</option>)}
+                                </select>
+                            </div>
+                        )}
+
+                        {areaId && (!isMontagem || linhaId) && estacoesArea.length > 0 && (
                             <div className="space-y-3 animate-in fade-in">
                                 <label className="text-xs font-bold text-slate-500 uppercase">Estação (Opcional)</label>
                                 <select value={estacaoId} onChange={e => setEstacaoId(e.target.value)} className="w-full h-14 bg-slate-50 border border-slate-200 rounded-xl px-4 text-lg font-medium outline-none focus:ring-2 focus:ring-blue-500">
-                                    <option value="">Geral da Área</option>
+                                    <option value="">Geral {isMontagem ? 'da Linha' : 'da Área'}</option>
                                     {estacoesArea.map((e: any) => <option key={e.id} value={e.id}>{e.nome_estacao}</option>)}
                                 </select>
                             </div>
                         )}
 
-                        <Button disabled={!auditorId || !areaId || loading} onClick={startAudit} className="w-full h-16 text-lg bg-blue-600 hover:bg-blue-700 font-black tracking-wide mt-8">
+                        <Button disabled={!auditorId || !areaId || (isMontagem && !linhaId) || loading} onClick={startAudit} className="w-full h-16 text-lg bg-blue-600 hover:bg-blue-700 font-black tracking-wide mt-8">
                             {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : "Carregar Checklist"}
                         </Button>
                     </div>

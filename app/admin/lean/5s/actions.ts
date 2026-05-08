@@ -10,17 +10,22 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey);
 export async function getAreasE_Estacoes() {
     noStore();
     try {
-        const { data, error } = await supabase
+        const { data: areas, error } = await supabase
             .from('areas_fabrica')
             .select(`
                 id, 
                 nome_area,
-                estacoes (id, nome_estacao)
+                estacoes (id, nome_estacao, linha_producao_id)
             `)
             .order('nome_area');
 
-        if (error) throw error;
-        return { success: true, data };
+        const { data: linhas, error: errLinhas } = await supabase
+            .from('linhas_producao')
+            .select('id, letra_linha')
+            .order('letra_linha');
+
+        if (error || errLinhas) throw error || errLinhas;
+        return { success: true, data: areas, linhas };
     } catch (e: any) {
         return { success: false, error: e.message };
     }

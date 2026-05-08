@@ -508,6 +508,14 @@ export default function InteractiveTabletPage() {
                             <QrCode size={20} className="text-indigo-400" />
                             Scanner B.O.M.
                         </Button>
+                        <Button
+                            variant="secondary"
+                            onClick={() => router.push('/operador/5s')}
+                            className="h-12 bg-teal-900 hover:bg-teal-800 text-teal-100 border border-teal-700 font-bold gap-2 hidden md:flex"
+                        >
+                            <CheckSquare size={20} className="text-teal-400" />
+                            Ronda 5S
+                        </Button>
 
                         <div className={`w-64 transition-opacity`}>
                             <SearchableSelect
