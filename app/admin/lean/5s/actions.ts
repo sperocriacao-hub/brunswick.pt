@@ -138,3 +138,26 @@ export async function getAuditoriasRecentes() {
         return { success: false, error: e.message };
     }
 }
+
+export async function getAuditoriaDetalhes(auditoriaId: string) {
+    noStore();
+    try {
+        const { data, error } = await supabase
+            .from('lean_5s_resultados')
+            .select(`
+                id,
+                resultado,
+                observacoes,
+                lean_5s_perguntas (
+                    pergunta,
+                    categoria
+                )
+            `)
+            .eq('auditoria_id', auditoriaId);
+
+        if (error) throw error;
+        return { success: true, data };
+    } catch (e: any) {
+        return { success: false, error: e.message };
+    }
+}

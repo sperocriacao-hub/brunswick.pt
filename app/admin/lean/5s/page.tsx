@@ -3,14 +3,20 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, ArrowRight, Activity, TrendingUp, TrendingDown, Settings2, ClipboardCheck, Trophy, Target, AlertTriangle, Crosshair } from 'lucide-react';
+import { Loader2, ArrowRight, Activity, TrendingUp, TrendingDown, Settings2, ClipboardCheck, Trophy, Target, AlertTriangle, Crosshair, Eye, CheckCircle2, XCircle, MinusCircle } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { getAuditoriasRecentes } from './actions';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { getAuditoriasRecentes, getAuditoriaDetalhes } from './actions';
 import Link from 'next/link';
 
 export default function Dashboard5SPage() {
     const [auditorias, setAuditorias] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [selectedAuditoria, setSelectedAuditoria] = useState<any>(null);
+    const [auditoriaDetalhes, setAuditoriaDetalhes] = useState<any[]>([]);
+    const [loadingDetalhes, setLoadingDetalhes] = useState(false);
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
 
     useEffect(() => {
         carregarDados();
@@ -23,6 +29,17 @@ export default function Dashboard5SPage() {
             setAuditorias(res.data || []);
         }
         setLoading(false);
+    }
+
+    async function abrirDetalhes(auditoria: any) {
+        setSelectedAuditoria(auditoria);
+        setIsDialogOpen(true);
+        setLoadingDetalhes(true);
+        const res = await getAuditoriaDetalhes(auditoria.id);
+        if (res.success) {
+            setAuditoriaDetalhes(res.data || []);
+        }
+        setLoadingDetalhes(false);
     }
 
     return (
@@ -68,50 +85,47 @@ export default function Dashboard5SPage() {
                     </Link>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                    {auditorias.map(aud => {
-                        const score = Number(aud.percentagem);
-                        let colorClass = "border-emerald-200 bg-emerald-50 text-emerald-700";
-                        let icon = <TrendingUp className="text-emerald-500" size={24} />;
-                        
-                        if (score < 80 && score >= 60) {
-                            colorClass = "border-amber-200 bg-amber-50 text-amber-700";
-                            icon = <TrendingUp className="text-amber-500" size={24} />;
-                        } else if (score < 60) {
-                            colorClass = "border-rose-200 bg-rose-50 text-rose-700";
-                            icon = <TrendingDown className="text-rose-500" size={24} />;
-                        }
+                <Card className="border-0 shadow-sm overflow-hidden">
+                    <Table>
+                        <TableHeader className="bg-slate-50 border-b">
+                            <TableRow>
+                                <TableHead className="font-bold text-slate-500 uppercase text-xs h-12">Auditor</TableHead>
+                                <TableHead className="font-bold text-slate-500 uppercase text-xs">Área</TableHead>
+                                <TableHead className="font-bold text-slate-500 uppercase text-xs">Estação</TableHead>
+                                <TableHead className="font-bold text-slate-500 uppercase text-xs">Data</TableHead>
+                                <TableHead className="font-bold text-slate-500 uppercase text-xs text-center">Score / Média</TableHead>
+                                <TableHead className="w-[80px]"></TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {auditorias.map(aud => {
+                                const score = Number(aud.percentagem);
+                                let colorClass = "bg-emerald-100 text-emerald-800 border-emerald-200";
+                                if (score < 80 && score >= 60) colorClass = "bg-amber-100 text-amber-800 border-amber-200";
+                                else if (score < 60) colorClass = "bg-rose-100 text-rose-800 border-rose-200";
 
-                        return (
-                            <Card key={aud.id} className="overflow-hidden hover:shadow-md transition-shadow">
-                                <div className={`h-2 w-full \${colorClass.split(' ')[1]}`}></div>
-                                <CardContent className="p-5">
-                                    <div className="flex justify-between items-start mb-4">
-                                        <div>
-                                            <h3 className="font-bold text-slate-800 text-lg">{aud.areas_fabrica?.nome_area}</h3>
-                                            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-0.5">
-                                                {aud.estacoes?.nome_estacao || 'Avaliação Geral da Área'}
-                                            </p>
-                                        </div>
-                                        {icon}
-                                    </div>
-                                    
-                                    <div className="flex items-end gap-2 mb-4">
-                                        <span className={`text-4xl font-black tracking-tighter \${colorClass.split(' ')[2]}`}>
-                                            {score.toFixed(0)}%
-                                        </span>
-                                        <span className="text-sm text-slate-400 font-medium mb-1">Score 5S</span>
-                                    </div>
-
-                                    <div className="border-t border-slate-100 pt-4 mt-2 flex justify-between items-center text-xs text-slate-500">
-                                        <span>Auditor: <strong className="text-slate-700">{aud.operadores?.nome_operador || 'Sistema'}</strong></span>
-                                        <span>{new Date(aud.data_auditoria).toLocaleDateString()}</span>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        )
-                    })}
-                </div>
+                                return (
+                                    <TableRow key={aud.id} className="hover:bg-slate-50/80 cursor-pointer transition-colors border-b" onClick={() => abrirDetalhes(aud)}>
+                                        <TableCell className="font-medium text-slate-700 py-4">{aud.operadores?.nome_operador || 'Sistema'}</TableCell>
+                                        <TableCell className="font-bold text-slate-800">{aud.areas_fabrica?.nome_area}</TableCell>
+                                        <TableCell className="text-slate-500 uppercase text-xs tracking-widest font-bold">{aud.estacoes?.nome_estacao || 'Geral'}</TableCell>
+                                        <TableCell className="text-slate-500 text-sm">{new Date(aud.data_auditoria).toLocaleDateString()} {new Date(aud.data_auditoria).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</TableCell>
+                                        <TableCell className="text-center">
+                                            <span className={`px-4 py-1.5 rounded-full font-black text-xs border ${colorClass}`}>
+                                                {score.toFixed(0)}%
+                                            </span>
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                            <Button variant="ghost" size="icon" className="text-blue-600 hover:text-blue-800 hover:bg-blue-50">
+                                                <Eye size={18} />
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                )
+                            })}
+                        </TableBody>
+                    </Table>
+                </Card>
             )}
             </TabsContent>
 
@@ -192,6 +206,81 @@ export default function Dashboard5SPage() {
                 )}
             </TabsContent>
             </Tabs>
+
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto p-0 border-0 shadow-2xl rounded-2xl">
+                    <DialogHeader className="p-6 md:p-8 border-b bg-white sticky top-0 z-10">
+                        <DialogTitle className="text-2xl font-black flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+                            <span className="text-slate-800 tracking-tight">Relatório de Auditoria 5S</span>
+                            <span className={`text-lg px-5 py-1.5 rounded-full border \${
+                                selectedAuditoria && Number(selectedAuditoria.percentagem) >= 80 ? 'bg-emerald-100 text-emerald-800 border-emerald-200' :
+                                selectedAuditoria && Number(selectedAuditoria.percentagem) >= 60 ? 'bg-amber-100 text-amber-800 border-amber-200' :
+                                'bg-rose-100 text-rose-800 border-rose-200'
+                            }`}>
+                                Score Global: {selectedAuditoria ? Number(selectedAuditoria.percentagem).toFixed(0) : 0}%
+                            </span>
+                        </DialogTitle>
+                    </DialogHeader>
+                    
+                    <div className="p-6 md:p-8 bg-slate-50/50">
+                        <div className="bg-white p-6 rounded-2xl border shadow-sm mb-8 grid grid-cols-2 md:grid-cols-4 gap-6">
+                            <div>
+                                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Auditor</p>
+                                <p className="font-bold text-slate-800 text-lg">{selectedAuditoria?.operadores?.nome_operador || 'N/A'}</p>
+                            </div>
+                            <div>
+                                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Área Fabril</p>
+                                <p className="font-bold text-slate-800 text-lg">{selectedAuditoria?.areas_fabrica?.nome_area || 'N/A'}</p>
+                            </div>
+                            <div>
+                                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Estação</p>
+                                <p className="font-bold text-slate-800 text-lg">{selectedAuditoria?.estacoes?.nome_estacao || 'Geral'}</p>
+                            </div>
+                            <div>
+                                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Data / Hora</p>
+                                <p className="font-bold text-slate-800 text-lg">{selectedAuditoria ? new Date(selectedAuditoria.data_auditoria).toLocaleString([], {dateStyle: 'short', timeStyle: 'short'}) : ''}</p>
+                            </div>
+                        </div>
+
+                        <div className="space-y-6">
+                            <h3 className="font-black text-xl text-slate-800 mb-4">Detalhamento por 5S</h3>
+                            {loadingDetalhes ? (
+                                <div className="flex justify-center p-12"><Loader2 className="w-10 h-10 text-blue-500 animate-spin" /></div>
+                            ) : (
+                                ['1S - Utilização', '2S - Organização', '3S - Limpeza', '4S - Padronização', '5S - Disciplina'].map((cat) => {
+                                    const itensCat = auditoriaDetalhes.filter(d => d.lean_5s_perguntas?.categoria === cat);
+                                    if (itensCat.length === 0) return null;
+                                    
+                                    return (
+                                        <div key={cat} className="bg-white border rounded-2xl overflow-hidden shadow-sm">
+                                            <div className="bg-slate-100 px-6 py-3 font-black text-slate-800 tracking-tight border-b">{cat}</div>
+                                            <div className="divide-y">
+                                                {itensCat.map((item, idx) => (
+                                                    <div key={item.id} className="p-6 hover:bg-slate-50/50 transition-colors flex flex-col md:flex-row gap-6 items-start md:items-center">
+                                                        <div className="flex-1">
+                                                            <p className="font-bold text-slate-700 text-base leading-snug">{idx + 1}. {item.lean_5s_perguntas?.pergunta}</p>
+                                                            {item.observacoes && (
+                                                                <div className="mt-3 p-4 bg-rose-50/50 text-rose-800 text-sm rounded-xl border border-rose-100 italic">
+                                                                    <span className="font-black uppercase tracking-widest not-italic text-xs mr-2">Obrigatório / Ação:</span> {item.observacoes}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        <div className="shrink-0 w-32 flex md:justify-end">
+                                                            {item.resultado === 'Pass' && <span className="flex items-center text-emerald-700 font-bold bg-emerald-100 px-4 py-1.5 rounded-full text-sm border border-emerald-200"><CheckCircle2 className="w-4 h-4 mr-2"/> OK</span>}
+                                                            {item.resultado === 'Fail' && <span className="flex items-center text-rose-700 font-bold bg-rose-100 px-4 py-1.5 rounded-full text-sm border border-rose-200"><XCircle className="w-4 h-4 mr-2"/> FALHA</span>}
+                                                            {item.resultado === 'N/A' && <span className="flex items-center text-slate-600 font-bold bg-slate-100 px-4 py-1.5 rounded-full text-sm border border-slate-200"><MinusCircle className="w-4 h-4 mr-2"/> N/A</span>}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )
+                                })
+                            )}
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
