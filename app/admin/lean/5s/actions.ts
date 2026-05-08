@@ -52,6 +52,21 @@ export async function getChecklist(areaId: string, linhaId?: string, estacaoId?:
     }
 }
 
+export async function getOperadores() {
+    noStore();
+    try {
+        const { data, error } = await supabase
+            .from('operadores')
+            .select('id, nome_operador, numero_operador')
+            .order('nome_operador', { ascending: true });
+
+        if (error) throw error;
+        return { success: true, data };
+    } catch (e: any) {
+        return { success: false, error: e.message };
+    }
+}
+
 export async function salvarRonda5S(payload: any) {
     try {
         // 1. Criar Auditoria Master

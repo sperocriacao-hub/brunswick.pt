@@ -40,9 +40,9 @@ export default function Dashboard5SPage() {
                             <Settings2 className="w-5 h-5 mr-2" /> Motor de Checklists
                         </Button>
                     </Link>
-                    <Link href="/admin/lean/5s/executar">
-                        <Button className="bg-blue-600 hover:bg-blue-700 font-bold shadow-lg shadow-blue-200">
-                            <ClipboardCheck className="w-5 h-5 mr-2" /> Iniciar Ronda 5S
+                    <Link href="/operador/5s" target="_blank">
+                        <Button className="bg-teal-600 hover:bg-teal-700 font-bold shadow-lg shadow-teal-200">
+                            <Crosshair className="w-5 h-5 mr-2" /> Abrir Quiosque 5S
                         </Button>
                     </Link>
                 </div>
@@ -63,8 +63,8 @@ export default function Dashboard5SPage() {
                     <ClipboardCheck className="w-16 h-16 text-slate-300 mb-4" />
                     <h3 className="text-xl font-bold text-slate-700 mb-2">Fábrica Sem Avaliações</h3>
                     <p>Inicie a primeira ronda na fábrica para mapear a situação de referência (Baserate).</p>
-                    <Link href="/admin/lean/5s/executar" className="mt-6">
-                        <Button className="bg-blue-600 hover:bg-blue-700">Começar Agora</Button>
+                    <Link href="/operador/5s" target="_blank" className="mt-6">
+                        <Button className="bg-teal-600 hover:bg-teal-700">Abrir Quiosque 5S</Button>
                     </Link>
                 </div>
             ) : (

@@ -3,8 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Loader2, ArrowLeft, Check, X, Minus, Camera, Save } from 'lucide-react';
-import { getAreasE_Estacoes, getChecklist, salvarRonda5S } from '../actions';
-import { getLeanFormData } from '@/app/operador/ideias/actions'; // para operadores
+import { getAreasE_Estacoes, getChecklist, salvarRonda5S, getOperadores } from '../actions';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import { useRouter } from 'next/navigation';
 
@@ -36,12 +35,12 @@ export default function ExecutarAuditoria5S() {
     async function carregarConfig() {
         setLoading(true);
         const reqA = await getAreasE_Estacoes();
-        const reqO = await getLeanFormData();
+        const reqO = await getOperadores();
         if (reqA.success) {
             setAreas(reqA.data || []);
             setLinhas(reqA.linhas || []);
         }
-        if (reqO.success) setOperadores(reqO.operadores || []);
+        if (reqO.success) setOperadores(reqO.data || []);
         setLoading(false);
     }
 
@@ -120,7 +119,7 @@ export default function ExecutarAuditoria5S() {
         if (res.success) {
             alert(`Auditoria Finalizada com Score de \${percent.toFixed(0)}%!`);
             if (window.location.pathname.includes('/operador')) {
-                router.push('/operador');
+                router.push('/operador/5s');
             } else {
                 router.push('/admin/lean/5s');
             }
@@ -192,7 +191,7 @@ export default function ExecutarAuditoria5S() {
                                 onChange={setAuditorId}
                                 options={operadores.map(o => ({
                                     value: o.id,
-                                    label: `\${o.numero_operador || 'S/N'} - \${o.nome_operador}`
+                                    label: `\${o.numero_operador} - \${o.nome_operador}`
                                 }))}
                                 placeholder="Pesquise pelo seu nome ou número mec."
                             />
