@@ -69,3 +69,63 @@ export async function getAreas() {
         return { success: false, error: e.message };
     }
 }
+
+export async function getCronograma5S() {
+    noStore();
+    try {
+        const { data, error } = await supabase
+            .from('lean_5s_cronograma')
+            .select(`
+                *,
+                operadores (nome_operador),
+                areas_fabrica (nome_area),
+                linhas_producao (letra_linha),
+                estacoes (nome_estacao)
+            `)
+            .order('data_prevista', { ascending: true });
+        if (error) throw error;
+        return { success: true, data };
+    } catch (e: any) {
+        return { success: false, error: e.message };
+    }
+}
+
+export async function criarAgendamento5S(payload: any) {
+    try {
+        const { error } = await supabase.from('lean_5s_cronograma').insert([payload]);
+        if (error) throw error;
+        return { success: true };
+    } catch (e: any) {
+        return { success: false, error: e.message };
+    }
+}
+
+export async function updateAgendamento5S(id: string, updates: any) {
+    try {
+        const { error } = await supabase.from('lean_5s_cronograma').update(updates).eq('id', id);
+        if (error) throw error;
+        return { success: true };
+    } catch (e: any) {
+        return { success: false, error: e.message };
+    }
+}
+
+export async function deleteAgendamento5S(id: string) {
+    try {
+        const { error } = await supabase.from('lean_5s_cronograma').delete().eq('id', id);
+        if (error) throw error;
+        return { success: true };
+    } catch (e: any) {
+        return { success: false, error: e.message };
+    }
+}
+
+export async function savePlanoAutomatico5S(agendamentos: any[]) {
+    try {
+        const { error } = await supabase.from('lean_5s_cronograma').insert(agendamentos);
+        if (error) throw error;
+        return { success: true };
+    } catch (e: any) {
+        return { success: false, error: e.message };
+    }
+}

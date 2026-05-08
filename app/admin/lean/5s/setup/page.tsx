@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2, Plus, Trash2, CheckCircle2, Settings2, Target, Search, CalendarDays, Edit, Wand2 } from 'lucide-react';
-import { get5SPerguntas, criarPergunta, deletePergunta } from './actions';
+import { get5SPerguntas, criarPergunta, deletePergunta, getCronograma5S, criarAgendamento5S, updateAgendamento5S, deleteAgendamento5S, savePlanoAutomatico5S } from './actions';
 import { getAreasE_Estacoes } from '../actions';
 import { getLeanFormData } from '@/app/operador/ideias/actions';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -59,6 +59,7 @@ export default function Setup5SPage() {
         const reqP = await get5SPerguntas();
         const reqA = await getAreasE_Estacoes();
         const reqO = await getLeanFormData();
+        const reqC = await getCronograma5S();
         
         if (reqP.success) setPerguntas(reqP.data || []);
         if (reqA.success) {
@@ -66,14 +67,6 @@ export default function Setup5SPage() {
             setLinhas(reqA.linhas || []);
         }
         if (reqO.success && reqO.operadores) {
-            // Filtrar liderancas: Manager, Supervisor, Eng, Lider, Coordenador
-            const lideres = reqO.operadores.filter((o: any) => {
-                const func = (o.funcao || '').toLowerCase();
-                return func.includes('manager') || func.includes('supervisor') || func.includes('engenheir') || func.includes('coordenador') || func.includes('gestor') || func.includes('lider');
-            });
-            setOperadoresLideranca(lideres);
-        }
-        
         // Mock schedule loading
         setMockAgendamentos([
             { id: 1, auditor: 'Engenheiro Lean', area: 'Montagem Final', data: '2026-05-10' },
@@ -110,7 +103,7 @@ export default function Setup5SPage() {
         carregarDados();
     };
 
-    function gerarPlanoAutomatico() {
+    async function gerarPlanoAutomatico() {
         if (operadoresLideranca.length === 0 || areas.length === 0) {
             alert("Não há auditores ou áreas suficientes para gerar o plano.");
             return;
@@ -125,10 +118,10 @@ export default function Setup5SPage() {
         areas.forEach(a => {
             if (a.estacoes && a.estacoes.length > 0) {
                 a.estacoes.forEach((e: any) => {
-                    todosLocais.push({ area: a.nome_area, estacao: e.nome_estacao, nome: `${a.nome_area} > ${e.nome_estacao}` });
+                    todosLocais.push({ area_id: a.id, estacao_id: e.id });
                 });
             } else {
-                todosLocais.push({ area: a.nome_area, estacao: null, nome: a.nome_area });
+                todosLocais.push({ area_id: a.id, estacao_id: null });
             }
         });
 
@@ -142,40 +135,49 @@ export default function Setup5SPage() {
             dataSorteio.setDate(dataSorteio.getDate() + (index % 25) + 1);
 
             novoPlano.push({
-                id: Math.random(),
                 auditor_id: op.id,
-                auditor: op.nome_operador,
-                area: local.nome,
-                data: dataSorteio.toISOString().split('T')[0]
+                area_id: local.area_id,
+                estacao_id: local.estacao_id,
+                data_prevista: dataSorteio.toISOString().split('T')[0]
             });
         });
 
-        setMockAgendamentos(novoPlano);
-        alert(`Plano automático gerado com sucesso! Foram planeadas ${novoPlano.length} auditorias.`);
+        setLoading(true);
+        await savePlanoAutomatico5S(novoPlano);
+        await carregarDados();
+        alert(`Plano automático salvo na Base de Dados com sucesso! Foram planeadas ${novoPlano.length} auditorias.`);
     }
 
     function openEditCron(ag: any) {
         setSelectedCron(ag);
         setEditCronAuditor(ag.auditor_id || "");
-        setEditCronData(ag.data || "");
+        setEditCronData(ag.data_prevista || "");
         setIsEditCronOpen(true);
     }
 
-    function saveEditCron() {
+    async function saveEditCron() {
         if (!selectedCron) return;
-        const op = operadoresLideranca.find(o => o.id === editCronAuditor);
-        setMockAgendamentos(mockAgendamentos.map(m => m.id === selectedCron.id ? {
-            ...m,
+        setLoading(true);
+        await updateAgendamento5S(selectedCron.id, {
             auditor_id: editCronAuditor,
-            auditor: op ? op.nome_operador : m.auditor,
-            data: editCronData
-        } : m));
+            data_prevista: editCronData
+        });
+        await carregarDados();
         setIsEditCronOpen(false);
     }
 
-    function deleteCron(id: number) {
-        if (!confirm("Tem a certeza que deseja excluir este agendamento?")) return;
-        setMockAgendamentos(mockAgendamentos.filter(m => m.id !== id));
+    async function deleteCron(id: string) {
+        if (!confirm("Tem a certeza que deseja excluir este agendamento da Base de Dados?")) return;
+        setLoading(true);
+        await deleteAgendamento5S(id);
+        await carregarDados();
+    }
+
+    function getStatusBadge(ag: any) {
+        if (ag.data_realizada) return <span className="bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full text-[10px] font-bold uppercase">Feita</span>;
+        const isAtrasado = new Date(ag.data_prevista) < new Date(new Date().toDateString());
+        if (isAtrasado) return <span className="bg-rose-100 text-rose-700 px-2 py-1 rounded-full text-[10px] font-bold uppercase">Atrasado</span>;
+        return <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-[10px] font-bold uppercase">Por Fazer</span>;
     }
 
     const filteredPerguntas = perguntas.filter(p => 
@@ -424,13 +426,17 @@ export default function Setup5SPage() {
                                 />
                             </div>
                             <Button 
-                                onClick={() => {
+                                onClick={async () => {
+                                    setLoading(true);
+                                    await criarAgendamento5S({ 
+                                        auditor_id: cronogramaAuditor, 
+                                        area_id: cronogramaArea, 
+                                        linha_id: cronogramaLinha || null, 
+                                        estacao_id: cronogramaEstacao || null, 
+                                        data_prevista: cronogramaData 
+                                    });
+                                    await carregarDados();
                                     alert("Agendamento submetido!");
-                                    const areaNome = areas.find(a => a.id === cronogramaArea)?.nome_area;
-                                    const estacaoNome = cronogramaEstacao ? areas.find(a => a.id === cronogramaArea)?.estacoes?.find((e: any) => e.id === cronogramaEstacao)?.nome_estacao : '';
-                                    const localNome = estacaoNome ? `${areaNome} > ${estacaoNome}` : areaNome;
-                                    
-                                    setMockAgendamentos([...mockAgendamentos, { id: Math.random(), auditor_id: cronogramaAuditor, auditor: operadoresLideranca.find(o => o.id === cronogramaAuditor)?.nome_operador, area: localNome, data: cronogramaData }]);
                                 }} 
                                 disabled={!cronogramaAuditor || !cronogramaArea || !cronogramaData} 
                                 className="w-full bg-blue-600 hover:bg-blue-700 font-bold"
@@ -449,27 +455,36 @@ export default function Setup5SPage() {
                         </div>
                         <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 overflow-x-auto">
                             <div className="min-w-[700px]">
-                                <div className="grid grid-cols-6 gap-4 mb-4 border-b pb-2 text-sm font-bold text-slate-500 uppercase tracking-wider">
+                                <div className="grid grid-cols-7 gap-4 mb-4 border-b pb-2 text-sm font-bold text-slate-500 uppercase tracking-wider">
                                     <div className="col-span-2">Auditor Designado</div>
                                     <div className="col-span-2">Área (Gemba)</div>
-                                    <div>Milestone (Data)</div>
+                                    <div>Status</div>
+                                    <div>Data Prevista</div>
                                     <div className="text-right">Acões</div>
                                 </div>
                                 
                                 <div className="space-y-3">
                                     {mockAgendamentos.length === 0 ? (
                                         <div className="text-center text-slate-500 py-8">Nenhum agendamento registado. Crie manualmente ou utilize o Sorteio Automático.</div>
-                                    ) : mockAgendamentos.sort((a,b) => new Date(a.data).getTime() - new Date(b.data).getTime()).map(ag => (
-                                        <div key={ag.id} className="grid grid-cols-6 gap-4 items-center bg-slate-50 border border-slate-100 p-3 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors">
+                                    ) : mockAgendamentos.sort((a,b) => new Date(a.data_prevista).getTime() - new Date(b.data_prevista).getTime()).map(ag => {
+                                        const areaName = ag.areas_fabrica?.nome_area || 'Desconhecida';
+                                        const estacaoName = ag.estacoes?.nome_estacao ? ` > ${ag.estacoes.nome_estacao}` : '';
+                                        const auditorNome = ag.operadores?.nome_operador || 'NA';
+
+                                        return (
+                                        <div key={ag.id} className="grid grid-cols-7 gap-4 items-center bg-slate-50 border border-slate-100 p-3 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors">
                                             <div className="col-span-2 font-bold text-slate-800 flex items-center gap-2">
                                                 <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs shrink-0">
-                                                    {ag.auditor?.substring(0, 2).toUpperCase() || 'NA'}
+                                                    {auditorNome.substring(0, 2).toUpperCase()}
                                                 </div>
-                                                <span className="truncate">{ag.auditor}</span>
+                                                <span className="truncate">{auditorNome}</span>
                                             </div>
-                                            <div className="col-span-2 text-slate-600 font-medium truncate">📍 {ag.area}</div>
+                                            <div className="col-span-2 text-slate-600 font-medium truncate">📍 {areaName}{estacaoName}</div>
+                                            <div>
+                                                {getStatusBadge(ag)}
+                                            </div>
                                             <div className="font-bold text-blue-600 flex items-center gap-2">
-                                                <CalendarDays size={16}/> {new Date(ag.data).toLocaleDateString()}
+                                                <CalendarDays size={16}/> {new Date(ag.data_prevista).toLocaleDateString()}
                                             </div>
                                             <div className="flex justify-end gap-1">
                                                 <Button variant="ghost" size="icon" onClick={() => openEditCron(ag)} className="text-slate-400 hover:text-blue-600 hover:bg-blue-100 h-8 w-8">
@@ -480,7 +495,7 @@ export default function Setup5SPage() {
                                                 </Button>
                                             </div>
                                         </div>
-                                    ))}
+                                    )})}
                                 </div>
 
                             </div>
@@ -499,7 +514,9 @@ export default function Setup5SPage() {
                         <div className="space-y-4 py-4">
                             <div className="space-y-2">
                                 <label className="text-sm font-bold text-slate-700">Área (Gemba)</label>
-                                <p className="text-sm font-medium p-3 bg-slate-50 rounded-md border text-slate-600">{selectedCron.area}</p>
+                                <p className="text-sm font-medium p-3 bg-slate-50 rounded-md border text-slate-600">
+                                    {selectedCron.areas_fabrica?.nome_area} {selectedCron.estacoes?.nome_estacao ? ` > ${selectedCron.estacoes.nome_estacao}` : ''}
+                                </p>
                             </div>
                             <div className="space-y-2">
                                 <label className="text-sm font-bold text-slate-700">Auditor Designado</label>
