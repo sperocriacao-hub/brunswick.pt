@@ -15,10 +15,9 @@ export default function QuiosqueLeanHub() {
                 </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto w-full">
-                
+            <div className="flex justify-center max-w-4xl mx-auto w-full">
                 {/* 1. Ronda 5S */}
-                <Link href="/operador/5s/ronda" className="group relative bg-slate-900 border-2 border-slate-800 hover:border-teal-500 rounded-3xl p-8 transition-all hover:-translate-y-2 hover:shadow-[0_20px_50px_rgba(20,184,166,0.15)] flex flex-col items-center text-center">
+                <Link href="/operador/5s/ronda" className="group relative bg-slate-900 border-2 border-slate-800 hover:border-teal-500 rounded-3xl p-8 transition-all hover:-translate-y-2 hover:shadow-[0_20px_50px_rgba(20,184,166,0.15)] flex flex-col items-center text-center max-w-md w-full">
                     <div className="w-24 h-24 bg-slate-800 group-hover:bg-teal-950 rounded-full flex items-center justify-center mb-6 transition-all">
                         <Activity className="w-12 h-12 text-teal-500 group-hover:scale-110 transition-transform" />
                     </div>
@@ -29,16 +28,6 @@ export default function QuiosqueLeanHub() {
                         <ArrowRight className="text-white w-5 h-5" />
                     </div>
                 </Link>
-
-                {/* Placeholder para futuras ferramentas Lean */}
-                <div className="group relative bg-slate-900/50 border-2 border-slate-800/50 border-dashed rounded-3xl p-8 flex flex-col items-center text-center justify-center opacity-60 cursor-not-allowed">
-                    <div className="w-24 h-24 bg-slate-800/50 rounded-full flex items-center justify-center mb-6">
-                        <Crosshair className="w-12 h-12 text-slate-600" />
-                    </div>
-                    <h2 className="text-xl font-black text-slate-500 mb-3">Nova Ferramenta (Brevemente)</h2>
-                    <p className="text-slate-500 text-sm">Este terminal será atualizado no futuro com novos módulos do ecossistema Lean (Ex: A3, Kamishibai, etc).</p>
-                </div>
-
             </div>
         </div>
     );

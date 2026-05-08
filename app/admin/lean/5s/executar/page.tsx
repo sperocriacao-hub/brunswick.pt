@@ -144,20 +144,20 @@ export default function ExecutarAuditoria5S() {
     const isKiosk = typeof window !== 'undefined' && window.location.pathname.includes('/operador');
 
     const theme = {
-        bgMain: isKiosk ? 'bg-[#0a0a0a] text-slate-200' : 'bg-slate-50 text-slate-800',
+        bgMain: isKiosk ? 'bg-slate-950 text-slate-200' : 'bg-slate-50 text-slate-800',
         header: isKiosk ? 'bg-slate-900 border-slate-800 text-white shadow-xl' : 'bg-white border-slate-200 text-slate-800 shadow-sm',
         title: isKiosk ? 'text-white' : 'text-slate-800',
-        subtitle: isKiosk ? 'text-slate-400' : 'text-slate-500',
-        card: isKiosk ? 'bg-slate-900 border-slate-700 shadow-2xl' : 'bg-white border-slate-200 shadow-sm',
+        subtitle: isKiosk ? 'text-teal-400' : 'text-slate-500',
+        card: isKiosk ? 'bg-slate-900 border-slate-800 shadow-2xl' : 'bg-white border-slate-200 shadow-sm',
         cardInner: isKiosk ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200',
-        input: isKiosk ? 'bg-slate-950 border-slate-700 text-white focus:border-blue-500' : 'bg-slate-50 border-slate-200 text-slate-800 focus:ring-blue-500',
+        input: isKiosk ? 'bg-slate-950 border-slate-800 text-white focus:border-teal-500' : 'bg-slate-50 border-slate-200 text-slate-800 focus:ring-blue-500',
         label: isKiosk ? 'text-slate-400' : 'text-slate-500',
         buttonBase: isKiosk ? 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700 hover:text-white' : 'bg-white border-slate-100 text-slate-400 hover:bg-slate-50',
-        buttonPass: isKiosk ? 'bg-green-950/40 border-green-800 text-green-400' : 'bg-emerald-50 border-emerald-500 text-emerald-700',
-        buttonFail: isKiosk ? 'bg-red-950/40 border-red-800 text-red-400' : 'bg-rose-50 border-rose-500 text-rose-700',
+        buttonPass: isKiosk ? 'bg-teal-950/40 border-teal-800 text-teal-400' : 'bg-emerald-50 border-emerald-500 text-emerald-700',
+        buttonFail: isKiosk ? 'bg-rose-950/40 border-rose-800 text-rose-400' : 'bg-rose-50 border-rose-500 text-rose-700',
         buttonNA: isKiosk ? 'bg-slate-800 border-slate-500 text-slate-300' : 'bg-slate-100 border-slate-400 text-slate-700',
-        failBox: isKiosk ? 'bg-red-950/20 border-red-900/50' : 'bg-rose-50 border-rose-100',
-        textarea: isKiosk ? 'bg-slate-950 border-red-900/50 text-white' : 'bg-white border-rose-200 text-slate-800'
+        failBox: isKiosk ? 'bg-rose-950/20 border-rose-900/50' : 'bg-rose-50 border-rose-100',
+        textarea: isKiosk ? 'bg-slate-950 border-rose-900/50 text-white focus:border-rose-500' : 'bg-white border-rose-200 text-slate-800'
     };
 
     return (
@@ -173,7 +173,7 @@ export default function ExecutarAuditoria5S() {
                     </div>
                 </div>
                 {step === 2 && (
-                    <Button onClick={finalizar} disabled={saving} className="bg-blue-600 hover:bg-blue-700 font-bold px-6">
+                    <Button onClick={finalizar} disabled={saving} className={isKiosk ? "bg-teal-600 hover:bg-teal-700 font-bold px-6 text-white" : "bg-blue-600 hover:bg-blue-700 font-bold px-6 text-white"}>
                         {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5 mr-2" />} Terminar
                     </Button>
                 )}
@@ -191,7 +191,7 @@ export default function ExecutarAuditoria5S() {
                                 onChange={setAuditorId}
                                 options={operadores.map(o => ({
                                     value: o.id,
-                                    label: `\${o.numero_operador} - \${o.nome_operador}`
+                                    label: `\${o.numero_operador || 'S/N'} - \${o.nome_operador}`
                                 }))}
                                 placeholder="Pesquise pelo seu nome ou número mec."
                             />
@@ -225,7 +225,7 @@ export default function ExecutarAuditoria5S() {
                             </div>
                         )}
 
-                        <Button disabled={!auditorId || !areaId || (isMontagem && !linhaId) || loading} onClick={startAudit} className="w-full h-16 text-lg bg-blue-600 hover:bg-blue-700 font-black tracking-wide mt-8">
+                        <Button disabled={!auditorId || !areaId || (isMontagem && !linhaId) || loading} onClick={startAudit} className={isKiosk ? "w-full h-16 text-lg bg-teal-600 hover:bg-teal-700 text-white font-black tracking-wide mt-8" : "w-full h-16 text-lg bg-blue-600 hover:bg-blue-700 font-black text-white tracking-wide mt-8"}>
                             {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : "Carregar Checklist"}
                         </Button>
                     </div>
