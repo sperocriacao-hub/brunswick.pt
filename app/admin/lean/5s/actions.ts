@@ -140,6 +140,36 @@ export async function getAuditoriasRecentes() {
     }
 }
 
+export async function getDadosDashboard5S() {
+    noStore();
+    try {
+        const trintaDiasAtras = new Date();
+        trintaDiasAtras.setDate(trintaDiasAtras.getDate() - 30);
+
+        const { data, error } = await supabase
+            .from('lean_5s_auditorias')
+            .select(`
+                *,
+                areas_fabrica (nome_area),
+                estacoes (nome_estacao),
+                operadores (nome_operador),
+                lean_5s_respostas (
+                    resultado,
+                    lean_5s_perguntas (
+                        categoria
+                    )
+                )
+            `)
+            .gte('data_auditoria', trintaDiasAtras.toISOString())
+            .order('data_auditoria', { ascending: true });
+
+        if (error) throw error;
+        return { success: true, data };
+    } catch (e: any) {
+        return { success: false, error: e.message };
+    }
+}
+
 export async function getAuditoriaDetalhes(auditoriaId: string) {
     noStore();
     try {

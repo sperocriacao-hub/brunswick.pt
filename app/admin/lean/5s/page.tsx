@@ -3,11 +3,12 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, ArrowRight, Activity, TrendingUp, TrendingDown, Settings2, ClipboardCheck, Trophy, Target, AlertTriangle, Crosshair, Eye, CheckCircle2, XCircle, MinusCircle, Edit, Trash2 } from 'lucide-react';
+import { Loader2, ArrowRight, Activity, TrendingUp, TrendingDown, Settings2, ClipboardCheck, Trophy, Target, AlertTriangle, Crosshair, Eye, CheckCircle2, XCircle, MinusCircle, Edit, Trash2, Calendar } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { getAuditoriasRecentes, getAuditoriaDetalhes, getAcoes5S, updateAcao5S, deleteAcao5S, getOperadores } from './actions';
+import { getAuditoriasRecentes, getAuditoriaDetalhes, getAcoes5S, updateAcao5S, deleteAcao5S, getOperadores, getDadosDashboard5S } from './actions';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, LineChart, Line, ComposedChart, AreaChart, Area } from 'recharts';
 import Link from 'next/link';
 
 export default function Dashboard5SPage() {
@@ -19,6 +20,7 @@ export default function Dashboard5SPage() {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [acoes, setAcoes] = useState<any[]>([]);
     const [operadores, setOperadores] = useState<any[]>([]);
+    const [dadosDash, setDadosDash] = useState<any[]>([]);
     
     const [isEditAcaoOpen, setIsEditAcaoOpen] = useState(false);
     const [selectedAcao, setSelectedAcao] = useState<any>(null);
@@ -35,10 +37,12 @@ export default function Dashboard5SPage() {
         const res = await getAuditoriasRecentes();
         const resAcoes = await getAcoes5S();
         const resOp = await getOperadores();
+        const resDash = await getDadosDashboard5S();
         
         if (res.success) setAuditorias(res.data || []);
         if (resAcoes.success) setAcoes(resAcoes.data || []);
         if (resOp.success) setOperadores(resOp.data || []);
+        if (resDash.success) setDadosDash(resDash.data || []);
         
         setLoading(false);
     }
@@ -81,6 +85,62 @@ export default function Dashboard5SPage() {
         }
         setLoadingDetalhes(false);
     }
+
+    // Processamento de KPIs
+    const dadosEvolucao = dadosDash.reduce((acc: any[], aud) => {
+        const dia = new Date(aud.data_auditoria).toLocaleDateString([], { month: 'short', day: 'numeric' });
+        const existente = acc.find(a => a.dia === dia);
+        if (existente) {
+            existente.soma += Number(aud.percentagem);
+            existente.qtd += 1;
+            existente.score = Math.round(existente.soma / existente.qtd);
+        } else {
+            acc.push({ dia, soma: Number(aud.percentagem), qtd: 1, score: Number(aud.percentagem) });
+        }
+        return acc;
+    }, []).reverse();
+
+    const estacoesPareto = dadosDash.reduce((acc: any[], aud) => {
+        if (!aud.estacoes?.nome_estacao) return acc;
+        const existente = acc.find(a => a.nome === aud.estacoes.nome_estacao);
+        if (existente) {
+            existente.soma += Number(aud.percentagem);
+            existente.qtd += 1;
+            existente.score = Math.round(existente.soma / existente.qtd);
+        } else {
+            acc.push({ nome: aud.estacoes.nome_estacao, soma: Number(aud.percentagem), qtd: 1, score: Number(aud.percentagem) });
+        }
+        return acc;
+    }, []).sort((a: any, b: any) => b.score - a.score).slice(0, 10);
+
+    const dadosCategorias = dadosDash.reduce((acc: any[], aud) => {
+        const area = aud.areas_fabrica?.nome_area || 'Geral';
+        const existente = acc.find(a => a.area === area);
+        
+        let localObj = existente;
+        if (!localObj) {
+            localObj = { area, '1S': {p:0, f:0}, '2S': {p:0, f:0}, '3S': {p:0, f:0}, '4S': {p:0, f:0}, '5S': {p:0, f:0} };
+            acc.push(localObj);
+        }
+
+        aud.lean_5s_respostas?.forEach((resp: any) => {
+            const cat = resp.lean_5s_perguntas?.categoria?.substring(0, 2);
+            if (cat && localObj[cat]) {
+                if (resp.resultado === 'Pass') localObj[cat].p += 1;
+                else if (resp.resultado === 'Fail') localObj[cat].f += 1;
+            }
+        });
+        return acc;
+    }, []).map((a: any) => {
+        return {
+            area: a.area,
+            '1S - Utilização': a['1S'].p + a['1S'].f > 0 ? Math.round((a['1S'].p / (a['1S'].p + a['1S'].f)) * 100) : 0,
+            '2S - Arrumação': a['2S'].p + a['2S'].f > 0 ? Math.round((a['2S'].p / (a['2S'].p + a['2S'].f)) * 100) : 0,
+            '3S - Limpeza': a['3S'].p + a['3S'].f > 0 ? Math.round((a['3S'].p / (a['3S'].p + a['3S'].f)) * 100) : 0,
+            '4S - Normalização': a['4S'].p + a['4S'].f > 0 ? Math.round((a['4S'].p / (a['4S'].p + a['4S'].f)) * 100) : 0,
+            '5S - Disciplina': a['5S'].p + a['5S'].f > 0 ? Math.round((a['5S'].p / (a['5S'].p + a['5S'].f)) * 100) : 0,
+        };
+    });
 
     return (
         <div className="p-8 space-y-8 max-w-[1400px] mx-auto animate-in fade-in zoom-in-95 duration-500 pb-32">
@@ -292,26 +352,86 @@ export default function Dashboard5SPage() {
                             </Card>
                         </div>
                         
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="text-lg font-bold text-slate-700 flex items-center gap-2">
-                                    <Target className="text-blue-500" size={20} /> Roadmap & Metas
-                                </CardTitle>
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+                            <Card className="border-0 shadow-sm">
+                                <CardHeader className="bg-slate-50 border-b pb-4">
+                                    <CardTitle className="text-lg flex items-center gap-2"><TrendingUp className="text-blue-500"/> Evolução do Score 5S Diário</CardTitle>
+                                </CardHeader>
+                                <CardContent className="pt-6 h-80">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <AreaChart data={dadosEvolucao} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                            <defs>
+                                                <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
+                                                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
+                                                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                                                </linearGradient>
+                                            </defs>
+                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                                            <XAxis dataKey="dia" axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#64748b'}} />
+                                            <YAxis domain={[0, 100]} axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#64748b'}} />
+                                            <RechartsTooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                                            <Area type="monotone" dataKey="score" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorScore)" name="Score Médio (%)" />
+                                        </AreaChart>
+                                    </ResponsiveContainer>
+                                </CardContent>
+                            </Card>
+
+                            <Card className="border-0 shadow-sm">
+                                <CardHeader className="bg-slate-50 border-b pb-4">
+                                    <CardTitle className="text-lg flex items-center gap-2"><Target className="text-emerald-500"/> Pareto: Top 10 Estações (Score)</CardTitle>
+                                </CardHeader>
+                                <CardContent className="pt-6 h-80">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <ComposedChart data={estacoesPareto} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                                            <XAxis dataKey="nome" axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#64748b'}} interval={0} angle={-15} textAnchor="end" />
+                                            <YAxis domain={[0, 100]} axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#64748b'}} />
+                                            <RechartsTooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                                            <Bar dataKey="score" fill="#10b981" radius={[4, 4, 0, 0]} barSize={30} name="Score 5S (%)" />
+                                            <Line type="monotone" dataKey="score" stroke="#047857" strokeWidth={2} dot={{ r: 4 }} name="Tendência" />
+                                        </ComposedChart>
+                                    </ResponsiveContainer>
+                                </CardContent>
+                            </Card>
+                        </div>
+
+                        <Card className="mt-6 border-0 shadow-sm">
+                            <CardHeader className="bg-slate-50 border-b pb-4">
+                                <CardTitle className="text-lg flex items-center gap-2"><Crosshair className="text-rose-500"/> Heatmap da Fábrica (Score por Categoria S)</CardTitle>
                             </CardHeader>
-                            <CardContent>
-                                <div className="space-y-4">
-                                    <div className="bg-slate-50 p-4 rounded-lg border border-slate-100 flex items-center justify-between">
-                                        <div>
-                                            <h4 className="font-bold text-slate-800">Meta Fabril: 85%</h4>
-                                            <p className="text-sm text-slate-500">Objetivo de conformidade global 5S até ao fim do trimestre.</p>
-                                        </div>
-                                        <div className="text-right">
-                                            <span className="text-2xl font-black text-blue-600">
-                                                {((auditorias.reduce((a, b) => a + Number(b.percentagem), 0) / auditorias.length) >= 85) ? 'Atingido!' : 'Em Curso'}
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
+                            <CardContent className="p-0">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow className="bg-slate-50">
+                                            <TableHead className="font-black text-slate-700">Área Fabril</TableHead>
+                                            <TableHead className="font-bold text-center">1S - Utilização</TableHead>
+                                            <TableHead className="font-bold text-center">2S - Arrumação</TableHead>
+                                            <TableHead className="font-bold text-center">3S - Limpeza</TableHead>
+                                            <TableHead className="font-bold text-center">4S - Normalização</TableHead>
+                                            <TableHead className="font-bold text-center">5S - Disciplina</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {dadosCategorias.map((d: any, i: number) => (
+                                            <TableRow key={i} className="border-b">
+                                                <TableCell className="font-bold text-slate-800">{d.area}</TableCell>
+                                                {['1S - Utilização', '2S - Arrumação', '3S - Limpeza', '4S - Normalização', '5S - Disciplina'].map((k) => {
+                                                    const val = d[k];
+                                                    let bg = "bg-emerald-100 text-emerald-800 border-emerald-200";
+                                                    if (val < 80 && val >= 60) bg = "bg-amber-100 text-amber-800 border-amber-200";
+                                                    else if (val < 60) bg = "bg-rose-100 text-rose-800 border-rose-200";
+                                                    return (
+                                                        <TableCell key={k} className="text-center p-2">
+                                                            <div className={`w-full h-12 flex items-center justify-center font-black rounded-md border \${bg}`}>
+                                                                {val}%
+                                                            </div>
+                                                        </TableCell>
+                                                    )
+                                                })}
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
                             </CardContent>
                         </Card>
                     </>
