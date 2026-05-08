@@ -3,11 +3,11 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, ArrowRight, Activity, TrendingUp, TrendingDown, Settings2, ClipboardCheck, Trophy, Target, AlertTriangle, Crosshair, Eye, CheckCircle2, XCircle, MinusCircle } from 'lucide-react';
+import { Loader2, ArrowRight, Activity, TrendingUp, TrendingDown, Settings2, ClipboardCheck, Trophy, Target, AlertTriangle, Crosshair, Eye, CheckCircle2, XCircle, MinusCircle, Edit, Trash2 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { getAuditoriasRecentes, getAuditoriaDetalhes, getAcoes5S } from './actions';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { getAuditoriasRecentes, getAuditoriaDetalhes, getAcoes5S, updateAcao5S, deleteAcao5S, getOperadores } from './actions';
 import Link from 'next/link';
 
 export default function Dashboard5SPage() {
@@ -18,6 +18,13 @@ export default function Dashboard5SPage() {
     const [loadingDetalhes, setLoadingDetalhes] = useState(false);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [acoes, setAcoes] = useState<any[]>([]);
+    const [operadores, setOperadores] = useState<any[]>([]);
+    
+    const [isEditAcaoOpen, setIsEditAcaoOpen] = useState(false);
+    const [selectedAcao, setSelectedAcao] = useState<any>(null);
+    const [editStatus, setEditStatus] = useState("");
+    const [editResponsavel, setEditResponsavel] = useState("");
+    const [editDataLimite, setEditDataLimite] = useState("");
 
     useEffect(() => {
         carregarDados();
@@ -27,13 +34,41 @@ export default function Dashboard5SPage() {
         setLoading(true);
         const res = await getAuditoriasRecentes();
         const resAcoes = await getAcoes5S();
-        if (res.success) {
-            setAuditorias(res.data || []);
-        }
-        if (resAcoes.success) {
-            setAcoes(resAcoes.data || []);
-        }
+        const resOp = await getOperadores();
+        
+        if (res.success) setAuditorias(res.data || []);
+        if (resAcoes.success) setAcoes(resAcoes.data || []);
+        if (resOp.success) setOperadores(resOp.data || []);
+        
         setLoading(false);
+    }
+
+    function openEditAcao(acao: any) {
+        setSelectedAcao(acao);
+        setEditStatus(acao.status || 'Aberto');
+        setEditResponsavel(acao.responsavel_id || "");
+        setEditDataLimite(acao.data_limite ? new Date(acao.data_limite).toISOString().split('T')[0] : "");
+        setIsEditAcaoOpen(true);
+    }
+    
+    async function saveAcao() {
+        if (!selectedAcao) return;
+        setLoading(true);
+        const updates = {
+            status: editStatus,
+            responsavel_id: editResponsavel || null,
+            data_limite: editDataLimite ? new Date(editDataLimite).toISOString() : null
+        };
+        await updateAcao5S(selectedAcao.id, updates);
+        await carregarDados();
+        setIsEditAcaoOpen(false);
+    }
+
+    async function handleDeleteAcao(id: string) {
+        if (!confirm("Tem a certeza que deseja eliminar esta ação?")) return;
+        setLoading(true);
+        await deleteAcao5S(id);
+        await carregarDados();
     }
 
     async function abrirDetalhes(auditoria: any) {
@@ -145,38 +180,62 @@ export default function Dashboard5SPage() {
                     <Table>
                         <TableHeader className="bg-slate-50 border-b">
                             <TableRow>
-                                <TableHead className="font-bold text-slate-500 uppercase text-xs h-12">Descrição da Ação (Falha Detetada)</TableHead>
+                                <TableHead className="font-bold text-slate-500 uppercase text-xs h-12">Descrição da Ação</TableHead>
                                 <TableHead className="font-bold text-slate-500 uppercase text-xs">Local</TableHead>
-                                <TableHead className="font-bold text-slate-500 uppercase text-xs">Prioridade</TableHead>
+                                <TableHead className="font-bold text-slate-500 uppercase text-xs">Responsável</TableHead>
+                                <TableHead className="font-bold text-slate-500 uppercase text-xs">Prazo</TableHead>
                                 <TableHead className="font-bold text-slate-500 uppercase text-xs">Status</TableHead>
-                                <TableHead className="font-bold text-slate-500 uppercase text-xs">Criação</TableHead>
+                                <TableHead className="text-right"></TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {acoes.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={5} className="h-32 text-center text-slate-500">Nenhuma ação de melhoria aberta pelas Rondas 5S.</TableCell>
+                                    <TableCell colSpan={6} className="h-32 text-center text-slate-500">Nenhuma ação de melhoria aberta pelas Rondas 5S.</TableCell>
                                 </TableRow>
                             ) : acoes.map(acao => (
                                 <TableRow key={acao.id} className="hover:bg-slate-50 transition-colors">
-                                    <TableCell className="font-bold text-slate-800 py-4 max-w-md truncate" title={acao.descricao_acao}>{acao.descricao_acao}</TableCell>
+                                    <TableCell className="font-bold text-slate-800 py-4 max-w-sm" title={acao.descricao_acao}>{acao.descricao_acao}</TableCell>
                                     <TableCell className="text-slate-600">
                                         <div className="flex flex-col">
                                             <span className="font-bold text-xs uppercase">{acao.areas_fabrica?.nome_area || 'Universal'}</span>
                                             {acao.linhas_producao && <span className="text-xs text-slate-400">Linha {acao.linhas_producao.letra_linha}</span>}
+                                            {acao.estacoes && <span className="text-xs text-slate-400">{acao.estacoes.nome_estacao}</span>}
                                         </div>
                                     </TableCell>
                                     <TableCell>
-                                        <span className={`px-3 py-1 rounded-full text-xs font-bold \${acao.prioridade === 'Alta' ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700'}`}>
-                                            {acao.prioridade}
-                                        </span>
+                                        {acao.operadores ? (
+                                            <span className="text-sm font-medium text-slate-700">{acao.operadores.nome_operador}</span>
+                                        ) : (
+                                            <span className="text-xs text-slate-400 italic">Não atribuído</span>
+                                        )}
                                     </TableCell>
                                     <TableCell>
-                                        <span className={`px-3 py-1 rounded-full text-xs font-bold \${acao.status === 'Aberto' ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                                        {acao.data_limite ? (
+                                            <span className="text-sm text-slate-600">{new Date(acao.data_limite).toLocaleDateString()}</span>
+                                        ) : (
+                                            <span className="text-xs text-slate-400 italic">Sem prazo</span>
+                                        )}
+                                    </TableCell>
+                                    <TableCell>
+                                        <span className={`px-3 py-1 rounded-full text-xs font-bold \${
+                                            acao.status === 'Aberto' ? 'bg-rose-100 text-rose-700' : 
+                                            acao.status === 'Em Andamento' ? 'bg-amber-100 text-amber-700' :
+                                            'bg-emerald-100 text-emerald-700'
+                                        }`}>
                                             {acao.status}
                                         </span>
                                     </TableCell>
-                                    <TableCell className="text-slate-500 text-sm">{new Date(acao.created_at).toLocaleDateString()}</TableCell>
+                                    <TableCell className="text-right">
+                                        <div className="flex justify-end gap-2">
+                                            <Button variant="ghost" size="icon" onClick={() => openEditAcao(acao)} className="text-blue-600 hover:text-blue-800 hover:bg-blue-50">
+                                                <Edit size={18} />
+                                            </Button>
+                                            <Button variant="ghost" size="icon" onClick={() => handleDeleteAcao(acao.id)} className="text-rose-600 hover:text-rose-800 hover:bg-rose-50">
+                                                <Trash2 size={18} />
+                                            </Button>
+                                        </div>
+                                    </TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>
@@ -334,6 +393,63 @@ export default function Dashboard5SPage() {
                             )}
                         </div>
                     </div>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={isEditAcaoOpen} onOpenChange={setIsEditAcaoOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Editar Ação de Melhoria (5S)</DialogTitle>
+                    </DialogHeader>
+                    {selectedAcao && (
+                        <div className="space-y-4 py-4">
+                            <div>
+                                <p className="text-xs font-bold text-slate-500 mb-1">Ação</p>
+                                <p className="text-sm font-medium p-3 bg-slate-50 rounded-md border">{selectedAcao.descricao_acao}</p>
+                            </div>
+                            
+                            <div className="space-y-2">
+                                <label className="text-sm font-bold text-slate-700">Responsável</label>
+                                <select 
+                                    value={editResponsavel} 
+                                    onChange={e => setEditResponsavel(e.target.value)}
+                                    className="w-full h-10 border border-slate-200 rounded-md px-3 text-sm font-medium bg-white"
+                                >
+                                    <option value="">-- Não Atribuído --</option>
+                                    {operadores.map(op => (
+                                        <option key={op.id} value={op.id}>{op.nome_operador}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-sm font-bold text-slate-700">Data Limite</label>
+                                <input 
+                                    type="date" 
+                                    value={editDataLimite} 
+                                    onChange={e => setEditDataLimite(e.target.value)}
+                                    className="w-full h-10 border border-slate-200 rounded-md px-3 text-sm font-medium bg-white"
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-sm font-bold text-slate-700">Status</label>
+                                <select 
+                                    value={editStatus} 
+                                    onChange={e => setEditStatus(e.target.value)}
+                                    className="w-full h-10 border border-slate-200 rounded-md px-3 text-sm font-medium bg-white"
+                                >
+                                    <option value="Aberto">Aberto</option>
+                                    <option value="Em Andamento">Em Andamento</option>
+                                    <option value="Concluido">Concluído</option>
+                                </select>
+                            </div>
+                        </div>
+                    )}
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsEditAcaoOpen(false)}>Cancelar</Button>
+                        <Button onClick={saveAcao} className="bg-blue-600 hover:bg-blue-700">Guardar Alterações</Button>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
         </div>

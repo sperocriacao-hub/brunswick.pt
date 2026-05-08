@@ -102,13 +102,14 @@ export async function salvarRonda5S(payload: any) {
         // FASE 4 (Automacao Smart Action Hub) - Criar as ações de melhoria para cada "Fail"
         const falhas = payload.respostas.filter((r: any) => r.resultado === 'Fail');
         for (const f of falhas) {
-            const tituloAcao = `Correção 5S (\${f.categoria}): \${f.observacoes || 'Anomalia detetada na ronda'}`;
-            await supabase.from('hst_acoes').insert([{
+            const tituloAcao = f.observacoes || `Anomalia detetada na ronda (${f.categoria})`;
+            await supabase.from('lean_5s_acoes').insert([{
                 descricao_acao: tituloAcao,
                 prioridade: 'Alta',
                 status: 'Aberto',
-                // area e estacao mapping se for possivel, default universal:
-                area_id: payload.areaId
+                area_id: payload.areaId,
+                linha_id: payload.linhaId || null,
+                estacao_id: payload.estacaoId || null
             }]);
         }
 
@@ -166,17 +167,48 @@ export async function getAcoes5S() {
     noStore();
     try {
         const { data, error } = await supabase
-            .from('hst_acoes')
+            .from('lean_5s_acoes')
             .select(`
                 *,
                 areas_fabrica (nome_area),
-                linhas_producao (letra_linha)
+                linhas_producao (letra_linha),
+                estacoes (nome_estacao),
+                operadores (nome_operador)
             `)
-            .ilike('descricao_acao', '%Correção 5S%')
             .order('created_at', { ascending: false });
 
         if (error) throw error;
         return { success: true, data };
+    } catch (e: any) {
+        return { success: false, error: e.message };
+    }
+}
+
+export async function updateAcao5S(id: string, updates: any) {
+    try {
+        const { error } = await supabase
+            .from('lean_5s_acoes')
+            .update({ ...updates, updated_at: new Date().toISOString() })
+            .eq('id', id);
+
+        if (error) throw error;
+        revalidatePath('/admin/lean/5s');
+        return { success: true };
+    } catch (e: any) {
+        return { success: false, error: e.message };
+    }
+}
+
+export async function deleteAcao5S(id: string) {
+    try {
+        const { error } = await supabase
+            .from('lean_5s_acoes')
+            .delete()
+            .eq('id', id);
+
+        if (error) throw error;
+        revalidatePath('/admin/lean/5s');
+        return { success: true };
     } catch (e: any) {
         return { success: false, error: e.message };
     }
