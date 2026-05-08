@@ -4,11 +4,12 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2, Plus, Trash2, CheckCircle2, Settings2, Target, Search, CalendarDays } from 'lucide-react';
+import { Loader2, Plus, Trash2, CheckCircle2, Settings2, Target, Search, CalendarDays, Edit, Wand2 } from 'lucide-react';
 import { get5SPerguntas, criarPergunta, deletePergunta } from './actions';
 import { getAreasE_Estacoes } from '../actions';
 import { getLeanFormData } from '@/app/operador/ideias/actions';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { SearchableSelect } from '@/components/ui/searchable-select';
 
 export default function Setup5SPage() {
@@ -30,8 +31,16 @@ export default function Setup5SPage() {
     const [operadoresLideranca, setOperadoresLideranca] = useState<any[]>([]);
     const [cronogramaAuditor, setCronogramaAuditor] = useState("");
     const [cronogramaArea, setCronogramaArea] = useState("");
+    const [cronogramaLinha, setCronogramaLinha] = useState("");
+    const [cronogramaEstacao, setCronogramaEstacao] = useState("");
     const [cronogramaData, setCronogramaData] = useState("");
     const [mockAgendamentos, setMockAgendamentos] = useState<any[]>([]);
+    
+    // Edit Cronograma State
+    const [isEditCronOpen, setIsEditCronOpen] = useState(false);
+    const [selectedCron, setSelectedCron] = useState<any>(null);
+    const [editCronAuditor, setEditCronAuditor] = useState("");
+    const [editCronData, setEditCronData] = useState("");
 
     const categorias = [
         "1S - Utilização",
@@ -100,6 +109,74 @@ export default function Setup5SPage() {
         await deletePergunta(id);
         carregarDados();
     };
+
+    function gerarPlanoAutomatico() {
+        if (operadoresLideranca.length === 0 || areas.length === 0) {
+            alert("Não há auditores ou áreas suficientes para gerar o plano.");
+            return;
+        }
+
+        const auditoresIds = operadoresLideranca.map(o => o.id);
+        const novoPlano: any[] = [];
+        let dataAtual = new Date();
+        dataAtual.setDate(1);
+
+        const todosLocais: any[] = [];
+        areas.forEach(a => {
+            if (a.estacoes && a.estacoes.length > 0) {
+                a.estacoes.forEach((e: any) => {
+                    todosLocais.push({ area: a.nome_area, estacao: e.nome_estacao, nome: `${a.nome_area} > ${e.nome_estacao}` });
+                });
+            } else {
+                todosLocais.push({ area: a.nome_area, estacao: null, nome: a.nome_area });
+            }
+        });
+
+        const poolLocais = [...todosLocais, ...todosLocais];
+        
+        poolLocais.forEach((local, index) => {
+            const auditorIndex = index % auditoresIds.length;
+            const op = operadoresLideranca[auditorIndex];
+            
+            const dataSorteio = new Date(dataAtual);
+            dataSorteio.setDate(dataSorteio.getDate() + (index % 25) + 1);
+
+            novoPlano.push({
+                id: Math.random(),
+                auditor_id: op.id,
+                auditor: op.nome_operador,
+                area: local.nome,
+                data: dataSorteio.toISOString().split('T')[0]
+            });
+        });
+
+        setMockAgendamentos(novoPlano);
+        alert(`Plano automático gerado com sucesso! Foram planeadas ${novoPlano.length} auditorias.`);
+    }
+
+    function openEditCron(ag: any) {
+        setSelectedCron(ag);
+        setEditCronAuditor(ag.auditor_id || "");
+        setEditCronData(ag.data || "");
+        setIsEditCronOpen(true);
+    }
+
+    function saveEditCron() {
+        if (!selectedCron) return;
+        const op = operadoresLideranca.find(o => o.id === editCronAuditor);
+        setMockAgendamentos(mockAgendamentos.map(m => m.id === selectedCron.id ? {
+            ...m,
+            auditor_id: editCronAuditor,
+            auditor: op ? op.nome_operador : m.auditor,
+            data: editCronData
+        } : m));
+        setIsEditCronOpen(false);
+    }
+
+    function deleteCron(id: number) {
+        if (!confirm("Tem a certeza que deseja excluir este agendamento?")) return;
+        setMockAgendamentos(mockAgendamentos.filter(m => m.id !== id));
+    }
 
     const filteredPerguntas = perguntas.filter(p => 
         p.pergunta.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -295,13 +372,48 @@ export default function Setup5SPage() {
                                 <label className="text-xs font-bold text-slate-500 uppercase">Área a Auditar</label>
                                 <select 
                                     value={cronogramaArea} 
-                                    onChange={e => setCronogramaArea(e.target.value)}
+                                    onChange={e => { setCronogramaArea(e.target.value); setCronogramaLinha(""); setCronogramaEstacao(""); }}
                                     className="w-full h-10 border border-slate-200 rounded-md px-3 text-sm font-medium bg-white"
                                 >
                                     <option value="">Selecione a área...</option>
                                     {areas.map(a => <option key={a.id} value={a.id}>{a.nome_area}</option>)}
                                 </select>
                             </div>
+                            
+                            {cronogramaArea && (() => {
+                                const areaSelecionada = areas.find(a => a.id === cronogramaArea);
+                                const isMontagem = areaSelecionada?.nome_area?.toLowerCase().includes('montagem');
+                                let estacoesArea = areaSelecionada?.estacoes || [];
+                                
+                                if (isMontagem && cronogramaLinha) {
+                                    estacoesArea = estacoesArea.filter((e: any) => e.linha_id === cronogramaLinha);
+                                }
+
+                                return (
+                                    <>
+                                        {isMontagem && (
+                                            <div className="space-y-2">
+                                                <label className="text-xs font-bold text-slate-500 uppercase">Linha</label>
+                                                <select value={cronogramaLinha} onChange={e => { setCronogramaLinha(e.target.value); setCronogramaEstacao(""); }} className="w-full h-10 border border-slate-200 rounded-md px-3 text-sm font-medium bg-white">
+                                                    <option value="">Todas as Linhas</option>
+                                                    {linhas.map((l: any) => <option key={l.id} value={l.id}>Linha {l.letra_linha}</option>)}
+                                                </select>
+                                            </div>
+                                        )}
+
+                                        {(!isMontagem || cronogramaLinha) && estacoesArea.length > 0 && (
+                                            <div className="space-y-2">
+                                                <label className="text-xs font-bold text-slate-500 uppercase">Estação</label>
+                                                <select value={cronogramaEstacao} onChange={e => setCronogramaEstacao(e.target.value)} className="w-full h-10 border border-slate-200 rounded-md px-3 text-sm font-medium bg-white">
+                                                    <option value="">Geral</option>
+                                                    {estacoesArea.map((e: any) => <option key={e.id} value={e.id}>{e.nome_estacao}</option>)}
+                                                </select>
+                                            </div>
+                                        )}
+                                    </>
+                                );
+                            })()}
+
                             <div className="space-y-2">
                                 <label className="text-xs font-bold text-slate-500 uppercase">Data Prevista</label>
                                 <Input 
@@ -314,7 +426,11 @@ export default function Setup5SPage() {
                             <Button 
                                 onClick={() => {
                                     alert("Agendamento submetido!");
-                                    setMockAgendamentos([...mockAgendamentos, { id: Math.random(), auditor: operadoresLideranca.find(o => o.id === cronogramaAuditor)?.nome_operador, area: areas.find(a => a.id === cronogramaArea)?.nome_area, data: cronogramaData }]);
+                                    const areaNome = areas.find(a => a.id === cronogramaArea)?.nome_area;
+                                    const estacaoNome = cronogramaEstacao ? areas.find(a => a.id === cronogramaArea)?.estacoes?.find((e: any) => e.id === cronogramaEstacao)?.nome_estacao : '';
+                                    const localNome = estacaoNome ? `${areaNome} > ${estacaoNome}` : areaNome;
+                                    
+                                    setMockAgendamentos([...mockAgendamentos, { id: Math.random(), auditor_id: cronogramaAuditor, auditor: operadoresLideranca.find(o => o.id === cronogramaAuditor)?.nome_operador, area: localNome, data: cronogramaData }]);
                                 }} 
                                 disabled={!cronogramaAuditor || !cronogramaArea || !cronogramaData} 
                                 className="w-full bg-blue-600 hover:bg-blue-700 font-bold"
@@ -325,29 +441,47 @@ export default function Setup5SPage() {
                     </Card>
 
                     <div className="lg:col-span-3 space-y-6">
-                        <h2 className="text-xl font-bold text-slate-800 border-b pb-2">Calendário e Escalonamento (Gantt Mensal)</h2>
+                        <div className="flex justify-between items-center border-b pb-2">
+                            <h2 className="text-xl font-bold text-slate-800">Calendário e Escalonamento (Gantt Mensal)</h2>
+                            <Button onClick={gerarPlanoAutomatico} className="bg-emerald-600 hover:bg-emerald-700 font-bold">
+                                <Wand2 className="w-4 h-4 mr-2" /> Sorteio Automático (2x Mês)
+                            </Button>
+                        </div>
                         <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 overflow-x-auto">
                             <div className="min-w-[700px]">
-                                <div className="grid grid-cols-5 gap-4 mb-4 border-b pb-2 text-sm font-bold text-slate-500 uppercase tracking-wider">
-                                    <div className="col-span-2">Auditor Desenhado</div>
+                                <div className="grid grid-cols-6 gap-4 mb-4 border-b pb-2 text-sm font-bold text-slate-500 uppercase tracking-wider">
+                                    <div className="col-span-2">Auditor Designado</div>
                                     <div className="col-span-2">Área (Gemba)</div>
                                     <div>Milestone (Data)</div>
+                                    <div className="text-right">Acões</div>
                                 </div>
                                 
                                 <div className="space-y-3">
-                                    {mockAgendamentos.sort((a,b) => new Date(a.data).getTime() - new Date(b.data).getTime()).map(ag => (
-                                        <div key={ag.id} className="grid grid-cols-5 gap-4 items-center bg-slate-50 border border-slate-100 p-3 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors">
+                                    {mockAgendamentos.length === 0 ? (
+                                        <div className="text-center text-slate-500 py-8">Nenhum agendamento registado. Crie manualmente ou utilize o Sorteio Automático.</div>
+                                    ) : mockAgendamentos.sort((a,b) => new Date(a.data).getTime() - new Date(b.data).getTime()).map(ag => (
+                                        <div key={ag.id} className="grid grid-cols-6 gap-4 items-center bg-slate-50 border border-slate-100 p-3 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors">
                                             <div className="col-span-2 font-bold text-slate-800 flex items-center gap-2">
-                                                <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs">
-                                                    {ag.auditor?.substring(0, 2).toUpperCase()}
+                                                <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs shrink-0">
+                                                    {ag.auditor?.substring(0, 2).toUpperCase() || 'NA'}
                                                 </div>
-                                                {ag.auditor}
+                                                <span className="truncate">{ag.auditor}</span>
                                             </div>
-                                            <div className="col-span-2 text-slate-600 font-medium">📍 {ag.area}</div>
+                                            <div className="col-span-2 text-slate-600 font-medium truncate">📍 {ag.area}</div>
                                             <div className="font-bold text-blue-600 flex items-center gap-2">
-                                                <CalendarDays size={16}/> {ag.data}
+                                                <CalendarDays size={16}/> {new Date(ag.data).toLocaleDateString()}
+                                            </div>
+                                            <div className="flex justify-end gap-1">
+                                                <Button variant="ghost" size="icon" onClick={() => openEditCron(ag)} className="text-slate-400 hover:text-blue-600 hover:bg-blue-100 h-8 w-8">
+                                                    <Edit size={16} />
+                                                </Button>
+                                                <Button variant="ghost" size="icon" onClick={() => deleteCron(ag.id)} className="text-slate-400 hover:text-rose-600 hover:bg-rose-100 h-8 w-8">
+                                                    <Trash2 size={16} />
+                                                </Button>
                                             </div>
                                         </div>
+                                    ))}
+                                </div>
                                     ))}
                                     {mockAgendamentos.length === 0 && (
                                         <div className="p-8 text-center text-slate-400">Nenhum agendamento para este mês.</div>
@@ -359,6 +493,47 @@ export default function Setup5SPage() {
                 </div>
             </TabsContent>
             </Tabs>
+
+            <Dialog open={isEditCronOpen} onOpenChange={setIsEditCronOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Editar Agendamento</DialogTitle>
+                    </DialogHeader>
+                    {selectedCron && (
+                        <div className="space-y-4 py-4">
+                            <div className="space-y-2">
+                                <label className="text-sm font-bold text-slate-700">Área (Gemba)</label>
+                                <p className="text-sm font-medium p-3 bg-slate-50 rounded-md border text-slate-600">{selectedCron.area}</p>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-bold text-slate-700">Auditor Designado</label>
+                                <SearchableSelect 
+                                    value={editCronAuditor} 
+                                    onChange={setEditCronAuditor}
+                                    options={operadoresLideranca.map(o => ({
+                                        value: o.id,
+                                        label: `${o.nome_operador} (${o.funcao || 'Liderança'})`
+                                    }))}
+                                    placeholder="Pesquise o líder..."
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-bold text-slate-700">Data Prevista</label>
+                                <input 
+                                    type="date" 
+                                    value={editCronData} 
+                                    onChange={e => setEditCronData(e.target.value)}
+                                    className="w-full h-10 border border-slate-200 rounded-md px-3 text-sm font-medium bg-white"
+                                />
+                            </div>
+                        </div>
+                    )}
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsEditCronOpen(false)}>Cancelar</Button>
+                        <Button onClick={saveEditCron} className="bg-blue-600 hover:bg-blue-700">Guardar Alterações</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
