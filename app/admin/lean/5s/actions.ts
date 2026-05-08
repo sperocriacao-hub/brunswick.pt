@@ -161,3 +161,23 @@ export async function getAuditoriaDetalhes(auditoriaId: string) {
         return { success: false, error: e.message };
     }
 }
+
+export async function getAcoes5S() {
+    noStore();
+    try {
+        const { data, error } = await supabase
+            .from('hst_acoes')
+            .select(`
+                *,
+                areas_fabrica (nome_area),
+                linhas_producao (letra_linha)
+            `)
+            .ilike('descricao_acao', '%Correção 5S%')
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        return { success: true, data };
+    } catch (e: any) {
+        return { success: false, error: e.message };
+    }
+}

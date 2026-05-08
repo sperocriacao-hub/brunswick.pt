@@ -7,7 +7,7 @@ import { Loader2, ArrowRight, Activity, TrendingUp, TrendingDown, Settings2, Cli
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { getAuditoriasRecentes, getAuditoriaDetalhes } from './actions';
+import { getAuditoriasRecentes, getAuditoriaDetalhes, getAcoes5S } from './actions';
 import Link from 'next/link';
 
 export default function Dashboard5SPage() {
@@ -17,6 +17,7 @@ export default function Dashboard5SPage() {
     const [auditoriaDetalhes, setAuditoriaDetalhes] = useState<any[]>([]);
     const [loadingDetalhes, setLoadingDetalhes] = useState(false);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [acoes, setAcoes] = useState<any[]>([]);
 
     useEffect(() => {
         carregarDados();
@@ -25,8 +26,12 @@ export default function Dashboard5SPage() {
     async function carregarDados() {
         setLoading(true);
         const res = await getAuditoriasRecentes();
+        const resAcoes = await getAcoes5S();
         if (res.success) {
             setAuditorias(res.data || []);
+        }
+        if (resAcoes.success) {
+            setAcoes(resAcoes.data || []);
         }
         setLoading(false);
     }
@@ -66,8 +71,9 @@ export default function Dashboard5SPage() {
             </header>
 
             <Tabs defaultValue="historico" className="w-full">
-                <TabsList className="mb-6 grid w-full max-w-md grid-cols-2">
+                <TabsList className="mb-6 grid w-full max-w-2xl grid-cols-3">
                     <TabsTrigger value="historico" className="font-bold">Histórico de Rondas</TabsTrigger>
+                    <TabsTrigger value="acoes" className="font-bold text-rose-600 data-[state=active]:bg-rose-600 data-[state=active]:text-white">Planos de Ação (A3)</TabsTrigger>
                     <TabsTrigger value="kpis" className="font-bold text-amber-600 data-[state=active]:bg-amber-600 data-[state=active]:text-white">KPIs & Gincana</TabsTrigger>
                 </TabsList>
 
@@ -127,6 +133,55 @@ export default function Dashboard5SPage() {
                     </Table>
                 </Card>
             )}
+            </TabsContent>
+
+            <TabsContent value="acoes">
+                <Card className="border-0 shadow-sm overflow-hidden">
+                    <CardHeader className="bg-slate-50 border-b pb-4">
+                        <CardTitle className="flex justify-between items-center text-lg">
+                            <span className="flex items-center gap-2"><AlertTriangle className="text-rose-500"/> Ações de Melhoria Exigidas (Smart Action Hub)</span>
+                        </CardTitle>
+                    </CardHeader>
+                    <Table>
+                        <TableHeader className="bg-slate-50 border-b">
+                            <TableRow>
+                                <TableHead className="font-bold text-slate-500 uppercase text-xs h-12">Descrição da Ação (Falha Detetada)</TableHead>
+                                <TableHead className="font-bold text-slate-500 uppercase text-xs">Local</TableHead>
+                                <TableHead className="font-bold text-slate-500 uppercase text-xs">Prioridade</TableHead>
+                                <TableHead className="font-bold text-slate-500 uppercase text-xs">Status</TableHead>
+                                <TableHead className="font-bold text-slate-500 uppercase text-xs">Criação</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {acoes.length === 0 ? (
+                                <TableRow>
+                                    <TableCell colSpan={5} className="h-32 text-center text-slate-500">Nenhuma ação de melhoria aberta pelas Rondas 5S.</TableCell>
+                                </TableRow>
+                            ) : acoes.map(acao => (
+                                <TableRow key={acao.id} className="hover:bg-slate-50 transition-colors">
+                                    <TableCell className="font-bold text-slate-800 py-4 max-w-md truncate" title={acao.descricao_acao}>{acao.descricao_acao}</TableCell>
+                                    <TableCell className="text-slate-600">
+                                        <div className="flex flex-col">
+                                            <span className="font-bold text-xs uppercase">{acao.areas_fabrica?.nome_area || 'Universal'}</span>
+                                            {acao.linhas_producao && <span className="text-xs text-slate-400">Linha {acao.linhas_producao.letra_linha}</span>}
+                                        </div>
+                                    </TableCell>
+                                    <TableCell>
+                                        <span className={`px-3 py-1 rounded-full text-xs font-bold \${acao.prioridade === 'Alta' ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700'}`}>
+                                            {acao.prioridade}
+                                        </span>
+                                    </TableCell>
+                                    <TableCell>
+                                        <span className={`px-3 py-1 rounded-full text-xs font-bold \${acao.status === 'Aberto' ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                                            {acao.status}
+                                        </span>
+                                    </TableCell>
+                                    <TableCell className="text-slate-500 text-sm">{new Date(acao.created_at).toLocaleDateString()}</TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </Card>
             </TabsContent>
 
             <TabsContent value="kpis" className="space-y-6">
