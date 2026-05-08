@@ -482,11 +482,7 @@ export default function Setup5SPage() {
                                         </div>
                                     ))}
                                 </div>
-                                    ))}
-                                    {mockAgendamentos.length === 0 && (
-                                        <div className="p-8 text-center text-slate-400">Nenhum agendamento para este mês.</div>
-                                    )}
-                                </div>
+
                             </div>
                         </div>
                     </div>
