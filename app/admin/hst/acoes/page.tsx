@@ -99,7 +99,7 @@ export default function HstActionsKanbanPage() {
         setIndicadores(hst8d?.d7_prevencao || '');
         setValidacao(hst8d?.status === 'Concluido' ? 'Eficaz' : 'Pendente');
         // Infer analysis type from JSON shape
-        let inferredType = '5-Whys';
+        let inferredType: '5-Whys' | 'Ishikawa' = '5-Whys';
         try {
             if (hst8d?.d4_causa_raiz && hst8d.d4_causa_raiz.startsWith('{')) {
                 inferredType = 'Ishikawa';
