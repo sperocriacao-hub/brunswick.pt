@@ -970,6 +970,156 @@ export default function Dashboard5SPage() {
                             Salvar Relatório 8D / A3
                         </Button>
                     </DialogFooter>
+
+                    {/* DEDICATED PRINT TEMPLATE FOR 8D / A3 (PROFESSIONAL LEVEL) */}
+                    {selectedAcao && (
+                        <div className="print-8d-template hidden print:block pt-4">
+                            <style dangerouslySetInnerHTML={{__html:`
+                                @media print {
+                                    body * { visibility: hidden !important; }
+                                    .print-8d-template, .print-8d-template * { visibility: visible !important; color: black !important; }
+                                    .print-8d-template { position: absolute; left: 0; top: 0; width: 100vw; box-sizing: border-box; padding: 20px; font-family: sans-serif; background: transparent; }
+                                    @page { size: landscape; margin: 10mm; }
+                                    table { page-break-inside: avoid; }
+                                    .dialog-overlay, [role="dialog"] { display: none !important; }
+                                }
+                            `}} />
+
+                            {/* CABEÇALHO */}
+                            <div className="flex justify-between items-end border-b-4 border-slate-800 pb-4 mb-6">
+                                <div>
+                                    <div className="text-4xl font-black tracking-tighter uppercase">Relatório 8D / Contramedida</div>
+                                    <div className="text-lg font-bold text-slate-600 mt-1 uppercase">Resolvido através de Metodologia Lean</div>
+                                </div>
+                                <div className="text-right">
+                                    <div className="text-xs font-bold text-slate-500 uppercase tracking-widest">Nº Registo 5S</div>
+                                    <div className="text-2xl font-black text-rose-700">AÇÃO-{selectedAcao?.id?.toString().substring(0,6)}</div>
+                                </div>
+                            </div>
+
+                            {/* D1: EQUIPA E CONTEXTO */}
+                            <div className="grid grid-cols-4 gap-4 mb-6 border border-slate-300 rounded p-4 bg-slate-50">
+                                <div><strong className="text-[10px] uppercase text-slate-500 block mb-1">Data de Extração:</strong><div className="font-bold text-sm">{new Date().toLocaleDateString('pt-PT')}</div></div>
+                                <div><strong className="text-[10px] uppercase text-slate-500 block mb-1">Local / Origem:</strong><div className="font-bold text-sm uppercase">{selectedAcao.areas_fabrica?.nome_area} (5S)</div></div>
+                                <div><strong className="text-[10px] uppercase text-slate-500 block mb-1">Equipa de Trabalho (D1):</strong><div className="font-bold text-sm">{equipa || 'Não definido'}</div></div>
+                                <div><strong className="text-[10px] uppercase text-slate-500 block mb-1">Veredicto (D8):</strong><div className="font-bold text-sm uppercase">{validacao}</div></div>
+                            </div>
+
+                            <div className="flex gap-6 items-start">
+                                {/* COLUNA ESQUERDA (2/3) */}
+                                <div className="w-2/3 space-y-6">
+                                    {/* D2: DESCRIÇÃO DO PROBLEMA */}
+                                    <div className="border border-slate-300 rounded overflow-hidden">
+                                        <div className="bg-slate-100 font-bold px-4 py-2 text-xs uppercase tracking-widest border-b border-slate-300">
+                                            D2: Definição e Descrição do Defeito (Apontamento 5S)
+                                        </div>
+                                        <div className="p-4 text-sm font-medium whitespace-pre-wrap leading-relaxed">
+                                            {selectedAcao?.descricao_acao}
+                                        </div>
+                                    </div>
+
+                                    {/* D4: ANÁLISE CAUSA RAIZ (5WHY / ISHIKAWA) */}
+                                    <div className="border border-slate-300 rounded overflow-hidden">
+                                        <div className="bg-slate-100 font-bold px-4 py-2 text-xs uppercase tracking-widest border-b border-slate-300">
+                                            D4: Causa Raiz / Investigação ({tipoAnalise})
+                                        </div>
+                                        <div className="p-4 text-sm">
+                                            {tipoAnalise === '5-Whys' ? (
+                                                whys.some(w => w.trim() !== '') ? (
+                                                    <ul className="space-y-2">
+                                                        {whys.map((why, idx) => why && (
+                                                            <li key={idx} className="flex gap-3">
+                                                                <span className="font-black text-rose-600 shrink-0">W{idx+1}.</span> 
+                                                                <span className="font-medium">{why}</span>
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                ) : (
+                                                    <span className="text-slate-400 italic">Pesquisa de causa raiz não documentada.</span>
+                                                )
+                                            ) : (
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    {[
+                                                        { key: 'man', label: 'Mão-de-Obra' },
+                                                        { key: 'machine', label: 'Máquina' },
+                                                        { key: 'material', label: 'Material' },
+                                                        { key: 'method', label: 'Método' },
+                                                        { key: 'measurement', label: 'Medida' },
+                                                        { key: 'environment', label: 'Ambiente' }
+                                                    ].map(cat => (ishikawa as any)[cat.key] ? (
+                                                        <div key={cat.key} className="bg-slate-50 p-2 rounded border border-slate-200">
+                                                            <div className="text-[10px] font-bold uppercase text-indigo-700 mb-1">{cat.label}</div>
+                                                            <div className="text-xs">{((ishikawa as any)[cat.key])}</div>
+                                                        </div>
+                                                    ) : null)}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* D5: PLANO DE AÇÃO */}
+                                    <div className="border border-slate-300 rounded overflow-hidden">
+                                        <div className="bg-slate-100 font-bold px-4 py-2 text-xs uppercase tracking-widest border-b border-slate-300">
+                                            D5/D6: Plano de Contramedida (Ações Permanentes 5W2H)
+                                        </div>
+                                        <table className="w-full text-xs text-left border-collapse">
+                                            <thead className="bg-slate-50 border-b border-slate-200">
+                                                <tr>
+                                                    <th className="px-4 py-2 font-bold uppercase border-r border-slate-200">O que Fazer?</th>
+                                                    <th className="px-4 py-2 font-bold uppercase border-r border-slate-200">Quem?</th>
+                                                    <th className="px-4 py-2 font-bold uppercase border-r border-slate-200">Quando?</th>
+                                                    <th className="px-4 py-2 font-bold uppercase">Estado</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-200">
+                                                {tasks5w.length === 0 ? (
+                                                    <tr>
+                                                        <td colSpan={4} className="px-4 py-4 text-center text-slate-400 italic">Nenhuma ação planeada na plataforma.</td>
+                                                    </tr>
+                                                ) : (
+                                                    tasks5w.map((t, idx) => (
+                                                        <tr key={idx}>
+                                                            <td className="px-4 py-2 font-medium border-r border-slate-200">{t.o_que}</td>
+                                                            <td className="px-4 py-2 border-r border-slate-200">{t.quem}</td>
+                                                            <td className="px-4 py-2 font-mono text-[10px] border-r border-slate-200">{t.quando}</td>
+                                                            <td className="px-4 py-2 font-bold uppercase">{t.status}</td>
+                                                        </tr>
+                                                    ))
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                {/* COLUNA DIREITA (1/3) */}
+                                <div className="w-1/3 space-y-6">
+                                    {/* D8: VALIDAÇÃO */}
+                                    <div className="border border-slate-300 rounded overflow-hidden">
+                                        <div className="bg-slate-100 font-bold px-4 py-2 text-xs uppercase tracking-widest border-b border-slate-300">
+                                            D8: Indicadores e Verificação de Sucesso
+                                        </div>
+                                        <div className="p-4 space-y-4">
+                                            <div className="text-xs font-bold text-slate-500 uppercase">Indicadores a Acompanhar:</div>
+                                            <div className="text-sm font-medium whitespace-pre-wrap">{indicadores || 'N/A'}</div>
+                                            
+                                            <div className="border-t border-slate-200 pt-4 mt-2">
+                                                <div className="text-xs font-bold text-slate-500 uppercase mb-2">Veredícto de Eficácia do Comitê:</div>
+                                                <div className={`font-black text-lg uppercase tracking-wider py-2 px-4 inline-block rounded-lg border-2 ${validacao === 'Eficaz' ? 'border-emerald-500 text-emerald-700' : validacao === 'Ineficaz' ? 'border-rose-500 text-rose-700' : 'border-amber-400 text-amber-700'}`}>
+                                                    {validacao === 'Eficaz' ? 'PADRÃO EFICAZ (FECHADO)' : validacao === 'Ineficaz' ? 'INEFICAZ (REPENSAR)' : 'EM OBSERVAÇÃO'}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            {/* ASSINATURAS */}
+                            <div className="grid grid-cols-2 gap-12 mt-12 pt-6 border-t-2 border-slate-200">
+                                <div className="border-t border-black text-center pt-2 text-xs font-bold uppercase text-slate-600">Assinatura Líder 5S</div>
+                                <div className="border-t border-black text-center pt-2 text-xs font-bold uppercase text-slate-600">Revisão Coordenação / Comitê</div>
+                            </div>
+                        </div>
+                    )}
                 </DialogContent>
             </Dialog>
         </div>

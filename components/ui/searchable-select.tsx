@@ -51,9 +51,9 @@ export function SearchableSelect({ options, value, onChange, placeholder = "Sele
                 </Button>
             </PopoverTrigger>
             <PopoverContent className="w-full p-0 bg-white" align="start">
-                <Command>
+                <Command className="touch-pan-y">
                     <CommandInput placeholder="Localizar..." />
-                    <CommandList className="max-h-[200px] overflow-y-auto">
+                    <CommandList className="max-h-[250px] overflow-y-auto overscroll-contain touch-pan-y pointer-events-auto">
                         <CommandEmpty>Nenhum item encontrado.</CommandEmpty>
                         <CommandGroup>
                             {options.map((option) => (
@@ -65,13 +65,7 @@ export function SearchableSelect({ options, value, onChange, placeholder = "Sele
                                         if (selected) onChange(selected.value);
                                         setOpen(false)
                                     }}
-                                    onPointerDown={(e) => {
-                                        // Workaround for radix/cmdk click issue on mobile/tablet
-                                        e.preventDefault();
-                                        onChange(option.value);
-                                        setOpen(false);
-                                    }}
-                                    className="cursor-pointer py-2 text-slate-800 font-medium"
+                                    className="cursor-pointer py-3 text-slate-800 font-medium"
                                 >
                                     <Check
                                         className={cn(
