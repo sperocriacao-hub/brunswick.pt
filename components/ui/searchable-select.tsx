@@ -63,11 +63,13 @@ export function SearchableSelect({ options, value, onChange, placeholder = "Sele
                                     onSelect={(currentValue) => {
                                         const selected = options.find(o => o.label.toLowerCase() === currentValue.toLowerCase());
                                         if (selected) onChange(selected.value);
-                                        setOpen(false)
-                                    }}
-                                    onClick={() => {
-                                        onChange(option.value);
                                         setOpen(false);
+                                    }}
+                                    onMouseDown={(e) => {
+                                        // THIS IS THE MAGIC FIX: 
+                                        // Prevents focus from leaving the input, which would cause the Popover to close 
+                                        // BEFORE the click/onSelect event can fire!
+                                        e.preventDefault();
                                     }}
                                     className="cursor-pointer py-3 text-slate-800 font-medium"
                                 >
