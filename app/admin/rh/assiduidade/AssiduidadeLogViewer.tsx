@@ -11,11 +11,21 @@ type LogInfo = {
     tipo_registo: string;
     timestamp: string;
     // joined
-    operadores?: { nome_operador: string, numero_operador: string } | null;
+    operadores?: { 
+        nome_operador: string, 
+        numero_operador: string,
+        area_base_id: string | null,
+        posto_base_id: string | null,
+        estacoes?: { linha_id: string | null } | null
+    } | null;
     estacoes?: { nome_estacao: string } | null;
 };
 
-export default function AssiduidadeLogViewer() {
+export default function AssiduidadeLogViewer({
+    filterArea, filterLinha, filterEstacao
+}: {
+    filterArea?: string, filterLinha?: string, filterEstacao?: string
+}) {
     const supabase = createClient();
     const [logs, setLogs] = useState<LogInfo[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -46,7 +56,7 @@ export default function AssiduidadeLogViewer() {
                 .from('log_ponto_diario')
                 .select(`
                     id, operador_rfid, estacao_id, tipo_registo, timestamp,
-                    operadores:operador_rfid (nome_operador, numero_operador),
+                    operadores:operador_rfid (nome_operador, numero_operador, area_base_id, posto_base_id, estacoes ( linha_id )),
                     estacoes (nome_estacao)
                 `)
                 .gte('timestamp', startDate)
@@ -104,6 +114,13 @@ export default function AssiduidadeLogViewer() {
     };
 
     const logsFiltrados = logs.filter(l => {
+        // Filtros globais (passados pela página-mãe)
+        const op = l.operadores as any;
+        if (filterArea && op?.area_base_id !== filterArea) return false;
+        if (filterLinha && op?.estacoes?.linha_id !== filterLinha) return false;
+        if (filterEstacao && op?.posto_base_id !== filterEstacao) return false;
+
+        // Filtro de texto (Search Box local)
         const term = searchFilter.toLowerCase();
         const nome = l.operadores?.nome_operador?.toLowerCase() || '';
         const num = l.operadores?.numero_operador?.toLowerCase() || '';

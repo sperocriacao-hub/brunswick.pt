@@ -7,9 +7,16 @@ import Link from 'next/link';
 
 import AssiduidadeLogViewer from './AssiduidadeLogViewer';
 import { SupervisorAttendanceModal } from '@/components/rh/SupervisorAttendanceModal';
+import AssiduidadeFilters from '@/components/rh/AssiduidadeFilters';
+
 export const dynamic = 'force-dynamic';
 
-export default async function AssiduidadeDashboard() {
+export default async function AssiduidadeDashboard({ searchParams }: { searchParams: Promise<{ [key: string]: string | undefined }> }) {
+    const sp = await searchParams;
+    const filterArea = sp.area || '';
+    const filterLinha = sp.linha || '';
+    const filterEstacao = sp.estacao || '';
+
     const cookieStore = cookies();
     const supabase = createClient(cookieStore);
 
@@ -32,16 +39,42 @@ export default async function AssiduidadeDashboard() {
         .gte('timestamp', `${hojeStr}T00:00:00Z`)
         .lte('timestamp', `${hojeStr}T23:59:59Z`);
 
+    // Fetch Listas para Filtros
+    const [{ data: areas }, { data: linhas }, { data: estacoes }] = await Promise.all([
+        supabase.from('areas_fabrica').select('id, nome_area').order('nome_area'),
+        supabase.from('linhas_producao').select('id, letra_linha').order('letra_linha'),
+        supabase.from('estacoes').select('id, nome_estacao').order('nome_estacao')
+    ]);
+
+    const areasList = (areas || []).map(a => ({ id: a.id, nome: a.nome_area }));
+    const linhasList = (linhas || []).map(l => ({ id: l.id, nome: `Linha ${l.letra_linha}` }));
+    const estacoesList = (estacoes || []).map(e => ({ id: e.id, nome: e.nome_estacao }));
+
+    // Filtrar Operadores com base nos filtros da UI
+    const operadoresFiltrados = (operadoresRaw || []).filter(op => {
+        let keep = true;
+        if (filterArea && op.area_base_id !== filterArea) keep = false;
+        
+        const est = op.estacoes as any;
+        if (filterLinha && est?.linha_id !== filterLinha) keep = false;
+        if (filterEstacao && op.posto_base_id !== filterEstacao) keep = false;
+        return keep;
+    });
+
     // Lista Plana de RFIDs detetados na fábrica hoje
-    const rfidsPresentes = Array.from(new Set((presencasRaw || []).map((p: any) => p.operador_rfid)));
+    const allRfidsPresentes = Array.from(new Set((presencasRaw || []).map((p: any) => p.operador_rfid)));
+    
+    // Intercetar apenas com os operadores filtrados
+    const validRfids = new Set(operadoresFiltrados.map(o => o.tag_rfid_operador));
+    const rfidsPresentes = allRfidsPresentes.filter(rfid => validRfids.has(rfid as string));
 
     // 3. Processamento Nuclear Nível 1: Macro Fábrica
-    const totalCadastrados = operadoresRaw?.length || 0;
+    const totalCadastrados = operadoresFiltrados.length;
     const totalPresentes = rfidsPresentes.length; // Quantos RFIDs unicos o Supabase leu hoje
     const totalAusentes = Math.max(0, totalCadastrados - totalPresentes);
 
     // Heurística Anti-Falso-Alarme:
-    const turnoverIniciado = totalPresentes > 0;
+    const turnoverIniciado = totalPresentes > 0 || allRfidsPresentes.length > 0;
     const taxaAbsentismo = (totalCadastrados > 0 && turnoverIniciado)
         ? ((totalAusentes) / totalCadastrados) * 100
         : 0;
@@ -126,6 +159,12 @@ export default async function AssiduidadeDashboard() {
                 </div>
             </header>
 
+            <AssiduidadeFilters 
+                areas={areasList} 
+                linhas={linhasList} 
+                estacoes={estacoesList} 
+            />
+
             {/* NÍVEL 1: HEADCOUNT GIGANTE */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <Card className="bg-white border-slate-200 shadow-sm">
@@ -185,7 +224,7 @@ export default async function AssiduidadeDashboard() {
                 </Card>
             </div>
             {/* LISTA COMPLETA DE REGISTOS E EDIÇÃO */}
-            <AssiduidadeLogViewer />
+            <AssiduidadeLogViewer filterArea={filterArea} filterLinha={filterLinha} filterEstacao={filterEstacao} />
         </div>
     );
 }
