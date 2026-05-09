@@ -258,3 +258,40 @@ export async function deleteAcao5S(id: string) {
         return { success: false, error: e.message };
     }
 }
+
+export async function exigirAcaoLideranca5S(cronograma: any) {
+    try {
+        const areaNome = cronograma.areas_fabrica?.nome_area || 'Desconhecida';
+        const auditorNome = cronograma.operadores?.nome_operador || 'Não Designado';
+        const dataStr = new Date(cronograma.data_prevista).toLocaleDateString('pt-PT');
+        const titulo = `Ação Exigida: Ronda 5S Atrasada/Falha (${areaNome})`;
+        const descricao = `A Coordenação exige justificação ou ação corretiva imediata para a ronda 5S planeada para ${dataStr}, que se encontra em estado crítico ou em atraso.\n\nAuditor Responsável: ${auditorNome}`;
+
+        const { error } = await supabase.from('lean_5s_acoes').insert([{
+            descricao_acao: titulo + ' - ' + descricao,
+            prioridade: 'Alta',
+            status: 'Em Analise',
+            area_id: cronograma.area_id,
+            linha_id: cronograma.linha_id || null,
+            estacao_id: cronograma.estacao_id || null,
+            lider_id: cronograma.auditor_id || null
+        }]);
+
+        if (error) throw error;
+        
+        // 5. Integrar ao Motor de Notificações
+        const { dispatchNotification } = await import('../../configuracoes/notificacoes/actions');
+        await dispatchNotification('ACAO_5S_EXIGIDA', {
+            area: areaNome,
+            auditor: auditorNome,
+            data_prevista: dataStr,
+            detalhe: 'Ronda em estado crítico ou atrasado. Ação gerada automaticamente no painel Scrum Board.'
+        });
+
+        revalidatePath('/admin/lean/5s');
+        return { success: true };
+    } catch (e: any) {
+        return { success: false, error: e.message };
+    }
+}
+

@@ -7,7 +7,7 @@ import { Loader2, ArrowRight, Activity, TrendingUp, TrendingDown, Settings2, Cli
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { getAuditoriasRecentes, getAuditoriaDetalhes, getAcoes5S, updateAcao5S, deleteAcao5S, getOperadores, getDadosDashboard5S } from './actions';
+import { getAuditoriasRecentes, getAuditoriaDetalhes, getAcoes5S, updateAcao5S, deleteAcao5S, getOperadores, getDadosDashboard5S, updateA3Report5S, exigirAcaoLideranca5S } from './actions';
 import { getCronograma5S } from './setup/actions';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, LineChart, Line, ComposedChart, AreaChart, Area } from 'recharts';
 import Link from 'next/link';
@@ -680,7 +680,21 @@ export default function Dashboard5SPage() {
                                                             {c.status}
                                                         </span>
                                                         {c.status === 'Atrasado' && (
-                                                            <Button size="icon" variant="ghost" className="h-6 w-6 ml-2 text-rose-600 hover:bg-rose-100" title="Exigir Ação do Líder">
+                                                            <Button 
+                                                                size="icon" 
+                                                                variant="ghost" 
+                                                                className="h-6 w-6 ml-2 text-rose-600 hover:bg-rose-100" 
+                                                                title="Exigir Ação do Líder"
+                                                                onClick={async () => {
+                                                                    if (confirm(`Pretende abrir um ticket de Ação Corretiva para o auditor ${c.operadores?.nome_operador || 'desta ronda'} no Scrum Board?`)) {
+                                                                        const res = await exigirAcaoLideranca5S(c);
+                                                                        if (res.success) {
+                                                                            alert('Ação exigida! Ticket criado no Scrum Board.');
+                                                                            carregarTudo();
+                                                                        }
+                                                                    }
+                                                                }}
+                                                            >
                                                                 <AlertTriangle size={12} />
                                                             </Button>
                                                         )}
