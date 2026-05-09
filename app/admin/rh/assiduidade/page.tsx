@@ -184,9 +184,6 @@ export default async function AssiduidadeDashboard() {
                     </CardContent>
                 </Card>
             </div>
-
-            </div>
-
             {/* LISTA COMPLETA DE REGISTOS E EDIÇÃO */}
             <AssiduidadeLogViewer />
         </div>
