@@ -10,7 +10,7 @@ type Operador = {
     id: string;
     nome_operador: string;
     tag_rfid_operador: string;
-    estacoes: { nome: string } | null;
+    estacoes: { nome_estacao: string } | null;
     status_hoje: string; // 'Presente', 'Falta Justificada', 'Férias', etc
     is_automatic: boolean;
 };
