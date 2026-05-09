@@ -24,6 +24,8 @@ export function SupervisorAttendanceModal() {
     const [isLider, setIsLider] = useState(false);
     const [isMasterOrRh, setIsMasterOrRh] = useState(false);
     const [debugError, setDebugError] = useState<string | null>(null);
+    const [pendingChanges, setPendingChanges] = useState<Record<string, string>>({});
+    const [isSaving, setIsSaving] = useState(false);
 
     useEffect(() => {
         async function checkUser() {
@@ -138,6 +140,7 @@ export function SupervisorAttendanceModal() {
         });
 
         setOperadores(processed);
+        setPendingChanges({});
         setIsLoading(false);
     };
 
@@ -146,51 +149,70 @@ export function SupervisorAttendanceModal() {
         fetchEquipa();
     };
 
-    const setStatus = async (opId: string, novoStatus: string) => {
-        const hojeIso = new Date().toISOString().split('T')[0];
-        
-        // Optimistic UI Update
+    const setStatus = (opId: string, novoStatus: string) => {
+        // Optimistic UI
         setOperadores(prev => prev.map(op => op.id === opId ? { ...op, status_hoje: novoStatus } : op));
+        // Guarda na lista de alterações pendentes
+        setPendingChanges(prev => ({ ...prev, [opId]: novoStatus }));
+    };
+
+    const handleSave = async () => {
+        if (Object.keys(pendingChanges).length === 0) {
+            setIsOpen(false);
+            return;
+        }
+
+        setIsSaving(true);
+        const hojeIso = new Date().toISOString().split('T')[0];
 
         try {
-            if (novoStatus === 'Presente') {
-                // Remove qualquer ausência manual marcada hoje para que fique limpo
-                await supabase.from('rh_ausencias')
-                    .delete()
-                    .eq('operador_id', opId)
-                    .eq('data_inicio', hojeIso)
-                    .eq('data_fim', hojeIso);
-            } else {
-                // Inserir ou atualizar ausência com data_fim = data_inicio = HOJE (ausência de 1 dia)
-                // Primeiro verificamos se já tem uma ausência pontual hoje
-                const { data: exist } = await supabase.from('rh_ausencias')
-                    .select('id')
-                    .eq('operador_id', opId)
-                    .eq('data_inicio', hojeIso)
-                    .eq('data_fim', hojeIso)
-                    .single();
-
-                if (exist) {
-                    await supabase.from('rh_ausencias')
-                        .update({ 
-                            tipo_ausencia: novoStatus === 'Entrada/Saída Antecipada' ? 'Outro' : novoStatus,
-                            motivo_observacao: novoStatus === 'Entrada/Saída Antecipada' ? 'Entrada/Saída Antecipada' : 'Apontamento Diário Supervisor' 
-                        })
-                        .eq('id', exist.id);
+            for (const [opId, novoStatus] of Object.entries(pendingChanges)) {
+                if (novoStatus === 'Presente') {
+                    const { error: delErr } = await supabase.from('rh_ausencias')
+                        .delete()
+                        .eq('operador_id', opId)
+                        .eq('data_inicio', hojeIso)
+                        .eq('data_fim', hojeIso);
+                    if (delErr) throw delErr;
                 } else {
-                    await supabase.from('rh_ausencias').insert({
-                        operador_id: opId,
-                        tipo_ausencia: novoStatus === 'Entrada/Saída Antecipada' ? 'Outro' : novoStatus,
-                        data_inicio: hojeIso,
-                        data_fim: hojeIso,
-                        motivo_observacao: novoStatus === 'Entrada/Saída Antecipada' ? 'Entrada/Saída Antecipada' : 'Apontamento Diário Supervisor'
-                    });
+                    const { data: exist, error: chkErr } = await supabase.from('rh_ausencias')
+                        .select('id')
+                        .eq('operador_id', opId)
+                        .eq('data_inicio', hojeIso)
+                        .eq('data_fim', hojeIso)
+                        .single();
+
+                    if (chkErr && chkErr.code !== 'PGRST116') throw chkErr; // Ignore row not found
+
+                    if (exist) {
+                        const { error: upErr } = await supabase.from('rh_ausencias')
+                            .update({ 
+                                tipo_ausencia: novoStatus === 'Entrada/Saída Antecipada' ? 'Outro' : novoStatus,
+                                motivo_observacao: novoStatus === 'Entrada/Saída Antecipada' ? 'Entrada/Saída Antecipada' : 'Apontamento Diário Supervisor' 
+                            })
+                            .eq('id', exist.id);
+                        if (upErr) throw upErr;
+                    } else {
+                        const { error: inErr } = await supabase.from('rh_ausencias').insert({
+                            operador_id: opId,
+                            tipo_ausencia: novoStatus === 'Entrada/Saída Antecipada' ? 'Outro' : novoStatus,
+                            data_inicio: hojeIso,
+                            data_fim: hojeIso,
+                            motivo_observacao: novoStatus === 'Entrada/Saída Antecipada' ? 'Entrada/Saída Antecipada' : 'Apontamento Diário Supervisor'
+                        });
+                        if (inErr) throw inErr;
+                    }
                 }
             }
-        } catch (error) {
+
+            alert("Chamada gravada com sucesso!");
+            setPendingChanges({});
+            setIsOpen(false);
+        } catch (error: any) {
             console.error(error);
-            alert("Falha ao atualizar o estado do operador.");
-            fetchEquipa(); // revert
+            alert("Falha ao gravar a chamada no sistema: " + (error?.message || "Erro desconhecido"));
+        } finally {
+            setIsSaving(false);
         }
     };
 
@@ -309,6 +331,25 @@ export function SupervisorAttendanceModal() {
                                     </div>
                                 </div>
                             ))}
+                        </div>
+                    )}
+
+                    {!isLoading && operadores.length > 0 && !debugError && (
+                        <div className="mt-8 flex justify-end gap-4 border-t border-slate-200 pt-6">
+                            <Button variant="outline" onClick={() => setIsOpen(false)} disabled={isSaving}>
+                                Cancelar
+                            </Button>
+                            <Button 
+                                onClick={handleSave} 
+                                disabled={isSaving || Object.keys(pendingChanges).length === 0}
+                                className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-8"
+                            >
+                                {isSaving ? (
+                                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> A gravar...</>
+                                ) : (
+                                    <>Gravar Chamada {Object.keys(pendingChanges).length > 0 ? `(${Object.keys(pendingChanges).length})` : ''}</>
+                                )}
+                            </Button>
                         </div>
                     )}
                 </DialogContent>
