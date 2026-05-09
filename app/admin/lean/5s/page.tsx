@@ -726,7 +726,7 @@ export default function Dashboard5SPage() {
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="bg-slate-50 p-3 rounded-lg border">
                                                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Local</p>
-                                                <p className="font-bold text-slate-700">{selectedAcao.areas_fabrica?.nome_area} {selectedAcao.estacoes ? \`(\${selectedAcao.estacoes.nome_estacao})\` : ''}</p>
+                                                <p className="font-bold text-slate-700">{selectedAcao.areas_fabrica?.nome_area} {selectedAcao.estacoes ? `(${selectedAcao.estacoes.nome_estacao})` : ''}</p>
                                             </div>
                                             <div className="bg-slate-50 p-3 rounded-lg border">
                                                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Origem</p>
@@ -756,7 +756,7 @@ export default function Dashboard5SPage() {
                                                 {whys.map((why, index) => (
                                                     <div key={index} className="flex gap-3 items-start">
                                                         <span className="bg-amber-100 text-amber-800 font-black rounded w-8 h-8 flex items-center justify-center shrink-0">W{index+1}</span>
-                                                        <input type="text" value={why} onChange={(e) => { const nw = [...whys]; nw[index] = e.target.value; setWhys(nw); }} className="flex-1 px-3 py-1.5 border rounded-md text-sm" placeholder={`Porquê \${index+1}?`} />
+                                                        <input type="text" value={why} onChange={(e) => { const nw = [...whys]; nw[index] = e.target.value; setWhys(nw); }} className="flex-1 px-3 py-1.5 border rounded-md text-sm" placeholder={`Porquê ${index+1}?`} />
                                                     </div>
                                                 ))}
                                             </div>
