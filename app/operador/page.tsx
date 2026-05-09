@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
-import { MonitorSmartphone, AlertTriangle, Lightbulb, QrCode, FileText, UserCheck, UserX, CheckSquare, ListTodo, LogIn, HardHat, ChevronLeft, Wifi, Star } from 'lucide-react';
+import { MonitorSmartphone, AlertTriangle, Lightbulb, QrCode, FileText, UserCheck, UserX, CheckSquare, ListTodo, LogIn, LogOut, HardHat, ChevronLeft, Wifi, Star } from 'lucide-react';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
@@ -58,6 +58,10 @@ export default function InteractiveTabletPage() {
 
     // Bottom-Up Modal State
     const [isBottomUpModalOpen, setIsBottomUpModalOpen] = useState(false);
+
+    // Manual Punch State
+    const [isManualPunchOpen, setIsManualPunchOpen] = useState(false);
+    const [manualPunchIntent, setManualPunchIntent] = useState<'ENTRADA' | 'SAIDA'>('ENTRADA');
 
     // Area Andon Status
     const [areaAndonStatus, setAreaAndonStatus] = useState<any[]>([]);
@@ -600,7 +604,7 @@ export default function InteractiveTabletPage() {
                     
                     {/* BUTTON BOTTOM UP */}
                     {clockedInOperators.length > 0 && (
-                        <div className="mt-4 pt-4 border-t border-slate-800 shrink-0">
+                        <div className="mt-4 pt-4 border-t border-slate-800 shrink-0 mb-4">
                             <Button 
                                 onClick={() => setIsBottomUpModalOpen(true)}
                                 className="w-full bg-emerald-600/20 text-emerald-500 border border-emerald-500/50 hover:bg-emerald-600 hover:text-white uppercase tracking-widest font-black h-14 shadow-[0_0_15px_rgba(16,185,129,0.15)]"
@@ -609,73 +613,117 @@ export default function InteractiveTabletPage() {
                             </Button>
                         </div>
                     )}
+
+                    {/* UPCOMING QUEUE IN LEFT PANE */}
+                    <div className="flex flex-col flex-1 border-t border-slate-800 pt-4">
+                        <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-3">
+                            <ListTodo className="w-4 h-4 text-blue-500" /> Fila da Estação
+                        </h3>
+                        {upcomingQueue.length === 0 ? (
+                            <div className="border-2 border-dashed border-slate-800 rounded-xl flex flex-col items-center justify-center text-slate-500 p-4 text-center">
+                                <p className="font-bold text-sm mb-1">Fila Vazia</p>
+                            </div>
+                        ) : (
+                            <div className="flex flex-col gap-2 overflow-y-auto pr-2 pb-2">
+                                {upcomingQueue.map((op, idx) => (
+                                    <div key={op.id} className="bg-slate-800/40 border border-slate-700/50 p-3 rounded-lg flex items-center gap-3">
+                                        <div className="w-6 h-6 rounded bg-slate-900 flex items-center justify-center font-black text-xs text-slate-400 shrink-0">
+                                            {idx + 1}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <h4 className="text-slate-200 font-bold text-xs truncate">OP {op.numero}</h4>
+                                            <p className="text-slate-400 text-[10px] font-medium truncate">{op.modelo}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 </aside>
 
-                {/* PANE CENTER: PRODUCTION TERMINAL (The Simulator Embedded) */}
+                {/* PANE CENTER: PRODUCTION TERMINAL */}
                 <section className="w-full lg:w-2/5 p-6 lg:p-12 flex flex-col items-center justify-center bg-slate-950 relative border-r border-slate-800 shadow-[inset_0_0_100px_rgba(0,0,0,0.8)]">
-
-                    <div className="w-full max-w-md bg-slate-800 p-8 rounded-3xl border border-slate-700 shadow-2xl relative">
-                        {/* Terminal Header */}
-                        <div className="flex justify-between items-center mb-6 border-b border-slate-700 pb-4">
-                            <div className="flex items-center gap-2">
-                                <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse"></div>
-                                <span className="font-bold text-slate-300">DASHBOARD M.E.S.</span>
-                            </div>
-                            <Wifi className={`w-5 h-5 ${selectedEstacaoId ? 'text-green-500' : 'text-slate-600'}`} />
+                    
+                    {!isAnyoneClockedIn ? (
+                        <div className="text-center">
+                            <Wifi className="w-24 h-24 text-slate-700 mx-auto mb-6 opacity-50" />
+                            <h2 className="text-3xl font-black text-slate-300 tracking-widest mb-2 uppercase">Posto Livre</h2>
+                            <p className="text-slate-500 text-lg mb-10">Aguardando picagem de operador...</p>
+                            
+                            <Button 
+                                onClick={() => { setMode('MENU_TURNO'); setTurnoIndex(0); setManualPunchIntent('ENTRADA'); setIsManualPunchOpen(true); }}
+                                className="h-16 px-8 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-lg shadow-[0_0_20px_rgba(37,99,235,0.3)]"
+                            >
+                                Entrada Manual (S/ Cartão)
+                            </Button>
                         </div>
-
-                        {/* LCD Display 16x2 Emulation   */}
-                        <div className="bg-[#1b2b1b] border-8 border-slate-700 rounded-xl w-full p-4 mb-10 shadow-[inset_0_5px_15px_rgba(0,0,0,0.8)] flex flex-col gap-2 relative overflow-hidden min-h-[220px] justify-center">
-                            {/* Bezel branding */}
-                            <div className="absolute top-1 left-2 text-[#4ade80] opacity-20 text-[0.6rem] font-bold">1602A LCD MODULE</div>
-
-                            {/* Glass overlay */}
-                            <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent pointer-events-none"></div>
-
-                            <div className="mt-2 font-mono text-base md:text-xl font-medium text-[#4ade80] drop-shadow-[0_0_8px_rgba(74,222,128,0.6)] tracking-[0.25em] whitespace-pre truncate uppercase">
-                                {lcdLine1.padEnd(16, ' ')}
-                            </div>
-                            <div className="font-mono text-base md:text-xl font-medium text-[#4ade80] drop-shadow-[0_0_8px_rgba(74,222,128,0.6)] tracking-[0.25em] whitespace-pre truncate uppercase mt-1">
-                                {lcdLine2.padEnd(16, ' ')}
-                            </div>
+                    ) : !currentOpId ? (
+                        <div className="text-center">
+                            <div className="w-4 h-4 rounded-full bg-green-500 animate-pulse mx-auto mb-6 shadow-[0_0_15px_rgba(34,197,94,0.6)]"></div>
+                            <h2 className="text-3xl font-black text-slate-200 tracking-widest mb-2 uppercase">Sistema Online</h2>
+                            <p className="text-slate-400 text-lg mb-10">Aguardar embarcação na linha...</p>
+                            
+                            <Button 
+                                variant="outline"
+                                onClick={() => { setMode('MENU_TURNO'); setTurnoIndex(1); setManualPunchIntent('SAIDA'); setIsManualPunchOpen(true); }}
+                                className="h-12 px-6 border-slate-700 text-slate-400 hover:text-white hover:bg-slate-800 font-bold rounded-lg"
+                            >
+                                <LogOut className="w-4 h-4 mr-2" /> Ponto Saída Manual
+                            </Button>
                         </div>
-
-                        {/* Physical/Logical Buttons */}
-                        <div className="grid grid-cols-3 gap-4 mb-8">
-                            <button onClick={() => handleHardwareButton('UP')} className="h-16 rounded-xl bg-slate-700 border-b-4 border-slate-900 active:border-b-0 active:translate-y-1 text-slate-300 font-bold hover:bg-slate-600 transition-all flex flex-col items-center justify-center">
-                                <span className="text-xs text-slate-400 mb-1">↑</span>FIM
-                            </button>
-                            <button onClick={() => handleHardwareButton('DOWN')} className="h-16 rounded-xl bg-slate-700 border-b-4 border-slate-900 active:border-b-0 active:translate-y-1 text-slate-300 font-bold hover:bg-slate-600 transition-all flex flex-col items-center justify-center">
-                                <span className="text-xs text-slate-400 mb-1">↓</span>PAUSA
-                            </button>
-                            <button onClick={() => handleHardwareButton('CANCEL')} className="h-16 rounded-xl bg-red-900/80 border-b-4 border-red-950 active:border-b-0 active:translate-y-1 text-red-100 font-bold hover:bg-red-800 transition-all">
-                                CANCEL
-                            </button>
-                        </div>
-
-                        {/* RFID Scanner Emulation */}
-                        <div className="bg-slate-900 p-6 rounded-2xl border border-slate-800 text-center relative overflow-hidden group">
-                            <div className="absolute top-0 right-0 w-16 h-16 bg-blue-500/10 rounded-bl-full transition-transform group-active:scale-110"></div>
-                            <div className="w-16 h-16 mx-auto bg-slate-800 rounded-full flex items-center justify-center mb-4 shadow-inner border border-slate-700">
-                                <Wifi className="w-8 h-8 text-blue-500/50" />
+                    ) : (
+                        <div className="w-full max-w-md flex flex-col gap-6">
+                            {/* OP Info */}
+                            <div className="bg-slate-900 border border-slate-700 p-6 rounded-2xl text-center shadow-lg">
+                                <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-1">Embarcação Atual</h3>
+                                <h2 className="text-3xl font-black text-blue-400 truncate">{lcdLine1}</h2>
+                                <p className="text-slate-300 font-medium text-lg mt-1">{lcdLine2}</p>
                             </div>
-                            <p className="text-sm font-medium text-slate-400 mb-4 tracking-wider uppercase">Passe o Cartão (ou Digite)</p>
 
-                            <form onSubmit={handleRfidSubmit} className="relative z-10 w-full max-w-[200px] mx-auto">
-                                <input
-                                    ref={inputRef}
-                                    type="text"
-                                    value={rfidInput}
-                                    onChange={(e) => setRfidInput(e.target.value)}
-                                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-center text-blue-400 font-mono tracking-widest focus:outline-none focus:border-blue-500 shadow-inner"
-                                    placeholder="HEX_TAG"
-                                    autoComplete="off"
-                                />
-                                <button type="submit" className="hidden">Simular API</button>
-                            </form>
+                            {/* Progress Ring */}
+                            <div className="bg-slate-900/50 border border-slate-800 p-6 rounded-2xl flex flex-col items-center shadow-inner">
+                                <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">Progresso de Montagem</h3>
+                                <div className="relative w-32 h-32 flex items-center justify-center">
+                                    <svg className="w-full h-full transform -rotate-90">
+                                        <circle cx="64" cy="64" r="56" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-slate-800" />
+                                        <circle cx="64" cy="64" r="56" stroke="currentColor" strokeWidth="8" fill="transparent"
+                                            strokeDasharray={2 * Math.PI * 56}
+                                            strokeDashoffset={2 * Math.PI * 56 * (1 - (checklist.length > 0 ? checklist.filter(t => t.is_checked).length / checklist.length : 0))}
+                                            className="text-green-500 transition-all duration-1000 ease-out" 
+                                        />
+                                    </svg>
+                                    <div className="absolute flex flex-col items-center">
+                                        <span className="text-2xl font-black text-slate-200">{checklist.length > 0 ? Math.round((checklist.filter(t => t.is_checked).length / checklist.length) * 100) : 0}%</span>
+                                    </div>
+                                </div>
+                                <p className="text-sm text-slate-400 mt-4 font-bold">{checklist.filter(t => t.is_checked).length} de {checklist.length} tarefas concluídas</p>
+                            </div>
+
+                            {/* Primary Controls */}
+                            <div className="grid grid-cols-2 gap-4">
+                                <Button 
+                                    onClick={() => handleHardwareButton('DOWN')}
+                                    className="h-16 bg-amber-600/20 hover:bg-amber-600/30 text-amber-500 border border-amber-600/50 font-bold text-lg rounded-xl"
+                                >
+                                    Pausa (Setup/WC)
+                                </Button>
+                                <Button 
+                                    onClick={() => handleHardwareButton('UP')}
+                                    className="h-16 bg-green-600/20 hover:bg-green-600/30 text-green-500 border border-green-600/50 font-bold text-lg rounded-xl"
+                                >
+                                    Concluir Estação
+                                </Button>
+                            </div>
+
+                            <Button 
+                                variant="outline"
+                                onClick={() => alert("Os Manuais do Modelo estarão disponíveis brevemente (A aguardar configuração do admin).")}
+                                className="h-12 w-full bg-slate-800 border-slate-700 hover:bg-slate-700 text-blue-400 font-bold"
+                            >
+                                <FileText className="w-5 h-5 mr-2" /> Aceder Manuais P&A do Modelo
+                            </Button>
                         </div>
-
-                    </div>
+                    )}
                 </section>
 
                 {/* PANE RIGHT: CHECKLIST E OPs */}
@@ -697,36 +745,9 @@ export default function InteractiveTabletPage() {
                     </div>
 
                     {!currentOpId ? (
-                        <div className="flex flex-col h-full">
-                            <h3 className="text-xl font-bold text-slate-100 flex items-center gap-2 mb-4 border-b border-slate-800 pb-2">
-                                <ListTodo className="text-blue-500" /> Próximos na Fila...
-                            </h3>
-                            {upcomingQueue.length === 0 ? (
-                                <div className="h-48 border-2 border-dashed border-slate-800 rounded-2xl flex flex-col items-center justify-center text-slate-500 p-8 text-center mt-4">
-                                    <ListTodo className="w-12 h-12 mb-4 opacity-50" />
-                                    <p className="font-bold text-lg mb-2">Sem OPs Planeadas</p>
-                                    <p className="text-sm">Esta estação esgotou a sua fila de produção (ou não há barcos agendados para si hoje).</p>
-                                </div>
-                            ) : (
-                                <div className="flex flex-col gap-3 overflow-y-auto pr-2 pb-4">
-                                    {upcomingQueue.map((op, idx) => (
-                                        <div key={op.id} className="bg-slate-800/50 border border-slate-700/50 p-4 rounded-xl flex items-center gap-4 hover:bg-slate-800 transition-colors shadow-sm">
-                                            <div className="w-10 h-10 rounded-full bg-slate-900 border border-slate-700 flex items-center justify-center font-black text-slate-400 shrink-0">
-                                                {idx + 1}
-                                            </div>
-                                            <div className="flex-1">
-                                                <h4 className="text-slate-200 font-bold text-lg">OP {op.numero}</h4>
-                                                <p className="text-slate-400 text-sm font-medium">{op.modelo}</p>
-                                            </div>
-                                            <div className="text-right shrink-0 flex flex-col items-end gap-1">
-                                                <span className="text-[10px] uppercase tracking-widest font-bold bg-slate-900 px-2 py-1 rounded text-slate-500 border border-slate-800">
-                                                    {op.status === 'Planeada' ? 'Aguarda' : op.status}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
+                        <div className="flex flex-col items-center justify-center h-48 text-slate-500 border-2 border-dashed border-slate-800 rounded-2xl mt-4">
+                            <CheckSquare className="w-12 h-12 mb-4 opacity-30" />
+                            <p className="font-bold">Aguardando Barco</p>
                         </div>
                     ) : (
                         <div className="flex flex-col gap-3">
@@ -883,6 +904,38 @@ export default function InteractiveTabletPage() {
                 operadoresAtivos={clockedInOperators}
                 onSubmitAvaliacao={handleBottomUpSubmit}
             />
+            {/* MANUAL PUNCH MODAL */}
+            <Dialog open={isManualPunchOpen} onOpenChange={setIsManualPunchOpen}>
+                <DialogContent className="bg-slate-900 border-slate-800 text-white sm:max-w-[400px]">
+                    <DialogHeader>
+                        <DialogTitle className="text-2xl font-black text-blue-500 uppercase tracking-widest text-center">
+                            Acesso Manual
+                        </DialogTitle>
+                        <DialogDescription className="text-slate-400 text-center">
+                            Insira o seu número de operador para registar {manualPunchIntent === 'ENTRADA' ? 'Entrada' : 'Saída'} no sistema.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-6">
+                        <form onSubmit={(e) => {
+                            e.preventDefault();
+                            setIsManualPunchOpen(false);
+                            handleRfidSubmit(e);
+                        }} className="flex flex-col gap-4">
+                            <Input
+                                autoFocus
+                                value={rfidInput}
+                                onChange={(e) => setRfidInput(e.target.value)}
+                                className="h-16 text-center text-2xl font-mono tracking-widest bg-slate-950 border-slate-700 text-blue-400 focus:border-blue-500"
+                                placeholder="Nº Operador"
+                            />
+                            <Button type="submit" className="h-14 bg-blue-600 hover:bg-blue-700 text-white font-bold text-lg">
+                                Confirmar {manualPunchIntent}
+                            </Button>
+                        </form>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
         </div>
     );
 }
