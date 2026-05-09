@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { getAuditoriasRecentes, getAuditoriaDetalhes, getAcoes5S, updateAcao5S, deleteAcao5S, getOperadores, getDadosDashboard5S } from './actions';
+import { getCronograma5S } from './setup/actions';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, LineChart, Line, ComposedChart, AreaChart, Area } from 'recharts';
 import Link from 'next/link';
 
@@ -21,6 +22,7 @@ export default function Dashboard5SPage() {
     const [acoes, setAcoes] = useState<any[]>([]);
     const [operadores, setOperadores] = useState<any[]>([]);
     const [dadosDash, setDadosDash] = useState<any[]>([]);
+    const [cronograma, setCronograma] = useState<any[]>([]);
     
     // Comitê State
     const [isEvaluating, setIsEvaluating] = useState(false);
@@ -52,11 +54,13 @@ export default function Dashboard5SPage() {
         const resAcoes = await getAcoes5S();
         const resOp = await getOperadores();
         const resDash = await getDadosDashboard5S();
+        const resCrono = await getCronograma5S();
         
         if (res.success) setAuditorias(res.data || []);
         if (resAcoes.success) setAcoes(resAcoes.data || []);
         if (resOp.success) setOperadores(resOp.data || []);
         if (resDash.success) setDadosDash(resDash.data || []);
+        if (resCrono.success) setCronograma(resCrono.data || []);
         
         setLoading(false);
     }
@@ -234,6 +238,50 @@ export default function Dashboard5SPage() {
             '5S - Disciplina': a['5S'].p + a['5S'].f > 0 ? Math.round((a['5S'].p / (a['5S'].p + a['5S'].f)) * 100) : 0,
         };
     });
+
+    // Taxa de Efetividade (Auditorias Feitas vs Planeadas Diárias)
+    const txEfetividade = [];
+    const hoje = new Date();
+    for (let i = 14; i >= 0; i--) {
+        const d = new Date(hoje);
+        d.setDate(d.getDate() - i);
+        const diaStr = d.toISOString().split('T')[0];
+        const diaDisplay = d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+        
+        const planeadasDia = cronograma.filter(c => c.data_prevista && c.data_prevista.startsWith(diaStr)).length;
+        const feitasDia = auditorias.filter(a => a.data_auditoria && a.data_auditoria.startsWith(diaStr)).length;
+        
+        if (planeadasDia > 0 || feitasDia > 0) {
+            txEfetividade.push({
+                dia: diaDisplay,
+                Planeadas: planeadasDia,
+                Feitas: feitasDia,
+                Efetividade: planeadasDia > 0 ? Math.round((feitasDia / planeadasDia) * 100) : 100
+            });
+        }
+    }
+
+    const cronogramaComStatus = cronograma.map(c => {
+        let status = 'Pendente';
+        let score = null;
+        
+        // Verifica se há alguma auditoria feita nesta área/linha/estação na mesma data (+- 1 dia)
+        const dCrono = new Date(c.data_prevista);
+        const audCorresp = auditorias.find(a => {
+            const dAud = new Date(a.data_auditoria);
+            const diffDias = Math.abs(dCrono.getTime() - dAud.getTime()) / (1000 * 3600 * 24);
+            return diffDias <= 2 && a.area_id === c.area_id && a.estacao_id === c.estacao_id;
+        });
+
+        if (audCorresp) {
+            status = 'Realizada';
+            score = Math.round(Number(audCorresp.percentagem));
+        } else if (new Date(c.data_prevista) < new Date()) {
+            status = 'Atrasado';
+        }
+
+        return { ...c, status, score };
+    }).sort((a, b) => new Date(a.data_prevista).getTime() - new Date(b.data_prevista).getTime());
 
     return (
         <div className="p-8 space-y-8 max-w-[1400px] mx-auto animate-in fade-in zoom-in-95 duration-500 pb-32">
@@ -488,6 +536,27 @@ export default function Dashboard5SPage() {
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
                             <Card className="border-0 shadow-sm">
                                 <CardHeader className="bg-slate-50 border-b pb-4">
+                                    <CardTitle className="text-lg flex items-center gap-2"><TrendingUp className="text-blue-500"/> Efetividade de Auditorias (Feitas vs Planeadas)</CardTitle>
+                                </CardHeader>
+                                <CardContent className="pt-6 h-80">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <ComposedChart data={txEfetividade} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                                            <XAxis dataKey="dia" axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#64748b'}} />
+                                            <YAxis axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#64748b'}} />
+                                            <RechartsTooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                                            <Legend wrapperStyle={{fontSize: '12px'}} />
+                                            <Bar dataKey="Planeadas" fill="#cbd5e1" radius={[4, 4, 0, 0]} barSize={20} />
+                                            <Bar dataKey="Feitas" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={20} />
+                                            <Line type="monotone" dataKey="Efetividade" stroke="#10b981" strokeWidth={3} dot={{ r: 4 }} name="Efetividade (%)" yAxisId={1} />
+                                            <YAxis yAxisId={1} orientation="right" domain={[0, 100]} hide />
+                                        </ComposedChart>
+                                    </ResponsiveContainer>
+                                </CardContent>
+                            </Card>
+
+                            <Card className="border-0 shadow-sm">
+                                <CardHeader className="bg-slate-50 border-b pb-4">
                                     <CardTitle className="text-lg flex items-center gap-2"><TrendingUp className="text-blue-500"/> Evolução do Score 5S Diário</CardTitle>
                                 </CardHeader>
                                 <CardContent className="pt-6 h-80">
@@ -528,45 +597,105 @@ export default function Dashboard5SPage() {
                             </Card>
                         </div>
 
-                        <Card className="mt-6 border-0 shadow-sm">
-                            <CardHeader className="bg-slate-50 border-b pb-4">
-                                <CardTitle className="text-lg flex items-center gap-2"><Crosshair className="text-rose-500"/> Heatmap da Fábrica (Score por Categoria S)</CardTitle>
-                            </CardHeader>
-                            <CardContent className="p-0">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow className="bg-slate-50">
-                                            <TableHead className="font-black text-slate-700">Área Fabril</TableHead>
-                                            <TableHead className="font-bold text-center">1S - Utilização</TableHead>
-                                            <TableHead className="font-bold text-center">2S - Arrumação</TableHead>
-                                            <TableHead className="font-bold text-center">3S - Limpeza</TableHead>
-                                            <TableHead className="font-bold text-center">4S - Normalização</TableHead>
-                                            <TableHead className="font-bold text-center">5S - Disciplina</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {dadosCategorias.map((d: any, i: number) => (
-                                            <TableRow key={i} className="border-b">
-                                                <TableCell className="font-bold text-slate-800">{d.area}</TableCell>
-                                                {['1S - Utilização', '2S - Arrumação', '3S - Limpeza', '4S - Normalização', '5S - Disciplina'].map((k) => {
-                                                    const val = d[k];
-                                                    let bg = "bg-emerald-100 text-emerald-800 border-emerald-200";
-                                                    if (val < 80 && val >= 60) bg = "bg-amber-100 text-amber-800 border-amber-200";
-                                                    else if (val < 60) bg = "bg-rose-100 text-rose-800 border-rose-200";
-                                                    return (
-                                                        <TableCell key={k} className="text-center p-2">
-                                                            <div className={`w-full h-12 flex items-center justify-center font-black rounded-md border \${bg}`}>
-                                                                {val}%
-                                                            </div>
-                                                        </TableCell>
-                                                    )
-                                                })}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+                            <Card className="border-0 shadow-sm">
+                                <CardHeader className="bg-slate-50 border-b pb-4">
+                                    <CardTitle className="text-lg flex items-center gap-2"><Crosshair className="text-rose-500"/> Heatmap da Fábrica (Score por Categoria S)</CardTitle>
+                                </CardHeader>
+                                <CardContent className="p-0 overflow-x-auto">
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow className="bg-slate-50">
+                                                <TableHead className="font-black text-slate-700 text-xs uppercase tracking-widest">Área</TableHead>
+                                                <TableHead className="font-bold text-center text-[10px] uppercase">1S</TableHead>
+                                                <TableHead className="font-bold text-center text-[10px] uppercase">2S</TableHead>
+                                                <TableHead className="font-bold text-center text-[10px] uppercase">3S</TableHead>
+                                                <TableHead className="font-bold text-center text-[10px] uppercase">4S</TableHead>
+                                                <TableHead className="font-bold text-center text-[10px] uppercase">5S</TableHead>
                                             </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </CardContent>
-                        </Card>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {dadosCategorias.map((d: any, i: number) => (
+                                                <TableRow key={i} className="border-b">
+                                                    <TableCell className="font-bold text-slate-800 text-xs truncate max-w-[120px]" title={d.area}>{d.area}</TableCell>
+                                                    {['1S - Utilização', '2S - Arrumação', '3S - Limpeza', '4S - Normalização', '5S - Disciplina'].map((k) => {
+                                                        const val = d[k];
+                                                        let bg = "bg-emerald-100 text-emerald-800 border-emerald-200";
+                                                        if (val < 80 && val >= 60) bg = "bg-amber-100 text-amber-800 border-amber-200";
+                                                        else if (val < 60) bg = "bg-rose-100 text-rose-800 border-rose-200";
+                                                        return (
+                                                            <TableCell key={k} className="text-center p-1">
+                                                                <div className={`w-full h-8 flex items-center justify-center font-black rounded text-[10px] border ${bg}`}>
+                                                                    {val}%
+                                                                </div>
+                                                            </TableCell>
+                                                        )
+                                                    })}
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </CardContent>
+                            </Card>
+
+                            <Card className="border-0 shadow-sm flex flex-col">
+                                <CardHeader className="bg-slate-50 border-b pb-4">
+                                    <CardTitle className="text-lg flex items-center gap-2"><Target className="text-indigo-500"/> Cronograma de Auditorias (Ação Exigida)</CardTitle>
+                                </CardHeader>
+                                <CardContent className="p-0 overflow-y-auto max-h-[400px]">
+                                    <Table>
+                                        <TableHeader className="sticky top-0 bg-white z-10 shadow-sm">
+                                            <TableRow>
+                                                <TableHead className="font-bold text-xs uppercase text-slate-500 h-10">Local</TableHead>
+                                                <TableHead className="font-bold text-xs uppercase text-slate-500 h-10">Data</TableHead>
+                                                <TableHead className="font-bold text-xs uppercase text-slate-500 h-10 text-center">Score</TableHead>
+                                                <TableHead className="font-bold text-xs uppercase text-slate-500 h-10">Status</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {cronogramaComStatus.slice(0, 20).map((c: any) => (
+                                                <TableRow key={c.id} className="hover:bg-slate-50">
+                                                    <TableCell className="py-2">
+                                                        <div className="flex flex-col">
+                                                            <span className="font-bold text-xs text-slate-800">{c.areas_fabrica?.nome_area}</span>
+                                                            <span className="text-[10px] text-slate-400">{c.estacoes?.nome_estacao || 'Geral'}</span>
+                                                        </div>
+                                                    </TableCell>
+                                                    <TableCell className="py-2 text-xs font-medium text-slate-600">{new Date(c.data_prevista).toLocaleDateString([], { month: 'short', day: 'numeric' })}</TableCell>
+                                                    <TableCell className="py-2 text-center">
+                                                        {c.score !== null ? (
+                                                            <span className={`font-black text-xs px-2 py-1 rounded-md border ${
+                                                                c.score >= 80 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                                                                c.score >= 60 ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                                                                'bg-rose-50 text-rose-700 border-rose-200'
+                                                            }`}>{c.score}%</span>
+                                                        ) : <span className="text-slate-300">-</span>}
+                                                    </TableCell>
+                                                    <TableCell className="py-2">
+                                                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest ${
+                                                            c.status === 'Realizada' ? 'bg-emerald-100 text-emerald-700' :
+                                                            c.status === 'Atrasado' ? 'bg-rose-100 text-rose-700' :
+                                                            'bg-slate-100 text-slate-600'
+                                                        }`}>
+                                                            {c.status}
+                                                        </span>
+                                                        {c.status === 'Atrasado' && (
+                                                            <Button size="icon" variant="ghost" className="h-6 w-6 ml-2 text-rose-600 hover:bg-rose-100" title="Exigir Ação do Líder">
+                                                                <AlertTriangle size={12} />
+                                                            </Button>
+                                                        )}
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))}
+                                            {cronogramaComStatus.length === 0 && (
+                                                <TableRow><TableCell colSpan={4} className="text-center text-slate-400 py-8 text-sm">Sem dados de cronograma.</TableCell></TableRow>
+                                            )}
+                                        </TableBody>
+                                    </Table>
+                                </CardContent>
+                            </Card>
+                        </div>
+
                     </>
                 ) : (
                     <div className="p-12 text-center text-slate-500">Sem dados suficientes para calcular KPIs.</div>
