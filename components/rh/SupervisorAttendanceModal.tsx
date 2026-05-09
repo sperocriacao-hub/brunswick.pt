@@ -23,6 +23,7 @@ export function SupervisorAttendanceModal() {
     const [myName, setMyName] = useState('');
     const [isLider, setIsLider] = useState(false);
     const [isMasterOrRh, setIsMasterOrRh] = useState(false);
+    const [debugError, setDebugError] = useState<string | null>(null);
 
     useEffect(() => {
         async function checkUser() {
@@ -68,7 +69,15 @@ export function SupervisorAttendanceModal() {
             query = query.or(`lider_nome.eq."${myName}",supervisor_nome.eq."${myName}",gestor_nome.eq."${myName}"`);
         }
 
-        const { data: equipa } = await query.order('nome_operador');
+        const { data: equipa, error: equipaErr } = await query.order('nome_operador');
+
+        if (equipaErr) {
+            console.error("Erro na query equipa:", equipaErr);
+            setDebugError("Erro BD (Equipa): " + equipaErr.message);
+            setOperadores([]);
+            setIsLoading(false);
+            return;
+        }
 
         if (!equipa || equipa.length === 0) {
             setOperadores([]);
@@ -78,7 +87,7 @@ export function SupervisorAttendanceModal() {
 
         // 2. Obter ausências de hoje para esta equipa
         const opIds = equipa.map(op => op.id);
-        const { data: ausencias } = await supabase.from('rh_ausencias')
+        const { data: ausencias, error: ausErr } = await supabase.from('rh_ausencias')
             .select('operador_id, tipo_ausencia, motivo_observacao')
             .lte('data_inicio', hojeIso)
             .gte('data_fim', hojeIso)
@@ -88,11 +97,16 @@ export function SupervisorAttendanceModal() {
 
         // 3. Obter marcações de ponto (Ponto Diário) para ver quem já "picou" a entrada
         const rfidTags = equipa.map(op => op.tag_rfid_operador);
-        const { data: pontos } = await supabase.from('log_ponto_diario')
+        const { data: pontos, error: ptsErr } = await supabase.from('log_ponto_diario')
             .select('operador_rfid')
             .gte('timestamp', `${hojeIso}T00:00:00Z`)
             .lte('timestamp', `${hojeIso}T23:59:59Z`)
             .in('operador_rfid', rfidTags);
+
+        if (ptsErr) {
+            console.error("Erro na query pontos:", ptsErr);
+            setDebugError(prev => (prev ? prev + " | " : "") + "Erro BD (Pontos): " + ptsErr.message);
+        }
 
         const picouHoje = new Set((pontos || []).map(p => p.operador_rfid));
 
@@ -218,6 +232,11 @@ export function SupervisorAttendanceModal() {
                         <div className="text-center p-8 text-slate-500 bg-white rounded-lg border border-slate-200">
                             A sua conta ({myName || 'Admin'}) não tem o cargo de Liderança/RH no cadastro. <br/>
                             Apenas chefias diretas ou RH veem as equipas aqui.
+                        </div>
+                    ) : debugError ? (
+                        <div className="text-center p-8 bg-rose-50 border border-rose-200 rounded-lg">
+                            <h3 className="text-rose-800 font-bold mb-2">Erro de Carregamento (Diagnóstico)</h3>
+                            <p className="text-rose-600 font-mono text-sm">{debugError}</p>
                         </div>
                     ) : operadores.length === 0 ? (
                         <div className="text-center p-8 text-slate-500 bg-white rounded-lg border border-slate-200">
