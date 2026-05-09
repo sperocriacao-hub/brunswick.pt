@@ -6,6 +6,7 @@ import { Users, AlertTriangle, ShieldCheck, UserX, Activity, ArrowRightLeft } fr
 import Link from 'next/link';
 
 import AssiduidadeLogViewer from './AssiduidadeLogViewer';
+import { SupervisorAttendanceModal } from '@/components/rh/SupervisorAttendanceModal';
 export const dynamic = 'force-dynamic';
 
 export default async function AssiduidadeDashboard() {
@@ -118,6 +119,10 @@ export default async function AssiduidadeDashboard() {
                     <div className="px-4 py-2 text-sm font-bold text-slate-900 bg-white shadow-sm rounded-md border border-slate-200 flex items-center gap-2">
                         <Users size={16} className="text-blue-500" /> Assiduidade
                     </div>
+                </div>
+                
+                <div className="mt-4 md:mt-0">
+                    <SupervisorAttendanceModal />
                 </div>
             </header>
 
