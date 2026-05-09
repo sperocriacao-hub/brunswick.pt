@@ -16,11 +16,10 @@ export default async function AssiduidadeDashboard({ searchParams }: { searchPar
     const filterArea = sp.area || '';
     const filterLinha = sp.linha || '';
     const filterEstacao = sp.estacao || '';
+    const filterDia = sp.dia || new Date().toISOString().split('T')[0];
 
     const cookieStore = cookies();
     const supabase = createClient(cookieStore);
-
-    const hojeStr = new Date().toISOString().split('T')[0];
 
     // 1. Fetch Operadores (Apenas Ativos) e a sua Área/Estação Mãe
     const { data: operadoresRaw } = await supabase.from('operadores')
@@ -36,8 +35,8 @@ export default async function AssiduidadeDashboard({ searchParams }: { searchPar
     // 2. Fetch Quem Picou Hoje (Distinct RFID) - Considera NVA e VA
     const { data: presencasRaw } = await supabase.from('log_ponto_diario')
         .select('operador_rfid')
-        .gte('timestamp', `${hojeStr}T00:00:00Z`)
-        .lte('timestamp', `${hojeStr}T23:59:59Z`);
+        .gte('timestamp', `${filterDia}T00:00:00Z`)
+        .lte('timestamp', `${filterDia}T23:59:59Z`);
 
     // Fetch Listas para Filtros
     const [{ data: areas }, { data: linhas }, { data: estacoes }] = await Promise.all([
@@ -102,7 +101,7 @@ export default async function AssiduidadeDashboard({ searchParams }: { searchPar
     // 5. Processamento Nível 3: O Gargalo da Estação (Workstations)
     const estacaoStats: Record<string, { nomeArea: string, cadastrados: number, presentes: number }> = {};
 
-    operadoresRaw?.forEach(op => {
+    operadoresFiltrados.forEach(op => {
         const est = op.estacoes as any;
         const ar = op.areas_fabrica as any;
         const estacaoName = est?.nome_estacao || 'Estação Móvel/Geral';
@@ -132,7 +131,7 @@ export default async function AssiduidadeDashboard({ searchParams }: { searchPar
         };
     }).sort((a, b) => b.defice - a.defice); // Foco no Defice maior 1º
 
-    const top3Gargalos = stationsArray.filter(s => s.defice > 0).slice(0, 3);
+    const top3Gargalos = stationsArray.filter(s => s.defice > 0).slice(0, 18);
 
     return (
         <div className="p-6 md:p-8 space-y-8 animate-in fade-in zoom-in duration-500 max-w-7xl mx-auto pb-20">
@@ -231,17 +230,17 @@ export default async function AssiduidadeDashboard({ searchParams }: { searchPar
                     <h3 className="text-sm font-extrabold uppercase tracking-widest text-slate-800 mb-3 flex items-center gap-2">
                         <ArrowRightLeft className="text-rose-500" size={16} /> Gargalos Críticos Atuais
                     </h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
                         {top3Gargalos.map((st, i) => (
-                            <div key={i} className="bg-rose-50 border border-rose-100 rounded-lg p-3 shadow-sm flex justify-between items-center relative overflow-hidden">
+                            <div key={i} className="bg-rose-50 border border-rose-100 rounded-lg p-3 shadow-sm flex flex-col justify-between items-start relative overflow-hidden h-full">
                                 <div className="absolute top-0 left-0 w-1 h-full bg-rose-500"></div>
-                                <div>
-                                    <div className="text-xs font-extrabold text-slate-500 uppercase">{st.area}</div>
-                                    <div className="font-bold text-slate-800 text-sm">{st.estacao}</div>
+                                <div className="mb-2">
+                                    <div className="text-[10px] font-extrabold text-slate-500 uppercase leading-none mb-1 line-clamp-1" title={st.area}>{st.area}</div>
+                                    <div className="font-bold text-slate-800 text-xs line-clamp-2" title={st.estacao}>{st.estacao}</div>
                                 </div>
-                                <div className="text-right">
-                                    <div className="text-xl font-black text-rose-700">-{st.defice}</div>
-                                    <div className="text-[10px] font-bold uppercase text-rose-600 bg-rose-200/50 px-1.5 rounded">Operadores</div>
+                                <div className="mt-auto w-full border-t border-rose-100 pt-2 flex justify-between items-center">
+                                    <div className="text-[9px] font-bold uppercase text-rose-600 bg-rose-200/50 px-1 rounded">Défice</div>
+                                    <div className="text-lg font-black text-rose-700 leading-none">-{st.defice}</div>
                                 </div>
                             </div>
                         ))}
@@ -250,7 +249,7 @@ export default async function AssiduidadeDashboard({ searchParams }: { searchPar
             )}
 
             {/* LISTA COMPLETA DE REGISTOS E EDIÇÃO */}
-            <AssiduidadeLogViewer filterArea={filterArea} filterLinha={filterLinha} filterEstacao={filterEstacao} />
+            <AssiduidadeLogViewer filterDia={filterDia} filterArea={filterArea} filterLinha={filterLinha} filterEstacao={filterEstacao} />
         </div>
     );
 }

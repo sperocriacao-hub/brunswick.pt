@@ -22,14 +22,13 @@ type LogInfo = {
 };
 
 export default function AssiduidadeLogViewer({
-    filterArea, filterLinha, filterEstacao
+    filterDia, filterArea, filterLinha, filterEstacao
 }: {
-    filterArea?: string, filterLinha?: string, filterEstacao?: string
+    filterDia: string, filterArea?: string, filterLinha?: string, filterEstacao?: string
 }) {
     const supabase = createClient();
     const [logs, setLogs] = useState<LogInfo[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [dateFilter, setDateFilter] = useState(new Date().toISOString().split('T')[0]);
     const [searchFilter, setSearchFilter] = useState('');
 
     // Modal State
@@ -48,8 +47,8 @@ export default function AssiduidadeLogViewer({
 
     const carregarLogs = async () => {
         setIsLoading(true);
-        const startDate = `${dateFilter}T00:00:00Z`;
-        const endDate = `${dateFilter}T23:59:59Z`;
+        const startDate = `${filterDia}T00:00:00Z`;
+        const endDate = `${filterDia}T23:59:59Z`;
 
         const [{ data, error }, { data: opsData }] = await Promise.all([
             supabase
@@ -73,7 +72,7 @@ export default function AssiduidadeLogViewer({
     useEffect(() => {
         carregarLogs();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [dateFilter]);
+    }, [filterDia]);
 
     const apagarLog = async (id: string) => {
         if (!confirm('Deseja mesmo apagar este registo de ponto? Pode afetar o OEE.')) return;
@@ -138,12 +137,6 @@ export default function AssiduidadeLogViewer({
                     <p className="text-xs text-slate-500 font-medium">Controlo M.E.S Administrativo de Correção de Ponto e Pausas.</p>
                 </div>
                 <div className="flex items-center gap-3">
-                    <input
-                        type="date"
-                        value={dateFilter}
-                        onChange={(e) => setDateFilter(e.target.value)}
-                        className="px-3 py-2 border border-slate-300 rounded-md text-sm font-bold text-slate-700 bg-white"
-                    />
                     <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
                         <input

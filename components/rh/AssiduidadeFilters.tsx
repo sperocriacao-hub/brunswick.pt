@@ -16,6 +16,7 @@ export default function AssiduidadeFilters({
     const currentArea = searchParams.get('area') || '';
     const currentLinha = searchParams.get('linha') || '';
     const currentEstacao = searchParams.get('estacao') || '';
+    const currentDia = searchParams.get('dia') || new Date().toISOString().split('T')[0];
 
     const handleFilterChange = (key: string, value: string) => {
         const params = new URLSearchParams(searchParams.toString());
@@ -39,6 +40,14 @@ export default function AssiduidadeFilters({
                 <Filter size={16} /> Filtros:
             </div>
             
+            <input 
+                type="date"
+                className="w-full md:w-auto px-3 py-2 border border-slate-300 rounded-md text-sm font-bold text-slate-700 bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                value={currentDia}
+                onChange={(e) => handleFilterChange('dia', e.target.value)}
+                max={new Date().toISOString().split('T')[0]}
+            />
+
             <select 
                 className="w-full md:w-auto px-3 py-2 border border-slate-300 rounded-md text-sm font-medium focus:ring-2 focus:ring-blue-500 outline-none"
                 value={currentArea}
