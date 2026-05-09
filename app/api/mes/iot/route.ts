@@ -221,7 +221,7 @@ export async function POST(req: Request) {
             // 1. Procurar OPs Ativas cronológicas (Filas Kanban)
             const { data: pendentes, error: errPend } = await supabase
                 .from('ordens_producao')
-                .select('id, op_numero, modelos!inner(nome_modelo)')
+                .select('id, op_numero, modelos!inner(nome_modelo, instrucoes_pdf_url, catalogo_pa_url)')
                 .in('status', ['PLANNED', 'IN_PROGRESS'])
                 .order('data_prevista_inicio', { ascending: true, nullsFirst: false }); // Fila Lógica
 
@@ -249,7 +249,9 @@ export async function POST(req: Request) {
                 success: true,
                 op_id: proximaOP.id,
                 display: `OP ${proximaOP.op_numero}`,
-                display_2: modelNomeStr.substring(0, 16).toUpperCase()
+                display_2: modelNomeStr.substring(0, 16).toUpperCase(),
+                instrucoes_pdf_url: (proximaOP.modelos as any)?.instrucoes_pdf_url || null,
+                catalogo_pa_url: (proximaOP.modelos as any)?.catalogo_pa_url || null
             });
         }
 

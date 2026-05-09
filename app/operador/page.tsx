@@ -67,6 +67,9 @@ export default function InteractiveTabletPage() {
     // Area Andon Status
     const [areaAndonStatus, setAreaAndonStatus] = useState<any[]>([]);
 
+    // Model Docs State
+    const [modelDocs, setModelDocs] = useState<{ instrucoes: string | null, catalogo: string | null }>({ instrucoes: null, catalogo: null });
+
     // --- BOOT SEQUENCE ---
     useEffect(() => {
         async function boot() {
@@ -200,6 +203,7 @@ export default function InteractiveTabletPage() {
                 setCurrentOpId(data.op_id);
                 setLcdLine1(data.display?.substring(0, 16) || 'BARCO PRONTO');
                 setLcdLine2(data.display_2?.substring(0, 16) || 'Pique o Cartao');
+                setModelDocs({ instrucoes: data.instrucoes_pdf_url || null, catalogo: data.catalogo_pa_url || null });
                 setUpcomingQueue([]);
             } else if (data.success && !data.op_id) {
                 setCurrentOpId('');
@@ -718,7 +722,13 @@ export default function InteractiveTabletPage() {
 
                             <Button 
                                 variant="outline"
-                                onClick={() => alert("Os Manuais do Modelo estarão disponíveis brevemente (A aguardar configuração do admin).")}
+                                onClick={() => {
+                                    if (modelDocs.instrucoes || modelDocs.catalogo) {
+                                        window.open(modelDocs.instrucoes || modelDocs.catalogo || '', '_blank');
+                                    } else {
+                                        alert("Os Manuais do Modelo estarão disponíveis brevemente (A aguardar configuração da Engenharia).");
+                                    }
+                                }}
                                 className="h-12 w-full bg-slate-800 border-slate-700 hover:bg-slate-700 text-blue-400 font-bold"
                             >
                                 <FileText className="w-5 h-5 mr-2" /> Aceder Manuais P&A do Modelo

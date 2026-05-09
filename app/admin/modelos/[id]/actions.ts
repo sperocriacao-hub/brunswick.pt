@@ -13,6 +13,8 @@ export interface EditarModeloInput {
     model_year: string;
     status: string;
     linha_padrao_id?: string;
+    instrucoes_pdf_url?: string;
+    catalogo_pa_url?: string;
     tarefasGerais: InTarefa[];
     opcionais: InOpcional[];
     metasHH: InMetaHH[];
@@ -108,6 +110,8 @@ export async function fetchModeloParaEdicao(modeloId: string) {
                 model_year: modelo.model_year,
                 status: modelo.status,
                 linha_padrao_id: modelo.linha_padrao_id,
+                instrucoes_pdf_url: modelo.instrucoes_pdf_url,
+                catalogo_pa_url: modelo.catalogo_pa_url,
                 tarefasGerais,
                 opcionais,
                 metasHH
@@ -134,7 +138,9 @@ export async function atualizarModeloCompleto(input: EditarModeloInput): Promise
                 nome_modelo: input.nome_modelo,
                 model_year: input.model_year,
                 status: input.status,
-                linha_padrao_id: input.linha_padrao_id || null
+                linha_padrao_id: input.linha_padrao_id || null,
+                instrucoes_pdf_url: input.instrucoes_pdf_url || null,
+                catalogo_pa_url: input.catalogo_pa_url || null
             })
             .eq('id', input.id);
 

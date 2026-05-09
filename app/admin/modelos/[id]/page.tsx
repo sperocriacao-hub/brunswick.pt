@@ -45,6 +45,8 @@ export default function EditarModeloPage() {
     const [modelYear, setModelYear] = useState('');
     const [status, setStatus] = useState('Em Desenvolvimento');
     const [linhaPadraoId, setLinhaPadraoId] = useState('');
+    const [instrucoesPdfUrl, setInstrucoesPdfUrl] = useState('');
+    const [catalogoPaUrl, setCatalogoPaUrl] = useState('');
     const [partes, setPartes] = useState<any[]>([]); // Keep it defined to avoid errors on addParte although it's removed from UI
     const [tarefasGerais, setTarefasGerais] = useState<Tarefa[]>([]);
     const [opcionais, setOpcionais] = useState<Opcional[]>([]);
@@ -74,6 +76,8 @@ export default function EditarModeloPage() {
                     setNomeModelo(res.data.nome_modelo || '');
                     setModelYear(res.data.model_year || '');
                     setStatus(res.data.status || 'Em Desenvolvimento');
+                    setInstrucoesPdfUrl(res.data.instrucoes_pdf_url || '');
+                    setCatalogoPaUrl(res.data.catalogo_pa_url || '');
                     // Force state update to attach the ID to the select now that options exist
                     setTimeout(() => setLinhaPadraoId(res.data.linha_padrao_id || ''), 50);
                     
@@ -233,6 +237,8 @@ export default function EditarModeloPage() {
                 model_year: modelYear,
                 status: status,
                 linha_padrao_id: linhaPadraoId || undefined,
+                instrucoes_pdf_url: instrucoesPdfUrl || undefined,
+                catalogo_pa_url: catalogoPaUrl || undefined,
                 tarefasGerais: tarefasGerais,
                 opcionais: opcionais,
                 metasHH: metasHH
@@ -432,6 +438,30 @@ export default function EditarModeloPage() {
                                 <option key={linha.id} value={linha.id}>Linha {linha.letra_linha}</option>
                             ))}
                         </select>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-6 mt-6 border-t border-slate-700/50 pt-6">
+                    <div className="form-group">
+                        <label className="form-label text-emerald-400">Instruções de Fabrico Globais (URL PDF)</label>
+                        <input
+                            type="text"
+                            className="form-control border-emerald-500/30 focus:border-emerald-400"
+                            placeholder="https://..."
+                            value={instrucoesPdfUrl} onChange={(e) => setInstrucoesPdfUrl(e.target.value)}
+                        />
+                        <p className="text-xs text-slate-500 mt-1">Este PDF estará disponível nativamente no painel central do Terminal HMI.</p>
+                    </div>
+
+                    <div className="form-group">
+                        <label className="form-label text-amber-400">Catálogo P&A / Diagramas (URL PDF)</label>
+                        <input
+                            type="text"
+                            className="form-control border-amber-500/30 focus:border-amber-400"
+                            placeholder="https://..."
+                            value={catalogoPaUrl} onChange={(e) => setCatalogoPaUrl(e.target.value)}
+                        />
+                        <p className="text-xs text-slate-500 mt-1">Diagramas elétricos, peças e acessórios.</p>
                     </div>
                 </div>
             </section>
