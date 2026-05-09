@@ -28,7 +28,7 @@ export async function POST(req: Request) {
         // Verificar Operador Mestre (permitir tanto Cartão Físico como Nº de Empregado para testes)
         const { data: operador, error: errOp } = await supabase
             .from('operadores')
-            .select('id, nome_operador, status')
+            .select('id, nome_operador, status, tag_rfid_operador')
             .or(`tag_rfid_operador.eq.${operador_rfid},numero_operador.eq.${operador_rfid}`)
             .limit(1)
             .maybeSingle();
@@ -41,6 +41,10 @@ export async function POST(req: Request) {
         }
 
         const nomeOperador = operador.nome_operador.split(' ')[0] || 'Op';
+        
+        // IMPORTANT: Override the raw input with the actual RFID tag for database foreign key constraints.
+        // If the operator typed their employee number, the DB inserts will fail if we use the number directly.
+        const actualRfidTag = operador.tag_rfid_operador;
 
         // 1. AÇÃO: ASSIDUIDADE (PONTO RH DIÁRIO)
         if (action === 'PONTO') {
@@ -52,7 +56,7 @@ export async function POST(req: Request) {
                 const { data: ultimoReg } = await supabase
                     .from('log_ponto_diario')
                     .select('tipo_registo, timestamp')
-                    .eq('operador_rfid', operador_rfid)
+                    .eq('operador_rfid', actualRfidTag)
                     .gte('timestamp', `${hojeIso}T00:00:00Z`)
                     .order('timestamp', { ascending: false })
                     .limit(1)
@@ -65,7 +69,7 @@ export async function POST(req: Request) {
             }
 
             const { error: errPonto } = await supabase.from('log_ponto_diario').insert({
-                operador_rfid,
+                operador_rfid: actualRfidTag,
                 estacao_id: estacao_id || null,
                 tipo_registo: novoTipo
             });
@@ -92,7 +96,7 @@ export async function POST(req: Request) {
             // [FASE 20]: AUTO-ENCERRAR PAUSA ABERTA (O Operador voltou ao posto de outra estação ou WC e picou num barco novo!)
             await supabase.from('log_pausas_operador')
                 .update({ timestamp_fim: new Date().toISOString() })
-                .eq('operador_rfid', operador_rfid)
+                .eq('operador_rfid', actualRfidTag)
                 .is('timestamp_fim', null);
 
             // Verificar se o Colaborador já tem uma Tarefa Aberta NESTE Barco e NESTA Estação
@@ -101,7 +105,7 @@ export async function POST(req: Request) {
                 .select('id')
                 .eq('op_id', op_id)
                 .eq('estacao_id', estacao_id)
-                .eq('operador_rfid', operador_rfid)
+                .eq('operador_rfid', actualRfidTag)
                 .is('timestamp_fim', null)
                 .single();
 
@@ -114,7 +118,7 @@ export async function POST(req: Request) {
                 await supabase.from('registos_rfid_realtime').insert({
                     op_id,
                     estacao_id,
-                    operador_rfid,
+                    operador_rfid: actualRfidTag,
                     barco_rfid: op_id // Na arquitetura pull o op_id substitui provisao barcorfid
                 });
                 return NextResponse.json({ success: true, display: 'TAREFA ABERTA', display_2: opDisp });
@@ -129,18 +133,18 @@ export async function POST(req: Request) {
             // 1. Fechar imediatamente qualquer "Barco" ou Tarefa em que ele estivesse agarrado para nao contabilizar na OEE!
             await supabase.from('registos_rfid_realtime')
                 .update({ timestamp_fim: new Date().toISOString() })
-                .eq('operador_rfid', operador_rfid)
+                .eq('operador_rfid', actualRfidTag)
                 .is('timestamp_fim', null);
 
             // 2. Encerrar qualquer pausa anterior perdida dele, só por precação do sistema
             await supabase.from('log_pausas_operador')
                 .update({ timestamp_fim: new Date().toISOString() })
-                .eq('operador_rfid', operador_rfid)
+                .eq('operador_rfid', actualRfidTag)
                 .is('timestamp_fim', null);
 
             // 3. Abrir a Nova Pausa Oficial
             const { error: errPausa } = await supabase.from('log_pausas_operador').insert({
-                operador_rfid,
+                operador_rfid: actualRfidTag,
                 estacao_id: estacao_id || null, // Se vier de um device estático, guarda o ultimo Known Location
                 motivo: validMotivo
             });
@@ -155,7 +159,7 @@ export async function POST(req: Request) {
         if (action === 'FIM_PAUSA') {
             await supabase.from('log_pausas_operador')
                 .update({ timestamp_fim: new Date().toISOString() })
-                .eq('operador_rfid', operador_rfid)
+                .eq('operador_rfid', actualRfidTag)
                 .is('timestamp_fim', null);
             
             return NextResponse.json({ success: true, display: 'PAUSA TERMINADA', display_2: 'BOM TRABALHO' });
@@ -168,7 +172,7 @@ export async function POST(req: Request) {
             }
 
             const { error: errFecho } = await supabase.from('log_estacao_conclusao').insert({
-                op_id, estacao_id, operador_rfid
+                op_id, estacao_id, operador_rfid: actualRfidTag
             });
 
             // Se for Unique Constraint (já fechado) ou outro erro
