@@ -690,7 +690,7 @@ export default function Dashboard5SPage() {
                                                                         const res = await exigirAcaoLideranca5S(c);
                                                                         if (res.success) {
                                                                             alert('Ação exigida! Ticket criado no Scrum Board.');
-                                                                            carregarTudo();
+                                                                            carregarDados();
                                                                         }
                                                                     }
                                                                 }}
