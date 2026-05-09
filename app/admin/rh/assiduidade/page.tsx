@@ -24,7 +24,7 @@ export default async function AssiduidadeDashboard() {
             estacao_base_id,
             estacoes ( nome )
         `)
-        .eq('status', 'ATIVO');
+        .eq('status', 'Ativo');
 
     // 2. Fetch Quem Picou Hoje (Distinct RFID) - Considera NVA e VA
     const { data: presencasRaw } = await supabase.from('log_ponto_diario')

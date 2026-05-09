@@ -62,7 +62,7 @@ export function SupervisorAttendanceModal() {
         // 1. Obter a equipa do lider atual (ou TODOS se for Master/RH)
         let query = supabase.from('operadores')
             .select('id, nome_operador, tag_rfid_operador, estacoes(nome)')
-            .eq('status', 'ATIVO');
+            .eq('status', 'Ativo');
 
         if (!isMasterOrRh) {
             query = query.or(`lider_nome.eq."${myName}",supervisor_nome.eq."${myName}",gestor_nome.eq."${myName}"`);
