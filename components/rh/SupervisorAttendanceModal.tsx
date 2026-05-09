@@ -90,12 +90,12 @@ export function SupervisorAttendanceModal() {
         // 2. Obter ausências de hoje para esta equipa
         const opIds = equipa.map(op => op.id);
         const { data: ausencias, error: ausErr } = await supabase.from('rh_ausencias')
-            .select('operador_id, tipo_ausencia, motivo_observacao')
+            .select('operador_id, tipo_ausencia, observacoes')
             .lte('data_inicio', hojeIso)
             .gte('data_fim', hojeIso)
             .in('operador_id', opIds);
 
-        const ausenciasMap = new Map((ausencias || []).map(a => [a.operador_id, { tipo: a.tipo_ausencia, motivo: a.motivo_observacao }]));
+        const ausenciasMap = new Map((ausencias || []).map(a => [a.operador_id, { tipo: a.tipo_ausencia, motivo: a.observacoes }]));
 
         // 3. Obter marcações de ponto (Ponto Diário) para ver quem já "picou" a entrada
         const rfidTags = equipa.map(op => op.tag_rfid_operador);
@@ -188,7 +188,7 @@ export function SupervisorAttendanceModal() {
                         const { error: upErr } = await supabase.from('rh_ausencias')
                             .update({ 
                                 tipo_ausencia: novoStatus === 'Entrada/Saída Antecipada' ? 'Outro' : novoStatus,
-                                motivo_observacao: novoStatus === 'Entrada/Saída Antecipada' ? 'Entrada/Saída Antecipada' : 'Apontamento Diário Supervisor' 
+                                observacoes: novoStatus === 'Entrada/Saída Antecipada' ? 'Entrada/Saída Antecipada' : 'Apontamento Diário Supervisor' 
                             })
                             .eq('id', exist.id);
                         if (upErr) throw upErr;
@@ -198,7 +198,7 @@ export function SupervisorAttendanceModal() {
                             tipo_ausencia: novoStatus === 'Entrada/Saída Antecipada' ? 'Outro' : novoStatus,
                             data_inicio: hojeIso,
                             data_fim: hojeIso,
-                            motivo_observacao: novoStatus === 'Entrada/Saída Antecipada' ? 'Entrada/Saída Antecipada' : 'Apontamento Diário Supervisor'
+                            observacoes: novoStatus === 'Entrada/Saída Antecipada' ? 'Entrada/Saída Antecipada' : 'Apontamento Diário Supervisor'
                         });
                         if (inErr) throw inErr;
                     }
