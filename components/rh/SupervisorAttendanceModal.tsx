@@ -22,6 +22,7 @@ export function SupervisorAttendanceModal() {
     const [operadores, setOperadores] = useState<Operador[]>([]);
     const [myName, setMyName] = useState('');
     const [isLider, setIsLider] = useState(false);
+    const [isMasterOrRh, setIsMasterOrRh] = useState(false);
 
     useEffect(() => {
         async function checkUser() {
@@ -40,6 +41,15 @@ export function SupervisorAttendanceModal() {
                 if (role.includes('supervisor') || role.includes('lider') || role.includes('líder') || role.includes('gestor')) {
                     setIsLider(true);
                 }
+                if (role.includes('admin') || role.includes('recursos humanos') || role === 'rh' || authData.user.email === 'master@brunswick.pt') {
+                    setIsMasterOrRh(true);
+                    setIsLider(true); // Master e RH veem tudo
+                }
+            } else if (authData.user.email === 'master@brunswick.pt' || authData.user.email?.includes('admin')) {
+                // Caso seja master e nem tenha registo nos operadores
+                setIsMasterOrRh(true);
+                setIsLider(true);
+                setMyName('Master Admin');
             }
         }
         checkUser();
@@ -49,12 +59,16 @@ export function SupervisorAttendanceModal() {
         setIsLoading(true);
         const hojeIso = new Date().toISOString().split('T')[0];
 
-        // 1. Obter a equipa do lider atual
-        const { data: equipa } = await supabase.from('operadores')
+        // 1. Obter a equipa do lider atual (ou TODOS se for Master/RH)
+        let query = supabase.from('operadores')
             .select('id, nome_operador, tag_rfid_operador, estacoes(nome)')
-            .eq('status', 'ATIVO')
-            .or(`lider_nome.eq."${myName}",supervisor_nome.eq."${myName}",gestor_nome.eq."${myName}"`)
-            .order('nome_operador');
+            .eq('status', 'ATIVO');
+
+        if (!isMasterOrRh) {
+            query = query.or(`lider_nome.eq."${myName}",supervisor_nome.eq."${myName}",gestor_nome.eq."${myName}"`);
+        }
+
+        const { data: equipa } = await query.order('nome_operador');
 
         if (!equipa || equipa.length === 0) {
             setOperadores([]);
@@ -202,8 +216,8 @@ export function SupervisorAttendanceModal() {
                         <div className="flex justify-center p-12"><Loader2 className="animate-spin text-blue-500" size={32} /></div>
                     ) : !isLider ? (
                         <div className="text-center p-8 text-slate-500 bg-white rounded-lg border border-slate-200">
-                            A sua conta ({myName || 'Admin'}) não tem o cargo de Liderança/Supervisor no cadastro de RH. <br/>
-                            Apenas chefias diretas vêm a sua equipa aqui.
+                            A sua conta ({myName || 'Admin'}) não tem o cargo de Liderança/RH no cadastro. <br/>
+                            Apenas chefias diretas ou RH veem as equipas aqui.
                         </div>
                     ) : operadores.length === 0 ? (
                         <div className="text-center p-8 text-slate-500 bg-white rounded-lg border border-slate-200">
@@ -211,6 +225,12 @@ export function SupervisorAttendanceModal() {
                         </div>
                     ) : (
                         <div className="space-y-6">
+                            {isMasterOrRh && (
+                                <div className="bg-indigo-50 border border-indigo-100 p-3 rounded-lg flex items-center gap-3 text-indigo-700 text-sm font-medium">
+                                    <ShieldAlert size={18} className="text-indigo-500" />
+                                    Está a visualizar com acesso MASTER / RH. Estão visíveis todos os operadores ativos de todas as áreas.
+                                </div>
+                            )}
                             {Object.entries(grouped).map(([estacao, ops]) => (
                                 <div key={estacao} className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
                                     <div className="bg-slate-100 px-4 py-2 border-b border-slate-200 font-bold text-slate-700 uppercase tracking-wider text-xs">
