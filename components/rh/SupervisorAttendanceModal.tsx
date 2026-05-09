@@ -167,13 +167,35 @@ export function SupervisorAttendanceModal() {
 
         try {
             for (const [opId, novoStatus] of Object.entries(pendingChanges)) {
+                const opMatch = operadores.find(o => o.id === opId);
+                const rfidTag = opMatch?.tag_rfid_operador;
+
                 if (novoStatus === 'Presente') {
+                    // Remove qualquer ausência manual marcada hoje para que fique limpo
                     const { error: delErr } = await supabase.from('rh_ausencias')
                         .delete()
                         .eq('operador_id', opId)
                         .eq('data_inicio', hojeIso)
                         .eq('data_fim', hojeIso);
                     if (delErr) throw delErr;
+
+                    // Marca Ponto Diário (como se fosse o dispositivo IoT)
+                    if (rfidTag) {
+                        const { data: jaTemPonto } = await supabase.from('log_ponto_diario')
+                            .select('id')
+                            .eq('operador_rfid', rfidTag)
+                            .gte('timestamp', `${hojeIso}T00:00:00Z`)
+                            .lte('timestamp', `${hojeIso}T23:59:59Z`)
+                            .limit(1)
+                            .single();
+
+                        if (!jaTemPonto) {
+                            await supabase.from('log_ponto_diario').insert({
+                                operador_rfid: rfidTag,
+                                tipo_registo: 'ENTRADA'
+                            });
+                        }
+                    }
                 } else {
                     const { data: exist, error: chkErr } = await supabase.from('rh_ausencias')
                         .select('id')
@@ -202,10 +224,19 @@ export function SupervisorAttendanceModal() {
                         });
                         if (inErr) throw inErr;
                     }
+
+                    // Se marcar FALTA, limpa os picotes falsos/errados do dia do log do IOT
+                    if (rfidTag) {
+                        await supabase.from('log_ponto_diario')
+                            .delete()
+                            .eq('operador_rfid', rfidTag)
+                            .gte('timestamp', `${hojeIso}T00:00:00Z`)
+                            .lte('timestamp', `${hojeIso}T23:59:59Z`);
+                    }
                 }
             }
 
-            alert("Chamada gravada com sucesso!");
+            alert("Chamada gravada com sucesso no diário IoT e RH!");
             setPendingChanges({});
             setIsOpen(false);
         } catch (error: any) {
