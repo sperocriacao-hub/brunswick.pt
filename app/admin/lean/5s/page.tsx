@@ -648,6 +648,7 @@ export default function Dashboard5SPage() {
                                             <TableRow>
                                                 <TableHead className="font-bold text-xs uppercase text-slate-500 h-10">Local</TableHead>
                                                 <TableHead className="font-bold text-xs uppercase text-slate-500 h-10">Data</TableHead>
+                                                <TableHead className="font-bold text-xs uppercase text-slate-500 h-10">Auditor</TableHead>
                                                 <TableHead className="font-bold text-xs uppercase text-slate-500 h-10 text-center">Score</TableHead>
                                                 <TableHead className="font-bold text-xs uppercase text-slate-500 h-10">Status</TableHead>
                                             </TableRow>
@@ -662,6 +663,7 @@ export default function Dashboard5SPage() {
                                                         </div>
                                                     </TableCell>
                                                     <TableCell className="py-2 text-xs font-medium text-slate-600">{new Date(c.data_prevista).toLocaleDateString([], { month: 'short', day: 'numeric' })}</TableCell>
+                                                    <TableCell className="py-2 text-xs font-medium text-slate-800">{c.operadores?.nome_operador || <span className="text-slate-400 italic">N/A</span>}</TableCell>
                                                     <TableCell className="py-2 text-center">
                                                         {c.score !== null ? (
                                                             <span className={`font-black text-xs px-2 py-1 rounded-md border ${
@@ -702,7 +704,7 @@ export default function Dashboard5SPage() {
                                                 </TableRow>
                                             ))}
                                             {cronogramaComStatus.length === 0 && (
-                                                <TableRow><TableCell colSpan={4} className="text-center text-slate-400 py-8 text-sm">Sem dados de cronograma.</TableCell></TableRow>
+                                                <TableRow><TableCell colSpan={5} className="text-center text-slate-400 py-8 text-sm">Sem dados de cronograma.</TableCell></TableRow>
                                             )}
                                         </TableBody>
                                     </Table>
