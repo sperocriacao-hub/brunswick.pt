@@ -829,6 +829,9 @@ function FuncionarioFormCore() {
                                             { path: "/admin/lean/kaizen", label: "Ideias Kaizen", group: "Lean" },
                                             { path: "/admin/lean/gemba", label: "Gemba Walking", group: "Lean" },
                                             { path: "/admin/lean/acoes", label: "Scrum Board de Ações", group: "Lean" },
+                                            { path: "/admin/lean/5s", label: "Hub de Auditorias 5S", group: "Lean" },
+                                            { path: "/admin/lean/5s/setup", label: "Configuração 5S", group: "Lean" },
+                                            { path: "/operador/5s", label: "Lançar Quiosque 5S", group: "Lean" },
 
                                             { path: "/admin/hst/ocorrencias", label: "Registar Ocorrência", group: "HST" },
                                             { path: "/admin/hst/epis", label: "Matriz Ocupacional", group: "HST" },
