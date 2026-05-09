@@ -220,6 +220,40 @@ export default function EditarModeloPage() {
         }
     };
 
+    const handleModelPdfUpload = async (event: React.ChangeEvent<HTMLInputElement>, fieldName: 'instrucoes' | 'catalogo') => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        setIsUploading(true);
+        if (fieldName === 'instrucoes') setInstrucoesPdfUrl('A carregar... ⏳');
+        else setCatalogoPaUrl('A carregar... ⏳');
+
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('modelContext', nomeModelo ? `${nomeModelo.replace(/[^a-zA-Z0-9]/g, '_')}_${fieldName}` : `novo_modelo_${fieldName}`);
+
+            const res = await fetch('/api/upload', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Falha no upload');
+
+            if (fieldName === 'instrucoes') setInstrucoesPdfUrl(data.url);
+            else setCatalogoPaUrl(data.url);
+            alert("Documento anexado com sucesso!");
+        } catch (error) {
+            console.error('Upload Error:', error);
+            alert((error as Error).message || "Falha a comunicar com servidor.");
+            if (fieldName === 'instrucoes') setInstrucoesPdfUrl('');
+            else setCatalogoPaUrl('');
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
     // ==============================================
     // HANDLER GUARDAR MODELO COMPLETO
     // ==============================================
@@ -442,25 +476,37 @@ export default function EditarModeloPage() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-6 mt-6 border-t border-slate-700/50 pt-6">
-                    <div className="form-group">
-                        <label className="form-label text-emerald-400">Instruções de Fabrico Globais (URL PDF)</label>
-                        <input
-                            type="text"
-                            className="form-control border-emerald-500/30 focus:border-emerald-400"
-                            placeholder="https://..."
-                            value={instrucoesPdfUrl} onChange={(e) => setInstrucoesPdfUrl(e.target.value)}
-                        />
+                    <div className="form-group relative">
+                        <label className="form-label text-emerald-400">Instruções de Fabrico Globais (PDF)</label>
+                        <div className="flex gap-2">
+                            <input
+                                type="text"
+                                className="form-control border-emerald-500/30 focus:border-emerald-400"
+                                placeholder="https://..."
+                                value={instrucoesPdfUrl} onChange={(e) => setInstrucoesPdfUrl(e.target.value)}
+                            />
+                            <label className="btn btn-outline" style={{ cursor: isUploading ? 'wait' : 'pointer', padding: '0 1rem' }} title="Fazer Upload de PDF">
+                                <input type="file" style={{ display: 'none' }} accept=".pdf" disabled={isUploading} onChange={(e) => handleModelPdfUpload(e, 'instrucoes')} />
+                                <Upload size={18} />
+                            </label>
+                        </div>
                         <p className="text-xs text-slate-500 mt-1">Este PDF estará disponível nativamente no painel central do Terminal HMI.</p>
                     </div>
 
-                    <div className="form-group">
-                        <label className="form-label text-amber-400">Catálogo P&A / Diagramas (URL PDF)</label>
-                        <input
-                            type="text"
-                            className="form-control border-amber-500/30 focus:border-amber-400"
-                            placeholder="https://..."
-                            value={catalogoPaUrl} onChange={(e) => setCatalogoPaUrl(e.target.value)}
-                        />
+                    <div className="form-group relative">
+                        <label className="form-label text-amber-400">Catálogo P&A / Diagramas (PDF)</label>
+                        <div className="flex gap-2">
+                            <input
+                                type="text"
+                                className="form-control border-amber-500/30 focus:border-amber-400"
+                                placeholder="https://..."
+                                value={catalogoPaUrl} onChange={(e) => setCatalogoPaUrl(e.target.value)}
+                            />
+                            <label className="btn btn-outline" style={{ cursor: isUploading ? 'wait' : 'pointer', padding: '0 1rem' }} title="Fazer Upload de PDF">
+                                <input type="file" style={{ display: 'none' }} accept=".pdf" disabled={isUploading} onChange={(e) => handleModelPdfUpload(e, 'catalogo')} />
+                                <Upload size={18} />
+                            </label>
+                        </div>
                         <p className="text-xs text-slate-500 mt-1">Diagramas elétricos, peças e acessórios.</p>
                     </div>
                 </div>
