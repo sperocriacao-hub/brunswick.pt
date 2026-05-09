@@ -62,7 +62,7 @@ export function SupervisorAttendanceModal() {
 
         // 1. Obter a equipa do lider atual (ou TODOS se for Master/RH)
         let query = supabase.from('operadores')
-            .select('id, nome_operador, tag_rfid_operador, estacoes!posto_base_id(nome)')
+            .select('id, nome_operador, tag_rfid_operador, estacoes!posto_base_id(nome_estacao)')
             .eq('status', 'Ativo');
 
         if (!isMasterOrRh) {
@@ -196,7 +196,7 @@ export function SupervisorAttendanceModal() {
 
     // Agrupar por estação
     const grouped = operadores.reduce((acc, op) => {
-        const est = op.estacoes?.nome || 'Sem Estação Fixa';
+        const est = op.estacoes?.nome_estacao || 'Sem Estação Fixa';
         if (!acc[est]) acc[est] = [];
         acc[est].push(op);
         return acc;

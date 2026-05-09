@@ -20,9 +20,9 @@ export default async function AssiduidadeDashboard() {
         .select(`
             id, tag_rfid_operador, nome_operador, funcao, status,
             area_base_id,
-            areas_fabrica!area_base_id ( nome ),
+            areas_fabrica!area_base_id ( nome_area ),
             posto_base_id,
-            estacoes!posto_base_id ( nome )
+            estacoes!posto_base_id ( nome_estacao )
         `)
         .eq('status', 'Ativo');
 
@@ -51,7 +51,7 @@ export default async function AssiduidadeDashboard() {
 
     operadoresRaw?.forEach(op => {
         const ar = op.areas_fabrica as any;
-        const areaName = ar?.nome || 'Área Indefinida';
+        const areaName = ar?.nome_area || 'Área Indefinida';
         if (!areasStats[areaName]) {
             areasStats[areaName] = { cadastrados: 0, presentes: 0, faltosos: [] };
         }
@@ -72,8 +72,8 @@ export default async function AssiduidadeDashboard() {
     operadoresRaw?.forEach(op => {
         const est = op.estacoes as any;
         const ar = op.areas_fabrica as any;
-        const estacaoName = est?.nome || 'Estação Móvel/Geral';
-        const areaName = ar?.nome || 'Indefinida';
+        const estacaoName = est?.nome_estacao || 'Estação Móvel/Geral';
+        const areaName = ar?.nome_area || 'Indefinida';
 
         const chaveMix = `${areaName}::${estacaoName}`;
 
