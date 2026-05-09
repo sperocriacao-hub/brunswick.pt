@@ -28,10 +28,10 @@ export function SupervisorAttendanceModal() {
             const { data: authData } = await supabase.auth.getUser();
             if (!authData.user) return;
             
-            // Descobrir quem é o user atual através do email
+            // Descobrir quem é o user atual através do email_acesso
             const { data: opData } = await supabase.from('operadores')
                 .select('nome_operador, funcao')
-                .eq('email', authData.user.email)
+                .eq('email_acesso', authData.user.email)
                 .single();
 
             if (opData) {
@@ -174,7 +174,8 @@ export function SupervisorAttendanceModal() {
         return acc;
     }, {} as Record<string, Operador[]>);
 
-    if (!isLider) return null; // Apenas visível se for lider/supervisor
+    // Removermos o return null para que o botão apareça sempre. Assim o Admin sabe que a funcionalidade existe.
+    // if (!isLider) return null; 
 
     return (
         <>
@@ -199,9 +200,14 @@ export function SupervisorAttendanceModal() {
 
                     {isLoading ? (
                         <div className="flex justify-center p-12"><Loader2 className="animate-spin text-blue-500" size={32} /></div>
+                    ) : !isLider ? (
+                        <div className="text-center p-8 text-slate-500 bg-white rounded-lg border border-slate-200">
+                            A sua conta ({myName || 'Admin'}) não tem o cargo de Liderança/Supervisor no cadastro de RH. <br/>
+                            Apenas chefias diretas vêm a sua equipa aqui.
+                        </div>
                     ) : operadores.length === 0 ? (
                         <div className="text-center p-8 text-slate-500 bg-white rounded-lg border border-slate-200">
-                            Não tem nenhum operador associado ao seu perfil para liderar.
+                            Não tem nenhum operador associado ao seu perfil (Líder/Supervisor/Gestor) para gerir.
                         </div>
                     ) : (
                         <div className="space-y-6">
