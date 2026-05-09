@@ -295,7 +295,7 @@ export default function ExecutarAuditoria5S() {
                                                     <div className="mt-6 space-y-3 animate-in fade-in slide-in-from-top-2">
                                                         <div className={`p-4 border rounded-xl ${theme.failBox}`}>
                                                             <p className={`text-sm font-bold uppercase mb-3 flex items-center gap-2 ${isKiosk ? 'text-red-400' : 'text-rose-700'}`}>
-                                                                <X size={16}/> Ação de Melhoria Obrigatória
+                                                                <X size={16}/> Apontamento da Não Conformidade
                                                             </p>
                                                             <textarea 
                                                                 placeholder="Descreva a não conformidade encontrada..."

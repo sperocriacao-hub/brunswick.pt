@@ -106,7 +106,7 @@ export async function salvarRonda5S(payload: any) {
             await supabase.from('lean_5s_acoes').insert([{
                 descricao_acao: tituloAcao,
                 prioridade: 'Alta',
-                status: 'Aberto',
+                status: 'Em Analise', // Vai primeiro para o Comitê
                 area_id: payload.areaId,
                 linha_id: payload.linhaId || null,
                 estacao_id: payload.estacaoId || null
@@ -215,6 +215,21 @@ export async function getAcoes5S() {
 }
 
 export async function updateAcao5S(id: string, updates: any) {
+    try {
+        const { error } = await supabase
+            .from('lean_5s_acoes')
+            .update({ ...updates, updated_at: new Date().toISOString() })
+            .eq('id', id);
+
+        if (error) throw error;
+        revalidatePath('/admin/lean/5s');
+        return { success: true };
+    } catch (e: any) {
+        return { success: false, error: e.message };
+    }
+}
+
+export async function updateA3Report5S(id: string, updates: any) {
     try {
         const { error } = await supabase
             .from('lean_5s_acoes')

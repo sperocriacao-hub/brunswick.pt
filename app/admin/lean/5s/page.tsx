@@ -22,11 +22,25 @@ export default function Dashboard5SPage() {
     const [operadores, setOperadores] = useState<any[]>([]);
     const [dadosDash, setDadosDash] = useState<any[]>([]);
     
-    const [isEditAcaoOpen, setIsEditAcaoOpen] = useState(false);
-    const [selectedAcao, setSelectedAcao] = useState<any>(null);
-    const [editStatus, setEditStatus] = useState("");
-    const [editResponsavel, setEditResponsavel] = useState("");
-    const [editDataLimite, setEditDataLimite] = useState("");
+    // Comitê State
+    const [isEvaluating, setIsEvaluating] = useState(false);
+    const [selectedAcao, setSelectedAcao] = useState<any | null>(null);
+    const [effort, setEffort] = useState(5);
+    const [impact, setImpact] = useState(5);
+    const [procedendo, setProcedendo] = useState(false);
+
+    // Scrum Board & 8D A3 State
+    const [draggedItem, setDraggedItem] = useState<string | null>(null);
+    const [isA3Open, setIsA3Open] = useState(false);
+    const [isSavingA3, setIsSavingA3] = useState(false);
+    
+    const [equipa, setEquipa] = useState("");
+    const [indicadores, setIndicadores] = useState("");
+    const [validacao, setValidacao] = useState("Pendente");
+    const [whys, setWhys] = useState<string[]>(['', '', '', '', '']);
+    const [tipoAnalise, setTipoAnalise] = useState<'5-Whys' | 'Ishikawa'>('5-Whys');
+    const [ishikawa, setIshikawa] = useState({ man: '', machine: '', material: '', method: '', measurement: '', environment: '' });
+    const [tasks5w, setTasks5w] = useState<any[]>([]);
 
     useEffect(() => {
         carregarDados();
@@ -47,26 +61,105 @@ export default function Dashboard5SPage() {
         setLoading(false);
     }
 
-    function openEditAcao(acao: any) {
+    // --- COMITÊ 5S HANDLERS ---
+    const openEvaluationModal = (acao: any) => {
         setSelectedAcao(acao);
-        setEditStatus(acao.status || 'Aberto');
-        setEditResponsavel(acao.responsavel_id || "");
-        setEditDataLimite(acao.data_limite ? new Date(acao.data_limite).toISOString().split('T')[0] : "");
-        setIsEditAcaoOpen(true);
-    }
-    
-    async function saveAcao() {
+        setEffort(acao.esforco_estimado || 5);
+        setImpact(acao.impacto_estimado || 5);
+        setIsEvaluating(true);
+    };
+
+    const handleAprovarParaAcao = async () => {
+        setProcedendo(true);
+        await updateAcao5S(selectedAcao.id, {
+            esforco_estimado: effort,
+            impacto_estimado: impact,
+            avaliado_por: "Comitê 5S",
+            status: "Aberto" // Envia para o Scrum Board!
+        });
+        setIsEvaluating(false);
+        carregarDados();
+        setProcedendo(false);
+    };
+
+    const handleRejeitar = async () => {
+        setProcedendo(true);
+        await updateAcao5S(selectedAcao.id, { status: "Rejeitado", data_avaliacao: new Date().toISOString() });
+        setIsEvaluating(false);
+        carregarDados();
+        setProcedendo(false);
+    };
+
+    const getMatrixQuadrant = (eff: number, imp: number) => {
+        if (eff <= 5 && imp >= 6) return { label: "Quick Win (Fazer Já)", color: "bg-emerald-100 text-emerald-800 border-emerald-300" };
+        if (eff > 5 && imp >= 6) return { label: "Projeto Importante", color: "bg-blue-100 text-blue-800 border-blue-300" };
+        if (eff <= 5 && imp < 6) return { label: "Tarefa Cosmética", color: "bg-amber-100 text-amber-800 border-amber-300" };
+        return { label: "Desperdício de Tempo", color: "bg-rose-100 text-rose-800 border-rose-300" };
+    };
+
+    // --- SCRUM BOARD 5S HANDLERS ---
+    const moveCard = async (id: string, status: string) => {
+        const originalStatus = acoes.find(a => a.id === id)?.status;
+        if (originalStatus === status) return;
+        setAcoes(prev => prev.map(a => a.id === id ? { ...a, status } : a));
+        await updateAcao5S(id, { status });
+    };
+
+    const openA3Modal = (action: any) => {
+        setSelectedAcao(action);
+        setEquipa(action.equipa_trabalho || "");
+        setIndicadores(action.indicadores_sucesso || "");
+        setValidacao(action.validacao_eficacia || "Pendente");
+
+        const ishiDef = { man: '', machine: '', material: '', method: '', measurement: '', environment: '' };
+        setTipoAnalise(action.tipo_analise_causa || '5-Whys');
+        
+        if (action.tipo_analise_causa === 'Ishikawa') {
+            try {
+                const parsed = typeof action.causa_raiz_5w === 'string' ? JSON.parse(action.causa_raiz_5w) : action.causa_raiz_5w;
+                setIshikawa({ ...ishiDef, ...parsed });
+            } catch (e) {
+                setIshikawa(ishiDef);
+            }
+            setWhys(['', '', '', '', '']);
+        } else {
+            const loadedWhys = Array.isArray(action.causa_raiz_5w) && action.causa_raiz_5w.length > 0
+                ? action.causa_raiz_5w
+                : ['', '', '', '', ''];
+            setWhys(loadedWhys);
+            setIshikawa(ishiDef);
+        }
+
+        const loadedTasks = Array.isArray(action.plano_acao_5w2h) ? action.plano_acao_5w2h : [];
+        setTasks5w(loadedTasks);
+        setIsA3Open(true);
+    };
+
+    const handleSalvarA3 = async () => {
         if (!selectedAcao) return;
-        setLoading(true);
-        const updates = {
-            status: editStatus,
-            responsavel_id: editResponsavel || null,
-            data_limite: editDataLimite ? new Date(editDataLimite).toISOString() : null
+        setIsSavingA3(true);
+        const payload = {
+            equipa_trabalho: equipa,
+            tipo_analise_causa: tipoAnalise,
+            causa_raiz_5w: tipoAnalise === 'Ishikawa' ? ishikawa : whys,
+            plano_acao_5w2h: tasks5w,
+            indicadores_sucesso: indicadores,
+            validacao_eficacia: validacao
         };
-        await updateAcao5S(selectedAcao.id, updates);
-        await carregarDados();
-        setIsEditAcaoOpen(false);
-    }
+        await updateAcao5S(selectedAcao.id, payload);
+        setIsA3Open(false);
+        carregarDados();
+        setIsSavingA3(false);
+    };
+
+    const handleAddTask5w = () => setTasks5w([...tasks5w, { o_que: '', quem: '', quando: '', status: 'Pendente' }]);
+    const updateTask5w = (index: number, field: string, value: string) => {
+        const nf = [...tasks5w];
+        nf[index][field] = value;
+        setTasks5w(nf);
+    };
+    const removeTask5w = (index: number) => setTasks5w(tasks5w.filter((_, i) => i !== index));
+    const StatusColumns = ["Aberto", "Em Investigacao", "Validacao", "Concluido"];
 
     async function handleDeleteAcao(id: string) {
         if (!confirm("Tem a certeza que deseja eliminar esta ação?")) return;
@@ -166,9 +259,10 @@ export default function Dashboard5SPage() {
             </header>
 
             <Tabs defaultValue="historico" className="w-full">
-                <TabsList className="mb-6 grid w-full max-w-2xl grid-cols-3">
+                <TabsList className="mb-6 grid w-full max-w-4xl grid-cols-4">
                     <TabsTrigger value="historico" className="font-bold">Histórico de Rondas</TabsTrigger>
-                    <TabsTrigger value="acoes" className="font-bold text-rose-600 data-[state=active]:bg-rose-600 data-[state=active]:text-white">Planos de Ação (A3)</TabsTrigger>
+                    <TabsTrigger value="comite" className="font-bold text-indigo-600 data-[state=active]:bg-indigo-600 data-[state=active]:text-white">Comitê 5S (Triagem)</TabsTrigger>
+                    <TabsTrigger value="kanban" className="font-bold text-emerald-600 data-[state=active]:bg-emerald-600 data-[state=active]:text-white">Scrum Board (8D)</TabsTrigger>
                     <TabsTrigger value="kpis" className="font-bold text-amber-600 data-[state=active]:bg-amber-600 data-[state=active]:text-white">KPIs & Gincana</TabsTrigger>
                 </TabsList>
 
@@ -230,31 +324,30 @@ export default function Dashboard5SPage() {
             )}
             </TabsContent>
 
-            <TabsContent value="acoes">
+            <TabsContent value="comite" className="space-y-6">
                 <Card className="border-0 shadow-sm overflow-hidden">
                     <CardHeader className="bg-slate-50 border-b pb-4">
                         <CardTitle className="flex justify-between items-center text-lg">
-                            <span className="flex items-center gap-2"><AlertTriangle className="text-rose-500"/> Ações de Melhoria Exigidas (Smart Action Hub)</span>
+                            <span className="flex items-center gap-2"><Target className="text-indigo-500"/> Comitê 5S (Avaliação de Apontamentos)</span>
                         </CardTitle>
                     </CardHeader>
                     <Table>
                         <TableHeader className="bg-slate-50 border-b">
                             <TableRow>
-                                <TableHead className="font-bold text-slate-500 uppercase text-xs h-12">Descrição da Ação</TableHead>
+                                <TableHead className="font-bold text-slate-500 uppercase text-xs h-12">Falha / Apontamento</TableHead>
                                 <TableHead className="font-bold text-slate-500 uppercase text-xs">Local</TableHead>
-                                <TableHead className="font-bold text-slate-500 uppercase text-xs">Responsável</TableHead>
-                                <TableHead className="font-bold text-slate-500 uppercase text-xs">Prazo</TableHead>
+                                <TableHead className="font-bold text-slate-500 uppercase text-xs">Auditor</TableHead>
                                 <TableHead className="font-bold text-slate-500 uppercase text-xs">Status</TableHead>
                                 <TableHead className="text-right"></TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {acoes.length === 0 ? (
+                            {acoes.filter(a => a.status === 'Em Analise').length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={6} className="h-32 text-center text-slate-500">Nenhuma ação de melhoria aberta pelas Rondas 5S.</TableCell>
+                                    <TableCell colSpan={5} className="h-32 text-center text-slate-500 font-medium tracking-wide">Nenhum apontamento a aguardar análise do Comitê.</TableCell>
                                 </TableRow>
-                            ) : acoes.map(acao => (
-                                <TableRow key={acao.id} className="hover:bg-slate-50 transition-colors">
+                            ) : acoes.filter(a => a.status === 'Em Analise').map(acao => (
+                                <TableRow key={acao.id} className="hover:bg-slate-50 transition-colors border-b">
                                     <TableCell className="font-bold text-slate-800 py-4 max-w-sm" title={acao.descricao_acao}>{acao.descricao_acao}</TableCell>
                                     <TableCell className="text-slate-600">
                                         <div className="flex flex-col">
@@ -264,43 +357,83 @@ export default function Dashboard5SPage() {
                                         </div>
                                     </TableCell>
                                     <TableCell>
-                                        {acao.operadores ? (
-                                            <span className="text-sm font-medium text-slate-700">{acao.operadores.nome_operador}</span>
-                                        ) : (
-                                            <span className="text-xs text-slate-400 italic">Não atribuído</span>
-                                        )}
+                                        <span className="text-sm font-medium text-slate-700">{acao.operadores?.nome_operador || 'Sistema'}</span>
                                     </TableCell>
                                     <TableCell>
-                                        {acao.data_limite ? (
-                                            <span className="text-sm text-slate-600">{new Date(acao.data_limite).toLocaleDateString()}</span>
-                                        ) : (
-                                            <span className="text-xs text-slate-400 italic">Sem prazo</span>
-                                        )}
-                                    </TableCell>
-                                    <TableCell>
-                                        <span className={`px-3 py-1 rounded-full text-xs font-bold \${
-                                            acao.status === 'Aberto' ? 'bg-rose-100 text-rose-700' : 
-                                            acao.status === 'Em Andamento' ? 'bg-amber-100 text-amber-700' :
-                                            'bg-emerald-100 text-emerald-700'
-                                        }`}>
+                                        <span className="px-3 py-1 rounded-full text-[10px] uppercase font-bold tracking-widest bg-indigo-100 text-indigo-700">
                                             {acao.status}
                                         </span>
                                     </TableCell>
                                     <TableCell className="text-right">
-                                        <div className="flex justify-end gap-2">
-                                            <Button variant="ghost" size="icon" onClick={() => openEditAcao(acao)} className="text-blue-600 hover:text-blue-800 hover:bg-blue-50">
-                                                <Edit size={18} />
-                                            </Button>
-                                            <Button variant="ghost" size="icon" onClick={() => handleDeleteAcao(acao.id)} className="text-rose-600 hover:text-rose-800 hover:bg-rose-50">
-                                                <Trash2 size={18} />
-                                            </Button>
-                                        </div>
+                                        <Button onClick={() => openEvaluationModal(acao)} className="bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold h-8 shadow">
+                                            Avaliar Impacto
+                                        </Button>
                                     </TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>
                     </Table>
                 </Card>
+            </TabsContent>
+
+            <TabsContent value="kanban">
+                <div className="flex flex-col lg:flex-row gap-6 w-full items-start">
+                    {StatusColumns.map(columnId => {
+                        const colItems = acoes.filter(a => a.status === columnId);
+                        
+                        let headerTheme = "bg-rose-50 text-rose-800 border-rose-200";
+                        if (columnId === 'Em Investigacao') headerTheme = "bg-indigo-100 text-indigo-800 border-indigo-200";
+                        if (columnId === 'Validacao') headerTheme = "bg-amber-100 text-amber-800 border-amber-200";
+                        if (columnId === 'Concluido') headerTheme = "bg-emerald-100 text-emerald-800 border-emerald-200";
+
+                        return (
+                            <div 
+                                key={columnId} 
+                                className="flex-1 w-full flex flex-col gap-4 rounded-2xl transition-all"
+                                onDragOver={e => { e.preventDefault(); e.currentTarget.classList.add('ring-2', 'ring-rose-400', 'ring-offset-4'); }}
+                                onDragLeave={e => e.currentTarget.classList.remove('ring-2', 'ring-rose-400', 'ring-offset-4')}
+                                onDrop={e => {
+                                    e.preventDefault();
+                                    e.currentTarget.classList.remove('ring-2', 'ring-rose-400', 'ring-offset-4');
+                                    if (draggedItem) moveCard(draggedItem, columnId);
+                                }}
+                            >
+                                <div className={`px-4 py-3 rounded-xl border flex justify-between items-center font-black uppercase tracking-widest ${headerTheme}`}>
+                                    <div className="flex items-center gap-2">{columnId}</div>
+                                    <span className="bg-white/50 text-black/60 px-2 py-0.5 rounded text-xs leading-none">{colItems.length}</span>
+                                </div>
+
+                                <div className="flex flex-col gap-3 min-h-[500px] border-2 border-dashed border-slate-200 rounded-2xl p-4 bg-slate-100/30">
+                                    {colItems.length === 0 ? (
+                                        <div className="h-full flex items-center justify-center text-slate-400 text-sm font-semibold uppercase tracking-widest p-8 text-center italic">Vazio</div>
+                                    ) : (
+                                        colItems.map(task => (
+                                            <Card
+                                                key={task.id}
+                                                draggable
+                                                onDragStart={() => setDraggedItem(task.id)}
+                                                onDragEnd={() => setDraggedItem(null)}
+                                                onClick={() => openA3Modal(task)}
+                                                className="cursor-grab active:cursor-grabbing border-slate-200 shadow-sm hover:shadow-md hover:border-emerald-300 transition-all group relative bg-white overflow-hidden"
+                                            >
+                                                <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500"></div>
+                                                <CardContent className="p-4 pl-5">
+                                                    <div className="text-[10px] font-mono text-slate-400 mb-2">
+                                                        {new Date(task.created_at).toLocaleDateString()}
+                                                    </div>
+                                                    <h3 className="font-bold text-slate-800 leading-tight mb-2 text-sm">{task.descricao_acao}</h3>
+                                                    <div className="text-[10px] uppercase font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded inline-block">
+                                                        {task.areas_fabrica?.nome_area || 'Global'}
+                                                    </div>
+                                                </CardContent>
+                                            </Card>
+                                        ))
+                                    )}
+                                </div>
+                            </div>
+                        )
+                    })}
+                </div>
             </TabsContent>
 
             <TabsContent value="kpis" className="space-y-6">
@@ -516,59 +649,194 @@ export default function Dashboard5SPage() {
                 </DialogContent>
             </Dialog>
 
-            <Dialog open={isEditAcaoOpen} onOpenChange={setIsEditAcaoOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Editar Ação de Melhoria (5S)</DialogTitle>
+            <Dialog open={isEvaluating} onOpenChange={setIsEvaluating}>
+                <DialogContent className="sm:max-w-[600px] rounded-2xl border-0 shadow-2xl p-0 overflow-hidden">
+                    <DialogHeader className="bg-slate-50 border-b px-6 py-4">
+                        <DialogTitle className="flex items-center gap-2 text-xl font-black text-slate-800">
+                            <Target className="text-indigo-600" /> Avaliação do Comitê 5S
+                        </DialogTitle>
                     </DialogHeader>
                     {selectedAcao && (
-                        <div className="space-y-4 py-4">
-                            <div>
-                                <p className="text-xs font-bold text-slate-500 mb-1">Ação</p>
-                                <p className="text-sm font-medium p-3 bg-slate-50 rounded-md border">{selectedAcao.descricao_acao}</p>
-                            </div>
-                            
-                            <div className="space-y-2">
-                                <label className="text-sm font-bold text-slate-700">Responsável</label>
-                                <select 
-                                    value={editResponsavel} 
-                                    onChange={e => setEditResponsavel(e.target.value)}
-                                    className="w-full h-10 border border-slate-200 rounded-md px-3 text-sm font-medium bg-white"
-                                >
-                                    <option value="">-- Não Atribuído --</option>
-                                    {operadores.map(op => (
-                                        <option key={op.id} value={op.id}>{op.nome_operador}</option>
-                                    ))}
-                                </select>
+                        <div className="p-6 space-y-8 bg-white">
+                            <div className="p-4 bg-slate-50 border rounded-xl border-slate-200">
+                                <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Apontamento Registado</p>
+                                <p className="font-bold text-slate-700">{selectedAcao.descricao_acao}</p>
                             </div>
 
-                            <div className="space-y-2">
-                                <label className="text-sm font-bold text-slate-700">Data Limite</label>
-                                <input 
-                                    type="date" 
-                                    value={editDataLimite} 
-                                    onChange={e => setEditDataLimite(e.target.value)}
-                                    className="w-full h-10 border border-slate-200 rounded-md px-3 text-sm font-medium bg-white"
-                                />
+                            <div className="space-y-6">
+                                <div>
+                                    <div className="flex justify-between mb-2">
+                                        <label className="text-sm font-bold text-slate-700">Esforço de Implementação</label>
+                                        <span className="font-black text-indigo-600">{effort}/10</span>
+                                    </div>
+                                    <input type="range" min="1" max="10" value={effort} onChange={(e) => setEffort(Number(e.target.value))} className="w-full accent-indigo-600" />
+                                    <div className="flex justify-between text-[10px] uppercase font-bold text-slate-400 mt-1">
+                                        <span>Fácil/Rápido</span><span>Muito Difícil/Longo</span>
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <div className="flex justify-between mb-2">
+                                        <label className="text-sm font-bold text-slate-700">Impacto na Cultura/Limpeza</label>
+                                        <span className="font-black text-emerald-600">{impact}/10</span>
+                                    </div>
+                                    <input type="range" min="1" max="10" value={impact} onChange={(e) => setImpact(Number(e.target.value))} className="w-full accent-emerald-600" />
+                                    <div className="flex justify-between text-[10px] uppercase font-bold text-slate-400 mt-1">
+                                        <span>Insignificante</span><span>Transformador</span>
+                                    </div>
+                                </div>
                             </div>
 
-                            <div className="space-y-2">
-                                <label className="text-sm font-bold text-slate-700">Status</label>
-                                <select 
-                                    value={editStatus} 
-                                    onChange={e => setEditStatus(e.target.value)}
-                                    className="w-full h-10 border border-slate-200 rounded-md px-3 text-sm font-medium bg-white"
-                                >
-                                    <option value="Aberto">Aberto</option>
-                                    <option value="Em Andamento">Em Andamento</option>
-                                    <option value="Concluido">Concluído</option>
-                                </select>
+                            <div className={`p-4 rounded-xl border-2 \${getMatrixQuadrant(effort, impact).color} flex items-center justify-between`}>
+                                <div>
+                                    <p className="text-[10px] font-black uppercase tracking-widest opacity-70">Decisão Sugerida (Matriz)</p>
+                                    <p className="font-black text-lg">{getMatrixQuadrant(effort, impact).label}</p>
+                                </div>
                             </div>
                         </div>
                     )}
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsEditAcaoOpen(false)}>Cancelar</Button>
-                        <Button onClick={saveAcao} className="bg-blue-600 hover:bg-blue-700">Guardar Alterações</Button>
+                    <DialogFooter className="bg-slate-50 px-6 py-4 border-t gap-2 flex-col sm:flex-row">
+                        <Button variant="ghost" className="text-slate-500 font-bold" onClick={() => setIsEvaluating(false)}>Cancelar</Button>
+                        <Button variant="outline" className="text-rose-600 border-rose-200 hover:bg-rose-50" disabled={procedendo} onClick={handleRejeitar}>
+                            <Trash2 size={16} className="mr-2" /> Rejeitar/Descartar
+                        </Button>
+                        <Button className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-md shadow-indigo-200" disabled={procedendo} onClick={handleAprovarParaAcao}>
+                            {procedendo ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CheckCircle2 size={16} className="mr-2" />}
+                            Aprovar para Scrum Board
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={isA3Open} onOpenChange={setIsA3Open}>
+                <DialogContent className="max-w-[90vw] max-h-[90vh] overflow-y-auto p-0 border-0 shadow-2xl rounded-2xl">
+                    <DialogHeader className="bg-emerald-600 text-white border-b-0 px-8 py-6 sticky top-0 z-10 flex flex-row justify-between items-center">
+                        <div>
+                            <p className="text-emerald-200 font-bold text-xs uppercase tracking-widest mb-1">Relatório 8D / A3 de Problema 5S</p>
+                            <DialogTitle className="text-2xl font-black text-white">{selectedAcao?.descricao_acao}</DialogTitle>
+                        </div>
+                    </DialogHeader>
+
+                    {selectedAcao && (
+                        <div className="p-8 bg-slate-50 space-y-8">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <Card className="border-0 shadow-sm">
+                                    <CardHeader className="bg-white border-b pb-4"><CardTitle className="text-base text-slate-700 flex items-center gap-2"><Target className="text-blue-500"/> Contexto do Problema</CardTitle></CardHeader>
+                                    <CardContent className="pt-6 space-y-4">
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="bg-slate-50 p-3 rounded-lg border">
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Local</p>
+                                                <p className="font-bold text-slate-700">{selectedAcao.areas_fabrica?.nome_area} {selectedAcao.estacoes ? \`(\${selectedAcao.estacoes.nome_estacao})\` : ''}</p>
+                                            </div>
+                                            <div className="bg-slate-50 p-3 rounded-lg border">
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Origem</p>
+                                                <p className="font-bold text-slate-700">Auditoria 5S</p>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Equipa de Trabalho (D1)</label>
+                                            <input type="text" value={equipa} onChange={e => setEquipa(e.target.value)} className="w-full mt-1 px-3 py-2 border rounded-md" placeholder="Ex: João, Maria, Manutenção..." />
+                                        </div>
+                                    </CardContent>
+                                </Card>
+
+                                <Card className="border-0 shadow-sm">
+                                    <CardHeader className="bg-white border-b pb-4">
+                                        <CardTitle className="text-base text-slate-700 flex items-center justify-between">
+                                            <span className="flex items-center gap-2"><Settings2 className="text-amber-500"/> Análise de Causa Raiz (D4)</span>
+                                            <select className="text-sm border rounded px-2 py-1 font-normal bg-slate-50" value={tipoAnalise} onChange={(e) => setTipoAnalise(e.target.value as any)}>
+                                                <option value="5-Whys">5 Porquês</option>
+                                                <option value="Ishikawa">Ishikawa (6M)</option>
+                                            </select>
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="pt-6">
+                                        {tipoAnalise === '5-Whys' ? (
+                                            <div className="space-y-3">
+                                                {whys.map((why, index) => (
+                                                    <div key={index} className="flex gap-3 items-start">
+                                                        <span className="bg-amber-100 text-amber-800 font-black rounded w-8 h-8 flex items-center justify-center shrink-0">W{index+1}</span>
+                                                        <input type="text" value={why} onChange={(e) => { const nw = [...whys]; nw[index] = e.target.value; setWhys(nw); }} className="flex-1 px-3 py-1.5 border rounded-md text-sm" placeholder={`Porquê \${index+1}?`} />
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <div className="grid grid-cols-2 gap-4">
+                                                {Object.entries({ man: "Mão de Obra", machine: "Máquina", material: "Material", method: "Método", measurement: "Medição", environment: "Meio Ambiente" }).map(([key, label]) => (
+                                                    <div key={key}>
+                                                        <label className="text-xs font-bold text-slate-500 uppercase">{label}</label>
+                                                        <input type="text" value={(ishikawa as any)[key]} onChange={(e) => setIshikawa({...ishikawa, [key]: e.target.value})} className="w-full mt-1 px-3 py-1.5 border rounded-md text-sm" placeholder="..." />
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </CardContent>
+                                </Card>
+                            </div>
+
+                            <Card className="border-0 shadow-sm border-t-4 border-t-emerald-500">
+                                <CardHeader className="bg-white border-b pb-4 flex flex-row justify-between items-center">
+                                    <CardTitle className="text-base text-slate-700 flex items-center gap-2"><CheckCircle2 className="text-emerald-500"/> Plano de Ação (5W2H) - D5/D6</CardTitle>
+                                    <Button size="sm" onClick={handleAddTask5w} className="bg-emerald-100 text-emerald-800 hover:bg-emerald-200 font-bold"><Activity size={14} className="mr-2"/> Adicionar Tarefa</Button>
+                                </CardHeader>
+                                <CardContent className="pt-0 p-0">
+                                    <Table>
+                                        <TableHeader className="bg-slate-50">
+                                            <TableRow>
+                                                <TableHead className="font-bold text-xs uppercase text-slate-500">O Quê (What)</TableHead>
+                                                <TableHead className="font-bold text-xs uppercase text-slate-500">Quem (Who)</TableHead>
+                                                <TableHead className="font-bold text-xs uppercase text-slate-500">Quando (When)</TableHead>
+                                                <TableHead className="font-bold text-xs uppercase text-slate-500">Status</TableHead>
+                                                <TableHead></TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {tasks5w.map((task, i) => (
+                                                <TableRow key={i}>
+                                                    <TableCell><input type="text" value={task.o_que} onChange={e => updateTask5w(i, 'o_que', e.target.value)} className="w-full px-2 py-1 text-sm border rounded" placeholder="Ação..."/></TableCell>
+                                                    <TableCell><input type="text" value={task.quem} onChange={e => updateTask5w(i, 'quem', e.target.value)} className="w-full px-2 py-1 text-sm border rounded" placeholder="Responsável"/></TableCell>
+                                                    <TableCell><input type="date" value={task.quando} onChange={e => updateTask5w(i, 'quando', e.target.value)} className="w-full px-2 py-1 text-sm border rounded"/></TableCell>
+                                                    <TableCell>
+                                                        <select value={task.status} onChange={e => updateTask5w(i, 'status', e.target.value)} className="w-full px-2 py-1 text-sm border rounded bg-white">
+                                                            <option value="Pendente">Pendente</option>
+                                                            <option value="Em Andamento">Em Andamento</option>
+                                                            <option value="Concluido">Concluído</option>
+                                                        </select>
+                                                    </TableCell>
+                                                    <TableCell><Button variant="ghost" size="icon" onClick={() => removeTask5w(i)} className="text-rose-500"><Trash2 size={14}/></Button></TableCell>
+                                                </TableRow>
+                                            ))}
+                                            {tasks5w.length === 0 && (
+                                                <TableRow><TableCell colSpan={5} className="text-center text-slate-400 py-8 text-sm italic">Nenhuma ação definida no plano 5W2H.</TableCell></TableRow>
+                                            )}
+                                        </TableBody>
+                                    </Table>
+                                </CardContent>
+                            </Card>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <div>
+                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Métrica / Indicador de Sucesso</label>
+                                    <textarea value={indicadores} onChange={e => setIndicadores(e.target.value)} className="w-full mt-1 px-3 py-2 border rounded-md text-sm h-24" placeholder="Como vamos medir se o problema foi resolvido?" />
+                                </div>
+                                <div>
+                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Validação de Eficácia (D8)</label>
+                                    <select value={validacao} onChange={e => setValidacao(e.target.value)} className="w-full mt-1 px-3 py-2 border rounded-md text-sm h-10 font-bold bg-white">
+                                        <option value="Pendente">Aguardando Implementação</option>
+                                        <option value="Em Observação">Ação Implementada - Em Observação</option>
+                                        <option value="Eficaz">Problema Resolvido (Eficaz)</option>
+                                        <option value="Ineficaz">Ação Ineficaz - Reabrir</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    <DialogFooter className="bg-slate-100 px-8 py-4 border-t border-slate-200 gap-2 flex flex-col sm:flex-row">
+                        <Button variant="outline" onClick={() => setIsA3Open(false)} className="font-bold border-slate-300">Fechar sem Salvar</Button>
+                        <Button onClick={handleSalvarA3} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-lg" disabled={isSavingA3}>
+                            {isSavingA3 ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Settings2 className="w-4 h-4 mr-2" />}
+                            Salvar Relatório 8D / A3
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
