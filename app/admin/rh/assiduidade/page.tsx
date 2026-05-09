@@ -18,11 +18,11 @@ export default async function AssiduidadeDashboard() {
     // 1. Fetch Operadores (Apenas Ativos) e a sua Área/Estação Mãe
     const { data: operadoresRaw } = await supabase.from('operadores')
         .select(`
-            id, tag_rfid, nome, funcao_titulo, status,
+            id, tag_rfid_operador, nome_operador, funcao, status,
             area_base_id,
-            areas_fabrica ( nome ),
-            estacao_base_id,
-            estacoes ( nome )
+            areas_fabrica!area_base_id ( nome ),
+            posto_base_id,
+            estacoes!posto_base_id ( nome )
         `)
         .eq('status', 'Ativo');
 
@@ -57,7 +57,7 @@ export default async function AssiduidadeDashboard() {
         }
 
         areasStats[areaName].cadastrados += 1;
-        const picou = rfidsPresentes.includes(op.tag_rfid);
+        const picou = rfidsPresentes.includes(op.tag_rfid_operador);
 
         if (picou) {
             areasStats[areaName].presentes += 1;
@@ -82,7 +82,7 @@ export default async function AssiduidadeDashboard() {
         }
 
         estacaoStats[chaveMix].cadastrados += 1;
-        if (rfidsPresentes.includes(op.tag_rfid)) {
+        if (rfidsPresentes.includes(op.tag_rfid_operador)) {
             estacaoStats[chaveMix].presentes += 1;
         }
     });
@@ -221,8 +221,8 @@ export default async function AssiduidadeDashboard() {
                                         <div className="text-[10px] font-extrabold uppercase text-slate-400 mb-2">Ausentes Hoje:</div>
                                         <div className="flex flex-wrap gap-1">
                                             {area.faltosos.map(f => (
-                                                <span key={f.id} className="text-[10px] font-medium bg-rose-50 text-rose-700 border border-rose-100 px-1.5 py-0.5 rounded cursor-help" title={`RFID: ${f.tag_rfid}`}>
-                                                    {f.nome.split(' ')[0]} {f.nome.split(' ').length > 1 ? f.nome.split(' ')[f.nome.split(' ').length - 1] : ''}
+                                                <span key={f.id} className="text-[10px] font-medium bg-rose-50 text-rose-700 border border-rose-100 px-1.5 py-0.5 rounded cursor-help" title={`RFID: ${f.tag_rfid_operador}`}>
+                                                    {f.nome_operador.split(' ')[0]} {f.nome_operador.split(' ').length > 1 ? f.nome_operador.split(' ')[f.nome_operador.split(' ').length - 1] : ''}
                                                 </span>
                                             ))}
                                         </div>
