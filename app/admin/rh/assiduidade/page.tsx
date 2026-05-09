@@ -29,7 +29,7 @@ export default async function AssiduidadeDashboard({ searchParams }: { searchPar
             area_base_id,
             areas_fabrica!area_base_id ( nome_area ),
             posto_base_id,
-            estacoes!posto_base_id ( nome_estacao )
+            estacoes!posto_base_id ( nome_estacao, linha_id )
         `)
         .eq('status', 'Ativo');
 
@@ -132,6 +132,7 @@ export default async function AssiduidadeDashboard({ searchParams }: { searchPar
         };
     }).sort((a, b) => b.defice - a.defice); // Foco no Defice maior 1º
 
+    const top3Gargalos = stationsArray.filter(s => s.defice > 0).slice(0, 3);
 
     return (
         <div className="p-6 md:p-8 space-y-8 animate-in fade-in zoom-in duration-500 max-w-7xl mx-auto pb-20">
@@ -223,6 +224,31 @@ export default async function AssiduidadeDashboard({ searchParams }: { searchPar
                     </CardContent>
                 </Card>
             </div>
+
+            {/* TOP 3 GARGALOS (MINI-CARDS) */}
+            {top3Gargalos.length > 0 && turnoverIniciado && (
+                <div className="mb-8">
+                    <h3 className="text-sm font-extrabold uppercase tracking-widest text-slate-800 mb-3 flex items-center gap-2">
+                        <ArrowRightLeft className="text-rose-500" size={16} /> Gargalos Críticos Atuais
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        {top3Gargalos.map((st, i) => (
+                            <div key={i} className="bg-rose-50 border border-rose-100 rounded-lg p-3 shadow-sm flex justify-between items-center relative overflow-hidden">
+                                <div className="absolute top-0 left-0 w-1 h-full bg-rose-500"></div>
+                                <div>
+                                    <div className="text-xs font-extrabold text-slate-500 uppercase">{st.area}</div>
+                                    <div className="font-bold text-slate-800 text-sm">{st.estacao}</div>
+                                </div>
+                                <div className="text-right">
+                                    <div className="text-xl font-black text-rose-700">-{st.defice}</div>
+                                    <div className="text-[10px] font-bold uppercase text-rose-600 bg-rose-200/50 px-1.5 rounded">Operadores</div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
             {/* LISTA COMPLETA DE REGISTOS E EDIÇÃO */}
             <AssiduidadeLogViewer filterArea={filterArea} filterLinha={filterLinha} filterEstacao={filterEstacao} />
         </div>

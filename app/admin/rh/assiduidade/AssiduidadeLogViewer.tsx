@@ -56,7 +56,7 @@ export default function AssiduidadeLogViewer({
                 .from('log_ponto_diario')
                 .select(`
                     id, operador_rfid, estacao_id, tipo_registo, timestamp,
-                    operadores:operador_rfid (nome_operador, numero_operador, area_base_id, posto_base_id, estacoes ( linha_id )),
+                    operadores:operador_rfid (nome_operador, numero_operador, area_base_id, posto_base_id, estacoes!posto_base_id ( linha_id )),
                     estacoes (nome_estacao)
                 `)
                 .gte('timestamp', startDate)
