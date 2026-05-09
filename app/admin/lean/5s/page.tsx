@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, ArrowRight, Activity, TrendingUp, TrendingDown, Settings2, ClipboardCheck, Trophy, Target, AlertTriangle, Crosshair, Eye, CheckCircle2, XCircle, MinusCircle, Edit, Trash2, Calendar } from 'lucide-react';
+import { Loader2, ArrowRight, Activity, TrendingUp, TrendingDown, Settings2, ClipboardCheck, Trophy, Target, AlertTriangle, Crosshair, Eye, CheckCircle2, XCircle, MinusCircle, Edit, Trash2, Calendar, Printer } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -839,11 +839,14 @@ export default function Dashboard5SPage() {
 
             <Dialog open={isA3Open} onOpenChange={setIsA3Open}>
                 <DialogContent className="max-w-[90vw] max-h-[90vh] overflow-y-auto p-0 border-0 shadow-2xl rounded-2xl">
-                    <DialogHeader className="bg-emerald-600 text-white border-b-0 px-8 py-6 sticky top-0 z-10 flex flex-row justify-between items-center">
+                    <DialogHeader className="bg-emerald-600 text-white border-b-0 px-8 py-6 sticky top-0 z-10 flex flex-row justify-between items-center print:bg-white print:text-black print:border-b">
                         <div>
-                            <p className="text-emerald-200 font-bold text-xs uppercase tracking-widest mb-1">Relatório 8D / A3 de Problema 5S</p>
-                            <DialogTitle className="text-2xl font-black text-white">{selectedAcao?.descricao_acao}</DialogTitle>
+                            <p className="text-emerald-200 font-bold text-xs uppercase tracking-widest mb-1 print:text-slate-500">Relatório 8D / A3 de Problema 5S</p>
+                            <DialogTitle className="text-2xl font-black text-white print:text-slate-800">{selectedAcao?.descricao_acao}</DialogTitle>
                         </div>
+                        <Button variant="outline" onClick={() => window.print()} className="font-bold border-slate-300 text-slate-700 bg-slate-50 shadow-sm print:hidden">
+                            <Printer className="w-4 h-4 mr-2" /> Imprimir 8D
+                        </Button>
                     </DialogHeader>
 
                     {selectedAcao && (
@@ -960,7 +963,7 @@ export default function Dashboard5SPage() {
                             </div>
                         </div>
                     )}
-                    <DialogFooter className="bg-slate-100 px-8 py-4 border-t border-slate-200 gap-2 flex flex-col sm:flex-row">
+                    <DialogFooter className="bg-slate-100 px-8 py-4 border-t border-slate-200 gap-2 flex flex-col sm:flex-row print:hidden">
                         <Button variant="outline" onClick={() => setIsA3Open(false)} className="font-bold border-slate-300">Fechar sem Salvar</Button>
                         <Button onClick={handleSalvarA3} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-lg" disabled={isSavingA3}>
                             {isSavingA3 ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Settings2 className="w-4 h-4 mr-2" />}

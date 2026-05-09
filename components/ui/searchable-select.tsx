@@ -42,7 +42,7 @@ export function SearchableSelect({ options, value, onChange, placeholder = "Sele
                     variant="outline"
                     role="combobox"
                     aria-expanded={open}
-                    className={cn("w-full justify-between bg-white font-normal", !value && "text-muted-foreground", className)}
+                    className={cn("w-full justify-between bg-white font-medium text-slate-800", !value && "text-slate-400 font-normal", className)}
                 >
                     {value
                         ? options.find((option) => option.value === value)?.label
@@ -59,20 +59,23 @@ export function SearchableSelect({ options, value, onChange, placeholder = "Sele
                             {options.map((option) => (
                                 <CommandItem
                                     key={option.value}
-                                    value={option.label} // Search by label
+                                    value={option.label}
                                     onSelect={(currentValue) => {
-                                        // cmdk returns the value/label lowercased as 'value'.
-                                        // We rely on the index or finding the match.
-                                        // But here we want the original value.
-                                        // The safest is to search by the label we passed.
                                         const selected = options.find(o => o.label.toLowerCase() === currentValue.toLowerCase());
                                         if (selected) onChange(selected.value);
                                         setOpen(false)
                                     }}
+                                    onPointerDown={(e) => {
+                                        // Workaround for radix/cmdk click issue on mobile/tablet
+                                        e.preventDefault();
+                                        onChange(option.value);
+                                        setOpen(false);
+                                    }}
+                                    className="cursor-pointer py-2 text-slate-800 font-medium"
                                 >
                                     <Check
                                         className={cn(
-                                            "mr-2 h-4 w-4",
+                                            "mr-2 h-4 w-4 text-slate-800",
                                             value === option.value ? "opacity-100" : "opacity-0"
                                         )}
                                     />
