@@ -39,7 +39,7 @@ export function SupervisorAttendanceModal() {
             if (opData) {
                 setMyName(opData.nome_operador);
                 const role = opData.funcao?.toLowerCase() || '';
-                if (role.includes('supervisor') || role.includes('lider') || role.includes('líder') || role.includes('gestor')) {
+                if (role.includes('supervisor') || role.includes('lider') || role.includes('líder') || role.includes('gestor') || role.includes('coordenador')) {
                     setIsLider(true);
                 }
                 if (role.includes('admin') || role.includes('recursos humanos') || role === 'rh' || authData.user.email === 'master@brunswick.pt') {
@@ -240,7 +240,7 @@ export function SupervisorAttendanceModal() {
                         </div>
                     ) : operadores.length === 0 ? (
                         <div className="text-center p-8 text-slate-500 bg-white rounded-lg border border-slate-200">
-                            Não tem nenhum operador associado ao seu perfil (Líder/Supervisor/Gestor) para gerir.
+                            Não tem nenhum operador associado ao seu perfil (Líder/Supervisor/Coordenador/Gestor) para gerir.
                         </div>
                     ) : (
                         <div className="space-y-6">
