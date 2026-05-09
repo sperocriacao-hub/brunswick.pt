@@ -65,6 +65,10 @@ export function SearchableSelect({ options, value, onChange, placeholder = "Sele
                                         if (selected) onChange(selected.value);
                                         setOpen(false)
                                     }}
+                                    onClick={() => {
+                                        onChange(option.value);
+                                        setOpen(false);
+                                    }}
                                     className="cursor-pointer py-3 text-slate-800 font-medium"
                                 >
                                     <Check
