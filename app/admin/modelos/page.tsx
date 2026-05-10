@@ -349,11 +349,12 @@ export default function ModelosListPage() {
                </div>
                
                {/* Modal Body (Iframe) */}
-               <div className="flex-1 bg-slate-100 p-2">
+               <div className="flex-1 bg-slate-100 p-2" onContextMenu={(e) => e.preventDefault()}>
                   <iframe 
-                     src={pdfUrlToView} 
+                     src={`${pdfUrlToView}#toolbar=0&navpanes=0`} 
                      className="w-full h-full rounded-lg border border-slate-200 shadow-inner bg-white" 
                      title={pdfModalTitle}
+                     style={{ pointerEvents: 'auto' }}
                   />
                </div>
             </div>
