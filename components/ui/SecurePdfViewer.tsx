@@ -5,9 +5,7 @@ import { Document, Page, pdfjs } from 'react-pdf';
 import { ChevronLeft, ChevronRight, Loader2, AlertCircle } from 'lucide-react';
 import { Button } from './button';
 
-// CSS necessários para o react-pdf funcionar bem
-import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
-import 'react-pdf/dist/esm/Page/TextLayer.css';
+// CSS necessários para o react-pdf funcionar bem (Removidos pois renderTextLayer=false e renderAnnotationLayer=false)
 
 // Configurar o Worker do PDF.js através de uma CDN (evita configurações complexas no Next.js)
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
