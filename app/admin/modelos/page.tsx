@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { SecurePdfViewer } from "@/components/ui/SecurePdfViewer";
 
 type LinhaPadraoType = {
   letra_linha: string;
@@ -349,14 +350,9 @@ export default function ModelosListPage() {
                   </Button>
                </div>
                
-               {/* Modal Body (Iframe) */}
-               <div className="flex-1 bg-slate-100 p-2" onContextMenu={(e) => e.preventDefault()}>
-                  <iframe 
-                     src={`${pdfUrlToView}#toolbar=0&navpanes=0`} 
-                     className="w-full h-full rounded-lg border border-slate-200 shadow-inner bg-white" 
-                     title={pdfModalTitle}
-                     style={{ pointerEvents: 'auto' }}
-                  />
+               {/* Modal Body (Motor Customizado PDF.js) */}
+               <div className="flex-1 bg-slate-100 overflow-hidden relative">
+                  {pdfUrlToView && <SecurePdfViewer url={pdfUrlToView} />}
                </div>
             </div>
          </div>
