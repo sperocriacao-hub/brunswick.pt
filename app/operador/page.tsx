@@ -566,10 +566,10 @@ export default function InteractiveTabletPage() {
             )}
 
             {/* 2. THREE-PANE LAYOUT */}
-            <main className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+            <main className="flex-1 flex flex-col md:flex-row overflow-hidden">
 
                 {/* PANE LEFT: TEAM ROSTER */}
-                <aside className="w-full lg:w-1/4 bg-slate-900/50 border-r border-slate-800 flex flex-col p-4 gap-4 overflow-y-auto hidden lg:flex">
+                <aside className="w-full md:w-1/4 bg-slate-900/50 border-r border-slate-800 flex flex-col p-4 gap-4 overflow-y-auto hidden md:flex">
                     <div className="flex items-center justify-between pb-2 border-b border-slate-800">
                         <h2 className="text-lg font-bold text-slate-100 flex items-center gap-2">
                             <HardHat className="w-5 h-5 text-amber-500" /> A Equipa (Neste Posto)
@@ -647,7 +647,7 @@ export default function InteractiveTabletPage() {
                 </aside>
 
                 {/* PANE CENTER: PRODUCTION TERMINAL */}
-                <section className="w-full lg:w-2/5 p-6 lg:p-12 flex flex-col items-center justify-center bg-slate-950 relative border-r border-slate-800 shadow-[inset_0_0_100px_rgba(0,0,0,0.8)]">
+                <section className="w-full md:w-2/5 p-4 md:p-6 lg:p-12 flex flex-col items-center justify-center bg-slate-950 relative border-r border-slate-800 shadow-[inset_0_0_100px_rgba(0,0,0,0.8)]">
                     
                     {!isAnyoneClockedIn ? (
                         <div className="text-center">
@@ -738,7 +738,7 @@ export default function InteractiveTabletPage() {
                 </section>
 
                 {/* PANE RIGHT: CHECKLIST E OPs */}
-                <aside className="w-full lg:w-1/3 bg-slate-900/30 p-6 overflow-y-auto">
+                <aside className="w-full md:w-1/3 bg-slate-900/30 p-4 md:p-6 overflow-y-auto">
                     <div className="flex justify-between items-center mb-6">
                         <h2 className="text-xl font-bold text-slate-200 flex items-center gap-2">
                             <CheckSquare className="w-6 h-6 text-blue-400" />
