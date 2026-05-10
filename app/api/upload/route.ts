@@ -1,16 +1,32 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-// Usamos o Supabase Admin Client puro (sem cookies) porque o UPLOAD de 
-// Server actions de Storage precisará muitas vezes de service_role puro. 
-// Mas aqui manteremos simples com os dados de App Vercel
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+import { createServerClient, type CookieOptions } from '@supabase/ssr';
+import { cookies } from 'next/headers';
 
 export async function POST(request: Request) {
     try {
+        const cookieStore = await cookies();
+        
+        const supabase = createServerClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+            {
+                cookies: {
+                    getAll() {
+                        return cookieStore.getAll()
+                    },
+                    setAll(cookiesToSet) {
+                        try {
+                            cookiesToSet.forEach(({ name, value, options }) =>
+                                cookieStore.set(name, value, options)
+                            )
+                        } catch {
+                            // Ignored
+                        }
+                    },
+                },
+            }
+        );
+
         const formData = await request.formData();
         const file = formData.get('file') as File;
         const modelContext = formData.get('modelContext') as string || 'geral';
