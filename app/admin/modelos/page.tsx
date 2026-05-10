@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/utils/supabase/client";
-import { Loader2, PlusCircle, Package, Edit, Ban, CheckCircle2, Search, Layers, Activity } from "lucide-react";
+import { Loader2, PlusCircle, Package, Edit, Ban, CheckCircle2, Search, Layers, Activity, FileText, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -24,6 +24,8 @@ type ModeloInfo = {
   created_at: string;
   status: string;
   linha_padrao_id?: LinhaPadraoType | null;
+  instrucoes_pdf_url?: string;
+  catalogo_pa_url?: string;
 };
 
 export default function ModelosListPage() {
@@ -37,7 +39,7 @@ export default function ModelosListPage() {
     try {
       const { data, error } = await supabase
         .from("modelos")
-        .select("id, nome_modelo, model_year, created_at, status, linha_padrao_id:linhas_producao!modelos_linha_padrao_id_fkey(letra_linha)")
+        .select("id, nome_modelo, model_year, created_at, status, instrucoes_pdf_url, catalogo_pa_url, linha_padrao_id:linhas_producao!modelos_linha_padrao_id_fkey(letra_linha)")
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -55,6 +57,8 @@ export default function ModelosListPage() {
             model_year: item.model_year,
             created_at: item.created_at,
             status: item.status,
+            instrucoes_pdf_url: item.instrucoes_pdf_url,
+            catalogo_pa_url: item.catalogo_pa_url,
             linha_padrao_id: linhaObj ? { letra_linha: linhaObj.letra_linha } : null,
         }
       });
@@ -132,6 +136,16 @@ export default function ModelosListPage() {
         case "Obsoleto": return "destructive";
         default: return "outline";
     }
+  };
+
+  const [pdfModalOpen, setPdfModalOpen] = useState(false);
+  const [pdfUrlToView, setPdfUrlToView] = useState("");
+  const [pdfModalTitle, setPdfModalTitle] = useState("");
+
+  const openPdfViewer = (url: string, title: string) => {
+    setPdfUrlToView(url);
+    setPdfModalTitle(title);
+    setPdfModalOpen(true);
   };
 
   return (
@@ -213,6 +227,8 @@ export default function ModelosListPage() {
                                 <TableHead className="font-bold text-slate-600">Ano (MY)</TableHead>
                                 <TableHead className="font-bold text-slate-600">Linha Alocação</TableHead>
                                 <TableHead className="font-bold text-slate-600">Estado Catálogo</TableHead>
+                                <TableHead className="font-bold text-slate-600 text-center">Instruções</TableHead>
+                                <TableHead className="font-bold text-slate-600 text-center">Catálogo P&A</TableHead>
                                 <TableHead className="font-bold text-slate-600">Registo DB</TableHead>
                                 <TableHead className="text-right font-bold text-slate-600">Ações</TableHead>
                             </TableRow>
@@ -220,14 +236,14 @@ export default function ModelosListPage() {
                         <TableBody>
                             {isLoading ? (
                                 <TableRow>
-                                    <TableCell colSpan={6} className="h-32 text-center text-slate-500 bg-slate-50 mt-10 p-10 animate-pulse">
+                                    <TableCell colSpan={8} className="h-32 text-center text-slate-500 bg-slate-50 mt-10 p-10 animate-pulse">
                                         <Layers className="mx-auto h-8 w-8 text-slate-300 mb-2" />
                                         A sincronizar catálogo de engenharia...
                                     </TableCell>
                                 </TableRow>
                             ) : filteredModelos.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={6} className="h-48 text-center text-slate-500 bg-slate-50 font-medium">
+                                    <TableCell colSpan={8} className="h-48 text-center text-slate-500 bg-slate-50 font-medium">
                                         <Package className="mx-auto h-12 w-12 text-slate-300 mb-3" />
                                         Nenhum modelo listado.
                                     </TableCell>
@@ -261,6 +277,24 @@ export default function ModelosListPage() {
                                                 {modelo.status}
                                             </Badge>
                                         </TableCell>
+                                        <TableCell className="text-center">
+                                            {modelo.instrucoes_pdf_url ? (
+                                                <Button variant="ghost" size="sm" className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 h-8" onClick={() => openPdfViewer(modelo.instrucoes_pdf_url!, `Instruções de Fabrico - ${modelo.nome_modelo}`)}>
+                                                    <FileText size={16} className="mr-1" /> PDF
+                                                </Button>
+                                            ) : (
+                                                <span className="text-xs text-slate-400 italic">--</span>
+                                            )}
+                                        </TableCell>
+                                        <TableCell className="text-center">
+                                            {modelo.catalogo_pa_url ? (
+                                                <Button variant="ghost" size="sm" className="text-amber-600 hover:text-amber-700 hover:bg-amber-50 h-8" onClick={() => openPdfViewer(modelo.catalogo_pa_url!, `Catálogo P&A - ${modelo.nome_modelo}`)}>
+                                                    <FileText size={16} className="mr-1" /> PDF
+                                                </Button>
+                                            ) : (
+                                                <span className="text-xs text-slate-400 italic">--</span>
+                                            )}
+                                        </TableCell>
                                         <TableCell className="text-slate-500 font-mono text-sm">
                                             {new Date(modelo.created_at).toLocaleDateString("pt-PT")}
                                         </TableCell>
@@ -293,6 +327,38 @@ export default function ModelosListPage() {
                     </Table>
                 </div>
        </div>
+
+       {/* MODAL DE VISUALIZAÇÃO DE PDF */}
+       {pdfModalOpen && (
+         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col overflow-hidden border border-slate-200">
+               {/* Modal Header */}
+               <div className="flex items-center justify-between px-6 py-4 bg-slate-50 border-b border-slate-200">
+                  <div className="flex items-center gap-3">
+                     <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center">
+                        <FileText size={20} />
+                     </div>
+                     <div>
+                        <h3 className="font-bold text-slate-800 text-lg">{pdfModalTitle}</h3>
+                        <p className="text-xs text-slate-500 font-medium uppercase tracking-wider">Visualizador Seguro</p>
+                     </div>
+                  </div>
+                  <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full hover:bg-slate-200 text-slate-500" onClick={() => setPdfModalOpen(false)}>
+                     <X size={20} />
+                  </Button>
+               </div>
+               
+               {/* Modal Body (Iframe) */}
+               <div className="flex-1 bg-slate-100 p-2">
+                  <iframe 
+                     src={pdfUrlToView} 
+                     className="w-full h-full rounded-lg border border-slate-200 shadow-inner bg-white" 
+                     title={pdfModalTitle}
+                  />
+               </div>
+            </div>
+         </div>
+       )}
     </div>
   );
 }
