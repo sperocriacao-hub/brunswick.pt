@@ -847,28 +847,31 @@ function FuncionarioFormCore() {
                                             { path: "/admin/qa", label: "Laboratório QA (Auto-Tester)", group: "Configuração" },
                                             { path: "/admin/configuracoes/utilizadores", label: "Níveis de Acesso", group: "Configuração" },
                                         ].map(module => {
-                                            const isChecked = formData.permissoes_modulos.includes(module.path);
+                                            const hasFullAccess = formData.permissoes_modulos.includes(module.path);
+                                            const hasReadonlyAccess = formData.permissoes_modulos.includes(`${module.path}:readonly`);
+                                            const hasAnyAccess = hasFullAccess || hasReadonlyAccess;
+
                                             return (
-                                                <label key={module.path} className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${isChecked ? 'bg-white border-blue-400 shadow-sm' : 'bg-transparent border-blue-100 hover:border-blue-300'}`}>
-                                                    <input
-                                                        type="checkbox"
-                                                        className="mt-1 accent-blue-600 w-4 h-4 rounded border-blue-300"
-                                                        checked={isChecked}
-                                                        onChange={(e) => {
-                                                            const arr = [...formData.permissoes_modulos];
-                                                            if (e.target.checked) arr.push(module.path);
-                                                            else {
-                                                                const idx = arr.indexOf(module.path);
-                                                                if (idx > -1) arr.splice(idx, 1);
-                                                            }
-                                                            setFormData({ ...formData, permissoes_modulos: arr });
-                                                        }}
-                                                    />
-                                                    <div className="flex flex-col">
-                                                        <span className={`text-xs font-bold ${isChecked ? 'text-blue-900' : 'text-slate-600'}`}>{module.label}</span>
+                                                <div key={module.path} className={`flex flex-col gap-2 p-3 rounded-lg border transition-colors ${hasAnyAccess ? 'bg-white border-blue-400 shadow-sm' : 'bg-slate-50/50 border-blue-100 hover:border-blue-300'}`}>
+                                                    <div className="flex flex-col mb-1">
+                                                        <span className={`text-xs font-bold ${hasAnyAccess ? 'text-blue-900' : 'text-slate-600'}`}>{module.label}</span>
                                                         <span className="text-[10px] text-slate-400 mt-0.5">{module.group}</span>
                                                     </div>
-                                                </label>
+                                                    <select
+                                                        className="w-full text-xs font-medium text-slate-700 bg-white border border-slate-300 rounded p-1.5 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                                                        value={hasFullAccess ? "full" : hasReadonlyAccess ? "readonly" : "none"}
+                                                        onChange={(e) => {
+                                                            const arr = formData.permissoes_modulos.filter(p => p !== module.path && p !== `${module.path}:readonly`);
+                                                            if (e.target.value === "full") arr.push(module.path);
+                                                            else if (e.target.value === "readonly") arr.push(`${module.path}:readonly`);
+                                                            setFormData({ ...formData, permissoes_modulos: arr });
+                                                        }}
+                                                    >
+                                                        <option value="none">Bloqueado</option>
+                                                        <option value="readonly">Apenas Leitura</option>
+                                                        <option value="full">Acesso Total (Edição)</option>
+                                                    </select>
+                                                </div>
                                             );
                                         })}
                                     </div>

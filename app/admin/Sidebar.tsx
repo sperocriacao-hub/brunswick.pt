@@ -64,8 +64,8 @@ export function Sidebar({
     // 2. Dashboard principal e Smart Action Hub são padrão para quem acede ao Backoffice.
     if (modulePath === "/admin" || modulePath === "/admin/melhoria-continua") return true;
 
-    // 3. Otherwise, check if the exact path exists in their permitted modules array.
-    return permissoesModulos.includes(modulePath);
+    // 3. Otherwise, check if the exact path exists or if it has a readonly suffix
+    return permissoesModulos.some(p => p === modulePath || p.startsWith(modulePath + ':'));
   };
 
   const navLinks = [
