@@ -394,9 +394,18 @@ function FuncionarioFormCore() {
     return (
         <form onSubmit={handleSalvar} className="max-w-5xl mx-auto p-4 sm:p-8 animate-in fade-in duration-500 pb-20">
             <header className="flex justify-between items-center mb-8 pb-4 border-b border-slate-200">
-                <div>
-                    <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">{id ? 'Editar Colaborador' : 'Admitir Novo Operário'}</h1>
-                    <p className="text-slate-500 font-medium text-sm mt-1">Ficha Integrada de Recursos Humanos e M.E.S</p>
+                <div className="flex flex-col gap-1">
+                    <h1 className="text-2xl font-black text-slate-800 tracking-tight flex items-center gap-3">
+                        <Users size={28} className="text-blue-600" />
+                        {id ? 'Ficha do Operário' : 'Novo Operário'}
+                        {id && <Badge variant="outline" className="ml-2 font-mono text-xs">ID: {id}</Badge>}
+                        {!canEditHR && (
+                            <Badge variant="destructive" className="ml-2 bg-red-500 text-white animate-pulse">
+                                MODO APENAS LEITURA
+                            </Badge>
+                        )}
+                    </h1>
+                    <p className="text-slate-500 text-sm">Preencha os dados oficiais para efeitos de RH, Liderança e Acessos ao M.E.S.</p>
                 </div>
                 <div className="flex gap-3">
                     <Link href="/admin/rh" className="px-4 py-2 border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-md font-medium transition-colors flex gap-2 items-center shadow-sm">
