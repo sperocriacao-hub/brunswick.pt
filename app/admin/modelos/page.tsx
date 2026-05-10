@@ -143,6 +143,13 @@ export default function ModelosListPage() {
   const [pdfModalTitle, setPdfModalTitle] = useState("");
 
   const openPdfViewer = (url: string, title: string) => {
+    // Se for um link externo (Drive, SharePoint), abrimos num novo separador
+    // porque eles bloqueiam (X-Frame-Options) a visualização dentro de iframes.
+    if (!url.includes('supabase.co')) {
+        window.open(url, '_blank', 'noopener,noreferrer');
+        return;
+    }
+    
     setPdfUrlToView(url);
     setPdfModalTitle(title);
     setPdfModalOpen(true);
