@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Trash2, Save, FileText, Settings, X, Upload, Loader2 } from 'lucide-react';
 import { useRouter, useParams } from 'next/navigation';
 import { atualizarModeloCompleto, EditarModeloInput, fetchModeloParaEdicao, InMetaHH } from './actions';
+import { createClient } from '@/utils/supabase/client';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -61,8 +62,6 @@ export default function EditarModeloPage() {
         async function load() {
             setIsLoading(true);
             try {
-                // Fetch Linhas Available First (so the dropdown mounts its options)
-                const { createClient } = await import('@/utils/supabase/client');
                 const supabase = createClient();
                 const { data: linhas } = await supabase.from('linhas_producao').select('id, letra_linha').order('letra_linha');
                 setLinhasProducao(linhas || []);
@@ -185,27 +184,26 @@ export default function EditarModeloPage() {
         }
 
         try {
-            const formData = new FormData();
-            formData.append('file', file);
-            formData.append('modelContext', nomeModelo ? nomeModelo.replace(/[^a-zA-Z0-9]/g, '_') : 'novo_modelo');
+            const supabase = createClient();
+            const uniqueFileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+            const modelContextStr = nomeModelo ? nomeModelo.replace(/[^a-zA-Z0-9]/g, '_') : 'novo_modelo';
+            const filePath = `${modelContextStr}/${uniqueFileName}`;
 
-            const res = await fetch('/api/upload', {
-                method: 'POST',
-                body: formData
-            });
+            const { data: uploadData, error: uploadError } = await supabase.storage
+                .from('instrucoes_producao')
+                .upload(filePath, file, { upsert: false });
 
-            const data = await res.json();
+            if (uploadError) throw new Error(uploadError.message);
 
-            if (!res.ok) {
-                throw new Error(data.error || 'Falha no upload de anexo');
-            }
+            const { data: urlData } = supabase.storage
+                .from('instrucoes_producao')
+                .getPublicUrl(uploadData.path);
 
-            // Upload com sucesso: Guarda a URL Pública definitiva + O Nome Original concatenado?  
-            // Vamos preservar apenas a URL para o visual da lista:
+            // Upload com sucesso: Guarda a URL Pública definitiva
             if (contextoId === 'geral') {
-                updateTarefaGeral(tarefaId, 'imagem_url', data.url);
+                updateTarefaGeral(tarefaId, 'imagem_url', urlData.publicUrl);
             } else {
-                updateTarefaOpcional(tarefaId, 'imagem_url', data.url);
+                updateTarefaOpcional(tarefaId, 'imagem_url', urlData.publicUrl);
             }
             alert("Imagem carregada e ancorada à Tarefa com Sucesso na Nuvem!");
 
@@ -229,20 +227,23 @@ export default function EditarModeloPage() {
         else setCatalogoPaUrl('A carregar... ⏳');
 
         try {
-            const formData = new FormData();
-            formData.append('file', file);
-            formData.append('modelContext', nomeModelo ? `${nomeModelo.replace(/[^a-zA-Z0-9]/g, '_')}_${fieldName}` : `novo_modelo_${fieldName}`);
+            const supabase = createClient();
+            const uniqueFileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+            const modelContextStr = nomeModelo ? `${nomeModelo.replace(/[^a-zA-Z0-9]/g, '_')}_${fieldName}` : `novo_modelo_${fieldName}`;
+            const filePath = `${modelContextStr}/${uniqueFileName}`;
 
-            const res = await fetch('/api/upload', {
-                method: 'POST',
-                body: formData
-            });
+            const { data: uploadData, error: uploadError } = await supabase.storage
+                .from('instrucoes_producao')
+                .upload(filePath, file, { upsert: false });
 
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'Falha no upload');
+            if (uploadError) throw new Error(uploadError.message);
 
-            if (fieldName === 'instrucoes') setInstrucoesPdfUrl(data.url);
-            else setCatalogoPaUrl(data.url);
+            const { data: urlData } = supabase.storage
+                .from('instrucoes_producao')
+                .getPublicUrl(uploadData.path);
+
+            if (fieldName === 'instrucoes') setInstrucoesPdfUrl(urlData.publicUrl);
+            else setCatalogoPaUrl(urlData.publicUrl);
             alert("Documento anexado com sucesso!");
         } catch (error) {
             console.error('Upload Error:', error);

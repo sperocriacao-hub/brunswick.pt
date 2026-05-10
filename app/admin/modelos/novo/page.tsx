@@ -212,29 +212,25 @@ export default function NovoModeloPage() {
     }
 
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append(
-        "modelContext",
-        nomeModelo ? nomeModelo.replace(/[^a-zA-Z0-9]/g, "_") : "novo_modelo",
-      );
+      const uniqueFileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+      const modelContextStr = nomeModelo ? nomeModelo.replace(/[^a-zA-Z0-9]/g, '_') : 'novo_modelo';
+      const filePath = `${modelContextStr}/${uniqueFileName}`;
 
-      const res = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
+      const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('instrucoes_producao')
+          .upload(filePath, file, { upsert: false });
 
-      const data = await res.json();
+      if (uploadError) throw new Error(uploadError.message);
 
-      if (!res.ok) {
-        throw new Error(data.error || "Falha no upload de anexo");
-      }
+      const { data: urlData } = supabase.storage
+          .from('instrucoes_producao')
+          .getPublicUrl(uploadData.path);
 
       // Só lidamos com imagem de modelo base ou de opcional
       if (contextoId === "geral") {
-        updateTarefaGeral(tarefaId, "imagem_url", data.url);
+        updateTarefaGeral(tarefaId, "imagem_url", urlData.publicUrl);
       } else {
-        updateTarefaOpcional(tarefaId, "imagem_url", data.url);
+        updateTarefaOpcional(tarefaId, "imagem_url", urlData.publicUrl);
       }
       alert("Imagem carregada com Sucesso!");
     } catch (error) {
