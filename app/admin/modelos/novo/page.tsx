@@ -218,7 +218,7 @@ export default function NovoModeloPage() {
 
       const { data: uploadData, error: uploadError } = await supabase.storage
           .from('instrucoes_producao')
-          .upload(filePath, file, { upsert: false });
+          .upload(filePath, file, { contentType: file.type || 'application/pdf', upsert: false });
 
       if (uploadError) throw new Error(uploadError.message);
 
