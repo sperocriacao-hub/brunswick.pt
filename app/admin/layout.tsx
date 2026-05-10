@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { createClient } from '@/utils/supabase/server';
 import { Sidebar } from './Sidebar';
 import { verificarNotificacoesFormacao } from './rh/formacoes/actions';
+import { PermissionHydrator } from '@/components/PermissionHydrator';
 
 export default async function AdminLayout({
     children,
@@ -64,6 +65,7 @@ export default async function AdminLayout({
 
     return (
         <div className="flex flex-col md:flex-row h-screen w-full bg-background text-foreground overflow-hidden">
+            <PermissionHydrator permissoes={permissoesModulos} nivel={nivelPermissao} />
             <Sidebar
                 userEmail={user?.email}
                 userName={userName}
