@@ -62,7 +62,7 @@ export default function GestaoRHPage() {
     const [selectedEstacaoId, setSelectedEstacaoId] = useState<string>('');
 
     // Access Control
-    const [canEditHR, setCanEditHR] = useState(true);
+    const [canEditHR, setCanEditHR] = useState(false);
 
     // ILUO Modal State
     const [isIluoModalOpen, setIsIluoModalOpen] = useState(false);

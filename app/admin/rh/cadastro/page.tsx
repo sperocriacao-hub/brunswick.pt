@@ -21,7 +21,7 @@ function FuncionarioFormCore() {
     const [estacoesDisponiveis, setEstacoesDisponiveis] = useState<any[]>([]);
     const [areasDisponiveis, setAreasDisponiveis] = useState<{ id: string, nome_area: string }[]>([]);
     const [originalEmail, setOriginalEmail] = useState('');
-    const [canEditHR, setCanEditHR] = useState(true);
+    const [canEditHR, setCanEditHR] = useState(false);
 
     // Novos Dicionários e Listas Hierárquicas
     const [funcoesDisponiveis, setFuncoesDisponiveis] = useState<{ id: string, nome_funcao: string }[]>([]);
@@ -196,6 +196,12 @@ function FuncionarioFormCore() {
 
     const handleSalvar = async (e: React.FormEvent) => {
         e.preventDefault();
+        
+        if (!canEditHR) {
+            alert('Acesso Negado: Não tem permissão para editar.');
+            return;
+        }
+
         setIsLoading(true);
 
         const payload: Record<string, unknown> = { ...formData };

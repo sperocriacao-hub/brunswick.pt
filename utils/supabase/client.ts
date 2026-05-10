@@ -7,7 +7,8 @@ export function createClient() {
     );
 
     // M.E.S. Global Read-Only Security Interceptor
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && !(supabase as any).__IS_PROXIED__) {
+        (supabase as any).__IS_PROXIED__ = true;
         const originalFrom = supabase.from.bind(supabase);
         
         supabase.from = (table: string) => {
@@ -35,6 +36,11 @@ export function createClient() {
                         alert(`🛑 Acesso Negado: Permissão de Apenas Leitura ativa para esta secção.\n\nA operação [${opName}] na base de dados foi bloqueada pelo M.E.S Security transversal.`);
                         return false;
                     }
+                    
+                    // Sem permissões e sem readonly -> Bloqueio completo para segurança! (Fail Closed)
+                    if (path === '/admin' || path === '/admin/melhoria-continua') return true;
+                    alert(`🛑 Acesso Negado: Não possui permissões de edição para este módulo.\nA operação [${opName}] foi bloqueada pelo M.E.S Security transversal.`);
+                    return false;
                 }
                 
                 return true;
