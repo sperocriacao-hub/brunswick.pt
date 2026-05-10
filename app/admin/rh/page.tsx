@@ -2,9 +2,10 @@
 
 import React, { useEffect, useState } from 'react';
 import { createClient } from '@/utils/supabase/client';
-import { Loader2, Search, UserPlus, Users, Edit, UserX, UserCheck, Shield, Repeat, X, Star, Save, MapPin, Radar } from 'lucide-react';
+import { Loader2, Search, UserPlus, Users, Edit, UserX, UserCheck, Shield, Repeat, X, Star, Save, MapPin, Radar, Eye } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { hasEditPermission } from '@/utils/permissions';
 
 type OperadorInfo = {
     id: string;
@@ -60,6 +61,9 @@ export default function GestaoRHPage() {
     const [relocatingOp, setRelocatingOp] = useState<OperadorInfo | null>(null);
     const [selectedEstacaoId, setSelectedEstacaoId] = useState<string>('');
 
+    // Access Control
+    const [canEditHR, setCanEditHR] = useState(true);
+
     // ILUO Modal State
     const [isIluoModalOpen, setIsIluoModalOpen] = useState(false);
     const [iluoTargetOp, setIluoTargetOp] = useState<OperadorInfo | null>(null);
@@ -111,8 +115,10 @@ export default function GestaoRHPage() {
 
         // Se não for Master Admin fixo, aplicamos as fronteiras de Segurança de Visibilidade
         if (userData?.user?.email && userData.user.email !== 'master@brunswick.pt') {
-           const { data: myData } = await supabase.from('operadores').select('nome_operador, nivel_permissao').eq('email_acesso', userData.user.email).single();
+           const { data: myData } = await supabase.from('operadores').select('nome_operador, nivel_permissao, permissoes_modulos').eq('email_acesso', userData.user.email).single();
            if (myData) {
+               setCanEditHR(hasEditPermission(myData.permissoes_modulos, '/admin/rh', myData.nivel_permissao));
+               
                // Apenas HR ou Admins têm acesso a VER/Editar todos os funcionários globalmente.
                // Outros (ex: Supervisor/Líder) se entrarem neste ecrã, só vêm a sua equipa.
                if (myData.nivel_permissao !== 'Admin' && myData.nivel_permissao !== 'Recursos Humanos') {
@@ -305,9 +311,11 @@ export default function GestaoRHPage() {
                     <Link href="/admin/rh/bussola" className="bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 px-4 py-2 rounded-md font-bold transition-colors flex gap-2 items-center shadow-sm">
                         <MapPin size={18} /> Bússola (Andon)
                     </Link>
-                    <Link href="/admin/rh/cadastro" className="bg-blue-600 text-white hover:bg-blue-700 px-4 py-2 rounded-md font-medium transition-colors flex gap-2 items-center shadow-sm">
-                        <UserPlus size={18} /> Novo Operário
-                    </Link>
+                    {canEditHR && (
+                        <Link href="/admin/rh/cadastro" className="bg-blue-600 text-white hover:bg-blue-700 px-4 py-2 rounded-md font-medium transition-colors flex gap-2 items-center shadow-sm">
+                            <UserPlus size={18} /> Novo Operário
+                        </Link>
+                    )}
                 </div>
             </header>
 
@@ -473,23 +481,25 @@ export default function GestaoRHPage() {
                                         </div>
                                     </td>
                                     <td className="p-4 text-right flex justify-end gap-2">
-                                        <button
-                                            onClick={() => {
-                                                setRelocatingOp(op);
-                                                setSelectedEstacaoId(op.estacao_alocada_temporaria || '');
-                                                setIsRelocateModalOpen(true);
-                                            }}
-                                            className="p-2 text-slate-400 hover:bg-amber-50 hover:text-amber-600 rounded-md transition-colors border border-transparent hover:border-amber-100"
-                                            title="Emprestar / Realocar Operador Temporariamente"
-                                        >
-                                            <Repeat size={16} />
-                                        </button>
+                                        {canEditHR && (
+                                            <button
+                                                onClick={() => {
+                                                    setRelocatingOp(op);
+                                                    setSelectedEstacaoId(op.estacao_alocada_temporaria || '');
+                                                    setIsRelocateModalOpen(true);
+                                                }}
+                                                className="p-2 text-slate-400 hover:bg-amber-50 hover:text-amber-600 rounded-md transition-colors border border-transparent hover:border-amber-100"
+                                                title="Emprestar / Realocar Operador Temporariamente"
+                                            >
+                                                <Repeat size={16} />
+                                            </button>
+                                        )}
                                         <button
                                             onClick={() => router.push(`/admin/rh/cadastro?id=${op.id}`)}
-                                            className="p-2 text-slate-400 hover:bg-blue-50 hover:text-blue-600 rounded-md transition-colors border border-transparent hover:border-blue-100"
-                                            title="Editar Cadastro Completo"
+                                            className={`p-2 rounded-md transition-colors border border-transparent ${canEditHR ? 'text-slate-400 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-100' : 'text-slate-400 hover:bg-slate-100'}`}
+                                            title={canEditHR ? "Editar Cadastro Completo" : "Visualizar Cadastro"}
                                         >
-                                            <Edit size={16} />
+                                            {canEditHR ? <Edit size={16} /> : <Eye size={16} />}
                                         </button>
                                         <button
                                             onClick={async () => {
@@ -512,26 +522,30 @@ export default function GestaoRHPage() {
                                         >
                                             <Star size={16} />
                                         </button>
-                                        <button
-                                            onClick={() => {
-                                                setAbsenceTargetOp(op);
-                                                setIsAbsenceModalOpen(true);
-                                            }}
-                                            className="p-2 text-slate-400 hover:bg-sky-50 hover:text-sky-600 rounded-md transition-colors border border-transparent hover:border-sky-100"
-                                            title="Registar Ausência / Férias"
-                                        >
-                                            <span className="text-sm">📅</span>
-                                        </button>
-                                        <button
-                                            onClick={() => toggleStatus(op.id, op.status)}
-                                            className={`p-2 rounded-md transition-colors border ${op.status === 'Ativo'
-                                                ? 'text-slate-400 border-transparent hover:border-red-200 hover:bg-red-50 hover:text-red-600'
-                                                : 'text-slate-400 border-transparent hover:border-green-200 hover:bg-green-50 hover:text-green-600'
-                                                }`}
-                                            title={op.status === 'Ativo' ? "Suspender/Inativar (Bloqueia IoT)" : "Reativar Colaborador"}
-                                        >
-                                            {op.status === 'Ativo' ? <UserX size={16} /> : <UserCheck size={16} />}
-                                        </button>
+                                        {canEditHR && (
+                                            <button
+                                                onClick={() => {
+                                                    setAbsenceTargetOp(op);
+                                                    setIsAbsenceModalOpen(true);
+                                                }}
+                                                className="p-2 text-slate-400 hover:bg-sky-50 hover:text-sky-600 rounded-md transition-colors border border-transparent hover:border-sky-100"
+                                                title="Registar Ausência / Férias"
+                                            >
+                                                <span className="text-sm">📅</span>
+                                            </button>
+                                        )}
+                                        {canEditHR && (
+                                            <button
+                                                onClick={() => toggleStatus(op.id, op.status)}
+                                                className={`p-2 rounded-md transition-colors border ${op.status === 'Ativo'
+                                                    ? 'text-slate-400 border-transparent hover:border-red-200 hover:bg-red-50 hover:text-red-600'
+                                                    : 'text-slate-400 border-transparent hover:border-green-200 hover:bg-green-50 hover:text-green-600'
+                                                    }`}
+                                                title={op.status === 'Ativo' ? "Suspender/Inativar (Bloqueia IoT)" : "Reativar Colaborador"}
+                                            >
+                                                {op.status === 'Ativo' ? <UserX size={16} /> : <UserCheck size={16} />}
+                                            </button>
+                                        )}
                                     </td>
                                 </tr>
                                 );
@@ -648,7 +662,7 @@ export default function GestaoRHPage() {
                                 <div className="md:col-span-1">
                                     <button 
                                         type="button"
-                                        disabled={!newIluoEstacao || isIluoLoading}
+                                        disabled={!newIluoEstacao || isIluoLoading || !canEditHR}
                                         onClick={async () => {
                                             if (!newIluoEstacao) return;
                                             setIsIluoLoading(true);
@@ -680,7 +694,7 @@ export default function GestaoRHPage() {
                                             setNewIluoNivel('I');
                                             setIsIluoLoading(false);
                                         }}
-                                        className="w-full bg-indigo-600 disabled:opacity-50 text-white font-bold py-2.5 px-3 rounded-md text-xs hover:bg-indigo-700 transition-colors shadow-sm flex items-center justify-center gap-2"
+                                        className="w-full bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-2.5 px-3 rounded-md text-xs hover:bg-indigo-700 transition-colors shadow-sm flex items-center justify-center gap-2"
                                     >
                                         {isIluoLoading ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} 
                                         Salvar
@@ -719,20 +733,22 @@ export default function GestaoRHPage() {
                                                         <div className="text-[10px] text-slate-400 font-medium tracking-wide uppercase">{areaInfo?.nome_area || 'Área Desconhecida'}</div>
                                                     </div>
                                                 </div>
-                                                <button 
-                                                    type="button" 
-                                                    disabled={isIluoLoading}
-                                                    onClick={async () => {
-                                                        if(!window.confirm("Retirar esta certificação? O trabalhador perderá os benefícios do painel IoT associados.")) return;
-                                                        setIsIluoLoading(true);
-                                                        await supabase.from('operador_iluo_matriz').delete().eq('operador_id', iluoTargetOp.id).eq('estacao_id', skill.estacao_id);
-                                                        setOpIluoList(prev => prev.filter(i => i.estacao_id !== skill.estacao_id));
-                                                        setIsIluoLoading(false);
-                                                    }} 
-                                                    className="opacity-20 group-hover:opacity-100 text-[10px] uppercase font-bold text-red-500 hover:bg-red-50 px-3 py-1.5 rounded border border-transparent hover:border-red-200 transition-all disabled:opacity-30"
-                                                >
-                                                    Retirar
-                                                </button>
+                                                {canEditHR && (
+                                                    <button 
+                                                        type="button" 
+                                                        disabled={isIluoLoading}
+                                                        onClick={async () => {
+                                                            if(!window.confirm("Retirar esta certificação? O trabalhador perderá os benefícios do painel IoT associados.")) return;
+                                                            setIsIluoLoading(true);
+                                                            await supabase.from('operador_iluo_matriz').delete().eq('operador_id', iluoTargetOp.id).eq('estacao_id', skill.estacao_id);
+                                                            setOpIluoList(prev => prev.filter(i => i.estacao_id !== skill.estacao_id));
+                                                            setIsIluoLoading(false);
+                                                        }} 
+                                                        className="opacity-20 group-hover:opacity-100 text-[10px] uppercase font-bold text-red-500 hover:bg-red-50 px-3 py-1.5 rounded border border-transparent hover:border-red-200 transition-all disabled:opacity-30"
+                                                    >
+                                                        Retirar
+                                                    </button>
+                                                )}
                                             </div>
                                         )
                                     })}

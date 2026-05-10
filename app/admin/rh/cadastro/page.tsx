@@ -7,6 +7,7 @@ import { Loader2, Save, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { criarContaAcesso } from './actions';
+import { hasEditPermission } from '@/utils/permissions';
 
 // Componente Core contido em Fallback do Suspense Client
 function FuncionarioFormCore() {
@@ -20,6 +21,7 @@ function FuncionarioFormCore() {
     const [estacoesDisponiveis, setEstacoesDisponiveis] = useState<any[]>([]);
     const [areasDisponiveis, setAreasDisponiveis] = useState<{ id: string, nome_area: string }[]>([]);
     const [originalEmail, setOriginalEmail] = useState('');
+    const [canEditHR, setCanEditHR] = useState(true);
 
     // Novos Dicionários e Listas Hierárquicas
     const [funcoesDisponiveis, setFuncoesDisponiveis] = useState<{ id: string, nome_funcao: string }[]>([]);
@@ -69,6 +71,18 @@ function FuncionarioFormCore() {
     const [historicoFormacoes, setHistoricoFormacoes] = useState<any[]>([]);
 
     useEffect(() => {
+        // Fetch User Permissions to enforce View-Only mode
+        supabase.auth.getUser().then(({ data: userData }) => {
+            if (userData?.user?.email && userData.user.email !== 'master@brunswick.pt') {
+                supabase.from('operadores').select('nivel_permissao, permissoes_modulos').eq('email_acesso', userData.user.email).single()
+                    .then(({ data: myData }) => {
+                        if (myData) {
+                            setCanEditHR(hasEditPermission(myData.permissoes_modulos, '/admin/rh', myData.nivel_permissao));
+                        }
+                    });
+            }
+        });
+
         // Carregar Estações (Para Alocação do Posto de Trabalho M.E.S e Cálculo de Zonas ILUO)
         supabase.from('estacoes').select('id, nome_estacao, areas_fabrica(id), linhas_producao(id)').order('nome_estacao')
             .then(({ data }) => setEstacoesDisponiveis(data || []));
@@ -380,12 +394,14 @@ function FuncionarioFormCore() {
                 </div>
                 <div className="flex gap-3">
                     <Link href="/admin/rh" className="px-4 py-2 border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-md font-medium transition-colors flex gap-2 items-center shadow-sm">
-                        <ArrowLeft size={16} /> Cancelar
+                        <ArrowLeft size={16} /> Voltar
                     </Link>
-                    <button type="submit" disabled={isLoading} className="bg-blue-600 text-white hover:bg-blue-700 px-4 py-2 rounded-md font-medium transition-colors flex gap-2 items-center shadow-sm">
-                        {isLoading ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-                        {id ? 'Atualizar Registo' : 'Confirmar Admissão'}
-                    </button>
+                    {canEditHR && (
+                        <button type="submit" disabled={isLoading} className="bg-blue-600 text-white hover:bg-blue-700 px-4 py-2 rounded-md font-medium transition-colors flex gap-2 items-center shadow-sm">
+                            {isLoading ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                            {id ? 'Atualizar Registo' : 'Confirmar Admissão'}
+                        </button>
+                    )}
                 </div>
             </header>
 
@@ -588,34 +604,36 @@ function FuncionarioFormCore() {
                                     <input type="text" id="iluo_avaliador" className={inputClass} placeholder="Nome..." />
                                 </div>
                                 <div className="md:col-span-1">
-                                    <button 
-                                        type="button"
-                                        className="w-full bg-slate-800 text-white font-bold py-2 px-3 rounded-md text-xs hover:bg-slate-900 transition-colors shadow-sm"
-                                        onClick={() => {
-                                            const e = document.getElementById('iluo_estacao') as HTMLSelectElement;
-                                            const l = document.getElementById('iluo_nivel') as HTMLSelectElement;
-                                            const a = document.getElementById('iluo_avaliador') as HTMLInputElement;
-                                            if(!e.value) return;
-                                            
-                                            // Guardar valores primitivos IMEDIATAMENTE antes da função assíncrona do React
-                                            const valEstacao = e.value;
-                                            const valNivel = l.value;
-                                            const valAvaliador = a.value;
-                                            
-                                            setIluoList(prev => {
-                                                const cleaned = prev.filter(item => item.estacao_id !== valEstacao);
-                                                return [...cleaned, {
-                                                    estacao_id: valEstacao,
-                                                    nivel_iluo: valNivel,
-                                                    avaliador_nome: valAvaliador,
-                                                    data_avaliacao: new Date().toISOString().substring(0, 10)
-                                                }];
-                                            });
-                                            
-                                            e.value = '';
-                                            a.value = '';
-                                        }}
-                                    >Adicionar</button>
+                                    {canEditHR && (
+                                        <button 
+                                            type="button"
+                                            className="w-full bg-slate-800 text-white font-bold py-2 px-3 rounded-md text-xs hover:bg-slate-900 transition-colors shadow-sm"
+                                            onClick={() => {
+                                                const e = document.getElementById('iluo_estacao') as HTMLSelectElement;
+                                                const l = document.getElementById('iluo_nivel') as HTMLSelectElement;
+                                                const a = document.getElementById('iluo_avaliador') as HTMLInputElement;
+                                                if(!e.value) return;
+                                                
+                                                // Guardar valores primitivos IMEDIATAMENTE antes da função assíncrona do React
+                                                const valEstacao = e.value;
+                                                const valNivel = l.value;
+                                                const valAvaliador = a.value;
+                                                
+                                                setIluoList(prev => {
+                                                    const cleaned = prev.filter(item => item.estacao_id !== valEstacao);
+                                                    return [...cleaned, {
+                                                        estacao_id: valEstacao,
+                                                        nivel_iluo: valNivel,
+                                                        avaliador_nome: valAvaliador,
+                                                        data_avaliacao: new Date().toISOString().substring(0, 10)
+                                                    }];
+                                                });
+                                                
+                                                e.value = '';
+                                                a.value = '';
+                                            }}
+                                        >Adicionar</button>
+                                    )}
                                 </div>
                             </div>
 
@@ -639,7 +657,9 @@ function FuncionarioFormCore() {
                                                     <div className="text-[10px] text-slate-400 font-medium">Avaliado por {skill.avaliador_nome || 'Sistema'} em {skill.data_avaliacao}</div>
                                                 </div>
                                             </div>
-                                            <button type="button" onClick={() => setIluoList(prev => prev.filter(i => i.estacao_id !== skill.estacao_id))} className="text-xs font-bold text-red-500 hover:bg-red-50 px-3 py-1.5 rounded-md border border-transparent hover:border-red-100 transition-colors">Retirar</button>
+                                            {canEditHR && (
+                                                <button type="button" onClick={() => setIluoList(prev => prev.filter(i => i.estacao_id !== skill.estacao_id))} className="text-xs font-bold text-red-500 hover:bg-red-50 px-3 py-1.5 rounded-md border border-transparent hover:border-red-100 transition-colors">Retirar</button>
+                                            )}
                                         </div>
                                     )
                                 })}
