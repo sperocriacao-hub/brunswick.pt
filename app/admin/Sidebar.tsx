@@ -129,7 +129,7 @@ export function Sidebar({
   return (
     <>
       {/* Mobile Touch Header (Visível apenas em Mobile) */}
-      <div className="md:hidden flex items-center justify-between bg-blue-900 text-white p-4 shadow-md shrink-0 sticky top-0 z-30">
+      <div className="lg:hidden flex items-center justify-between bg-blue-900 text-white p-4 shadow-md shrink-0 sticky top-0 z-30">
         <div className="font-bold tracking-tight text-white flex items-center gap-2">
           <Layers className="text-white" size={24} /> Brunswick.pt
         </div>
@@ -144,18 +144,18 @@ export function Sidebar({
       {/* Mobile Overlay Escurecimento */}
       {isOpen && (
         <div
-          className="md:hidden fixed inset-0 bg-slate-900/60 z-40 backdrop-blur-sm transition-opacity"
+          className="lg:hidden fixed inset-0 bg-slate-900/60 z-40 backdrop-blur-sm transition-opacity"
           onClick={() => setIsOpen(false)}
         />
       )}
 
       {/* A Barra Lateral do M.E.S */}
       <aside
-        className={`fixed md:relative top-0 left-0 w-64 bg-blue-900 text-white flex flex-col justify-between h-full overflow-y-auto nasa-scrollbar shadow-xl z-50 transform transition-transform duration-300 md:translate-x-0 ${isOpen ? "translate-x-0" : "-translate-x-full"}`}
+        className={`fixed lg:relative top-0 left-0 w-64 bg-blue-900 text-white flex flex-col justify-between h-full overflow-y-auto nasa-scrollbar shadow-xl z-50 transform transition-transform duration-300 lg:translate-x-0 ${isOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
         <div className="p-6 flex flex-col flex-1 whitespace-nowrap">
           {/* O Logo é Oculto no Mobile Side (Porque já está no Mobile Header Supremo) */}
-          <div className="hidden md:flex text-2xl font-bold tracking-tight text-white mb-8 px-2 items-center gap-2">
+          <div className="hidden lg:flex text-2xl font-bold tracking-tight text-white mb-8 px-2 items-center gap-2">
             <Layers className="text-white" /> Brunswick.pt
           </div>
           <div className="flex flex-col gap-1">
