@@ -143,17 +143,7 @@ export default function ModelosListPage() {
   const [pdfModalTitle, setPdfModalTitle] = useState("");
 
   const openPdfViewer = (url: string, title: string) => {
-    // Detect mobile/tablet devices or small screens
-    const isMobile = window.innerWidth < 1024 || (navigator.maxTouchPoints && navigator.maxTouchPoints > 0) || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    
-    // Se for um link externo (Drive, SharePoint) OU mobile, abrimos num novo separador
-    // porque eles bloqueiam a visualização dentro de iframes (X-Frame-Options)
-    // E porque iOS/Android lidam mal com iframes de PDFs.
-    if (isMobile || !url.includes('supabase.co')) {
-        window.open(url, '_blank', 'noopener,noreferrer');
-        return;
-    }
-    
+    // Forçar a abertura no Modal (Pop-up) Seguro para TODOS os dispositivos e links
     setPdfUrlToView(url);
     setPdfModalTitle(title);
     setPdfModalOpen(true);
