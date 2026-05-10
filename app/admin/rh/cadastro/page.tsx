@@ -7,7 +7,6 @@ import { Loader2, Save, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { criarContaAcesso } from './actions';
-import { hasEditPermission } from '@/utils/permissions';
 
 // Componente Core contido em Fallback do Suspense Client
 function FuncionarioFormCore() {
@@ -21,7 +20,6 @@ function FuncionarioFormCore() {
     const [estacoesDisponiveis, setEstacoesDisponiveis] = useState<any[]>([]);
     const [areasDisponiveis, setAreasDisponiveis] = useState<{ id: string, nome_area: string }[]>([]);
     const [originalEmail, setOriginalEmail] = useState('');
-    const [canEditHR, setCanEditHR] = useState(false);
 
     // Novos Dicionários e Listas Hierárquicas
     const [funcoesDisponiveis, setFuncoesDisponiveis] = useState<{ id: string, nome_funcao: string }[]>([]);
@@ -71,18 +69,6 @@ function FuncionarioFormCore() {
     const [historicoFormacoes, setHistoricoFormacoes] = useState<any[]>([]);
 
     useEffect(() => {
-        // Fetch User Permissions to enforce View-Only mode
-        supabase.auth.getUser().then(({ data: userData }) => {
-            if (userData?.user?.email && userData.user.email !== 'master@brunswick.pt') {
-                supabase.from('operadores').select('nivel_permissao, permissoes_modulos').eq('email_acesso', userData.user.email).single()
-                    .then(({ data: myData }) => {
-                        if (myData) {
-                            setCanEditHR(hasEditPermission(myData.permissoes_modulos, '/admin/rh', myData.nivel_permissao));
-                        }
-                    });
-            }
-        });
-
         // Carregar Estações (Para Alocação do Posto de Trabalho M.E.S e Cálculo de Zonas ILUO)
         supabase.from('estacoes').select('id, nome_estacao, areas_fabrica(id), linhas_producao(id)').order('nome_estacao')
             .then(({ data }) => setEstacoesDisponiveis(data || []));
@@ -196,12 +182,6 @@ function FuncionarioFormCore() {
 
     const handleSalvar = async (e: React.FormEvent) => {
         e.preventDefault();
-        
-        if (!canEditHR) {
-            alert('Acesso Negado: Não tem permissão para editar.');
-            return;
-        }
-
         setIsLoading(true);
 
         const payload: Record<string, unknown> = { ...formData };
@@ -394,29 +374,18 @@ function FuncionarioFormCore() {
     return (
         <form onSubmit={handleSalvar} className="max-w-5xl mx-auto p-4 sm:p-8 animate-in fade-in duration-500 pb-20">
             <header className="flex justify-between items-center mb-8 pb-4 border-b border-slate-200">
-                <div className="flex flex-col gap-1">
-                    <h1 className="text-2xl font-black text-slate-800 tracking-tight flex items-center gap-3">
-                        <Users size={28} className="text-blue-600" />
-                        {id ? 'Ficha do Operário' : 'Novo Operário'}
-                        {id && <Badge variant="outline" className="ml-2 font-mono text-xs">ID: {id}</Badge>}
-                        {!canEditHR && (
-                            <Badge variant="destructive" className="ml-2 bg-red-500 text-white animate-pulse">
-                                MODO APENAS LEITURA
-                            </Badge>
-                        )}
-                    </h1>
-                    <p className="text-slate-500 text-sm">Preencha os dados oficiais para efeitos de RH, Liderança e Acessos ao M.E.S.</p>
+                <div>
+                    <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">{id ? 'Editar Colaborador' : 'Admitir Novo Operário'}</h1>
+                    <p className="text-slate-500 font-medium text-sm mt-1">Ficha Integrada de Recursos Humanos e M.E.S</p>
                 </div>
                 <div className="flex gap-3">
                     <Link href="/admin/rh" className="px-4 py-2 border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-md font-medium transition-colors flex gap-2 items-center shadow-sm">
-                        <ArrowLeft size={16} /> Voltar
+                        <ArrowLeft size={16} /> Cancelar
                     </Link>
-                    {canEditHR && (
-                        <button type="submit" disabled={isLoading} className="bg-blue-600 text-white hover:bg-blue-700 px-4 py-2 rounded-md font-medium transition-colors flex gap-2 items-center shadow-sm">
-                            {isLoading ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-                            {id ? 'Atualizar Registo' : 'Confirmar Admissão'}
-                        </button>
-                    )}
+                    <button type="submit" disabled={isLoading} className="bg-blue-600 text-white hover:bg-blue-700 px-4 py-2 rounded-md font-medium transition-colors flex gap-2 items-center shadow-sm">
+                        {isLoading ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                        {id ? 'Atualizar Registo' : 'Confirmar Admissão'}
+                    </button>
                 </div>
             </header>
 
@@ -619,36 +588,34 @@ function FuncionarioFormCore() {
                                     <input type="text" id="iluo_avaliador" className={inputClass} placeholder="Nome..." />
                                 </div>
                                 <div className="md:col-span-1">
-                                    {canEditHR && (
-                                        <button 
-                                            type="button"
-                                            className="w-full bg-slate-800 text-white font-bold py-2 px-3 rounded-md text-xs hover:bg-slate-900 transition-colors shadow-sm"
-                                            onClick={() => {
-                                                const e = document.getElementById('iluo_estacao') as HTMLSelectElement;
-                                                const l = document.getElementById('iluo_nivel') as HTMLSelectElement;
-                                                const a = document.getElementById('iluo_avaliador') as HTMLInputElement;
-                                                if(!e.value) return;
-                                                
-                                                // Guardar valores primitivos IMEDIATAMENTE antes da função assíncrona do React
-                                                const valEstacao = e.value;
-                                                const valNivel = l.value;
-                                                const valAvaliador = a.value;
-                                                
-                                                setIluoList(prev => {
-                                                    const cleaned = prev.filter(item => item.estacao_id !== valEstacao);
-                                                    return [...cleaned, {
-                                                        estacao_id: valEstacao,
-                                                        nivel_iluo: valNivel,
-                                                        avaliador_nome: valAvaliador,
-                                                        data_avaliacao: new Date().toISOString().substring(0, 10)
-                                                    }];
-                                                });
-                                                
-                                                e.value = '';
-                                                a.value = '';
-                                            }}
-                                        >Adicionar</button>
-                                    )}
+                                    <button 
+                                        type="button"
+                                        className="w-full bg-slate-800 text-white font-bold py-2 px-3 rounded-md text-xs hover:bg-slate-900 transition-colors shadow-sm"
+                                        onClick={() => {
+                                            const e = document.getElementById('iluo_estacao') as HTMLSelectElement;
+                                            const l = document.getElementById('iluo_nivel') as HTMLSelectElement;
+                                            const a = document.getElementById('iluo_avaliador') as HTMLInputElement;
+                                            if(!e.value) return;
+                                            
+                                            // Guardar valores primitivos IMEDIATAMENTE antes da função assíncrona do React
+                                            const valEstacao = e.value;
+                                            const valNivel = l.value;
+                                            const valAvaliador = a.value;
+                                            
+                                            setIluoList(prev => {
+                                                const cleaned = prev.filter(item => item.estacao_id !== valEstacao);
+                                                return [...cleaned, {
+                                                    estacao_id: valEstacao,
+                                                    nivel_iluo: valNivel,
+                                                    avaliador_nome: valAvaliador,
+                                                    data_avaliacao: new Date().toISOString().substring(0, 10)
+                                                }];
+                                            });
+                                            
+                                            e.value = '';
+                                            a.value = '';
+                                        }}
+                                    >Adicionar</button>
                                 </div>
                             </div>
 
@@ -672,9 +639,7 @@ function FuncionarioFormCore() {
                                                     <div className="text-[10px] text-slate-400 font-medium">Avaliado por {skill.avaliador_nome || 'Sistema'} em {skill.data_avaliacao}</div>
                                                 </div>
                                             </div>
-                                            {canEditHR && (
-                                                <button type="button" onClick={() => setIluoList(prev => prev.filter(i => i.estacao_id !== skill.estacao_id))} className="text-xs font-bold text-red-500 hover:bg-red-50 px-3 py-1.5 rounded-md border border-transparent hover:border-red-100 transition-colors">Retirar</button>
-                                            )}
+                                            <button type="button" onClick={() => setIluoList(prev => prev.filter(i => i.estacao_id !== skill.estacao_id))} className="text-xs font-bold text-red-500 hover:bg-red-50 px-3 py-1.5 rounded-md border border-transparent hover:border-red-100 transition-colors">Retirar</button>
                                         </div>
                                     )
                                 })}
@@ -882,31 +847,28 @@ function FuncionarioFormCore() {
                                             { path: "/admin/qa", label: "Laboratório QA (Auto-Tester)", group: "Configuração" },
                                             { path: "/admin/configuracoes/utilizadores", label: "Níveis de Acesso", group: "Configuração" },
                                         ].map(module => {
-                                            const hasFullAccess = formData.permissoes_modulos.includes(module.path);
-                                            const hasReadonlyAccess = formData.permissoes_modulos.includes(`${module.path}:readonly`);
-                                            const hasAnyAccess = hasFullAccess || hasReadonlyAccess;
-
+                                            const isChecked = formData.permissoes_modulos.includes(module.path);
                                             return (
-                                                <div key={module.path} className={`flex flex-col gap-2 p-3 rounded-lg border transition-colors ${hasAnyAccess ? 'bg-white border-blue-400 shadow-sm' : 'bg-slate-50/50 border-blue-100 hover:border-blue-300'}`}>
-                                                    <div className="flex flex-col mb-1">
-                                                        <span className={`text-xs font-bold ${hasAnyAccess ? 'text-blue-900' : 'text-slate-600'}`}>{module.label}</span>
-                                                        <span className="text-[10px] text-slate-400 mt-0.5">{module.group}</span>
-                                                    </div>
-                                                    <select
-                                                        className="w-full text-xs font-medium text-slate-700 bg-white border border-slate-300 rounded p-1.5 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                                                        value={hasFullAccess ? "full" : hasReadonlyAccess ? "readonly" : "none"}
+                                                <label key={module.path} className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${isChecked ? 'bg-white border-blue-400 shadow-sm' : 'bg-transparent border-blue-100 hover:border-blue-300'}`}>
+                                                    <input
+                                                        type="checkbox"
+                                                        className="mt-1 accent-blue-600 w-4 h-4 rounded border-blue-300"
+                                                        checked={isChecked}
                                                         onChange={(e) => {
-                                                            const arr = formData.permissoes_modulos.filter(p => p !== module.path && p !== `${module.path}:readonly`);
-                                                            if (e.target.value === "full") arr.push(module.path);
-                                                            else if (e.target.value === "readonly") arr.push(`${module.path}:readonly`);
+                                                            const arr = [...formData.permissoes_modulos];
+                                                            if (e.target.checked) arr.push(module.path);
+                                                            else {
+                                                                const idx = arr.indexOf(module.path);
+                                                                if (idx > -1) arr.splice(idx, 1);
+                                                            }
                                                             setFormData({ ...formData, permissoes_modulos: arr });
                                                         }}
-                                                    >
-                                                        <option value="none">Bloqueado</option>
-                                                        <option value="readonly">Apenas Leitura</option>
-                                                        <option value="full">Acesso Total (Edição)</option>
-                                                    </select>
-                                                </div>
+                                                    />
+                                                    <div className="flex flex-col">
+                                                        <span className={`text-xs font-bold ${isChecked ? 'text-blue-900' : 'text-slate-600'}`}>{module.label}</span>
+                                                        <span className="text-[10px] text-slate-400 mt-0.5">{module.group}</span>
+                                                    </div>
+                                                </label>
                                             );
                                         })}
                                     </div>
