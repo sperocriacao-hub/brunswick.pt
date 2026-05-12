@@ -263,11 +263,12 @@ export default function MyGembaHub() {
                             {data.formacoesAtrasadas?.length > 0 ? (
                                 <div className="space-y-2 max-h-[120px] overflow-y-auto">
                                     {data.formacoesAtrasadas.map((f: any) => {
-                                        const opName = (f.operadores as any)?.nome_operador || (f.operadores as any)?.[0]?.nome_operador || 'Operador';
+                                        const opName = (f.formando as any)?.nome_operador || (f.formando as any)?.[0]?.nome_operador || 'Operador';
+                                        const estName = (f.estacao as any)?.nome_estacao || (f.estacao as any)?.[0]?.nome_estacao || 'Treino Geral';
                                         return (
                                             <div key={f.id} className="bg-white p-2 rounded border border-amber-200 text-xs shadow-sm">
                                                 <span className="font-bold text-amber-700 block truncate">{opName}</span>
-                                                <span className="text-slate-500">{f.nome_formacao} (Venceu {f.data_limite})</span>
+                                                <span className="text-slate-500">Treino: {estName} (Venceu {f.data_fim_estimada})</span>
                                             </div>
                                         );
                                     })}

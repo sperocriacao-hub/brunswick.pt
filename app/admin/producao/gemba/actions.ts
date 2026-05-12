@@ -155,10 +155,17 @@ export async function getGembaHubData() {
              cronogramaAtrasado = c5s || [];
         }
 
-        // --- 8. Formações a Vencer / Atrasadas (rh_formacoes) ---
+        // --- 8. Formações a Vencer / Atrasadas (rh_planos_formacao) ---
         const myOpIds = myOps.map(o => o.id);
-        const { data: formacoesRaw } = await supabase.from('rh_formacoes').select('*, operadores!inner(nome_operador)').in('formando_id', myOpIds).eq('status', 'Pendente');
-        const formacoesAtrasadas = (formacoesRaw || []).filter((f: any) => f.data_limite && f.data_limite < today);
+        let formacoesRaw: any[] = [];
+        if (myOpIds.length > 0) {
+            const { data } = await supabase.from('rh_planos_formacao')
+                .select('*, formando:operadores!formando_id(nome_operador), estacao:estacoes(nome_estacao)')
+                .in('formando_id', myOpIds)
+                .in('status', ['Planeado', 'Em Curso']);
+            formacoesRaw = data || [];
+        }
+        const formacoesAtrasadas = formacoesRaw.filter((f: any) => f.data_fim_estimada && f.data_fim_estimada < today);
 
         // --- 9. Baixa Performance (avaliacoes_diarias médias baixas consecutivas) ---
         // Por simplicidade neste dashboard, vemos apenas os que tiveram nota < 2.5 nas últimas 2 avaliações registadas
