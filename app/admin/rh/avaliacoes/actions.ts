@@ -23,11 +23,29 @@ export async function carregarEquipaAvaliavel() {
         const cookieStore = cookies();
         const supabase = createClient(cookieStore);
 
-        const { data, error } = await supabase
+        const { data: userData } = await supabase.auth.getUser();
+
+        let queryOps = supabase
             .from('operadores')
             .select('id, numero_operador, nome_operador, funcao, status, area_base_id')
             .eq('status', 'Ativo') // Só se avaliam RH ativos
             .order('nome_operador');
+
+        // Fronteiras de Segurança de Visibilidade (Hierarquia)
+        if (userData?.user?.email && userData.user.email !== 'master@brunswick.pt') {
+            const { data: myData } = await supabase.from('operadores').select('nome_operador, nivel_permissao').eq('email_acesso', userData.user.email).single();
+            if (myData) {
+                // Apenas HR ou Admins têm acesso irrestrito
+                if (myData.nivel_permissao !== 'Admin' && myData.nivel_permissao !== 'Recursos Humanos') {
+                    queryOps = queryOps.or(`lider_nome.eq."${myData.nome_operador}",supervisor_nome.eq."${myData.nome_operador}",gestor_nome.eq."${myData.nome_operador}"`);
+                }
+            } else {
+                // Bloqueia acesso se o user não for encontrado no DB de operadores e não for admin global
+                queryOps = queryOps.eq('id', 'codigo-invalido-de-seguranca');
+            }
+        }
+
+        const { data, error } = await queryOps;
 
         if (error) throw error;
         return { success: true, operadores: data };
