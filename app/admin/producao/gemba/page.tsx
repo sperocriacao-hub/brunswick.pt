@@ -312,22 +312,22 @@ export default function MyGembaHub() {
                     </Card>
 
                     {/* Baixa Performance Continua */}
-                    <Card className={`border-t-4 ${data.baixaPerformance?.length > 0 ? 'border-t-orange-500 bg-orange-50' : 'border-t-slate-300 bg-white'}`}>
+                    <Card className={`border-t-4 ${data.baixaPerformance?.length > 0 ? 'border-t-indigo-500 bg-indigo-50' : 'border-t-slate-300 bg-white'}`}>
                         <CardHeader className="pb-2">
                             <CardTitle className="text-xs font-black uppercase tracking-widest flex justify-between text-slate-700">
-                                Baixa Performance (Avaliações 360) <UserX size={16} className={data.baixaPerformance?.length > 0 ? 'text-orange-500' : 'text-slate-300'} />
+                                Top Piores Performances <TrendingDown size={16} className={data.baixaPerformance?.length > 0 ? 'text-indigo-500' : 'text-slate-300'} />
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
+                            <div className="text-3xl font-black mb-3 text-slate-800">{data.baixaPerformance?.length || 0}</div>
                             {data.baixaPerformance?.length > 0 ? (
-                                <div className="space-y-2">
+                                <div className="space-y-2 max-h-[120px] overflow-y-auto">
                                     {data.baixaPerformance.map((bp: any, idx: number) => (
-                                        <div key={idx} className="bg-white p-2 rounded border border-orange-200 text-xs shadow-sm flex justify-between items-center">
-                                            <span className="font-bold text-orange-800">{bp.nome}</span>
-                                            <span className="bg-orange-100 text-orange-700 px-2 py-0.5 rounded font-black">Média Atual: {bp.media}</span>
+                                        <div key={idx} className="bg-white p-2 rounded border border-indigo-200 text-xs shadow-sm flex justify-between">
+                                            <span className="font-bold text-indigo-700 truncate">{bp.nome}</span>
+                                            <span className="text-slate-600 font-black">Média: {bp.media}</span>
                                         </div>
                                     ))}
-                                    <p className="text-[10px] text-slate-500 italic mt-2">Nota &lt; 2.5 nas últimas avaliações consecutivas.</p>
                                 </div>
                             ) : (
                                 <p className="text-xs text-slate-400 font-medium">Nenhum operador com quebra de performance crítica recente.</p>
