@@ -27,65 +27,57 @@ export async function getGembaHubData() {
                     isGlobal = true;
                 } else {
                     meuNome = myData.nome_operador;
-                    filterString = `lider_nome.eq."${meuNome}",supervisor_nome.eq."${meuNome}",gestor_nome.eq."${meuNome}"`;
                 }
             } else {
                 throw new Error("Credenciais Inválidas na Matriz de Talentos");
             }
         }
 
-        // 2. Descobrir as Estações sob a jurisdição do Líder (Postos Base, Áreas e BÚSSOLA ANDON)
-        let queryOps = supabase.from('operadores').select('id, nome_operador, posto_base_id, area_base_id, tag_rfid_operador').eq('status', 'Ativo');
-        if (!isGlobal && filterString) queryOps = queryOps.or(filterString);
-        
-        const { data: teamOps } = await queryOps;
-        const myOps = teamOps || [];
-        
-        // Obter os postos diretos e áreas
-        const directStations = myOps.map(op => op.posto_base_id).filter(Boolean);
-        const myAreas = Array.from(new Set(myOps.map(op => op.area_base_id).filter(Boolean)));
-        
-        let areaStations: string[] = [];
-        if (myAreas.length > 0) {
-             const { data: estData } = await supabase.from('estacoes').select('id').in('area_id', myAreas);
-             if (estData) areaStations = estData.map(e => e.id);
-        }
-
-        // Adicionar a Bússola Diretiva de Responsabilidades
+        // 2. Descobrir as Estações da Jurisdição do Líder via BÚSSOLA
         let bussolaStationIds: string[] = [];
-        if (!isGlobal && myUserId) {
-            const { data: bData } = await supabase.from('estacoes').select('id')
-                .or(`lider_t1_id.eq.${myUserId},supervisor_t1_id.eq.${myUserId},lider_t2_id.eq.${myUserId},supervisor_t2_id.eq.${myUserId},manutencao_id.eq.${myUserId},qualidade_id.eq.${myUserId},logistica_id.eq.${myUserId}`);
-            if (bData) bussolaStationIds = bData.map(e => e.id);
-        } else if (isGlobal) {
-            const { data: bData } = await supabase.from('estacoes').select('id');
-            if (bData) bussolaStationIds = bData.map(e => e.id);
+        let areaIds: string[] = [];
+        
+        const { data: allEstacoes } = await supabase.from('estacoes').select('id, area_id, lider_t1_id, supervisor_t1_id, lider_t2_id, supervisor_t2_id, manutencao_id, qualidade_id, logistica_id');
+        
+        if (allEstacoes) {
+            allEstacoes.forEach(est => {
+                if (isGlobal || [est.lider_t1_id, est.supervisor_t1_id, est.lider_t2_id, est.supervisor_t2_id, est.manutencao_id, est.qualidade_id, est.logistica_id].includes(myUserId)) {
+                    bussolaStationIds.push(est.id);
+                    if (est.area_id && !areaIds.includes(est.area_id)) areaIds.push(est.area_id);
+                }
+            });
         }
+        
+        let myStations = [...bussolaStationIds];
 
-        const myStations = Array.from(new Set([...directStations, ...areaStations, ...bussolaStationIds]));
-        const myRfids = Array.from(new Set(myOps.map(op => op.tag_rfid_operador).filter(Boolean)));
+        // 3. Buscar os Operadores
+        const { data: allOps } = await supabase.from('operadores').select('id, nome_operador, posto_base_id, area_base_id, tag_rfid_operador, lider_nome, supervisor_nome, gestor_nome').eq('status', 'Ativo');
+        
+        const myOps = (allOps || []).filter(op => {
+            if (isGlobal) return true;
+            // É liderado diretamente por ele?
+            if (op.lider_nome === meuNome || op.supervisor_nome === meuNome || op.gestor_nome === meuNome) return true;
+            // Pertence a uma estação ou área que ele lidera na Bússola?
+            if (op.posto_base_id && myStations.includes(op.posto_base_id)) return true;
+            if (op.area_base_id && areaIds.includes(op.area_base_id)) return true;
+            return false;
+        });
+
+        // Adicionar postos base dos operadores à lista de estações
+        myOps.forEach(op => {
+            if (op.posto_base_id && !myStations.includes(op.posto_base_id)) myStations.push(op.posto_base_id);
+        });
 
         // Se o lider nao tiver estacoes/equipa e nao for global, devolvemos tudo vazio
         if (!isGlobal && myStations.length === 0 && myOps.length === 0) {
             return { success: true, data: { andonsCausador: [], andonsVitima: [], ausentes: [], iluoRisco: [], acoesAtrasadas: [], cronogramaAtrasado: [], formacoesAtrasadas: [], baixaPerformance: [], userName: meuNome }};
         }
 
-        // 3. ANDONS (Em Tempo Real - Não resolvidos)
-        let andonsQuery = supabase
+        // 4. ANDONS (Em Tempo Real - Não resolvidos)
+        const { data: rawAndons } = await supabase
             .from('alertas_andon')
             .select('*, estacoes!estacao_id(nome_estacao), causadoras:estacoes!estacao_causadora(nome_estacao)')
             .eq('resolvido', false);
-
-        if (!isGlobal) {
-             if (myStations.length > 0) {
-                 const inClause = `(${myStations.join(',')})`;
-                 andonsQuery = andonsQuery.or(`estacao_causadora.in.${inClause},estacao_id.in.${inClause}`);
-             } else {
-                 andonsQuery = andonsQuery.eq('id', 'block-security');
-             }
-        }
-
-        const { data: rawAndons } = await andonsQuery;
 
         const andonsCausador: any[] = [];
         const andonsVitima: any[] = [];
@@ -100,7 +92,7 @@ export async function getGembaHubData() {
             });
         }
 
-        // 4. Headcount Absentismo Hoje
+        // 5. Headcount Absentismo Hoje
         const today = new Date().toISOString().split('T')[0];
         const { data: presencasRaw } = await supabase.from('log_ponto_diario')
             .select('operador_rfid')
@@ -120,21 +112,16 @@ export async function getGembaHubData() {
             });
         }
 
-        // 5. ILUO Risco Crítico
-        let iluoQuery = supabase.from('operador_iluo_matriz')
+        // 6. ILUO Risco Crítico
+        const { data: iluoData } = await supabase.from('operador_iluo_matriz')
             .select('estacao_id, nivel_iluo, operador_id, estacoes!inner(nome_estacao)');
-        
-        if (!isGlobal && myStations.length > 0) {
-            iluoQuery = iluoQuery.in('estacao_id', myStations);
-        } else if (!isGlobal) {
-            iluoQuery = iluoQuery.eq('estacao_id', 'block');
-        }
-
-        const { data: iluoData } = await iluoQuery;
 
         const estacaoIluoStats: Record<string, { nome: string, temO_ou_U: boolean, todos_I_ou_L: boolean }> = {};
         if (iluoData) {
             iluoData.forEach(i => {
+                // Filtrar apenas para estações da jurisdição
+                if (!isGlobal && !myStations.includes(i.estacao_id)) return;
+                
                 if (!estacaoIluoStats[i.estacao_id]) {
                     const est = i.estacoes as any;
                     const nomeEstacao = est?.nome_estacao || est?.[0]?.nome_estacao || 'Desconhecida';
@@ -149,61 +136,44 @@ export async function getGembaHubData() {
         
         const iluoRisco: any[] = Object.values(estacaoIluoStats).filter(e => !e.temO_ou_U && e.todos_I_ou_L);
 
-        // 6. Ações Pendentes (lean_acoes)
-        // Como o nome é digitado, vamos procurar usando LIKE pelo primeiro nome do lider
-        let queryAcoes = supabase.from('lean_acoes').select('*').neq('status', 'concluido');
-        if (!isGlobal) {
-             const primeiroNome = meuNome.split(' ')[0];
-             if (primeiroNome) {
-                 queryAcoes = queryAcoes.ilike('responsavel_nome', `%${primeiroNome}%`);
-             } else {
-                 queryAcoes = queryAcoes.eq('id', 'block-security');
-             }
-        }
-        const { data: acoesPendentes } = await queryAcoes;
-        const acoesAtrasadas = (acoesPendentes || []).filter((a: any) => a.prazo && a.prazo < today);
+        // 7. Ações Pendentes (lean_acoes)
+        const { data: allAcoes } = await supabase.from('lean_acoes').select('*').neq('status', 'concluido');
+        const acoesPendentes = (allAcoes || []).filter(a => {
+            if (isGlobal) return true;
+            const primeiroNome = meuNome.split(' ')[0];
+            return a.responsavel_nome && a.responsavel_nome.toLowerCase().includes(primeiroNome.toLowerCase());
+        });
+        const acoesAtrasadas = acoesPendentes.filter((a: any) => a.prazo && a.prazo < today);
 
-        // 7. Auditorias 5S Atrasadas (lean_5s_cronograma)
-        let cronogramaAtrasado = [];
-        if (myStations.length > 0 || isGlobal || myUserId) {
-             let query5s = supabase.from('lean_5s_cronograma').select('*, estacoes(nome_estacao)').eq('status', 'Pendente').lte('data_prevista', today);
-             
-             if (!isGlobal) {
-                 if (myStations.length > 0) {
-                     query5s = query5s.or(`estacao_id.in.(${myStations.join(',')}),auditor_id.eq.${myUserId}`);
-                 } else {
-                     query5s = query5s.eq('auditor_id', myUserId);
-                 }
-             }
-             
-             const { data: c5s } = await query5s;
-             cronogramaAtrasado = c5s || [];
-        }
+        // 8. Auditorias 5S Atrasadas (lean_5s_cronograma)
+        const { data: all5S } = await supabase.from('lean_5s_cronograma').select('*, estacoes(nome_estacao)').eq('status', 'Pendente').lte('data_prevista', today);
+        
+        const cronogramaAtrasado = (all5S || []).filter(c => {
+            if (isGlobal) return true;
+            return c.auditor_id === myUserId || myStations.includes(c.estacao_id);
+        });
 
-        // --- 8. Formações a Vencer / Atrasadas (rh_planos_formacao) ---
+        // 9. Formações a Vencer / Atrasadas (rh_planos_formacao)
         const myOpIds = myOps.map(o => o.id);
-        let formacoesRaw: any[] = [];
-        if (myOpIds.length > 0 || isGlobal) {
-            let formQuery = supabase.from('rh_planos_formacao')
-                .select('*, formando:operadores!formando_id(nome_operador), estacao:estacoes(nome_estacao)')
-                .in('status', ['Planeado', 'Em Curso']);
-            if (!isGlobal) formQuery = formQuery.in('formando_id', myOpIds);
-            const { data } = await formQuery;
-            formacoesRaw = data || [];
-        }
+        const { data: allFormacoes } = await supabase.from('rh_planos_formacao')
+            .select('*, formando:operadores!formando_id(nome_operador), estacao:estacoes(nome_estacao)')
+            .in('status', ['Planeado', 'Em Curso']);
+            
+        const formacoesRaw = (allFormacoes || []).filter(f => {
+            if (isGlobal) return true;
+            return myOpIds.includes(f.formando_id);
+        });
         const formacoesAtrasadas = formacoesRaw.filter((f: any) => f.data_fim_estimada && f.data_fim_estimada < today);
 
-        // --- 9. Piores Performances (avaliacoes_diarias) ---
-        let avalRaw = null;
-        if (myOpIds.length > 0 || isGlobal) {
-            let avalQuery = supabase.from('avaliacoes_diarias')
-                 .select('funcionario_id, data_avaliacao, nota_hst, nota_epi, nota_5s, nota_eficiencia, nota_objetivos, nota_atitude, nota_qualidade, operadores!inner(nome_operador)')
-                 .order('data_avaliacao', { ascending: false });
-            if (!isGlobal) avalQuery = avalQuery.in('funcionario_id', myOpIds);
-            
-            const res = await avalQuery;
-            avalRaw = res.data;
-        }
+        // 10. Piores Performances (avaliacoes_diarias)
+        const { data: allAval } = await supabase.from('avaliacoes_diarias')
+             .select('funcionario_id, data_avaliacao, nota_hst, nota_epi, nota_5s, nota_eficiencia, nota_objetivos, nota_atitude, nota_qualidade, operadores!inner(nome_operador)')
+             .order('data_avaliacao', { ascending: false });
+
+        const avalRaw = (allAval || []).filter(a => {
+            if (isGlobal) return true;
+            return myOpIds.includes(a.funcionario_id);
+        });
 
         const operadorAvalMap: Record<string, { nome: string, notas: number[] }> = {};
         if (avalRaw) {
@@ -225,7 +195,6 @@ export async function getGembaHubData() {
              }
         }
         
-        // Ordenar por pior média e pegar os 3 piores
         baixaPerformance.sort((a,b) => parseFloat(a.media) - parseFloat(b.media));
         baixaPerformance = baixaPerformance.slice(0, 4);
 
