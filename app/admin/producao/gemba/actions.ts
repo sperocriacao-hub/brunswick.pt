@@ -76,7 +76,7 @@ export async function getGembaHubData() {
         // 4. ANDONS (Em Tempo Real - Não resolvidos)
         const { data: rawAndons } = await supabase
             .from('alertas_andon')
-            .select('*, estacoes!estacao_id(nome_estacao), causadoras:estacoes!estacao_causadora(nome_estacao)')
+            .select('*, estacoes!estacao_id(nome_estacao), causadoras:estacoes!local_ocorrencia_id(nome_estacao)')
             .eq('resolvido', false);
 
         const andonsCausador: any[] = [];
@@ -84,7 +84,7 @@ export async function getGembaHubData() {
 
         if (rawAndons) {
             rawAndons.forEach(a => {
-                const isCausador = isGlobal || myStations.includes(a.estacao_causadora);
+                const isCausador = isGlobal || myStations.includes(a.local_ocorrencia_id);
                 const isVitima = isGlobal || myStations.includes(a.estacao_id);
 
                 if (isCausador) andonsCausador.push(a);
@@ -106,7 +106,7 @@ export async function getGembaHubData() {
 
         if (turnoIniciado) {
             myOps.forEach(op => {
-                if (op.tag_rfid_operador && !allRfidsPresentes.has(op.tag_rfid_operador)) {
+                if (!op.tag_rfid_operador || !allRfidsPresentes.has(op.tag_rfid_operador)) {
                     ausentes.push(op);
                 }
             });
@@ -146,7 +146,7 @@ export async function getGembaHubData() {
         const acoesAtrasadas = acoesPendentes.filter((a: any) => a.prazo && a.prazo < today);
 
         // 8. Auditorias 5S Atrasadas (lean_5s_cronograma)
-        const { data: all5S } = await supabase.from('lean_5s_cronograma').select('*, estacoes(nome_estacao)').eq('status', 'Pendente').lte('data_prevista', today);
+        const { data: all5S } = await supabase.from('lean_5s_cronograma').select('*, estacoes(nome_estacao)').is('data_realizada', null).lte('data_prevista', today);
         
         const cronogramaAtrasado = (all5S || []).filter(c => {
             if (isGlobal) return true;
