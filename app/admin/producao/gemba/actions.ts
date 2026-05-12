@@ -137,7 +137,7 @@ export async function getGembaHubData() {
         const iluoRisco: any[] = Object.values(estacaoIluoStats).filter(e => !e.temO_ou_U && e.todos_I_ou_L);
 
         // 7. Ações Pendentes (lean_acoes)
-        const { data: allAcoes } = await supabase.from('lean_acoes').select('*').neq('status', 'concluido');
+        const { data: allAcoes } = await supabase.from('lean_acoes').select('*').neq('status', 'Done');
         const acoesPendentes = (allAcoes || []).filter(a => {
             if (isGlobal) return true;
             const primeiroNome = meuNome.split(' ')[0];
@@ -146,9 +146,10 @@ export async function getGembaHubData() {
         const acoesAtrasadas = acoesPendentes.filter((a: any) => a.prazo && a.prazo < today);
 
         // 8. Auditorias 5S Atrasadas (lean_5s_cronograma)
-        const { data: all5S } = await supabase.from('lean_5s_cronograma').select('*, estacoes(nome_estacao)').is('data_realizada', null).lte('data_prevista', today);
+        const { data: all5S } = await supabase.from('lean_5s_cronograma').select('*, estacoes(nome_estacao)').lte('data_prevista', today);
         
         const cronogramaAtrasado = (all5S || []).filter(c => {
+            if (c.data_realizada) return false; // Ignora se já estiver feita
             if (isGlobal) return true;
             return c.auditor_id === myUserId || myStations.includes(c.estacao_id);
         });
