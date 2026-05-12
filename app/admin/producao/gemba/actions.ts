@@ -64,7 +64,7 @@ export async function getGembaHubData() {
             
             // Match flexível de nome para evitar falhas de preenchimento (ex: "Tiago Almeida" vs "Tiago")
             const matchName = (field?: string) => {
-                if (!field || field === '--') return false;
+                if (!field || field === '--' || !meuNome) return false;
                 const f = field.toLowerCase();
                 const m = meuNome.toLowerCase();
                 return m === f || m.includes(f) || f.includes(m);
@@ -159,6 +159,7 @@ export async function getGembaHubData() {
             if (['concluido', 'concluído', 'done', 'encerrado', 'cancelado'].includes(st)) return false;
             
             if (!isGlobal) {
+                if (!meuNome) return false;
                 const primeiroNome = meuNome.split(' ')[0];
                 if (!a.responsavel_nome || !a.responsavel_nome.toLowerCase().includes(primeiroNome.toLowerCase())) {
                     return false;
