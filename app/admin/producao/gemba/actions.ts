@@ -20,13 +20,21 @@ export async function getGembaHubData() {
         if (userData.user.email === 'master@brunswick.pt') {
             isGlobal = true;
         } else {
-            const { data: myData } = await supabase.from('operadores').select('id, nome_operador, nivel_permissao').eq('email_acesso', userData.user.email).single();
+            const { data: myData } = await supabase.from('operadores').select('id, nome_operador, nivel_permissao, funcao').eq('email_acesso', userData.user.email).single();
             if (myData) {
                 myUserId = myData.id;
-                if (myData.nivel_permissao === 'Admin' || myData.nivel_permissao === 'Recursos Humanos') {
+                meuNome = myData.nome_operador || "";
+                
+                if (myData.nivel_permissao === 'Recursos Humanos') {
                     isGlobal = true;
-                } else {
-                    meuNome = myData.nome_operador;
+                } else if (myData.nivel_permissao === 'Admin') {
+                    const func = (myData.funcao || '').toLowerCase();
+                    // Se for Admin mas for da hierarquia fabril, NÃO é global (filtra pela sua equipa)
+                    if (func.includes('coordenador') || func.includes('supervisor') || func.includes('gestor') || func.includes('lider') || func.includes('líder')) {
+                        isGlobal = false;
+                    } else {
+                        isGlobal = true;
+                    }
                 }
             } else {
                 throw new Error("Credenciais Inválidas na Matriz de Talentos");
@@ -55,11 +63,22 @@ export async function getGembaHubData() {
         
         const myOps = (allOps || []).filter(op => {
             if (isGlobal) return true;
+            
+            // Match flexível de nome para evitar falhas de preenchimento (ex: "Tiago Almeida" vs "Tiago")
+            const matchName = (field?: string) => {
+                if (!field || field === '--') return false;
+                const f = field.toLowerCase();
+                const m = meuNome.toLowerCase();
+                return m === f || m.includes(f) || f.includes(m);
+            };
+
             // É liderado diretamente por ele?
-            if (op.lider_nome === meuNome || op.supervisor_nome === meuNome || op.gestor_nome === meuNome) return true;
+            if (matchName(op.lider_nome) || matchName(op.supervisor_nome) || matchName(op.gestor_nome)) return true;
+            
             // Pertence a uma estação ou área que ele lidera na Bússola?
             if (op.posto_base_id && myStations.includes(op.posto_base_id)) return true;
             if (op.area_base_id && areaIds.includes(op.area_base_id)) return true;
+            
             return false;
         });
 
