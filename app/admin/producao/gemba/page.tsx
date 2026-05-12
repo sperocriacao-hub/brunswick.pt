@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { getGembaHubData } from './actions';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { AlertTriangle, ShieldCheck, UserX, Activity, Box, Clock, ShieldAlert } from 'lucide-react';
+import { AlertTriangle, ShieldCheck, UserX, Activity, Box, Clock, ShieldAlert, TrendingDown } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
 import Link from 'next/link';
 
