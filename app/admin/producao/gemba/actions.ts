@@ -155,16 +155,21 @@ export async function getGembaHubData() {
              cronogramaAtrasado = c5s || [];
         }
 
-        // 8. Formações a Vencer / Atrasadas (rh_formacoes)
+        // --- 8. Formações a Vencer / Atrasadas (rh_formacoes) ---
+        const myOpIds = myOps.map(o => o.id);
         const { data: formacoesRaw } = await supabase.from('rh_formacoes').select('*, operadores!inner(nome_operador)').in('formando_id', myOpIds).eq('status', 'Pendente');
         const formacoesAtrasadas = (formacoesRaw || []).filter((f: any) => f.data_limite && f.data_limite < today);
 
-        // 9. Baixa Performance (avaliacoes_diarias médias baixas consecutivas)
+        // --- 9. Baixa Performance (avaliacoes_diarias médias baixas consecutivas) ---
         // Por simplicidade neste dashboard, vemos apenas os que tiveram nota < 2.5 nas últimas 2 avaliações registadas
-        const { data: avalRaw } = await supabase.from('avaliacoes_diarias')
-             .select('funcionario_id, data_avaliacao, nota_hst, nota_epi, nota_5s, nota_eficiencia, nota_objetivos, nota_atitude, nota_qualidade')
-             .in('funcionario_id', myOpIds)
-             .order('data_avaliacao', { ascending: false });
+        let avalRaw = null;
+        if (myOpIds.length > 0) {
+            const res = await supabase.from('avaliacoes_diarias')
+                 .select('funcionario_id, data_avaliacao, nota_hst, nota_epi, nota_5s, nota_eficiencia, nota_objetivos, nota_atitude, nota_qualidade')
+                 .in('funcionario_id', myOpIds)
+                 .order('data_avaliacao', { ascending: false });
+            avalRaw = res.data;
+        }
 
         const operadorAvalMap: Record<string, number[]> = {};
         if (avalRaw) {
