@@ -61,8 +61,8 @@ export function Sidebar({
     // 1. Master Admins bypass granular permissions, seeing everything.
     if (nivelPermissao === "Admin") return true;
 
-    // 2. Dashboard principal e Smart Action Hub são padrão para quem acede ao Backoffice.
-    if (modulePath === "/admin" || modulePath === "/admin/melhoria-continua") return true;
+    // 2. Dashboard principal, Smart Action Hub e My Gemba Hub são padrão para quem acede ao Backoffice.
+    if (modulePath === "/admin" || modulePath === "/admin/melhoria-continua" || modulePath === "/admin/producao/gemba") return true;
 
     // 3. Otherwise, check if the exact path exists or if it has a readonly suffix
     return permissoesModulos.some(p => p === modulePath || p.startsWith(modulePath + ':'));
