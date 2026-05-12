@@ -107,7 +107,9 @@ export async function getGembaHubData() {
         if (iluoData) {
             iluoData.forEach(i => {
                 if (!estacaoIluoStats[i.estacao_id]) {
-                    estacaoIluoStats[i.estacao_id] = { nome: i.estacoes?.nome_estacao || 'Desconhecida', temO_ou_U: false, todos_I_ou_L: true };
+                    const est = i.estacoes as any;
+                    const nomeEstacao = est?.nome_estacao || est?.[0]?.nome_estacao || 'Desconhecida';
+                    estacaoIluoStats[i.estacao_id] = { nome: nomeEstacao, temO_ou_U: false, todos_I_ou_L: true };
                 }
                 if (i.nivel_iluo === 'U' || i.nivel_iluo === 'O') {
                     estacaoIluoStats[i.estacao_id].temO_ou_U = true;

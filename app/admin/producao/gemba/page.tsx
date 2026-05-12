@@ -115,12 +115,16 @@ export default function MyGembaHub() {
                             </div>
                             {causadores.length > 0 ? (
                                 <div className="space-y-2">
-                                    {causadores.map((a: any) => (
-                                        <div key={a.id} className="bg-white p-2 rounded border border-rose-200 text-xs shadow-sm">
-                                            <span className="font-bold text-rose-700">{a.causadoras?.nome_estacao || 'Desconhecida'}</span>
-                                            <span className="text-slate-500 ml-1">parou a est. {a.estacoes?.nome_estacao}</span>
-                                        </div>
-                                    ))}
+                                    {causadores.map((a: any) => {
+                                        const causadoraName = (a.causadoras as any)?.nome_estacao || (a.causadoras as any)?.[0]?.nome_estacao || 'Desconhecida';
+                                        const vitimaName = (a.estacoes as any)?.nome_estacao || (a.estacoes as any)?.[0]?.nome_estacao || 'Desconhecida';
+                                        return (
+                                            <div key={a.id} className="bg-white p-2 rounded border border-rose-200 text-xs shadow-sm">
+                                                <span className="font-bold text-rose-700">{causadoraName}</span>
+                                                <span className="text-slate-500 ml-1">parou a est. {vitimaName}</span>
+                                            </div>
+                                        );
+                                    })}
                                     <Link href="/admin/producao/andon" className="text-[10px] font-bold text-rose-600 hover:underline block mt-2">Ir para Andon &rarr;</Link>
                                 </div>
                             ) : (
@@ -142,12 +146,16 @@ export default function MyGembaHub() {
                             </div>
                             {vitimas.length > 0 ? (
                                 <div className="space-y-2">
-                                    {vitimas.map((a: any) => (
-                                        <div key={a.id} className="bg-white p-2 rounded border border-amber-200 text-xs shadow-sm">
-                                            <span className="font-bold text-amber-700">{a.estacoes?.nome_estacao || 'Nossa Estação'}</span>
-                                            <span className="text-slate-500 ml-1">à espera de {a.causadoras?.nome_estacao}</span>
-                                        </div>
-                                    ))}
+                                    {vitimas.map((a: any) => {
+                                        const causadoraName = (a.causadoras as any)?.nome_estacao || (a.causadoras as any)?.[0]?.nome_estacao || 'Desconhecida';
+                                        const vitimaName = (a.estacoes as any)?.nome_estacao || (a.estacoes as any)?.[0]?.nome_estacao || 'Nossa Estação';
+                                        return (
+                                            <div key={a.id} className="bg-white p-2 rounded border border-amber-200 text-xs shadow-sm">
+                                                <span className="font-bold text-amber-700">{vitimaName}</span>
+                                                <span className="text-slate-500 ml-1">à espera de {causadoraName}</span>
+                                            </div>
+                                        );
+                                    })}
                                     <Link href="/admin/producao/andon" className="text-[10px] font-bold text-amber-600 hover:underline block mt-2">Ver detalhes &rarr;</Link>
                                 </div>
                             ) : (
@@ -227,12 +235,15 @@ export default function MyGembaHub() {
                             <div className="text-3xl font-black mb-3 text-slate-800">{data.cronogramaAtrasado?.length || 0}</div>
                             {data.cronogramaAtrasado?.length > 0 ? (
                                 <div className="space-y-2 max-h-[120px] overflow-y-auto">
-                                    {data.cronogramaAtrasado.map((c: any) => (
-                                        <div key={c.id} className="bg-white p-2 rounded border border-rose-200 text-xs shadow-sm">
-                                            <span className="font-bold text-rose-700 block truncate">{c.estacoes?.nome_estacao || 'Estação Desconhecida'}</span>
-                                            <span className="text-slate-500">Agendada para: {c.data_prevista}</span>
-                                        </div>
-                                    ))}
+                                    {data.cronogramaAtrasado.map((c: any) => {
+                                        const estName = (c.estacoes as any)?.nome_estacao || (c.estacoes as any)?.[0]?.nome_estacao || 'Estação Desconhecida';
+                                        return (
+                                            <div key={c.id} className="bg-white p-2 rounded border border-rose-200 text-xs shadow-sm">
+                                                <span className="font-bold text-rose-700 block truncate">{estName}</span>
+                                                <span className="text-slate-500">Agendada para: {c.data_prevista}</span>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             ) : (
                                 <p className="text-xs text-slate-400 font-medium">Cronograma 5S em dia.</p>
@@ -251,12 +262,15 @@ export default function MyGembaHub() {
                             <div className="text-3xl font-black mb-3 text-slate-800">{data.formacoesAtrasadas?.length || 0}</div>
                             {data.formacoesAtrasadas?.length > 0 ? (
                                 <div className="space-y-2 max-h-[120px] overflow-y-auto">
-                                    {data.formacoesAtrasadas.map((f: any) => (
-                                        <div key={f.id} className="bg-white p-2 rounded border border-amber-200 text-xs shadow-sm">
-                                            <span className="font-bold text-amber-700 block truncate">{f.operadores?.nome_operador}</span>
-                                            <span className="text-slate-500">{f.nome_formacao} (Venceu {f.data_limite})</span>
-                                        </div>
-                                    ))}
+                                    {data.formacoesAtrasadas.map((f: any) => {
+                                        const opName = (f.operadores as any)?.nome_operador || (f.operadores as any)?.[0]?.nome_operador || 'Operador';
+                                        return (
+                                            <div key={f.id} className="bg-white p-2 rounded border border-amber-200 text-xs shadow-sm">
+                                                <span className="font-bold text-amber-700 block truncate">{opName}</span>
+                                                <span className="text-slate-500">{f.nome_formacao} (Venceu {f.data_limite})</span>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             ) : (
                                 <p className="text-xs text-slate-400 font-medium">Equipa com certificações em dia.</p>
