@@ -32,18 +32,29 @@ export async function getGembaHubData() {
             }
         }
 
-        // 2. Descobrir as Estações sob a jurisdição do Líder (Postos Base dos Operadores dele)
+        // 2. Descobrir as Estações sob a jurisdição do Líder (Postos Base dos Operadores dele e Áreas)
         let queryOps = supabase.from('operadores').select('id, nome_operador, posto_base_id, area_base_id, tag_rfid_operador').eq('status', 'Ativo');
         if (!isGlobal && filterString) queryOps = queryOps.or(filterString);
         
         const { data: teamOps } = await queryOps;
         const myOps = teamOps || [];
-        const myStations = Array.from(new Set(myOps.map(op => op.posto_base_id).filter(Boolean)));
+        
+        // Obter os postos diretos
+        const directStations = myOps.map(op => op.posto_base_id).filter(Boolean);
+        const myAreas = Array.from(new Set(myOps.map(op => op.area_base_id).filter(Boolean)));
+        
+        let areaStations: string[] = [];
+        if (myAreas.length > 0) {
+             const { data: estData } = await supabase.from('estacoes').select('id').in('area_id', myAreas);
+             if (estData) areaStations = estData.map(e => e.id);
+        }
+
+        const myStations = Array.from(new Set([...directStations, ...areaStations]));
         const myRfids = Array.from(new Set(myOps.map(op => op.tag_rfid_operador).filter(Boolean)));
 
         // Se o lider nao tiver estacoes/equipa e nao for global, devolvemos tudo vazio
         if (!isGlobal && myStations.length === 0 && myOps.length === 0) {
-            return { success: true, data: { andonsCausador: [], andonsVitima: [], ausentes: [], userName: meuNome }};
+            return { success: true, data: { andonsCausador: [], andonsVitima: [], ausentes: [], iluoRisco: [], acoesAtrasadas: [], cronogramaAtrasado: [], formacoesAtrasadas: [], baixaPerformance: [], userName: meuNome }};
         }
 
         // 3. ANDONS (Em Tempo Real - Não resolvidos)
@@ -97,11 +108,17 @@ export async function getGembaHubData() {
         }
 
         // 5. ILUO Risco Crítico
-        // Verifica se há alguma estação na área do líder com apenas Inicantes (I) ou Aprendizes (L)
-        const myOpIds = myOps.map(o => o.id);
-        const { data: iluoData } = await supabase.from('operador_iluo_matriz')
-            .select('estacao_id, nivel_iluo, operador_id, estacoes!inner(nome_estacao)')
-            .in('operador_id', myOpIds);
+        // Busca TODA a matriz ILUO das estações sob a jurisdição do Líder (seja por operadores diretos ou por operadores de outras equipas que operam ali)
+        let iluoQuery = supabase.from('operador_iluo_matriz')
+            .select('estacao_id, nivel_iluo, operador_id, estacoes!inner(nome_estacao)');
+        
+        if (!isGlobal && myStations.length > 0) {
+            iluoQuery = iluoQuery.in('estacao_id', myStations);
+        } else if (!isGlobal) {
+            iluoQuery = iluoQuery.eq('estacao_id', 'block');
+        }
+
+        const { data: iluoData } = await iluoQuery;
 
         const estacaoIluoStats: Record<string, { nome: string, temO_ou_U: boolean, todos_I_ou_L: boolean }> = {};
         if (iluoData) {
