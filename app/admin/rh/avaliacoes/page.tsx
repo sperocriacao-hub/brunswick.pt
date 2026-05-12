@@ -70,11 +70,29 @@ export default function LoteAvaliacoesDiariasLayout() {
         const { data: estacoesData } = await supabase.from('estacoes').select('id, nome_estacao');
         const mapEstacoes = new Map(estacoesData?.map(e => [e.id, e.nome_estacao]) || []);
 
-        const { data } = await supabase
+        const { data: userData } = await supabase.auth.getUser();
+
+        let queryOps = supabase
             .from('operadores')
-            .select('id, numero_operador, nome_operador, funcao, area_base_id, posto_base_id, areas_fabrica(nome_area)')
+            .select('id, numero_operador, nome_operador, funcao, area_base_id, posto_base_id, lider_nome, supervisor_nome, gestor_nome, areas_fabrica(nome_area)')
             .eq('status', 'Ativo')
             .order('nome_operador');
+
+        // Fronteiras de Segurança de Visibilidade (Hierarquia)
+        if (userData?.user?.email && userData.user.email !== 'master@brunswick.pt') {
+            const { data: myData } = await supabase.from('operadores').select('nome_operador, nivel_permissao').eq('email_acesso', userData.user.email).single();
+            if (myData) {
+                // Apenas HR ou Admins têm acesso a VER/Editar todos os funcionários globalmente.
+                // Outros (ex: Supervisor/Líder) só veem a sua equipa.
+                if (myData.nivel_permissao !== 'Admin' && myData.nivel_permissao !== 'Recursos Humanos') {
+                    queryOps = queryOps.or(`lider_nome.eq."${myData.nome_operador}",supervisor_nome.eq."${myData.nome_operador}",gestor_nome.eq."${myData.nome_operador}"`);
+                }
+            } else {
+                queryOps = queryOps.eq('id', 'codigo-invalido-de-seguranca');
+            }
+        }
+
+        const { data } = await queryOps;
 
         if (data) {
             const mapped = data.map(op => {
