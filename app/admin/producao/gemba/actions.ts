@@ -54,7 +54,7 @@ export async function getGembaHubData() {
 
         if (!isGlobal) {
              if (myStations.length > 0) {
-                 const inClause = `(${myStations.map(s => `"${s}"`).join(',')})`;
+                 const inClause = `(${myStations.join(',')})`;
                  andonsQuery = andonsQuery.or(`estacao_causadora.in.${inClause},estacao_id.in.${inClause}`);
              } else {
                  andonsQuery = andonsQuery.eq('id', 'block-security');
@@ -86,7 +86,6 @@ export async function getGembaHubData() {
         const allRfidsPresentes = new Set((presencasRaw || []).map((p: any) => p.operador_rfid));
         
         const ausentes: any[] = [];
-        // Se houver pelo menos 1 picagem global na fabrica, assumimos que o turno começou
         const turnoIniciado = allRfidsPresentes.size > 0;
 
         if (turnoIniciado) {
@@ -97,12 +96,86 @@ export async function getGembaHubData() {
             });
         }
 
+        // 5. ILUO Risco Crítico
+        // Verifica se há alguma estação na área do líder com apenas Inicantes (I) ou Aprendizes (L)
+        const myOpIds = myOps.map(o => o.id);
+        const { data: iluoData } = await supabase.from('operador_iluo_matriz')
+            .select('estacao_id, nivel_iluo, operador_id, estacoes!inner(nome_estacao)')
+            .in('operador_id', myOpIds);
+
+        const estacaoIluoStats: Record<string, { nome: string, temO_ou_U: boolean, todos_I_ou_L: boolean }> = {};
+        if (iluoData) {
+            iluoData.forEach(i => {
+                if (!estacaoIluoStats[i.estacao_id]) {
+                    estacaoIluoStats[i.estacao_id] = { nome: i.estacoes?.nome_estacao || 'Desconhecida', temO_ou_U: false, todos_I_ou_L: true };
+                }
+                if (i.nivel_iluo === 'U' || i.nivel_iluo === 'O') {
+                    estacaoIluoStats[i.estacao_id].temO_ou_U = true;
+                    estacaoIluoStats[i.estacao_id].todos_I_ou_L = false;
+                }
+            });
+        }
+        
+        const iluoRisco: any[] = Object.values(estacaoIluoStats).filter(e => !e.temO_ou_U && e.todos_I_ou_L);
+
+        // 6. Ações Pendentes (lean_acoes)
+        let queryAcoes = supabase.from('lean_acoes').select('*').neq('status', 'concluido');
+        if (!isGlobal) {
+             queryAcoes = queryAcoes.or(`responsavel_nome.eq."${meuNome}"`);
+        }
+        const { data: acoesPendentes } = await queryAcoes;
+        const acoesAtrasadas = (acoesPendentes || []).filter((a: any) => a.prazo && a.prazo < today);
+
+        // 7. Auditorias 5S Atrasadas (lean_5s_cronograma)
+        // Assume estacao_id is there
+        let cronogramaAtrasado = [];
+        if (myStations.length > 0 || isGlobal) {
+             let query5s = supabase.from('lean_5s_cronograma').select('*, estacoes(nome_estacao)').eq('status', 'Pendente').lt('data_prevista', today);
+             if (!isGlobal) query5s = query5s.in('estacao_id', myStations);
+             const { data: c5s } = await query5s;
+             cronogramaAtrasado = c5s || [];
+        }
+
+        // 8. Formações a Vencer / Atrasadas (rh_formacoes)
+        const { data: formacoesRaw } = await supabase.from('rh_formacoes').select('*, operadores!inner(nome_operador)').in('formando_id', myOpIds).eq('status', 'Pendente');
+        const formacoesAtrasadas = (formacoesRaw || []).filter((f: any) => f.data_limite && f.data_limite < today);
+
+        // 9. Baixa Performance (avaliacoes_diarias médias baixas consecutivas)
+        // Por simplicidade neste dashboard, vemos apenas os que tiveram nota < 2.5 nas últimas 2 avaliações registadas
+        const { data: avalRaw } = await supabase.from('avaliacoes_diarias')
+             .select('funcionario_id, data_avaliacao, nota_hst, nota_epi, nota_5s, nota_eficiencia, nota_objetivos, nota_atitude, nota_qualidade')
+             .in('funcionario_id', myOpIds)
+             .order('data_avaliacao', { ascending: false });
+
+        const operadorAvalMap: Record<string, number[]> = {};
+        if (avalRaw) {
+             avalRaw.forEach(av => {
+                 const media = (av.nota_hst + av.nota_epi + av.nota_5s + av.nota_eficiencia + av.nota_objetivos + av.nota_atitude + av.nota_qualidade) / 7;
+                 if (!operadorAvalMap[av.funcionario_id]) operadorAvalMap[av.funcionario_id] = [];
+                 if (operadorAvalMap[av.funcionario_id].length < 3) operadorAvalMap[av.funcionario_id].push(media); // ultimos 3 dias
+             });
+        }
+
+        const baixaPerformance = [];
+        for (const op of myOps) {
+             const notas = operadorAvalMap[op.id];
+             if (notas && notas.length >= 2) {
+                 const consisBaixo = notas.every(n => n < 2.5);
+                 if (consisBaixo) baixaPerformance.push({ nome: op.nome_operador, media: notas[0].toFixed(1) });
+             }
+        }
+
         return { 
             success: true, 
             data: {
                 andonsCausador,
                 andonsVitima,
                 ausentes,
+                iluoRisco,
+                acoesAtrasadas,
+                cronogramaAtrasado,
+                formacoesAtrasadas,
+                baixaPerformance,
                 myStationsCount: myStations.length,
                 myOpsCount: myOps.length,
                 isGlobal,
