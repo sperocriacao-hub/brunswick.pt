@@ -55,7 +55,7 @@ export async function getGembaHubData() {
         let bussolaStationIds: string[] = [];
         if (!isGlobal && myUserId) {
             const { data: bData } = await supabase.from('estacoes').select('id')
-                .or(`lider_t1_id.eq."${myUserId}",supervisor_t1_id.eq."${myUserId}",lider_t2_id.eq."${myUserId}",supervisor_t2_id.eq."${myUserId}",manutencao_id.eq."${myUserId}",qualidade_id.eq."${myUserId}",logistica_id.eq."${myUserId}"`);
+                .or(`lider_t1_id.eq.${myUserId},supervisor_t1_id.eq.${myUserId},lider_t2_id.eq.${myUserId},supervisor_t2_id.eq.${myUserId},manutencao_id.eq.${myUserId},qualidade_id.eq.${myUserId},logistica_id.eq.${myUserId}`);
             if (bData) bussolaStationIds = bData.map(e => e.id);
         } else if (isGlobal) {
             const { data: bData } = await supabase.from('estacoes').select('id');
@@ -165,9 +165,17 @@ export async function getGembaHubData() {
 
         // 7. Auditorias 5S Atrasadas (lean_5s_cronograma)
         let cronogramaAtrasado = [];
-        if (myStations.length > 0 || isGlobal) {
+        if (myStations.length > 0 || isGlobal || myUserId) {
              let query5s = supabase.from('lean_5s_cronograma').select('*, estacoes(nome_estacao)').eq('status', 'Pendente').lte('data_prevista', today);
-             if (!isGlobal) query5s = query5s.in('estacao_id', myStations);
+             
+             if (!isGlobal) {
+                 if (myStations.length > 0) {
+                     query5s = query5s.or(`estacao_id.in.(${myStations.join(',')}),auditor_id.eq.${myUserId}`);
+                 } else {
+                     query5s = query5s.eq('auditor_id', myUserId);
+                 }
+             }
+             
              const { data: c5s } = await query5s;
              cronogramaAtrasado = c5s || [];
         }
@@ -189,7 +197,7 @@ export async function getGembaHubData() {
         let avalRaw = null;
         if (myOpIds.length > 0 || isGlobal) {
             let avalQuery = supabase.from('avaliacoes_diarias')
-                 .select('funcionario_id, data_avaliacao, nota_hst, nota_epi, nota_5s, nota_eficiencia, nota_objetivos, nota_atitude, nota_qualidade')
+                 .select('funcionario_id, data_avaliacao, nota_hst, nota_epi, nota_5s, nota_eficiencia, nota_objetivos, nota_atitude, nota_qualidade, operadores!inner(nome_operador)')
                  .order('data_avaliacao', { ascending: false });
             if (!isGlobal) avalQuery = avalQuery.in('funcionario_id', myOpIds);
             
@@ -197,25 +205,23 @@ export async function getGembaHubData() {
             avalRaw = res.data;
         }
 
-        const operadorAvalMap: Record<string, number[]> = {};
+        const operadorAvalMap: Record<string, { nome: string, notas: number[] }> = {};
         if (avalRaw) {
              avalRaw.forEach(av => {
                  const media = (av.nota_hst + av.nota_epi + av.nota_5s + av.nota_eficiencia + av.nota_objetivos + av.nota_atitude + av.nota_qualidade) / 7;
-                 if (!operadorAvalMap[av.funcionario_id]) operadorAvalMap[av.funcionario_id] = [];
-                 if (operadorAvalMap[av.funcionario_id].length < 1) operadorAvalMap[av.funcionario_id].push(media); // ultimos registos
+                 const opName = (av.operadores as any)?.nome_operador || (av.operadores as any)?.[0]?.nome_operador || "Desconhecido";
+                 if (!operadorAvalMap[av.funcionario_id]) operadorAvalMap[av.funcionario_id] = { nome: opName, notas: [] };
+                 if (operadorAvalMap[av.funcionario_id].notas.length < 1) operadorAvalMap[av.funcionario_id].notas.push(media); // ultimos registos
              });
         }
 
         let baixaPerformance = [];
-        const opsToMap = isGlobal ? Array.from(new Set(avalRaw?.map(a => a.funcionario_id))) : myOps.map(o => o.id);
+        const opsToMap = Object.keys(operadorAvalMap);
         
         for (const opId of opsToMap) {
-             const notas = operadorAvalMap[opId];
-             if (notas && notas.length > 0) {
-                 const opObj = isGlobal ? { nome_operador: "Func. ID " + opId.substring(0,4) } : myOps.find(o => o.id === opId);
-                 if (opObj) {
-                     baixaPerformance.push({ nome: opObj.nome_operador, media: notas[0].toFixed(1) });
-                 }
+             const dataAval = operadorAvalMap[opId];
+             if (dataAval.notas.length > 0) {
+                 baixaPerformance.push({ nome: dataAval.nome, media: dataAval.notas[0].toFixed(1) });
              }
         }
         
