@@ -43,15 +43,13 @@ export async function getGembaHubData() {
 
         // 2. Descobrir as Estações da Jurisdição do Líder via BÚSSOLA
         let bussolaStationIds: string[] = [];
-        let areaIds: string[] = [];
         
-        const { data: allEstacoes } = await supabase.from('estacoes').select('id, area_id, lider_t1_id, supervisor_t1_id, lider_t2_id, supervisor_t2_id, manutencao_id, qualidade_id, logistica_id');
+        const { data: allEstacoes } = await supabase.from('estacoes').select('id, lider_t1_id, supervisor_t1_id, lider_t2_id, supervisor_t2_id, manutencao_id, qualidade_id, logistica_id');
         
         if (allEstacoes) {
             allEstacoes.forEach(est => {
                 if (isGlobal || [est.lider_t1_id, est.supervisor_t1_id, est.lider_t2_id, est.supervisor_t2_id, est.manutencao_id, est.qualidade_id, est.logistica_id].includes(myUserId)) {
                     bussolaStationIds.push(est.id);
-                    if (est.area_id && !areaIds.includes(est.area_id)) areaIds.push(est.area_id);
                 }
             });
         }
@@ -75,9 +73,8 @@ export async function getGembaHubData() {
             // É liderado diretamente por ele?
             if (matchName(op.lider_nome) || matchName(op.supervisor_nome) || matchName(op.gestor_nome)) return true;
             
-            // Pertence a uma estação ou área que ele lidera na Bússola?
+            // Pertence a uma estação que ele lidera na Bússola?
             if (op.posto_base_id && myStations.includes(op.posto_base_id)) return true;
-            if (op.area_base_id && areaIds.includes(op.area_base_id)) return true;
             
             return false;
         });
