@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { getAndonHistory, fecharAlertaAndon, clonarAlertaAndon, getLoggedOperadorRfid, terceirizarAndon, getModelosList } from './actions';
 import { getTVConfigs } from '../../configuracoes/tvs/actions';
-import { AlertCircle, ArrowRightLeft, Clock, CheckCircle2, Factory, Hammer, Tv, Filter, BarChart2, ListTodo, Activity, Timer, AlertTriangle, TrendingDown, TrendingUp, Trophy, ShieldCheck, Ship, ChevronLeft, ChevronRight } from 'lucide-react';
+import { AlertCircle, ArrowRightLeft, Clock, CheckCircle2, Factory, Hammer, Tv, Filter, BarChart2, ListTodo, Activity, Timer, AlertTriangle, TrendingDown, TrendingUp, Trophy, ShieldCheck, Ship, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -58,6 +58,10 @@ export default function AndonDashPage() {
     const [terceirizarNovaCausadora, setTerceirizarNovaCausadora] = useState('');
     const [terceirizarObs, setTerceirizarObs] = useState('');
 
+    // ANDON Details Modal State
+    const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+    const [selectedAndonDetails, setSelectedAndonDetails] = useState<any>(null);
+
     useEffect(() => {
         loadData();
     }, []);
@@ -111,8 +115,13 @@ export default function AndonDashPage() {
     async function handleResolver(id: string) {
         if (!window.confirm("Confirmar que este problema na Estação foi superado e a produção retomou?")) return;
         setIsLoading(true);
-        await fecharAlertaAndon(id);
+        await fecharAlertaAndon(id, '', loggedRfid);
         await loadData();
+    }
+
+    function openDetailsModal(al: any) {
+        setSelectedAndonDetails(al);
+        setIsDetailsModalOpen(true);
     }
 
     function openTerceirizarModal(id: string) {
@@ -603,38 +612,49 @@ export default function AndonDashPage() {
                                                     <div className="text-[10px] text-slate-500 mt-1 italic truncate max-w-[200px]" title={al.descricao_alerta}>{al.descricao_alerta || 'Sem notas'}</div>
                                                 </td>
                                                 <td className="px-4 py-3 text-right">
-                                                    {!al.resolvido ? (
                                                         <div className="flex items-center justify-end gap-2">
                                                             <Button
                                                                 size="icon"
                                                                 variant="outline"
-                                                                className="h-8 w-8 border-blue-500 text-blue-600 hover:bg-blue-50"
-                                                                onClick={() => openTerceirizarModal(al.id)}
-                                                                title="Transferir Responsabilidade (Escalar)"
+                                                                className="h-8 w-8 border-slate-300 text-slate-500 hover:bg-slate-100"
+                                                                onClick={() => openDetailsModal(al)}
+                                                                title="Ver Detalhes do Andon"
                                                             >
-                                                                <ArrowRightLeft size={14} />
+                                                                <Eye size={14} />
                                                             </Button>
-                                                            <Button
-                                                                size="icon"
-                                                                variant="outline"
-                                                                className="h-8 w-8 border-emerald-500 text-emerald-600 hover:bg-emerald-50"
-                                                                onClick={() => handleResolver(al.id)}
-                                                                title="Resolver Paragem"
-                                                            >
-                                                                <Hammer size={14} />
-                                                            </Button>
+                                                            {!al.resolvido ? (
+                                                                <>
+                                                                    <Button
+                                                                        size="icon"
+                                                                        variant="outline"
+                                                                        className="h-8 w-8 border-blue-500 text-blue-600 hover:bg-blue-50"
+                                                                        onClick={() => openTerceirizarModal(al.id)}
+                                                                        title="Transferir Responsabilidade (Escalar)"
+                                                                    >
+                                                                        <ArrowRightLeft size={14} />
+                                                                    </Button>
+                                                                    <Button
+                                                                        size="icon"
+                                                                        variant="outline"
+                                                                        className="h-8 w-8 border-emerald-500 text-emerald-600 hover:bg-emerald-50"
+                                                                        onClick={() => handleResolver(al.id)}
+                                                                        title="Resolver Paragem"
+                                                                    >
+                                                                        <Hammer size={14} />
+                                                                    </Button>
+                                                                </>
+                                                            ) : (
+                                                                <Button
+                                                                    size="icon"
+                                                                    variant="outline"
+                                                                    className="h-8 w-8 border-amber-500 text-amber-600 hover:bg-amber-50"
+                                                                    onClick={() => handleClonar(al.id)}
+                                                                    title="Reincidência / Clonar"
+                                                                >
+                                                                    <Activity size={14} />
+                                                                </Button>
+                                                            )}
                                                         </div>
-                                                    ) : (
-                                                        <Button
-                                                            size="icon"
-                                                            variant="outline"
-                                                            className="h-8 w-8 border-amber-500 text-amber-600 hover:bg-amber-50"
-                                                            onClick={() => handleClonar(al.id)}
-                                                            title="Reincidência / Clonar"
-                                                        >
-                                                            <Activity size={14} />
-                                                        </Button>
-                                                    )}
                                                 </td>
                                             </tr>
                                         ))
@@ -1210,6 +1230,101 @@ export default function AndonDashPage() {
                             className="bg-blue-600 hover:bg-blue-700 text-white font-bold tracking-widest px-8 shadow-sm"
                         >
                             TRAMITAR ALARME
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* DETAILS MODAL */}
+            <Dialog open={isDetailsModalOpen} onOpenChange={setIsDetailsModalOpen}>
+                <DialogContent className="bg-white border-slate-200 text-slate-800 sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle className="text-2xl font-black text-slate-800 uppercase tracking-widest flex items-center gap-3">
+                            <AlertCircle size={28} className={selectedAndonDetails?.resolvido ? "text-emerald-500" : "text-red-500"} />
+                            Detalhes do Andon
+                        </DialogTitle>
+                        <DialogDescription className="text-slate-500 text-sm">
+                            Informações completas e rastreabilidade da paragem de produção.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    {selectedAndonDetails && (
+                        <div className="py-4 space-y-6">
+                            {/* STATUS HEADER */}
+                            <div className={`p-4 rounded-xl border flex items-center justify-between ${selectedAndonDetails.resolvido ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'}`}>
+                                <div>
+                                    <p className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Estado Atual</p>
+                                    <div className={`text-xl font-black uppercase ${selectedAndonDetails.resolvido ? 'text-emerald-700' : 'text-red-700 animate-pulse'}`}>
+                                        {selectedAndonDetails.resolvido ? 'Resolvido (OK)' : 'Em Aberto (Parado)'}
+                                    </div>
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Tempo de Paragem (OEE)</p>
+                                    <div className="text-2xl font-black text-slate-800">
+                                        {calcularTempoPerdido(selectedAndonDetails.created_at, selectedAndonDetails.resolvido_at, selectedAndonDetails.estacao_causadora)}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* GRID OF DETAILS */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-1 bg-slate-50 p-3 rounded-lg border border-slate-100">
+                                    <p className="text-[10px] font-bold uppercase text-slate-400">Data de Abertura</p>
+                                    <p className="text-sm font-medium text-slate-700">{format(new Date(selectedAndonDetails.created_at), 'dd/MM/yyyy HH:mm:ss')}</p>
+                                </div>
+                                <div className="space-y-1 bg-slate-50 p-3 rounded-lg border border-slate-100">
+                                    <p className="text-[10px] font-bold uppercase text-slate-400">Data de Resolução</p>
+                                    <p className="text-sm font-medium text-slate-700">{selectedAndonDetails.resolvido_at ? format(new Date(selectedAndonDetails.resolvido_at), 'dd/MM/yyyy HH:mm:ss') : '--'}</p>
+                                </div>
+
+                                <div className="space-y-1 bg-slate-50 p-3 rounded-lg border border-slate-100">
+                                    <p className="text-[10px] font-bold uppercase text-slate-400">Criador do Alarme (Operador)</p>
+                                    <p className="text-sm font-medium text-slate-700 capitalize">{selectedAndonDetails.operadores?.nome_operador || selectedAndonDetails.operador_rfid}</p>
+                                </div>
+                                <div className="space-y-1 bg-slate-50 p-3 rounded-lg border border-slate-100">
+                                    <p className="text-[10px] font-bold uppercase text-slate-400">Solucionador (Quem Resolveu)</p>
+                                    <p className="text-sm font-medium text-slate-700 capitalize">{selectedAndonDetails.solucionador || '--'}</p>
+                                </div>
+
+                                <div className="space-y-1 bg-slate-50 p-3 rounded-lg border border-slate-100">
+                                    <p className="text-[10px] font-bold uppercase text-slate-400">Tipo de Incidência</p>
+                                    <p className="text-sm font-bold text-red-600">{selectedAndonDetails.tipo_alerta}</p>
+                                </div>
+                                <div className="space-y-1 bg-slate-50 p-3 rounded-lg border border-slate-100">
+                                    <p className="text-[10px] font-bold uppercase text-slate-400">Ordem de Produção / Modelo</p>
+                                    <p className="text-sm font-medium text-slate-700">
+                                        {selectedAndonDetails.ordens_producao ? `${selectedAndonDetails.ordens_producao.hin_hull_id || selectedAndonDetails.ordens_producao.op_numero}` : 'Genérico'} 
+                                        {selectedAndonDetails.modelo_hin && ` (${selectedAndonDetails.modelo_hin})`}
+                                    </p>
+                                </div>
+
+                                <div className="space-y-1 bg-slate-50 p-3 rounded-lg border border-slate-100">
+                                    <p className="text-[10px] font-bold uppercase text-slate-400">Onde Aconteceu (Vítima)</p>
+                                    <p className="text-sm font-medium text-slate-700">{selectedAndonDetails.estacao_problema?.nome_estacao || 'Desconhecida'} ({selectedAndonDetails.estacao_problema?.areas_fabrica?.nome_area})</p>
+                                </div>
+                                <div className="space-y-1 bg-slate-50 p-3 rounded-lg border border-red-100">
+                                    <p className="text-[10px] font-bold uppercase text-red-400">Causadora (Responsável/Culpada)</p>
+                                    <p className="text-sm font-bold text-slate-800">{selectedAndonDetails.estacao_causadora?.nome_estacao || 'Desconhecida'} ({selectedAndonDetails.estacao_causadora?.areas_fabrica?.nome_area})</p>
+                                </div>
+                            </div>
+
+                            {/* DESCRIÇÃO FULL */}
+                            <div className="space-y-2 mt-4 bg-slate-100 p-4 rounded-xl border border-slate-200">
+                                <Label className="text-slate-500 font-bold uppercase tracking-widest text-xs">Observações / Descrição do Defeito</Label>
+                                <div className="text-slate-700 text-sm whitespace-pre-wrap font-medium">
+                                    {selectedAndonDetails.descricao_alerta || 'Sem notas ou observações fornecidas pelo operador.'}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    <DialogFooter className="mt-4">
+                        <Button
+                            variant="secondary"
+                            onClick={() => setIsDetailsModalOpen(false)}
+                            className="bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold tracking-wider w-full sm:w-auto"
+                        >
+                            FECHAR
                         </Button>
                     </DialogFooter>
                 </DialogContent>

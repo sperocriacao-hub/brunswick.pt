@@ -25,6 +25,7 @@ export async function getAndonHistory(mesesAtras: number = 4) {
                 created_at,
                 resolvido_at,
                 resolvido,
+                solucionador,
                 operador_rfid,
                 modelo_hin,
                 estacao_id,
@@ -125,18 +126,19 @@ export async function getAndonHistory(mesesAtras: number = 4) {
     }
 }
 
-export async function fecharAlertaAndon(alerta_id: string, supervisor_notes: string = '') {
+export async function fecharAlertaAndon(alerta_id: string, supervisor_notes: string = '', solucionador: string = '') {
     try {
         // Em um SGM industrial real o trigger de "Time off" para medir OEE faria set de resolvido_at
+        const payload: any = {
+            resolvido: true,
+            resolvido_at: new Date().toISOString(),
+            situacao: 'CONCLUIDO_SUPERVISOR'
+        };
+        if (solucionador) payload.solucionador = solucionador;
+
         const { error } = await supabase
             .from('alertas_andon')
-            .update({
-                resolvido: true,
-                resolvido_at: new Date().toISOString(),
-                // Poderíamos guardar supervisor_notes se a tabela tivesse essa coluna, 
-                // mas para este MVP gravamos apenas o Timestamp para medir a agilidade do Suporte.
-                situacao: 'CONCLUIDO_SUPERVISOR'
-            })
+            .update(payload)
             .eq('id', alerta_id);
 
         if (error) throw error;
