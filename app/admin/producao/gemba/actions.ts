@@ -136,14 +136,24 @@ export async function getGembaHubData() {
         
         const iluoRisco: any[] = Object.values(estacaoIluoStats).filter(e => !e.temO_ou_U && e.todos_I_ou_L);
 
-        // 7. Ações Pendentes (lean_acoes)
-        const { data: allAcoes } = await supabase.from('lean_acoes').select('*').neq('status', 'Done');
+        // 7. Ações Pendentes (view_master_acoes)
+        const { data: allAcoes } = await supabase.from('view_master_acoes').select('*');
         const acoesPendentes = (allAcoes || []).filter(a => {
-            if (isGlobal) return true;
-            const primeiroNome = meuNome.split(' ')[0];
-            return a.responsavel_nome && a.responsavel_nome.toLowerCase().includes(primeiroNome.toLowerCase());
+            const st = (a.status || '').toLowerCase();
+            if (['concluido', 'concluído', 'done', 'encerrado', 'cancelado'].includes(st)) return false;
+            
+            if (!isGlobal) {
+                const primeiroNome = meuNome.split(' ')[0];
+                if (!a.responsavel_nome || !a.responsavel_nome.toLowerCase().includes(primeiroNome.toLowerCase())) {
+                    return false;
+                }
+            }
+            return true;
         });
-        const acoesAtrasadas = acoesPendentes.filter((a: any) => a.prazo && a.prazo < today);
+        const acoesAtrasadas = acoesPendentes.filter((a: any) => a.data_limite && a.data_limite <= today).map(a => ({
+            ...a,
+            prazo: a.data_limite // match UI expectation
+        }));
 
         // 8. Auditorias 5S Atrasadas (lean_5s_cronograma)
         const { data: all5S } = await supabase.from('lean_5s_cronograma').select('*, estacoes(nome_estacao)').lte('data_prevista', today);

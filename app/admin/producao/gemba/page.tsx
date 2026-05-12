@@ -106,7 +106,7 @@ export default function MyGembaHub() {
                     <Card className={`border-t-4 ${causadores.length > 0 ? 'border-t-rose-500 bg-rose-50 shadow-rose-100' : 'border-t-slate-300 bg-white'}`}>
                         <CardHeader className="pb-2">
                             <CardTitle className={`text-xs font-black uppercase tracking-widest flex justify-between ${causadores.length > 0 ? 'text-rose-600' : 'text-slate-400'}`}>
-                                Nós Causamos Paragem <AlertTriangle size={16} className={causadores.length > 0 ? 'animate-pulse text-rose-500' : ''}/>
+                                Fomos Parados (Vítimas) <AlertTriangle size={16} className={causadores.length > 0 ? 'animate-pulse text-rose-500' : ''}/>
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
@@ -137,7 +137,7 @@ export default function MyGembaHub() {
                     <Card className={`border-t-4 ${vitimas.length > 0 ? 'border-t-amber-500 bg-amber-50 shadow-amber-100' : 'border-t-slate-300 bg-white'}`}>
                         <CardHeader className="pb-2">
                             <CardTitle className={`text-xs font-black uppercase tracking-widest flex justify-between ${vitimas.length > 0 ? 'text-amber-600' : 'text-slate-400'}`}>
-                                Fomos Parados (Vítimas) <ShieldAlert size={16} />
+                                Nós Causamos Paragem <ShieldAlert size={16} />
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
