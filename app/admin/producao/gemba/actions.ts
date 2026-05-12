@@ -15,6 +15,7 @@ export async function getGembaHubData() {
         let isGlobal = false;
         let meuNome = "";
         let filterString = "";
+        let myUserId = "";
         
         if (userData.user.email === 'master@brunswick.pt') {
             isGlobal = true;
