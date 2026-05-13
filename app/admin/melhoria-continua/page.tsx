@@ -35,6 +35,12 @@ export default async function MelhoriaContinuaPage() {
         .select('id, letra_linha')
         .order('letra_linha');
 
+    // 5. Fetch Stations
+    const { data: estacoesData } = await supabase
+        .from('estacoes')
+        .select('id, nome_estacao, area_id')
+        .order('nome_estacao');
+
     return (
         <div className="bg-slate-50 min-h-screen">
             <SmartActionHubClient
@@ -42,6 +48,7 @@ export default async function MelhoriaContinuaPage() {
                 initialCategorias={categorias}
                 initialAreas={areasData || []}
                 initialLinhas={linhasData || []}
+                initialEstacoes={estacoesData || []}
             />
         </div>
     );

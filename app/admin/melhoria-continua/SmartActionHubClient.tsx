@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { useRouter } from 'next/navigation';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, PieChart, Pie, Cell, ComposedChart, Line, AreaChart, Area } from 'recharts';
 
-export default function SmartActionHubClient({ initialActions, initialCategorias, initialAreas, initialLinhas }: { initialActions: any[], initialCategorias: string[], initialAreas: any[], initialLinhas: any[] }) {
+export default function SmartActionHubClient({ initialActions, initialCategorias, initialAreas, initialLinhas, initialEstacoes = [] }: { initialActions: any[], initialCategorias: string[], initialAreas: any[], initialLinhas: any[], initialEstacoes?: any[] }) {
     const router = useRouter();
     
     // UI State
@@ -40,7 +40,7 @@ export default function SmartActionHubClient({ initialActions, initialCategorias
     const [suggestedActions, setSuggestedActions] = useState<any[]>([]);
     
     // Manual Form State
-    const [manualForm, setManualForm] = useState({ titulo: '', descricao: '', responsavel_nome: '', categoria: initialCategorias[0] || 'Outro', area_id: '', linha_id: '' });
+    const [manualForm, setManualForm] = useState({ titulo: '', descricao: '', responsavel_nome: '', categoria: initialCategorias[0] || 'Outro', area_id: '', linha_id: '', estacao_id: '' });
     const [aiFeedback, setAiFeedback] = useState<{nota: number, feedback_curto: string, sugestao_melhoria: string} | null>(null);
     const [isEvaluating, setIsEvaluating] = useState(false);
 
@@ -184,6 +184,7 @@ export default function SmartActionHubClient({ initialActions, initialCategorias
                 "Responsável": a.responsavel_nome || 'N/A',
                 "Área": a.nome_area || 'N/A',
                 "Linha": a.nome_linha || 'N/A',
+                "Estação": a.nome_estacao || 'N/A',
                 "Data Lançamento": new Date(a.created_at).toLocaleDateString('pt-PT'),
                 "Data Limite (Meta)": a.data_limite ? new Date(a.data_limite).toLocaleDateString('pt-PT') : 'Sem Prazo',
                 "Status": a.status,
@@ -214,7 +215,7 @@ export default function SmartActionHubClient({ initialActions, initialCategorias
     const handleGenerateAi = async () => {
         if (!rawText.trim()) return;
         setIsAiProcessing(true);
-        const res = await processarTextoIA(rawText, initialAreas, initialLinhas, categorias);
+        const res = await processarTextoIA(rawText, initialAreas, initialLinhas, categorias, initialEstacoes);
         if (res.success && res.data) {
             setSuggestedActions(res.data);
             setRawText('');
@@ -232,6 +233,7 @@ export default function SmartActionHubClient({ initialActions, initialCategorias
             responsavel_nome: action.responsavel_nome,
             area_id: action.area_id || null,
             linha_id: action.linha_id || null,
+            estacao_id: action.estacao_id || null,
             data_limite: action.data_limite || null,
             origem_ia: true
         };
@@ -257,11 +259,12 @@ export default function SmartActionHubClient({ initialActions, initialCategorias
             ...manualForm, 
             area_id: manualForm.area_id === '' ? null : manualForm.area_id,
             linha_id: manualForm.linha_id === '' ? null : manualForm.linha_id,
+            estacao_id: manualForm.estacao_id === '' ? null : manualForm.estacao_id,
             origem_ia: false 
         };
         const res = await submitNovaAcao(payload);
         if (res.success) {
-            setManualForm({ titulo: '', descricao: '', responsavel_nome: '', categoria: categorias[0] || 'Outro', area_id: '', linha_id: '' });
+            setManualForm({ titulo: '', descricao: '', responsavel_nome: '', categoria: categorias[0] || 'Outro', area_id: '', linha_id: '', estacao_id: '' });
             setAiFeedback(null);
             setActiveTab('KANBAN');
             router.refresh();
@@ -313,6 +316,7 @@ ${filteredActions.slice(0, 10).map(a => `- [${a.modulo_origem}] [Área: ${a.nome
             status: editingAction.status,
             area_id: editingAction.area_id === 'none' ? null : editingAction.area_id,
             linha_id: editingAction.linha_id === 'none' ? null : editingAction.linha_id,
+            estacao_id: editingAction.estacao_id === 'none' ? null : editingAction.estacao_id,
             data_limite: editingAction.data_limite || null,
             responsavel_nome: editingAction.responsavel_nome || null,
             status_eficacia: editingAction.status_eficacia || 'Pendente'
@@ -498,6 +502,10 @@ ${filteredActions.slice(0, 10).map(a => `- [${a.modulo_origem}] [Área: ${a.nome
                                         <span className="hidden print:inline">ONDE (Linha)</span>
                                     </th>
                                     <th className="px-4 py-3 w-32 print:p-1.5">
+                                        <span className="print:hidden">Estação</span>
+                                        <span className="hidden print:inline">ONDE (Est)</span>
+                                    </th>
+                                    <th className="px-4 py-3 w-32 print:p-1.5">
                                         <span className="print:hidden">Origem</span>
                                         <span className="hidden print:inline">COMO (Origem)</span>
                                     </th>
@@ -578,6 +586,9 @@ ${filteredActions.slice(0, 10).map(a => `- [${a.modulo_origem}] [Área: ${a.nome
                                             </td>
                                             <td className="px-4 py-3 font-bold text-slate-600 text-xs print:p-1.5 print:text-[9px]">
                                                 {action.nome_linha ? `L-${action.nome_linha}` : <span className="text-slate-300">-</span>}
+                                            </td>
+                                            <td className="px-4 py-3 font-bold text-slate-600 text-xs print:p-1.5 print:text-[9px]">
+                                                {action.nome_estacao ? action.nome_estacao : <span className="text-slate-300">-</span>}
                                             </td>
                                             <td className="px-4 py-3 print:p-1.5">
                                                 <Badge className="bg-slate-100 text-slate-600 border-slate-200 uppercase text-[9px] font-bold print:border-none print:bg-transparent print:p-0 print:text-[8px]">{action.modulo_origem}</Badge>
@@ -854,7 +865,7 @@ ${filteredActions.slice(0, 10).map(a => `- [${a.modulo_origem}] [Área: ${a.nome
                                         value={manualForm.area_id}
                                         onChange={e => {
                                             const areaId = e.target.value;
-                                            setManualForm({...manualForm, area_id: areaId, linha_id: ''}); 
+                                            setManualForm({...manualForm, area_id: areaId, linha_id: '', estacao_id: ''}); 
                                         }}
                                         className="w-full bg-white border border-slate-200 rounded-lg p-3 text-sm focus:border-blue-500 outline-none shadow-sm"
                                     >
@@ -878,6 +889,27 @@ ${filteredActions.slice(0, 10).map(a => `- [${a.modulo_origem}] [Área: ${a.nome
                                                 </select>
                                             </div>
                                         );
+                                    }
+                                    return null;
+                                })()}
+                                {(() => {
+                                    if (manualForm.area_id) {
+                                        const areaEstacoes = initialEstacoes.filter(e => e.area_id === manualForm.area_id);
+                                        if (areaEstacoes.length > 0) {
+                                            return (
+                                                <div>
+                                                    <label className="block text-xs font-bold text-emerald-600 uppercase mb-1">Estação de Trabalho</label>
+                                                    <select 
+                                                        value={manualForm.estacao_id || ''}
+                                                        onChange={e => setManualForm({...manualForm, estacao_id: e.target.value})}
+                                                        className="w-full bg-emerald-50 border border-emerald-200 rounded-lg p-3 text-sm focus:border-emerald-500 outline-none shadow-sm"
+                                                    >
+                                                        <option value="">-- Opcional --</option>
+                                                        {areaEstacoes.map(e => <option key={e.id} value={e.id}>{e.nome_estacao}</option>)}
+                                                    </select>
+                                                </div>
+                                            );
+                                        }
                                     }
                                     return null;
                                 })()}
@@ -1101,6 +1133,27 @@ ${filteredActions.slice(0, 10).map(a => `- [${a.modulo_origem}] [Área: ${a.nome
                                                 </select>
                                             </div>
                                         );
+                                    }
+                                    return null;
+                                })()}
+                                {(() => {
+                                    if (editingAction.area_id && editingAction.area_id !== 'none') {
+                                        const areaEstacoes = initialEstacoes.filter(e => e.area_id === editingAction.area_id);
+                                        if (areaEstacoes.length > 0) {
+                                            return (
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-emerald-600 uppercase mb-1">Estação</label>
+                                                    <select 
+                                                        value={editingAction.estacao_id || 'none'}
+                                                        onChange={e => setEditingAction({...editingAction, estacao_id: e.target.value})}
+                                                        className="w-full bg-emerald-50 border border-emerald-200 rounded-lg p-2.5 text-sm text-emerald-800 focus:border-emerald-500 outline-none"
+                                                    >
+                                                        <option value="none">-- Opcional --</option>
+                                                        {areaEstacoes.map(e => <option key={e.id} value={e.id}>{e.nome_estacao}</option>)}
+                                                    </select>
+                                                </div>
+                                            );
+                                        }
                                     }
                                     return null;
                                 })()}

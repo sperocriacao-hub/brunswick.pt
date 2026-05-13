@@ -65,7 +65,7 @@ export async function updateAcaoGlobal(id: string, payload: any) {
     }
 }
 
-export async function processarTextoIA(texto: string, areasFabrica: any[] = [], linhasProducao: any[] = [], categorias: string[] = []) {
+export async function processarTextoIA(texto: string, areasFabrica: any[] = [], linhasProducao: any[] = [], categorias: string[] = [], estacoes: any[] = []) {
     if (!process.env.GEMINI_API_KEY) {
         return { success: false, error: "A chave GEMINI_API_KEY não está configurada no servidor." };
     }
@@ -75,6 +75,7 @@ export async function processarTextoIA(texto: string, areasFabrica: any[] = [], 
 
         const areasList = areasFabrica.map(a => `- ID: ${a.id} | Nome: ${a.nome_area}`).join('\n');
         const linhasList = linhasProducao.map(l => `- ID: ${l.id} | Linha: ${l.letra_linha}`).join('\n');
+        const estacoesList = estacoes.map(e => `- ID: ${e.id} | Estação: ${e.nome_estacao} (Área ID: ${e.area_id})`).join('\n');
         const categoriasList = categorias.length > 0 ? categorias.join(', ') : "'Eficiencia', 'Entregas', 'Scraps', 'Andons', 'Gargalos', 'Consumiveis', 'Material Variance', 'Produtividade', 'Formacoes', 'Outro', '5S'";
 
         const prompt = `
@@ -94,6 +95,7 @@ Cada objeto deve ter:
 - responsavel_nome (string ou null)
 - area_id (string com o ID da área, ou null se não for possível deduzir. Usa APENAS os IDs da lista abaixo)
 - linha_id (string com o ID da Linha de Produção, ou null. Apenas aplicável se a área for relacionada com "Montagem" e se o texto mencionar letras de linha como "Linha A", "Linha B")
+- estacao_id (string com o ID da Estação, ou null. Apenas usar se o texto mencionar uma estação ou posto específico)
 - data_limite (MUITO IMPORTANTE: string no formato exato "YYYY-MM-DD" se o texto mencionar datas, prazos como "até dia X", "amanhã", "na próxima sexta", ou null apenas se for impossível deduzir uma data limite. Força a extração de data limite sempre que possível, o utilizador queixa-se que tu ignoras prazos claros.)
 - sugestao_conclusao (string, a tua ideia brilhante baseada em WCM ou TPM para como resolver isto de forma permanente)
 
@@ -102,6 +104,9 @@ ${areasList || 'Sem áreas definidas.'}
 
 Linhas de Produção disponíveis (Para Montagem):
 ${linhasList || 'Sem linhas definidas.'}
+
+Estações de Trabalho disponíveis:
+${estacoesList || 'Sem estações definidas.'}
 
 Exemplo de output:
 [
@@ -112,6 +117,7 @@ Exemplo de output:
     "responsavel_nome": "João Manutenção",
     "area_id": "uuid-da-area",
     "linha_id": "uuid-da-linha",
+    "estacao_id": "uuid-da-estacao",
     "data_limite": "2026-05-10",
     "sugestao_conclusao": "Implementar plano de manutenção autónoma na lâmina e sensor."
   }
