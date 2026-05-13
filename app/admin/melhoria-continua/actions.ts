@@ -65,7 +65,7 @@ export async function updateAcaoGlobal(id: string, payload: any) {
     }
 }
 
-export async function processarTextoIA(texto: string, areasFabrica: any[] = [], linhasProducao: any[] = []) {
+export async function processarTextoIA(texto: string, areasFabrica: any[] = [], linhasProducao: any[] = [], categorias: string[] = []) {
     if (!process.env.GEMINI_API_KEY) {
         return { success: false, error: "A chave GEMINI_API_KEY não está configurada no servidor." };
     }
@@ -75,6 +75,7 @@ export async function processarTextoIA(texto: string, areasFabrica: any[] = [], 
 
         const areasList = areasFabrica.map(a => `- ID: ${a.id} | Nome: ${a.nome_area}`).join('\n');
         const linhasList = linhasProducao.map(l => `- ID: ${l.id} | Linha: ${l.letra_linha}`).join('\n');
+        const categoriasList = categorias.length > 0 ? categorias.join(', ') : "'Eficiencia', 'Entregas', 'Scraps', 'Andons', 'Gargalos', 'Consumiveis', 'Material Variance', 'Produtividade', 'Formacoes', 'Outro', '5S'";
 
         const prompt = `
 És um experiente Gestor de Melhoria Contínua Industrial.
@@ -89,7 +90,7 @@ Retorna o resultado ESTRITAMENTE em formato JSON. Não uses Markdown, apenas o J
 Cada objeto deve ter:
 - titulo (string curto e claro)
 - descricao (string)
-- categoria (deve ser exatamente um destes: 'Eficiencia', 'Entregas', 'Scraps', 'Andons', 'Gargalos', 'Consumiveis', 'Material Variance', 'Produtividade', 'Formacoes', 'Outro')
+- categoria (deve ser exatamente um destes: ${categoriasList})
 - responsavel_nome (string ou null)
 - area_id (string com o ID da área, ou null se não for possível deduzir. Usa APENAS os IDs da lista abaixo)
 - linha_id (string com o ID da Linha de Produção, ou null. Apenas aplicável se a área for relacionada com "Montagem" e se o texto mencionar letras de linha como "Linha A", "Linha B")
