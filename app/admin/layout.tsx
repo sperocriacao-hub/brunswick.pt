@@ -64,17 +64,19 @@ export default async function AdminLayout({
     }
 
     return (
-        <div className="flex flex-col lg:flex-row h-screen w-full bg-background text-foreground overflow-hidden">
+        <div className="flex flex-col lg:flex-row h-screen w-full bg-background text-foreground overflow-hidden print:h-auto print:overflow-visible print:block">
             <PermissionHydrator permissoes={permissoesModulos} nivel={nivelPermissao} />
-            <Sidebar
-                userEmail={user?.email}
-                userName={userName}
-                nivelPermissao={nivelPermissao}
-                permissoesModulos={permissoesModulos}
-                notificacoesFormacaoCount={notificacoesFormacaoCount}
-            />
+            <div className="print:hidden">
+                <Sidebar
+                    userEmail={user?.email}
+                    userName={userName}
+                    nivelPermissao={nivelPermissao}
+                    permissoesModulos={permissoesModulos}
+                    notificacoesFormacaoCount={notificacoesFormacaoCount}
+                />
+            </div>
 
-            <main className="flex-1 overflow-y-auto bg-slate-100 p-4 lg:p-8">
+            <main className="flex-1 overflow-y-auto bg-slate-100 p-4 lg:p-8 print:overflow-visible print:h-auto print:block print:p-0 print:m-0 print:bg-white">
                 {children}
             </main>
         </div>

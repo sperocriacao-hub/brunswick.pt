@@ -393,7 +393,7 @@ ${filteredActions.slice(0, 10).map(a => `- [${a.modulo_origem}] [Área: ${a.nome
             )}
 
             {activeTab === 'KANBAN' && (
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden print:overflow-visible print:border-none print:shadow-none">
                     <div className="p-4 border-b border-slate-100 bg-slate-50 print:hidden">
                         <div className="flex justify-between items-center mb-4">
                             <h3 className="font-bold text-slate-700 text-sm uppercase tracking-wider flex items-center gap-2">
@@ -481,20 +481,50 @@ ${filteredActions.slice(0, 10).map(a => `- [${a.modulo_origem}] [Área: ${a.nome
                         </div>
                     </div>
 
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left text-sm text-slate-700">
+                    <div className="overflow-x-auto print:overflow-visible">
+                        <table className="w-full text-left text-sm text-slate-700 print:text-xs">
                             <thead className="bg-slate-100 text-xs font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200">
                                 <tr>
-                                    <th className="px-4 py-3">Tarefa / Descrição</th>
-                                    <th className="px-4 py-3 w-32">Área</th>
-                                    <th className="px-4 py-3 w-16">Linha</th>
-                                    <th className="px-4 py-3 w-32">Origem</th>
-                                    <th className="px-4 py-3 w-32">Categoria</th>
-                                    <th className="px-4 py-3 w-32">Responsável</th>
-                                    <th className="px-4 py-3 w-32 print:text-black">Abertura</th>
-                                    <th className="px-4 py-3 w-32 print:text-black">Limite (Meta)</th>
-                                    <th className="px-4 py-3 w-28 text-center print:text-black">Estado</th>
-                                    <th className="px-4 py-3 w-28 text-center print:text-black">PDCA</th>
+                                    <th className="px-4 py-3">
+                                        <span className="print:hidden">Tarefa / Descrição</span>
+                                        <span className="hidden print:inline">O QUE / POR QUÊ</span>
+                                    </th>
+                                    <th className="px-4 py-3 w-32">
+                                        <span className="print:hidden">Área</span>
+                                        <span className="hidden print:inline">ONDE (Área)</span>
+                                    </th>
+                                    <th className="px-4 py-3 w-16">
+                                        <span className="print:hidden">Linha</span>
+                                        <span className="hidden print:inline">ONDE (Linha)</span>
+                                    </th>
+                                    <th className="px-4 py-3 w-32">
+                                        <span className="print:hidden">Origem</span>
+                                        <span className="hidden print:inline">COMO (Origem)</span>
+                                    </th>
+                                    <th className="px-4 py-3 w-32">
+                                        <span className="print:hidden">Categoria</span>
+                                        <span className="hidden print:inline">TEMA (Cat)</span>
+                                    </th>
+                                    <th className="px-4 py-3 w-32">
+                                        <span className="print:hidden">Responsável</span>
+                                        <span className="hidden print:inline">QUEM</span>
+                                    </th>
+                                    <th className="px-4 py-3 w-32 print:text-black">
+                                        <span className="print:hidden">Abertura</span>
+                                        <span className="hidden print:inline">REGISTO</span>
+                                    </th>
+                                    <th className="px-4 py-3 w-32 print:text-black">
+                                        <span className="print:hidden">Limite (Meta)</span>
+                                        <span className="hidden print:inline">QUANDO (Meta)</span>
+                                    </th>
+                                    <th className="px-4 py-3 w-28 text-center print:text-black">
+                                        <span className="print:hidden">Estado</span>
+                                        <span className="hidden print:inline">STATUS</span>
+                                    </th>
+                                    <th className="px-4 py-3 w-28 text-center print:text-black">
+                                        <span className="print:hidden">PDCA</span>
+                                        <span className="hidden print:inline">EFICÁCIA</span>
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 print:divide-slate-300">
@@ -513,7 +543,7 @@ ${filteredActions.slice(0, 10).map(a => `- [${a.modulo_origem}] [Área: ${a.nome
                                                     alert(`Esta ação pertence ao módulo ${action.modulo_origem}. Por favor edite-a no respetivo módulo.`);
                                                 }
                                             }}
-                                            className={`hover:bg-blue-50/50 transition-colors group cursor-pointer ${isOverdue ? 'bg-rose-50 print:bg-transparent' : ''}`}
+                                            className={`hover:bg-blue-50/50 transition-colors group cursor-pointer ${isOverdue ? 'bg-rose-50 print:bg-transparent' : ''} print:break-inside-avoid`}
                                             title={action.modulo_origem === 'Geral' ? "Clique para editar esta ação global" : `Gerido via ${action.modulo_origem}`}
                                         >
                                             <td className="px-4 py-3 max-w-[300px]">
