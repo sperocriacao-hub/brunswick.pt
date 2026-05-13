@@ -485,43 +485,43 @@ ${filteredActions.slice(0, 10).map(a => `- [${a.modulo_origem}] [Área: ${a.nome
                         <table className="w-full text-left text-sm text-slate-700 print:text-xs">
                             <thead className="bg-slate-100 text-xs font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200">
                                 <tr>
-                                    <th className="px-4 py-3">
+                                    <th className="px-4 py-3 print:p-1.5">
                                         <span className="print:hidden">Tarefa / Descrição</span>
                                         <span className="hidden print:inline">O QUE / POR QUÊ</span>
                                     </th>
-                                    <th className="px-4 py-3 w-32">
+                                    <th className="px-4 py-3 w-32 print:p-1.5">
                                         <span className="print:hidden">Área</span>
                                         <span className="hidden print:inline">ONDE (Área)</span>
                                     </th>
-                                    <th className="px-4 py-3 w-16">
+                                    <th className="px-4 py-3 w-16 print:p-1.5">
                                         <span className="print:hidden">Linha</span>
                                         <span className="hidden print:inline">ONDE (Linha)</span>
                                     </th>
-                                    <th className="px-4 py-3 w-32">
+                                    <th className="px-4 py-3 w-32 print:p-1.5">
                                         <span className="print:hidden">Origem</span>
                                         <span className="hidden print:inline">COMO (Origem)</span>
                                     </th>
-                                    <th className="px-4 py-3 w-32">
+                                    <th className="px-4 py-3 w-32 print:p-1.5">
                                         <span className="print:hidden">Categoria</span>
                                         <span className="hidden print:inline">TEMA (Cat)</span>
                                     </th>
-                                    <th className="px-4 py-3 w-32">
+                                    <th className="px-4 py-3 w-32 print:p-1.5">
                                         <span className="print:hidden">Responsável</span>
                                         <span className="hidden print:inline">QUEM</span>
                                     </th>
-                                    <th className="px-4 py-3 w-32 print:text-black">
+                                    <th className="px-4 py-3 w-32 print:text-black print:p-1.5">
                                         <span className="print:hidden">Abertura</span>
                                         <span className="hidden print:inline">REGISTO</span>
                                     </th>
-                                    <th className="px-4 py-3 w-32 print:text-black">
+                                    <th className="px-4 py-3 w-32 print:text-black print:p-1.5">
                                         <span className="print:hidden">Limite (Meta)</span>
                                         <span className="hidden print:inline">QUANDO (Meta)</span>
                                     </th>
-                                    <th className="px-4 py-3 w-28 text-center print:text-black">
+                                    <th className="px-4 py-3 w-28 text-center print:text-black print:p-1.5">
                                         <span className="print:hidden">Estado</span>
                                         <span className="hidden print:inline">STATUS</span>
                                     </th>
-                                    <th className="px-4 py-3 w-28 text-center print:text-black">
+                                    <th className="px-4 py-3 w-28 text-center print:text-black print:p-1.5">
                                         <span className="print:hidden">PDCA</span>
                                         <span className="hidden print:inline">EFICÁCIA</span>
                                     </th>
@@ -546,9 +546,9 @@ ${filteredActions.slice(0, 10).map(a => `- [${a.modulo_origem}] [Área: ${a.nome
                                             className={`hover:bg-blue-50/50 transition-colors group cursor-pointer ${isOverdue ? 'bg-rose-50 print:bg-transparent' : ''} print:break-inside-avoid`}
                                             title={action.modulo_origem === 'Geral' ? "Clique para editar esta ação global" : `Gerido via ${action.modulo_origem}`}
                                         >
-                                            <td className="px-4 py-3 max-w-[300px]">
-                                                <div className="font-bold text-slate-800 truncate print:whitespace-normal print:break-words">{action.titulo}</div>
-                                                <div className="text-xs text-slate-500 truncate mt-1 print:whitespace-normal print:break-words" title={action.descricao}>{action.descricao}</div>
+                                            <td className="px-4 py-3 max-w-[300px] print:p-1.5 print:max-w-[250px]">
+                                                <div className="font-bold text-slate-800 truncate print:whitespace-normal print:break-words print:text-[10px] print:leading-tight">{action.titulo}</div>
+                                                <div className="text-xs text-slate-500 truncate mt-1 print:whitespace-normal print:break-words print:line-clamp-2 print:text-[9px] print:leading-tight print:mt-0.5" title={action.descricao}>{action.descricao}</div>
                                                 {isIneficaz && (
                                                     <div className="mt-3 print:hidden">
                                                         <button 
@@ -569,31 +569,31 @@ ${filteredActions.slice(0, 10).map(a => `- [${a.modulo_origem}] [Área: ${a.nome
                                                     </div>
                                                 )}
                                             </td>
-                                            <td className="px-4 py-3">
+                                            <td className="px-4 py-3 print:p-1.5">
                                                 {action.nome_area ? (
-                                                    <span className="text-xs font-bold text-slate-600 flex items-center gap-1">
-                                                        <MapPin size={12} className="text-slate-400" /> {action.nome_area}
+                                                    <span className="text-xs font-bold text-slate-600 flex items-center gap-1 print:text-[9px]">
+                                                        <MapPin size={12} className="text-slate-400 print:hidden" /> {action.nome_area}
                                                     </span>
-                                                ) : <span className="text-xs text-slate-400">--</span>}
+                                                ) : <span className="text-xs text-slate-400 print:text-[9px]">--</span>}
                                             </td>
-                                            <td className="px-4 py-3 font-bold text-slate-600 text-xs">
+                                            <td className="px-4 py-3 font-bold text-slate-600 text-xs print:p-1.5 print:text-[9px]">
                                                 {action.nome_linha ? `L-${action.nome_linha}` : <span className="text-slate-300">-</span>}
                                             </td>
-                                            <td className="px-4 py-3">
-                                                <Badge className="bg-slate-100 text-slate-600 border-slate-200 uppercase text-[9px] font-bold print:border-none print:bg-transparent print:p-0 print:text-[10px]">{action.modulo_origem}</Badge>
+                                            <td className="px-4 py-3 print:p-1.5">
+                                                <Badge className="bg-slate-100 text-slate-600 border-slate-200 uppercase text-[9px] font-bold print:border-none print:bg-transparent print:p-0 print:text-[8px]">{action.modulo_origem}</Badge>
                                             </td>
-                                            <td className="px-4 py-3">
-                                                <Badge className="bg-indigo-50 text-indigo-600 border-indigo-200 uppercase text-[9px] font-bold print:border-none print:bg-transparent print:p-0 print:text-[10px]">{action.categoria || 'Geral'}</Badge>
+                                            <td className="px-4 py-3 print:p-1.5">
+                                                <Badge className="bg-indigo-50 text-indigo-600 border-indigo-200 uppercase text-[9px] font-bold print:border-none print:bg-transparent print:p-0 print:text-[8px]">{action.categoria || 'Geral'}</Badge>
                                             </td>
-                                            <td className="px-4 py-3 font-semibold text-slate-700 print:text-[10px]">{action.responsavel_nome || '--'}</td>
-                                            <td className="px-4 py-3 text-xs text-slate-500 print:text-[10px]">
+                                            <td className="px-4 py-3 font-semibold text-slate-700 print:text-[9px] print:p-1.5">{action.responsavel_nome || '--'}</td>
+                                            <td className="px-4 py-3 text-xs text-slate-500 print:text-[9px] print:p-1.5">
                                                 {new Date(action.created_at).toLocaleDateString('pt-PT')}
                                             </td>
-                                            <td className={`px-4 py-3 text-xs font-bold print:text-[10px] ${isOverdue ? 'text-rose-600 animate-pulse print:animate-none' : 'text-slate-600'}`}>
+                                            <td className={`px-4 py-3 text-xs font-bold print:text-[9px] print:p-1.5 ${isOverdue ? 'text-rose-600 animate-pulse print:animate-none' : 'text-slate-600'}`}>
                                                 {action.data_limite ? new Date(action.data_limite).toLocaleDateString('pt-PT') : '--'}
                                             </td>
-                                            <td className="px-4 py-3 text-center">
-                                                <Badge className={`uppercase text-[9px] font-bold border-0 print:border-none print:bg-transparent print:p-0 print:text-[10px]
+                                            <td className="px-4 py-3 text-center print:p-1.5">
+                                                <Badge className={`uppercase text-[9px] font-bold border-0 print:border-none print:bg-transparent print:p-0 print:text-[8px]
                                                     ${['Concluido', 'Concluído', 'Done', 'Encerrado', 'Feito', 'feito'].includes(action.status) ? 'bg-emerald-100 text-emerald-700 print:text-slate-800' : 
                                                     ['Aberto', 'To Do', 'Pendente'].includes(action.status) ? 'bg-blue-100 text-blue-700 print:text-slate-800' : 
                                                     'bg-amber-100 text-amber-700 print:text-slate-800'}`
@@ -601,7 +601,7 @@ ${filteredActions.slice(0, 10).map(a => `- [${a.modulo_origem}] [Área: ${a.nome
                                                     {action.status}
                                                 </Badge>
                                             </td>
-                                            <td className="px-4 py-3 text-center print:text-[10px] print:font-bold">
+                                            <td className="px-4 py-3 text-center print:text-[9px] print:font-bold print:p-1.5">
                                                 {action.status_eficacia === 'Eficaz' ? <span className="print:hidden"><CheckCircle2 size={20} className="text-emerald-500 mx-auto"/></span> :
                                                  action.status_eficacia === 'Ineficaz' ? <span className="print:hidden"><XCircle size={20} className="text-rose-500 mx-auto"/></span> :
                                                  <span className="print:hidden text-[10px] text-slate-400 font-bold uppercase">Pendente</span>}
