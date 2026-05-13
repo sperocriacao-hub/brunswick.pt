@@ -805,6 +805,9 @@ ${filteredActions.slice(0, 10).map(a => `- [${a.modulo_origem}] [Área: ${a.nome
                                             onChange={e => setManualForm({...manualForm, categoria: e.target.value})}
                                             className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm text-slate-800 focus:border-blue-500 outline-none"
                                         >
+                                            {manualForm.categoria && !categorias.includes(manualForm.categoria) && (
+                                                <option value={manualForm.categoria}>{manualForm.categoria}</option>
+                                            )}
                                             {categorias.map(cat => <option key={cat} value={cat}>{cat}</option>)}
                                         </select>
                                         <button 
@@ -1033,6 +1036,9 @@ ${filteredActions.slice(0, 10).map(a => `- [${a.modulo_origem}] [Área: ${a.nome
                                         onChange={e => setEditingAction({...editingAction, categoria: e.target.value})}
                                         className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm text-slate-800 focus:border-blue-500 outline-none"
                                     >
+                                        {editingAction.categoria && !categorias.includes(editingAction.categoria) && (
+                                            <option value={editingAction.categoria}>{editingAction.categoria}</option>
+                                        )}
                                         {categorias.map(cat => <option key={cat} value={cat}>{cat}</option>)}
                                     </select>
                                 </div>
