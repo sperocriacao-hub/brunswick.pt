@@ -533,22 +533,22 @@ ${filteredActions.slice(0, 10).map(a => `- [${a.modulo_origem}] [Área: ${a.nome
                                     const isIneficaz = action.status_eficacia === 'Ineficaz';
 
                                     return (
-                                        <tr 
-                                            key={`${action.id}-${idx}`} 
-                                            onClick={() => {
-                                                if (action.modulo_origem === 'Geral') {
-                                                    setEditingAction(action);
-                                                    setEditModalOpen(true);
-                                                } else {
-                                                    alert(`Esta ação pertence ao módulo ${action.modulo_origem}. Por favor edite-a no respetivo módulo.`);
-                                                }
-                                            }}
-                                            className={`hover:bg-blue-50/50 transition-colors group cursor-pointer ${isOverdue ? 'bg-rose-50 print:bg-transparent' : ''} print:break-inside-avoid`}
-                                            title={action.modulo_origem === 'Geral' ? "Clique para editar esta ação global" : `Gerido via ${action.modulo_origem}`}
-                                        >
-                                            <td className="px-4 py-3 max-w-[300px] print:p-1.5 print:max-w-[250px]">
+                                        <React.Fragment key={`${action.id}-${idx}`}>
+                                            <tr 
+                                                onClick={() => {
+                                                    if (action.modulo_origem === 'Geral') {
+                                                        setEditingAction(action);
+                                                        setEditModalOpen(true);
+                                                    } else {
+                                                        alert(`Esta ação pertence ao módulo ${action.modulo_origem}. Por favor edite-a no respetivo módulo.`);
+                                                    }
+                                                }}
+                                                className={`hover:bg-blue-50/50 transition-colors group cursor-pointer ${isOverdue ? 'bg-rose-50 print:bg-transparent' : ''} print:break-inside-avoid print:border-b-0`}
+                                                title={action.modulo_origem === 'Geral' ? "Clique para editar esta ação global" : `Gerido via ${action.modulo_origem}`}
+                                            >
+                                            <td className="px-4 py-3 max-w-[300px] print:p-1.5 print:max-w-none print:border-b-0">
                                                 <div className="font-bold text-slate-800 truncate print:whitespace-normal print:break-words print:text-[10px] print:leading-tight">{action.titulo}</div>
-                                                <div className="text-xs text-slate-500 truncate mt-1 print:whitespace-normal print:break-words print:line-clamp-2 print:text-[9px] print:leading-tight print:mt-0.5" title={action.descricao}>{action.descricao}</div>
+                                                <div className="text-xs text-slate-500 truncate mt-1 print:hidden" title={action.descricao}>{action.descricao}</div>
                                                 {isIneficaz && (
                                                     <div className="mt-3 print:hidden">
                                                         <button 
@@ -607,7 +607,14 @@ ${filteredActions.slice(0, 10).map(a => `- [${a.modulo_origem}] [Área: ${a.nome
                                                  <span className="print:hidden text-[10px] text-slate-400 font-bold uppercase">Pendente</span>}
                                                  <span className="hidden print:block">{action.status_eficacia || 'Pendente'}</span>
                                             </td>
-                                        </tr>
+                                            </tr>
+                                            <tr className="hidden print:table-row print:break-inside-avoid">
+                                                <td colSpan={10} className="print:px-1.5 print:pb-2 print:pt-0 print:text-[9px] print:text-slate-600 print:whitespace-normal print:break-words">
+                                                    <span className="font-bold text-slate-800 uppercase mr-1">Porquê (Detalhe):</span> 
+                                                    {action.descricao || 'Sem descrição.'}
+                                                </td>
+                                            </tr>
+                                        </React.Fragment>
                                     );
                                 })}
                             </tbody>
