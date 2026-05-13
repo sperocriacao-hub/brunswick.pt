@@ -17,6 +17,7 @@ export default function RncKanbanBoardPage() {
     const [rncs, setRncs] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [filterArea, setFilterArea] = useState('ALL');
 
     // Drag State
     const [draggedItem, setDraggedItem] = useState<string | null>(null);
@@ -180,18 +181,33 @@ export default function RncKanbanBoardPage() {
                 </div>
             </header>
 
-            <div className="flex flex-col xl:flex-row gap-4 items-center bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                <div className="relative flex-1 w-full">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                    <input
-                        type="text"
-                        placeholder="Pesquisar por Referência, OP, Causa..."
-                        value={searchTerm}
-                        onChange={e => setSearchTerm(e.target.value)}
-                        className="w-full pl-10 pr-4 py-3 bg-slate-50 border-none rounded-lg focus:ring-2 focus:ring-rose-500 outline-none text-slate-700 font-medium"
-                    />
-                </div>
-            </div>
+            {(() => {
+                const areasUnicas = Array.from(new Set(rncs.map(r => r.estacoes?.areas_fabrica?.nome_area).filter(Boolean))) as string[];
+                return (
+                    <div className="flex flex-col xl:flex-row gap-4 items-center bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                        <div className="relative flex-1 w-full">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                            <input
+                                type="text"
+                                placeholder="Pesquisar por Referência, OP, Causa..."
+                                value={searchTerm}
+                                onChange={e => setSearchTerm(e.target.value)}
+                                className="w-full pl-10 pr-4 py-3 bg-slate-50 border-none rounded-lg focus:ring-2 focus:ring-rose-500 outline-none text-slate-700 font-medium"
+                            />
+                        </div>
+                        <div className="w-full xl:w-64 shrink-0">
+                            <select
+                                value={filterArea}
+                                onChange={e => setFilterArea(e.target.value)}
+                                className="w-full py-3 px-4 bg-slate-50 border-none rounded-lg text-slate-700 font-medium outline-none focus:ring-2 focus:ring-rose-500"
+                            >
+                                <option value="ALL">Qualquer Área</option>
+                                {areasUnicas.map(a => <option key={a} value={a}>{a}</option>)}
+                            </select>
+                        </div>
+                    </div>
+                );
+            })()}
 
             {loading ? (
                 <div className="p-12 flex justify-center"><Loader2 className="w-8 h-8 text-rose-500 animate-spin" /></div>
@@ -217,6 +233,9 @@ export default function RncKanbanBoardPage() {
                             }
 
                             if (!matchStatus) return false;
+                            
+                            const areaMatch = r.estacoes?.areas_fabrica?.nome_area || '';
+                            if (filterArea !== 'ALL' && areaMatch !== filterArea) return false;
 
                             if (searchTerm === '') return true;
                             const term = searchTerm.toLowerCase();

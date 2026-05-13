@@ -20,6 +20,7 @@ export default function GestaoRncPage() {
     const [rncs, setRncs] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [filterStatus, setFilterStatus] = useState('ALL');
+    const [filterArea, setFilterArea] = useState('ALL');
     const [filterEstacao, setFilterEstacao] = useState('ALL');
     const [filterInspetor, setFilterInspetor] = useState('ALL');
     const [searchTerm, setSearchTerm] = useState('');
@@ -207,11 +208,15 @@ export default function GestaoRncPage() {
         setLoadingHistory(false);
     }
 
+    const areasUnicas = Array.from(new Set(rncs.map(r => r.estacoes?.areas_fabrica?.nome_area).filter(Boolean))) as string[];
     const estacoesUnicas = Array.from(new Set(rncs.map(r => r.estacoes?.nome_estacao).filter(Boolean))) as string[];
     const inspetoresUnicos = Array.from(new Set(rncs.map(r => r.detetado_por_nome).filter(Boolean))) as string[];
 
     const filteredRncs = rncs.filter(rnc => {
         if (filterStatus !== 'ALL' && rnc.status !== filterStatus) return false;
+        
+        const areaMatch = rnc.estacoes?.areas_fabrica?.nome_area || '';
+        if (filterArea !== 'ALL' && areaMatch !== filterArea) return false;
         
         const estacaoMatch = rnc.estacoes?.nome_estacao || '';
         if (filterEstacao !== 'ALL' && estacaoMatch !== filterEstacao) return false;
@@ -220,7 +225,7 @@ export default function GestaoRncPage() {
         if (filterInspetor !== 'ALL' && inspetorMatch !== filterInspetor) return false;
 
         const prodStr = rnc.contexto_producao || '';
-        const str = (rnc.numero_rnc + ' ' + rnc.descricao_problema + ' ' + rnc.tipo_defeito + ' ' + estacaoMatch + ' ' + prodStr).toLowerCase();
+        const str = (rnc.numero_rnc + ' ' + rnc.descricao_problema + ' ' + rnc.tipo_defeito + ' ' + areaMatch + ' ' + estacaoMatch + ' ' + prodStr).toLowerCase();
         return str.includes(searchTerm.toLowerCase());
     });
 
@@ -300,7 +305,7 @@ export default function GestaoRncPage() {
 
                             <div className="w-full flex flex-col sm:flex-row items-center gap-2">
                                 <Select value={filterStatus} onValueChange={setFilterStatus}>
-                                    <SelectTrigger className="bg-white lg:w-1/3">
+                                    <SelectTrigger className="bg-white lg:w-1/4">
                                         <Filter className="text-slate-400 w-4 h-4 mr-2" />
                                         <SelectValue placeholder="Estado: Todos" />
                                     </SelectTrigger>
@@ -312,8 +317,19 @@ export default function GestaoRncPage() {
                                     </SelectContent>
                                 </Select>
 
+                                <Select value={filterArea} onValueChange={setFilterArea}>
+                                    <SelectTrigger className="bg-white lg:w-1/4">
+                                        <Filter className="text-slate-400 w-4 h-4 mr-2" />
+                                        <SelectValue placeholder="Área: Todas" />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-white">
+                                        <SelectItem value="ALL">Qualquer Área</SelectItem>
+                                        {areasUnicas.map(a => <SelectItem key={a} value={a}>{a}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+
                                 <Select value={filterEstacao} onValueChange={setFilterEstacao}>
-                                    <SelectTrigger className="bg-white lg:w-1/3">
+                                    <SelectTrigger className="bg-white lg:w-1/4">
                                         <Filter className="text-slate-400 w-4 h-4 mr-2" />
                                         <SelectValue placeholder="Estação: Todas" />
                                     </SelectTrigger>
@@ -324,7 +340,7 @@ export default function GestaoRncPage() {
                                 </Select>
 
                                 <Select value={filterInspetor} onValueChange={setFilterInspetor}>
-                                    <SelectTrigger className="bg-white lg:w-1/3">
+                                    <SelectTrigger className="bg-white lg:w-1/4">
                                         <Filter className="text-slate-400 w-4 h-4 mr-2" />
                                         <SelectValue placeholder="Inspetor: Todos" />
                                     </SelectTrigger>
@@ -374,8 +390,15 @@ export default function GestaoRncPage() {
                                                         {new Date(rnc.data_deteccao).toLocaleDateString()} • {rnc.detetado_por_nome}
                                                     </div>
                                                     {rnc.estacoes && (
-                                                        <div className="mt-2 text-[10px] bg-slate-100 px-2 py-0.5 rounded border border-slate-200 flex gap-2 w-max text-slate-600 font-bold uppercase">
-                                                            ST: {rnc.estacoes.nome_estacao}
+                                                        <div className="mt-2 flex flex-col gap-1">
+                                                            {rnc.estacoes.areas_fabrica && (
+                                                                <div className="text-[9px] bg-slate-100 text-slate-500 font-bold uppercase tracking-wider px-1.5 py-0.5 rounded w-max">
+                                                                    Área: {rnc.estacoes.areas_fabrica.nome_area}
+                                                                </div>
+                                                            )}
+                                                            <div className="text-[10px] bg-indigo-50 border border-indigo-100 flex gap-2 w-max text-indigo-700 font-bold uppercase px-2 py-0.5 rounded shadow-sm">
+                                                                ST: {rnc.estacoes.nome_estacao}
+                                                            </div>
                                                         </div>
                                                     )}
                                                 </td>

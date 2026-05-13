@@ -12,7 +12,7 @@ export async function getRncs() {
             .from("qualidade_rnc")
             .select(`
                 *,
-                estacoes (nome_estacao),
+                estacoes (nome_estacao, areas_fabrica (nome_area)),
                 qualidade_a3 (id, titulo, status)
             `)
             .order("created_at", { ascending: false });
