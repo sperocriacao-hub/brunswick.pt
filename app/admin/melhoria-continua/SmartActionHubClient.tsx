@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { processarTextoIA, submitNovaAcao, pedirAvaliacaoPlanoIA, pivotarEstrategiaIA, addCategoriaAcao, warRoomAnalyticsIA, updateAcaoGlobal } from './actions';
-import { Sparkles, BrainCircuit, Activity, CheckCircle2, Filter, Layers, ListChecks, Bot, MessageSquareText, FilePlus, AlertCircle, RefreshCw, XCircle, Send, Plus, MapPin, TrendingUp, Flame, Target } from 'lucide-react';
+import { Sparkles, BrainCircuit, Activity, CheckCircle2, Filter, Layers, ListChecks, Bot, MessageSquareText, FilePlus, AlertCircle, RefreshCw, XCircle, Send, Plus, MapPin, TrendingUp, Flame, Target, Printer, Download } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useRouter } from 'next/navigation';
@@ -174,6 +174,31 @@ export default function SmartActionHubClient({ initialActions, initialCategorias
     const recentClosed = closedActions.filter(a => new Date(a.created_at) >= ninetyDaysAgo).length; 
     const backlogRatio = recentClosed > 0 ? (recentCreated / recentClosed).toFixed(1) : (recentCreated > 0 ? "Crítico" : "1.0");
 
+    const handleExportExcel = () => {
+        import('xlsx').then(XLSX => {
+            const worksheet = XLSX.utils.json_to_sheet(filteredActions.map(a => ({
+                "Ticket / Ação": a.titulo,
+                "Descrição": a.descricao,
+                "Módulo Origem": a.modulo_origem,
+                "Categoria": a.categoria || 'Geral',
+                "Responsável": a.responsavel_nome || 'N/A',
+                "Área": a.nome_area || 'N/A',
+                "Linha": a.nome_linha || 'N/A',
+                "Data Lançamento": new Date(a.created_at).toLocaleDateString('pt-PT'),
+                "Data Limite (Meta)": a.data_limite ? new Date(a.data_limite).toLocaleDateString('pt-PT') : 'Sem Prazo',
+                "Status": a.status,
+                "Eficácia (PDCA)": a.status_eficacia || 'Pendente'
+            })));
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Smart_Action_Hub");
+            XLSX.writeFile(workbook, `SmartActionHub_${new Date().toISOString().split('T')[0]}.xlsx`);
+        });
+    };
+
+    const handlePrint = () => {
+        window.print();
+    };
+
     // Handlers
     const handleAddCategoria = async () => {
         if (!novaCategoria.trim()) return;
@@ -327,7 +352,7 @@ ${filteredActions.slice(0, 10).map(a => `- [${a.modulo_origem}] [Área: ${a.nome
             </header>
 
             {activeTab === 'KANBAN' && (
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 print:hidden">
                     <Card className="bg-white border border-slate-200 shadow-sm overflow-hidden relative">
                         <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500"></div>
                         <CardContent className="p-4">
@@ -369,11 +394,19 @@ ${filteredActions.slice(0, 10).map(a => `- [${a.modulo_origem}] [Área: ${a.nome
 
             {activeTab === 'KANBAN' && (
                 <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                    <div className="p-4 border-b border-slate-100 bg-slate-50">
+                    <div className="p-4 border-b border-slate-100 bg-slate-50 print:hidden">
                         <div className="flex justify-between items-center mb-4">
                             <h3 className="font-bold text-slate-700 text-sm uppercase tracking-wider flex items-center gap-2">
                                 <Layers size={16} className="text-blue-500" /> Tabela de Ações (Ledger)
                             </h3>
+                            <div className="flex gap-2">
+                                <button onClick={handleExportExcel} className="flex items-center gap-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 font-bold px-4 py-1.5 rounded text-xs transition-colors shadow-sm">
+                                    <Download size={14} /> Exportar Excel
+                                </button>
+                                <button onClick={handlePrint} className="flex items-center gap-2 bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-300 font-bold px-4 py-1.5 rounded text-xs transition-colors shadow-sm">
+                                    <Printer size={14} /> Imprimir
+                                </button>
+                            </div>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-3">
                             <div className="xl:col-span-2">
@@ -435,6 +468,19 @@ ${filteredActions.slice(0, 10).map(a => `- [${a.modulo_origem}] [Área: ${a.nome
                         </div>
                     </div>
 
+                    <div className="hidden print:block mb-8 p-4 border-b-2 border-slate-800 pb-4">
+                        <div className="flex justify-between items-end">
+                            <div>
+                                <h1 className="text-2xl font-black uppercase tracking-widest text-slate-800">Smart Action Hub</h1>
+                                <h2 className="text-lg font-bold text-slate-600 mt-1">Relatório Global</h2>
+                            </div>
+                            <div className="text-right">
+                                <p className="text-sm font-bold text-slate-500">Data de Emissão</p>
+                                <p className="text-base font-black text-slate-800">{new Date().toLocaleDateString('pt-PT')}</p>
+                            </div>
+                        </div>
+                    </div>
+
                     <div className="overflow-x-auto">
                         <table className="w-full text-left text-sm text-slate-700">
                             <thead className="bg-slate-100 text-xs font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200">
@@ -445,13 +491,13 @@ ${filteredActions.slice(0, 10).map(a => `- [${a.modulo_origem}] [Área: ${a.nome
                                     <th className="px-4 py-3 w-32">Origem</th>
                                     <th className="px-4 py-3 w-32">Categoria</th>
                                     <th className="px-4 py-3 w-32">Responsável</th>
-                                    <th className="px-4 py-3 w-32">Abertura</th>
-                                    <th className="px-4 py-3 w-32">Limite (Meta)</th>
-                                    <th className="px-4 py-3 w-28 text-center">Estado</th>
-                                    <th className="px-4 py-3 w-28 text-center">PDCA</th>
+                                    <th className="px-4 py-3 w-32 print:text-black">Abertura</th>
+                                    <th className="px-4 py-3 w-32 print:text-black">Limite (Meta)</th>
+                                    <th className="px-4 py-3 w-28 text-center print:text-black">Estado</th>
+                                    <th className="px-4 py-3 w-28 text-center print:text-black">PDCA</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-100">
+                            <tbody className="divide-y divide-slate-100 print:divide-slate-300">
                                 {filteredActions.map((action, idx) => {
                                     const isOverdue = !['Concluido', 'Concluído', 'Done', 'Encerrado', 'Feito', 'feito'].includes(action.status) && action.data_limite && new Date(action.data_limite) < today;
                                     const isIneficaz = action.status_eficacia === 'Ineficaz';
@@ -467,14 +513,14 @@ ${filteredActions.slice(0, 10).map(a => `- [${a.modulo_origem}] [Área: ${a.nome
                                                     alert(`Esta ação pertence ao módulo ${action.modulo_origem}. Por favor edite-a no respetivo módulo.`);
                                                 }
                                             }}
-                                            className={`hover:bg-blue-50/50 transition-colors group cursor-pointer ${isOverdue ? 'bg-rose-50' : ''}`}
+                                            className={`hover:bg-blue-50/50 transition-colors group cursor-pointer ${isOverdue ? 'bg-rose-50 print:bg-transparent' : ''}`}
                                             title={action.modulo_origem === 'Geral' ? "Clique para editar esta ação global" : `Gerido via ${action.modulo_origem}`}
                                         >
                                             <td className="px-4 py-3 max-w-[300px]">
-                                                <div className="font-bold text-slate-800 truncate">{action.titulo}</div>
-                                                <div className="text-xs text-slate-500 truncate mt-1" title={action.descricao}>{action.descricao}</div>
+                                                <div className="font-bold text-slate-800 truncate print:whitespace-normal print:break-words">{action.titulo}</div>
+                                                <div className="text-xs text-slate-500 truncate mt-1 print:whitespace-normal print:break-words" title={action.descricao}>{action.descricao}</div>
                                                 {isIneficaz && (
-                                                    <div className="mt-3">
+                                                    <div className="mt-3 print:hidden">
                                                         <button 
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
@@ -504,31 +550,32 @@ ${filteredActions.slice(0, 10).map(a => `- [${a.modulo_origem}] [Área: ${a.nome
                                                 {action.nome_linha ? `L-${action.nome_linha}` : <span className="text-slate-300">-</span>}
                                             </td>
                                             <td className="px-4 py-3">
-                                                <Badge className="bg-slate-100 text-slate-600 border-slate-200 uppercase text-[9px] font-bold">{action.modulo_origem}</Badge>
+                                                <Badge className="bg-slate-100 text-slate-600 border-slate-200 uppercase text-[9px] font-bold print:border-none print:bg-transparent print:p-0 print:text-[10px]">{action.modulo_origem}</Badge>
                                             </td>
                                             <td className="px-4 py-3">
-                                                <Badge className="bg-indigo-50 text-indigo-600 border-indigo-200 uppercase text-[9px] font-bold">{action.categoria || 'Geral'}</Badge>
+                                                <Badge className="bg-indigo-50 text-indigo-600 border-indigo-200 uppercase text-[9px] font-bold print:border-none print:bg-transparent print:p-0 print:text-[10px]">{action.categoria || 'Geral'}</Badge>
                                             </td>
-                                            <td className="px-4 py-3 font-semibold text-slate-700">{action.responsavel_nome || '--'}</td>
-                                            <td className="px-4 py-3 text-xs text-slate-500">
+                                            <td className="px-4 py-3 font-semibold text-slate-700 print:text-[10px]">{action.responsavel_nome || '--'}</td>
+                                            <td className="px-4 py-3 text-xs text-slate-500 print:text-[10px]">
                                                 {new Date(action.created_at).toLocaleDateString('pt-PT')}
                                             </td>
-                                            <td className={`px-4 py-3 text-xs font-bold ${isOverdue ? 'text-rose-600 animate-pulse' : 'text-slate-600'}`}>
+                                            <td className={`px-4 py-3 text-xs font-bold print:text-[10px] ${isOverdue ? 'text-rose-600 animate-pulse print:animate-none' : 'text-slate-600'}`}>
                                                 {action.data_limite ? new Date(action.data_limite).toLocaleDateString('pt-PT') : '--'}
                                             </td>
                                             <td className="px-4 py-3 text-center">
-                                                <Badge className={`uppercase text-[9px] font-bold border-0
-                                                    ${['Concluido', 'Concluído', 'Done', 'Encerrado', 'Feito', 'feito'].includes(action.status) ? 'bg-emerald-100 text-emerald-700' : 
-                                                    ['Aberto', 'To Do', 'Pendente'].includes(action.status) ? 'bg-blue-100 text-blue-700' : 
-                                                    'bg-amber-100 text-amber-700'}`
+                                                <Badge className={`uppercase text-[9px] font-bold border-0 print:border-none print:bg-transparent print:p-0 print:text-[10px]
+                                                    ${['Concluido', 'Concluído', 'Done', 'Encerrado', 'Feito', 'feito'].includes(action.status) ? 'bg-emerald-100 text-emerald-700 print:text-slate-800' : 
+                                                    ['Aberto', 'To Do', 'Pendente'].includes(action.status) ? 'bg-blue-100 text-blue-700 print:text-slate-800' : 
+                                                    'bg-amber-100 text-amber-700 print:text-slate-800'}`
                                                 }>
                                                     {action.status}
                                                 </Badge>
                                             </td>
-                                            <td className="px-4 py-3 text-center">
-                                                {action.status_eficacia === 'Eficaz' ? <CheckCircle2 size={20} className="text-emerald-500 mx-auto"/> :
-                                                 action.status_eficacia === 'Ineficaz' ? <XCircle size={20} className="text-rose-500 mx-auto"/> :
-                                                 <span className="text-[10px] text-slate-400 font-bold uppercase">Pendente</span>}
+                                            <td className="px-4 py-3 text-center print:text-[10px] print:font-bold">
+                                                {action.status_eficacia === 'Eficaz' ? <span className="print:hidden"><CheckCircle2 size={20} className="text-emerald-500 mx-auto"/></span> :
+                                                 action.status_eficacia === 'Ineficaz' ? <span className="print:hidden"><XCircle size={20} className="text-rose-500 mx-auto"/></span> :
+                                                 <span className="print:hidden text-[10px] text-slate-400 font-bold uppercase">Pendente</span>}
+                                                 <span className="hidden print:block">{action.status_eficacia || 'Pendente'}</span>
                                             </td>
                                         </tr>
                                     );
