@@ -437,6 +437,7 @@ ${filteredActions.slice(0, 10).map(a => `- [${a.modulo_origem}] [Área: ${a.nome
                                     <th className="px-4 py-3 w-32">Área</th>
                                     <th className="px-4 py-3 w-16">Linha</th>
                                     <th className="px-4 py-3 w-32">Origem</th>
+                                    <th className="px-4 py-3 w-32">Categoria</th>
                                     <th className="px-4 py-3 w-32">Responsável</th>
                                     <th className="px-4 py-3 w-32">Abertura</th>
                                     <th className="px-4 py-3 w-32">Limite (Meta)</th>
@@ -498,6 +499,9 @@ ${filteredActions.slice(0, 10).map(a => `- [${a.modulo_origem}] [Área: ${a.nome
                                             </td>
                                             <td className="px-4 py-3">
                                                 <Badge className="bg-slate-100 text-slate-600 border-slate-200 uppercase text-[9px] font-bold">{action.modulo_origem}</Badge>
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                <Badge className="bg-indigo-50 text-indigo-600 border-indigo-200 uppercase text-[9px] font-bold">{action.categoria || 'Geral'}</Badge>
                                             </td>
                                             <td className="px-4 py-3 font-semibold text-slate-700">{action.responsavel_nome || '--'}</td>
                                             <td className="px-4 py-3 text-xs text-slate-500">
