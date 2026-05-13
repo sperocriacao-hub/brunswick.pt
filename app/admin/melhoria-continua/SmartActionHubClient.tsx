@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { useRouter } from 'next/navigation';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, PieChart, Pie, Cell, ComposedChart, Line, AreaChart, Area } from 'recharts';
 
-export default function SmartActionHubClient({ initialActions, initialCategorias, initialAreas, initialLinhas, initialEstacoes = [] }: { initialActions: any[], initialCategorias: string[], initialAreas: any[], initialLinhas: any[], initialEstacoes?: any[] }) {
+export default function SmartActionHubClient({ initialActions, initialCategorias, initialAreas, initialLinhas, initialEstacoes = [], initialOperadores = [] }: { initialActions: any[], initialCategorias: string[], initialAreas: any[], initialLinhas: any[], initialEstacoes?: any[], initialOperadores?: any[] }) {
     const router = useRouter();
     
     // UI State
@@ -40,7 +40,7 @@ export default function SmartActionHubClient({ initialActions, initialCategorias
     const [suggestedActions, setSuggestedActions] = useState<any[]>([]);
     
     // Manual Form State
-    const [manualForm, setManualForm] = useState({ titulo: '', descricao: '', responsavel_nome: '', categoria: initialCategorias[0] || 'Outro', area_id: '', linha_id: '', estacao_id: '' });
+    const [manualForm, setManualForm] = useState({ titulo: '', descricao: '', responsavel_nome: '', responsavel_id: '', categoria: initialCategorias[0] || 'Outro', area_id: '', linha_id: '', estacao_id: '' });
     const [aiFeedback, setAiFeedback] = useState<{nota: number, feedback_curto: string, sugestao_melhoria: string} | null>(null);
     const [isEvaluating, setIsEvaluating] = useState(false);
 
@@ -264,7 +264,7 @@ export default function SmartActionHubClient({ initialActions, initialCategorias
         };
         const res = await submitNovaAcao(payload);
         if (res.success) {
-            setManualForm({ titulo: '', descricao: '', responsavel_nome: '', categoria: categorias[0] || 'Outro', area_id: '', linha_id: '', estacao_id: '' });
+            setManualForm({ titulo: '', descricao: '', responsavel_nome: '', responsavel_id: '', categoria: categorias[0] || 'Outro', area_id: '', linha_id: '', estacao_id: '' });
             setAiFeedback(null);
             setActiveTab('KANBAN');
             router.refresh();
@@ -319,6 +319,7 @@ ${filteredActions.slice(0, 10).map(a => `- [${a.modulo_origem}] [Área: ${a.nome
             estacao_id: editingAction.estacao_id === 'none' ? null : editingAction.estacao_id,
             data_limite: editingAction.data_limite || null,
             responsavel_nome: editingAction.responsavel_nome || null,
+            responsavel_id: editingAction.responsavel_id || null,
             status_eficacia: editingAction.status_eficacia || 'Pendente'
         };
         const res = await updateAcaoGlobal(editingAction.id, payload);
@@ -851,13 +852,20 @@ ${filteredActions.slice(0, 10).map(a => `- [${a.modulo_origem}] [Área: ${a.nome
                             <div className="grid grid-cols-3 gap-4">
                                 <div>
                                     <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Responsável</label>
-                                    <input 
-                                        type="text" 
-                                        value={manualForm.responsavel_nome}
-                                        onChange={e => setManualForm({...manualForm, responsavel_nome: e.target.value})}
+                                    <select 
+                                        value={manualForm.responsavel_id}
+                                        onChange={e => {
+                                            const opId = e.target.value;
+                                            const opName = initialOperadores?.find(o => o.id === opId)?.nome_operador || '';
+                                            setManualForm({...manualForm, responsavel_id: opId, responsavel_nome: opName});
+                                        }}
                                         className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm text-slate-800 focus:border-blue-500 outline-none"
-                                        placeholder="Ex: Rui Costureiro"
-                                    />
+                                    >
+                                        <option value="">-- Selecione Operador --</option>
+                                        {initialOperadores?.map((op: any) => (
+                                            <option key={op.id} value={op.id}>{op.nome_operador}</option>
+                                        ))}
+                                    </select>
                                 </div>
                                 <div>
                                     <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Área da Fábrica</label>
@@ -1159,12 +1167,20 @@ ${filteredActions.slice(0, 10).map(a => `- [${a.modulo_origem}] [Área: ${a.nome
                                 })()}
                                 <div>
                                     <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Responsável</label>
-                                    <input 
-                                        type="text" 
-                                        value={editingAction.responsavel_nome || ''}
-                                        onChange={e => setEditingAction({...editingAction, responsavel_nome: e.target.value})}
+                                    <select 
+                                        value={editingAction.responsavel_id || 'none'}
+                                        onChange={e => {
+                                            const opId = e.target.value;
+                                            const opName = initialOperadores?.find(o => o.id === opId)?.nome_operador || '';
+                                            setEditingAction({...editingAction, responsavel_id: opId === 'none' ? null : opId, responsavel_nome: opName});
+                                        }}
                                         className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm text-slate-800 focus:border-blue-500 outline-none"
-                                    />
+                                    >
+                                        <option value="none">-- Opcional --</option>
+                                        {initialOperadores?.map((op: any) => (
+                                            <option key={op.id} value={op.id}>{op.nome_operador}</option>
+                                        ))}
+                                    </select>
                                 </div>
                                 <div>
                                     <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Categoria</label>
