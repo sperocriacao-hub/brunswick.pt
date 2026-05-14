@@ -570,8 +570,12 @@ ${filteredActions.slice(0, 10).map(a => `- [${a.modulo_origem}] [Área: ${a.nome
                                         <React.Fragment key={`${action.id}-${idx}`}>
                                             <tr 
                                                 onClick={() => {
-                                                    setEditingAction(action);
-                                                    setEditModalOpen(true);
+                                                    if (action.modulo_origem === 'Geral') {
+                                                        setEditingAction(action);
+                                                        setEditModalOpen(true);
+                                                    } else {
+                                                        alert(`Esta ação é uma subtarefa gerida no relatório 5W2H/A3 do módulo ${action.modulo_origem}. Para garantir a integridade do relatório principal, por favor edite-a no respetivo módulo de origem.`);
+                                                    }
                                                 }}
                                                 className={`hover:bg-blue-50/50 transition-colors group cursor-pointer ${isOverdue ? 'bg-rose-50 print:bg-transparent' : ''} print:break-inside-avoid print:border-b-0`}
                                                 title={action.modulo_origem === 'Geral' ? "Clique para editar esta ação global" : `Gerido via ${action.modulo_origem}`}
