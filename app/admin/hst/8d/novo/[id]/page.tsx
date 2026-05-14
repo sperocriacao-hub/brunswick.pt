@@ -4,8 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useParams, useRouter } from 'next/navigation';
-import { getHst8D, saveHst8D } from './actions';
-import { FileText, Save, Loader2, ArrowLeft, Users, Focus, Shield, Compass, Key, PlayCircle, CheckSquare, Zap, Target } from 'lucide-react';
+import { getHst8D, saveHst8D, saveHstAcao } from './actions';
+import { FileText, Save, Loader2, ArrowLeft, Users, Focus, Shield, Compass, Key, PlayCircle, CheckSquare, Zap, Target, Plus, Trash2 } from 'lucide-react';
 import { Input } from "@/components/ui/input";
 
 export default function Hst8DFormPage() {
@@ -17,6 +17,8 @@ export default function Hst8DFormPage() {
     const [submitting, setSubmitting] = useState(false);
     const [ocorrencia, setOcorrencia] = useState<any>(null);
     const [relatorioId, setRelatorioId] = useState<string | null>(null);
+    const [acoes, setAcoes] = useState<any[]>([]);
+    const [operadores, setOperadores] = useState<any[]>([]);
 
     // D8 Fields
     const [d1, setD1] = useState('');
@@ -55,6 +57,8 @@ export default function Hst8DFormPage() {
                 // Pré-preenchimento
                 setD2(res.ocorrencia.descricao || '');
             }
+            if (res.acoes) setAcoes(res.acoes);
+            if (res.operadores) setOperadores(res.operadores);
         } else {
             console.error("Falha a carregar Ocorrência HST:", res.error);
         }
@@ -176,9 +180,9 @@ export default function Hst8DFormPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-3">
                         <label className="text-xs font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
-                            <Key size={16} className="text-emerald-500" /> D5. Ação Corretiva Permanente
+                            <Key size={16} className="text-emerald-500" /> D5. Resumo das Ações Corretivas (Histórico)
                         </label>
-                        <p className="text-xs text-slate-500">Sistemas de segurança (Barreiras, Sensores, EPIs) ou formação desenhados para agir na Causa Raiz.</p>
+                        <p className="text-xs text-slate-500">Registo descritivo das ações. Use o Plano de Ações abaixo (D5.1) para associar responsáveis e datas para a Torre de Controlo.</p>
                         <textarea
                             value={d5} onChange={e => setD5(e.target.value)}
                             className="flex w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm min-h-[100px]"
@@ -196,6 +200,126 @@ export default function Hst8DFormPage() {
                         />
                     </div>
                 </div>
+
+                {/* NOVO: D5.1 KANBAN PLANO DE AÇÃO */}
+                {relatorioId && (
+                <div className="space-y-4 border border-slate-200 p-5 rounded-lg bg-slate-50 shadow-sm">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <label className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
+                                <Target size={18} className="text-rose-500" /> D5.1. Plano de Ações (Quadro Kanban)
+                            </label>
+                            <p className="text-xs text-slate-500 mt-1">
+                                As ações inseridas abaixo serão automaticamente enviadas para o <b>Smart Action Hub (Torre de Controlo)</b>, permitindo o acompanhamento de responsáveis e prazos a nível de fábrica.
+                            </p>
+                        </div>
+                        <Button 
+                            variant="default" size="sm" className="bg-rose-600 hover:bg-rose-700 font-bold shadow-md"
+                            onClick={async () => {
+                                const payload = {
+                                    ocorrencia_id: ocorrenciaId,
+                                    relatorio_8d_id: relatorioId,
+                                    descricao_acao: 'Nova Ação...',
+                                    status: 'To Do',
+                                    area_id: ocorrencia.area_id || null,
+                                    linha_id: ocorrencia.linha_id || null,
+                                    estacao_id: ocorrencia.estacao_id || null
+                                };
+                                const res = await saveHstAcao(payload);
+                                if (res.success) {
+                                    setAcoes([...acoes, res.data]);
+                                } else {
+                                    alert('Erro ao criar ação: ' + res.error);
+                                }
+                            }}
+                        >
+                            <Plus size={16} className="mr-1"/> Adicionar Ação
+                        </Button>
+                    </div>
+
+                    <div className="overflow-x-auto mt-4 rounded-md border border-slate-200 bg-white">
+                        <table className="w-full text-left text-sm whitespace-nowrap">
+                            <thead className="bg-slate-100/50 uppercase text-[10px] font-black text-slate-500 border-b border-slate-200">
+                                <tr>
+                                    <th className="px-4 py-2">Descrição (O Quê)</th>
+                                    <th className="px-4 py-2 w-48">Responsável (Quem)</th>
+                                    <th className="px-4 py-2 w-40">Data Limite (Quando)</th>
+                                    <th className="px-4 py-2 w-32">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                                {acoes.length === 0 && (
+                                    <tr>
+                                        <td colSpan={4} className="p-8 text-center text-slate-400 font-medium">Nenhuma ação estruturada adicionada.</td>
+                                    </tr>
+                                )}
+                                {acoes.map((acao, idx) => (
+                                    <tr key={acao.id} className="hover:bg-slate-50 transition-colors">
+                                        <td className="p-2">
+                                            <Input 
+                                                value={acao.descricao_acao} 
+                                                onChange={e => {
+                                                    const n = [...acoes];
+                                                    n[idx].descricao_acao = e.target.value;
+                                                    setAcoes(n);
+                                                }}
+                                                onBlur={() => saveHstAcao(acao)}
+                                                className="h-8 text-xs font-semibold bg-white"
+                                            />
+                                        </td>
+                                        <td className="p-2">
+                                            <select 
+                                                value={acao.responsavel_id || ''}
+                                                onChange={e => {
+                                                    const n = [...acoes];
+                                                    n[idx].responsavel_id = e.target.value || null;
+                                                    setAcoes(n);
+                                                    saveHstAcao(n[idx]);
+                                                }}
+                                                className="w-full h-8 text-xs font-semibold rounded-md border border-slate-200 px-2 bg-white"
+                                            >
+                                                <option value="">Não Definido</option>
+                                                {operadores.map(op => <option key={op.id} value={op.id}>{op.nome_operador}</option>)}
+                                            </select>
+                                        </td>
+                                        <td className="p-2">
+                                            <Input 
+                                                type="date"
+                                                value={acao.data_prevista ? acao.data_prevista.split('T')[0] : ''}
+                                                onChange={e => {
+                                                    const val = e.target.value;
+                                                    const n = [...acoes];
+                                                    n[idx].data_prevista = val ? new Date(val).toISOString() : null;
+                                                    setAcoes(n);
+                                                    saveHstAcao(n[idx]);
+                                                }}
+                                                className="h-8 text-xs font-semibold bg-white"
+                                            />
+                                        </td>
+                                        <td className="p-2">
+                                            <select 
+                                                value={acao.status || 'To Do'}
+                                                onChange={e => {
+                                                    const n = [...acoes];
+                                                    n[idx].status = e.target.value;
+                                                    setAcoes(n);
+                                                    saveHstAcao(n[idx]);
+                                                }}
+                                                className="w-full h-8 text-xs font-semibold rounded-md border border-slate-200 px-2 bg-white"
+                                            >
+                                                <option value="To Do">To Do (Aberto)</option>
+                                                <option value="In Progress">In Progress</option>
+                                                <option value="Blocked">Blocked</option>
+                                                <option value="Done">Done (Concluído)</option>
+                                            </select>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                )}
 
                 <hr className="border-slate-100" />
 

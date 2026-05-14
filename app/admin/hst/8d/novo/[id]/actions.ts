@@ -35,7 +35,24 @@ export async function getHst8D(ocorrenciaId: string) {
             throw otdErr;
         }
 
-        return { success: true, ocorrencia: occData, relatorio8d: otdData };
+        // Obter Ações Kanban
+        let acoes = [];
+        if (otdData?.id) {
+            const { data: acoesData } = await supabase
+                .from('hst_acoes')
+                .select(`
+                    *,
+                    operadores(nome_operador)
+                `)
+                .eq('relatorio_8d_id', otdData.id)
+                .order('created_at', { ascending: true });
+            if (acoesData) acoes = acoesData;
+        }
+
+        // Obter Operadores para Dropdown
+        const { data: operadores } = await supabase.from('operadores').select('id, nome_operador').order('nome_operador');
+
+        return { success: true, ocorrencia: occData, relatorio8d: otdData, acoes, operadores: operadores || [] };
 
     } catch (e: any) {
         return { success: false, error: e.message };
@@ -84,6 +101,28 @@ export async function saveHst8D(ocorrenciaId: string, payload: any) {
         revalidatePath(`/admin/hst/8d/novo/${ocorrenciaId}`, 'page');
         revalidatePath(`/admin/hst/8d/historico`, 'page');
 
+        return { success: true, data: result };
+    } catch (e: any) {
+        return { success: false, error: e.message };
+    }
+}
+
+export async function saveHstAcao(payload: any) {
+    try {
+        const { id, ...dataToSave } = payload;
+        
+        let result;
+        if (id) {
+            const { data, error } = await supabase.from('hst_acoes').update(dataToSave).eq('id', id).select().single();
+            if (error) throw error;
+            result = data;
+        } else {
+            const { data, error } = await supabase.from('hst_acoes').insert([dataToSave]).select().single();
+            if (error) throw error;
+            result = data;
+        }
+        
+        revalidatePath(`/admin/hst/8d/novo/${payload.ocorrencia_id}`, 'page');
         return { success: true, data: result };
     } catch (e: any) {
         return { success: false, error: e.message };
