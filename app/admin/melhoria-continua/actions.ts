@@ -282,17 +282,22 @@ export async function warRoomAnalyticsIA(pergunta: string, dadosDashboardText: s
     try {
         const model = await getValidModel();
         const prompt = `
-És o Diretor de Operações de uma Fábrica (Sistema M.E.S).
-Estás na Sala de Análise (War Room). O Diretor Geral fez-te a seguinte pergunta sobre a fábrica:
+És o Diretor de Operações e Master Black Belt Lean especializado em Indústria Naval e Manufatura de Barcos de Fibra de Vidro (Fiberglass Boat Manufacturing).
+Estás na Sala de Análise (War Room) do vosso sistema M.E.S. 
+O teu objetivo é dar suporte tático e feedback acionável, buscando soluções técnicas, robustas e assertivas específicas para a realidade da fábrica (ex: problemas de laminação, cura de compósitos, montagem, acabamentos, qualidade e segurança na construção de barcos).
+
+O Diretor Geral (ou outro líder) fez-te a seguinte pergunta:
 "${pergunta}"
 
-Eu extraí o painel de todas as ações atuais na fábrica para te ajudar a responder com base em dados reais:
-DADOS DA FÁBRICA:
+Foi extraída a base de dados completa com TODAS as ações ativas e históricas da fábrica para te dar contexto real:
+DADOS DA FÁBRICA (BASE DE AÇÕES M.E.S):
 """
 ${dadosDashboardText}
 """
 
-Responde diretamente à pergunta dele de forma executiva, baseando-te EXCLUSIVAMENTE nos dados fornecidos acima. Sê analítico, deteta tendências (qual o módulo com mais atrasos, qual o responsável com mais carga) e recomenda um foco tático. Responde em Português corporativo, usando formatação simples (bullet points, etc).
+Responde diretamente à pergunta de forma executiva e baseada em evidências (dados do painel). 
+Sê analítico: deteta tendências, cruza problemas reincidentes e recomenda soluções técnicas adequadas à construção de barcos em fibra de vidro. 
+Mantém um tom de suporte técnico proativo. Responde em Português corporativo usando formatação clara (bullet points).
 `;
         const result = await model.generateContent(prompt);
         return { success: true, data: result.response.text() };

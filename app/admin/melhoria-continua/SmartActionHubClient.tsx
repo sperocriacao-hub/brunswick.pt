@@ -299,8 +299,8 @@ TOTAL AÇÕES ABERTAS: ${totalAbertas}
 TOTAL ATRASADAS (CRÍTICAS): ${overdueActions}
 TOTAL RESOLVIDAS: ${totalConcluidas}
 
-AÇÕES RECENTES (AMOSTRA):
-${filteredActions.slice(0, 10).map(a => `- [${a.modulo_origem}] [Área: ${a.nome_area || 'N/A'}] Resp: ${a.responsavel_nome || 'N/A'}, Status: ${a.status}, Prazo: ${a.data_limite ? new Date(a.data_limite).toLocaleDateString() : 'S/ Data'}. Desc: ${a.titulo}`).join('\n')}
+AÇÕES REGISTADAS NA BASE DE DADOS (EXTRATO COMPLETO):
+${initialActions.map(a => `- [${a.modulo_origem}] [Área: ${a.nome_area || 'N/A'}] Resp: ${a.responsavel_nome || 'N/A'}, Status: ${a.status}, Prazo: ${a.data_limite ? new Date(a.data_limite).toLocaleDateString() : 'S/ Data'}. Desc: ${a.titulo} - ${a.descricao}`).join('\n')}
         `;
 
         const res = await warRoomAnalyticsIA(q, dados);
