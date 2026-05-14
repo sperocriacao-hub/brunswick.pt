@@ -87,10 +87,16 @@ export default function SmartActionHubClient({ initialActions, initialCategorias
         );
     }
     if (filterDateFrom) {
-        filteredActions = filteredActions.filter(a => a.data_limite && new Date(a.data_limite) >= new Date(filterDateFrom));
+        filteredActions = filteredActions.filter(a => {
+            const dt = a.data_limite ? new Date(a.data_limite) : new Date(a.created_at);
+            return dt >= new Date(filterDateFrom);
+        });
     }
     if (filterDateTo) {
-        filteredActions = filteredActions.filter(a => a.data_limite && new Date(a.data_limite) <= new Date(filterDateTo));
+        filteredActions = filteredActions.filter(a => {
+            const dt = a.data_limite ? new Date(a.data_limite) : new Date(a.created_at);
+            return dt <= new Date(filterDateTo);
+        });
     }
 
     // Force Descending Order (Newest First)
@@ -307,7 +313,7 @@ ${filteredActions.slice(0, 10).map(a => `- [${a.modulo_origem}] [Área: ${a.nome
     };
 
     const handleSaveEdit = async () => {
-        if (!editingAction || editingAction.modulo_origem !== 'Geral') return;
+        if (!editingAction) return;
         setIsSavingEdit(true);
         const payload = {
             titulo: editingAction.titulo,
@@ -320,7 +326,8 @@ ${filteredActions.slice(0, 10).map(a => `- [${a.modulo_origem}] [Área: ${a.nome
             data_limite: editingAction.data_limite || null,
             responsavel_nome: editingAction.responsavel_nome || null,
             responsavel_id: editingAction.responsavel_id || null,
-            status_eficacia: editingAction.status_eficacia || 'Pendente'
+            status_eficacia: editingAction.status_eficacia || 'Pendente',
+            modulo_origem: editingAction.modulo_origem
         };
         const res = await updateAcaoGlobal(editingAction.id, payload);
         if (res.success) {
@@ -414,14 +421,32 @@ ${filteredActions.slice(0, 10).map(a => `- [${a.modulo_origem}] [Área: ${a.nome
                             </div>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-3">
-                            <div className="xl:col-span-2">
-                                <input 
-                                    type="text" 
-                                    placeholder="Pesquisar título ou descrição..." 
-                                    value={searchDesc}
-                                    onChange={e => setSearchDesc(e.target.value)}
-                                    className="w-full text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded py-1.5 px-3 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                                />
+                            <div className="xl:col-span-3 flex flex-col sm:flex-row gap-2">
+                                <div className="flex-1">
+                                    <input 
+                                        type="text" 
+                                        placeholder="Pesquisar título ou descrição..." 
+                                        value={searchDesc}
+                                        onChange={e => setSearchDesc(e.target.value)}
+                                        className="w-full text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded py-1.5 px-3 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                    />
+                                </div>
+                                <div className="flex items-center gap-1 w-full sm:w-auto">
+                                    <span className="text-xs font-bold text-slate-500 uppercase px-1">Limite:</span>
+                                    <input 
+                                        type="date" 
+                                        value={filterDateFrom}
+                                        onChange={e => setFilterDateFrom(e.target.value)}
+                                        className="w-full sm:w-auto text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded py-1.5 px-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                    />
+                                    <span className="text-xs font-bold text-slate-400">até</span>
+                                    <input 
+                                        type="date" 
+                                        value={filterDateTo}
+                                        onChange={e => setFilterDateTo(e.target.value)}
+                                        className="w-full sm:w-auto text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded py-1.5 px-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                    />
+                                </div>
                             </div>
                             <select 
                                 value={filterArea}
@@ -1209,12 +1234,21 @@ ${filteredActions.slice(0, 10).map(a => `- [${a.modulo_origem}] [Área: ${a.nome
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Data Limite</label>
+                                    <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Data Abertura</label>
+                                    <input 
+                                        type="text" 
+                                        value={new Date(editingAction.created_at).toLocaleDateString('pt-PT')}
+                                        readOnly
+                                        className="w-full bg-slate-100 border border-slate-200 rounded-lg p-2.5 text-sm text-slate-500 outline-none cursor-not-allowed"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-bold text-rose-600 uppercase mb-1">Data Limite (Deadline)</label>
                                     <input 
                                         type="date" 
                                         value={editingAction.data_limite ? new Date(editingAction.data_limite).toISOString().split('T')[0] : ''}
                                         onChange={e => setEditingAction({...editingAction, data_limite: e.target.value ? new Date(e.target.value).toISOString() : null})}
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm text-slate-800 focus:border-blue-500 outline-none"
+                                        className="w-full bg-rose-50 border border-rose-200 rounded-lg p-2.5 text-sm text-rose-800 focus:border-rose-500 outline-none"
                                     />
                                 </div>
                                 <div className="col-span-2">

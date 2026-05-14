@@ -56,8 +56,64 @@ export async function updateAcaoGlobal(id: string, payload: any) {
         const cookieStore = cookies();
         const supabase = createClient(cookieStore);
 
-        const { error } = await supabase.from('central_acoes_globais').update(payload).eq('id', id);
-        if (error) throw error;
+        const modOrigem = payload.modulo_origem || 'Geral';
+        delete payload.modulo_origem; // remove do payload para não dar erro nas tabelas
+
+        if (modOrigem === 'HST') {
+            const hstPayload = {
+                descricao_acao: payload.descricao,
+                status: payload.status,
+                data_prevista: payload.data_limite,
+                responsavel_id: payload.responsavel_id,
+                area_id: payload.area_id,
+                linha_id: payload.linha_id,
+                estacao_id: payload.estacao_id,
+                status_eficacia: payload.status_eficacia
+            };
+            const { error } = await supabase.from('hst_acoes').update(hstPayload).eq('id', id);
+            if (error) throw error;
+        } 
+        else if (modOrigem === 'Lean/Kaizen') {
+            const leanPayload = {
+                titulo: payload.titulo,
+                descricao: payload.descricao,
+                status: payload.status,
+                data_limite: payload.data_limite,
+                responsavel_id: payload.responsavel_id,
+                area_id: payload.area_id,
+                linha_id: payload.linha_id,
+                estacao_id: payload.estacao_id,
+                status_eficacia: payload.status_eficacia
+            };
+            const { error } = await supabase.from('lean_acoes').update(leanPayload).eq('id', id);
+            if (error) throw error;
+        }
+        else if (modOrigem === 'Lean/5S') {
+            const lean5sPayload = {
+                descricao_acao: payload.descricao,
+                status: payload.status,
+                data_limite: payload.data_limite,
+                responsavel_id: payload.responsavel_id,
+                area_id: payload.area_id,
+                linha_id: payload.linha_id,
+                estacao_id: payload.estacao_id,
+                validacao_eficacia: payload.status_eficacia
+            };
+            const { error } = await supabase.from('lean_5s_acoes').update(lean5sPayload).eq('id', id);
+            if (error) throw error;
+        }
+        else if (modOrigem === 'Qualidade') {
+            // Qualidade A3 actions are mostly derived from JSON, 
+            // but we can update the top-level status if we want, or we just throw error since they are read-only JSON arrays usually.
+            // For now, let's update top-level status on qualidade_a3.
+            const { error } = await supabase.from('qualidade_a3').update({ status: payload.status }).eq('id', id);
+            if (error) throw error;
+        }
+        else {
+            // Geral
+            const { error } = await supabase.from('central_acoes_globais').update(payload).eq('id', id);
+            if (error) throw error;
+        }
 
         return { success: true };
     } catch (e: any) {
