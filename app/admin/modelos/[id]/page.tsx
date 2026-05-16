@@ -25,14 +25,7 @@ type Opcional = {
     tarefas: Tarefa[];
 }
 
-// Simulamos as estações do Shopfloor, no futuro virão da BD
-const ESTACOES = [
-    { id: 'est-1', nome: '1. Laminação Casco' },
-    { id: 'est-2', nome: '2. Laminação Coberta' },
-    { id: 'est-3', nome: '3. Montagem Estrutural' },
-    { id: 'est-4', nome: '4. Instalação Elétrica' },
-    { id: 'est-5', nome: '5. Acabamento Final' }
-];
+// As estações do Shopfloor virão da BD
 
 export default function EditarModeloPage() {
     const router = useRouter();
@@ -56,6 +49,7 @@ export default function EditarModeloPage() {
     // Lista de Linhas Ativas para Dropdown
     const [linhasProducao, setLinhasProducao] = useState<{id: string, letra_linha: string}[]>([]);
     const [areasFabrica, setAreasFabrica] = useState<{id: string, nome_area: string}[]>([]);
+    const [estacoes, setEstacoes] = useState<{id: string, nome_estacao: string}[]>([]);
 
     useEffect(() => {
         if (!modeloId) return;
@@ -68,6 +62,9 @@ export default function EditarModeloPage() {
 
                 const { data: areas } = await supabase.from('areas_fabrica').select('id, nome_area').order('ordem_sequencial');
                 setAreasFabrica(areas || []);
+
+                const { data: estacoesDb } = await supabase.from('estacoes').select('id, nome_estacao').order('ordem_sequencial');
+                setEstacoes(estacoesDb || []);
 
                 // Now Fetch the Model Data
                 const res = await fetchModeloParaEdicao(modeloId);
@@ -306,7 +303,7 @@ export default function EditarModeloPage() {
         const tarefasPorEstacao: Record<string, { tipo: string, tarefa: Tarefa }[]> = {};
 
         // Iniciamos com as estações conhecidas para garantir que a ordem é lógica
-        ESTACOES.forEach(est => tarefasPorEstacao[est.id] = []);
+        estacoes.forEach(est => tarefasPorEstacao[est.id] = []);
 
         // Adiciona Gerais
         tarefasGerais.forEach(t => {
@@ -338,7 +335,7 @@ export default function EditarModeloPage() {
             }
             isFirstPage = false;
 
-            const nomeDaEstacao = ESTACOES.find(e => e.id === estacaoId)?.nome || estacaoId;
+            const nomeDaEstacao = estacoes.find(e => e.id === estacaoId)?.nome_estacao || estacaoId;
 
             // Header Premium do Relatório
             doc.setFillColor(15, 23, 42); // slate-900
@@ -570,7 +567,7 @@ export default function EditarModeloPage() {
                                             {meta.tipo_alvo === 'ESTACAO' && (
                                                 <select className="form-control" value={meta.estacao_id} onChange={e => updateMetaHH(meta.id!, 'estacao_id', e.target.value)}>
                                                     <option value="">-- Selecione a Estação --</option>
-                                                    {ESTACOES.map(e => <option key={e.id} value={e.id}>{e.nome}</option>)}
+                                                    {estacoes.map(e => <option key={e.id} value={e.id}>{e.nome_estacao}</option>)}
                                                 </select>
                                             )}
                                         </div>
@@ -601,7 +598,7 @@ export default function EditarModeloPage() {
                     <table className="table-premium">
                         <thead>
                             <tr>
-                                <th style={{ width: '80px' }}>Ordem</th>
+                                <th style={{ width: '100px' }}>Ordem</th>
                                 <th>Descrição da Tarefa</th>
                                 <th>Estação Alvo</th>
                                 <th style={{ textAlign: 'center' }}>Imagem Instrução</th>
@@ -617,7 +614,7 @@ export default function EditarModeloPage() {
                             {tarefasGerais.map(tarefa => (
                                 <tr key={tarefa.id}>
                                     <td>
-                                        <input type="number" className="form-control" placeholder="Nº" value={tarefa.ordem} onChange={e => updateTarefaGeral(tarefa.id, 'ordem', e.target.value)} />
+                                        <input type="number" className="form-control" placeholder="Nº" style={{ width: '100%' }} value={tarefa.ordem} onChange={e => updateTarefaGeral(tarefa.id, 'ordem', e.target.value)} />
                                     </td>
                                     <td>
                                         <input type="text" className="form-control" placeholder="Instrução exata para o operador..." value={tarefa.descricao} onChange={e => updateTarefaGeral(tarefa.id, 'descricao', e.target.value)} />
@@ -625,8 +622,8 @@ export default function EditarModeloPage() {
                                     <td>
                                         <select className="form-control" value={tarefa.estacao_id} onChange={e => updateTarefaGeral(tarefa.id, 'estacao_id', e.target.value)}>
                                             <option value="">-- Estação --</option>
-                                            {ESTACOES.map(est => (
-                                                <option key={est.id} value={est.id}>{est.nome}</option>
+                                            {estacoes.map(est => (
+                                                <option key={est.id} value={est.id}>{est.nome_estacao}</option>
                                             ))}
                                         </select>
                                     </td>
@@ -713,7 +710,7 @@ export default function EditarModeloPage() {
                             <table className="table-premium" style={{ tableLayout: 'fixed' }}>
                                 <thead>
                                     <tr>
-                                        <th style={{ width: '60px' }}>Ord</th>
+                                        <th style={{ width: '80px' }}>Ord</th>
                                         <th>Instrução Exata</th>
                                         <th style={{ width: '150px' }}>Estação</th>
                                         <th style={{ width: '80px', textAlign: 'center' }}>Anexo</th>
@@ -724,12 +721,12 @@ export default function EditarModeloPage() {
                                     {currentOpcional.tarefas.length === 0 && <tr><td colSpan={5} style={{ textAlign: 'center', opacity: 0.5 }}>Adiciona a primeira tarefa técnica deste opcional.</td></tr>}
                                     {currentOpcional.tarefas.map(tarefa => (
                                         <tr key={tarefa.id}>
-                                            <td><input type="number" className="form-control" value={tarefa.ordem} onChange={e => updateTarefaOpcional(tarefa.id, 'ordem', e.target.value)} style={{ padding: '0.5rem' }} /></td>
+                                            <td><input type="number" className="form-control" value={tarefa.ordem} onChange={e => updateTarefaOpcional(tarefa.id, 'ordem', e.target.value)} style={{ padding: '0.5rem', width: '100%' }} /></td>
                                             <td><input type="text" className="form-control" value={tarefa.descricao} placeholder="O que o operador 1 tem de fazer?" onChange={e => updateTarefaOpcional(tarefa.id, 'descricao', e.target.value)} style={{ padding: '0.5rem' }} /></td>
                                             <td>
                                                 <select className="form-control" value={tarefa.estacao_id} onChange={e => updateTarefaOpcional(tarefa.id, 'estacao_id', e.target.value)} style={{ padding: '0.5rem', fontSize: '0.85rem' }}>
                                                     <option value="">A Carga De...</option>
-                                                    {ESTACOES.map(est => <option key={est.id} value={est.id}>{est.nome}</option>)}
+                                                    {estacoes.map(est => <option key={est.id} value={est.id}>{est.nome_estacao}</option>)}
                                                 </select>
                                             </td>
                                             <td style={{ textAlign: 'center' }}>
