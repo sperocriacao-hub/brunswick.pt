@@ -63,7 +63,7 @@ export default function EditarModeloPage() {
                 const { data: areas } = await supabase.from('areas_fabrica').select('id, nome_area').order('ordem_sequencial');
                 setAreasFabrica(areas || []);
 
-                const { data: estacoesDb } = await supabase.from('estacoes').select('id, nome_estacao').order('ordem_sequencial');
+                const { data: estacoesDb } = await supabase.from('estacoes').select('id, nome_estacao').order('nome_estacao');
                 setEstacoes(estacoesDb || []);
 
                 // Now Fetch the Model Data
