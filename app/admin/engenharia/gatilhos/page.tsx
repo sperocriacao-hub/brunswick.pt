@@ -11,6 +11,7 @@ export default function GatilhosLogisticaPage() {
     const [estacoes, setEstacoes] = useState<any[]>([]);
     const [areas, setAreas] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [fetchError, setFetchError] = useState<string | null>(null);
     const [isSaving, setIsSaving] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -53,15 +54,18 @@ export default function GatilhosLogisticaPage() {
                 .select(`
                     *,
                     modelo:modelos(nome_modelo),
-                    estacao_gatilho:estacoes!regras_gatilhos_secundarios_estacao_gatilho_id_fkey(nome_estacao),
-                    estacao_destino:estacoes!regras_gatilhos_secundarios_estacao_destino_id_fkey(nome_estacao),
-                    area_alvo:areas_fabrica(nome_area, cor_identificacao),
-                    estacao_alvo:estacoes!regras_gatilhos_secundarios_estacao_alvo_id_fkey(nome_estacao)
+                    estacao_gatilho:estacao_gatilho_id(nome_estacao),
+                    estacao_destino:estacao_destino_id(nome_estacao),
+                    area_alvo:area_alvo_id(nome_area, cor_identificacao),
+                    estacao_alvo:estacao_alvo_id(nome_estacao)
                 `)
                 .order('created_at', { ascending: false });
                 
             if (regrasError) {
                 console.error("Erro ao buscar regras:", regrasError);
+                setFetchError(regrasError.message || JSON.stringify(regrasError));
+            } else {
+                setFetchError(null);
             }
             setRegras(regrasData || []);
         } catch (error) {
@@ -128,6 +132,13 @@ export default function GatilhosLogisticaPage() {
 
     return (
         <div className="max-w-7xl mx-auto p-4 sm:p-8 animate-in fade-in duration-500 pb-20">
+            {fetchError && (
+                <div className="mb-4 bg-rose-50 border border-rose-200 text-rose-700 p-4 rounded-md">
+                    <p className="font-bold">Erro de Leitura da BD:</p>
+                    <p className="text-sm font-mono mt-1">{fetchError}</p>
+                </div>
+            )}
+            
             <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
                 <div>
                     <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
