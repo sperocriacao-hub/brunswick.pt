@@ -250,7 +250,7 @@ const TABLES = [
 
   // 9. SISTEMA
   {
-    key: "sys_config_geral",
+    key: "configuracoes_sistema",
     label: "Configurações de Sistema",
     desc: "Chaves e toggles globais do M.E.S.",
   },
@@ -258,6 +258,28 @@ const TABLES = [
     key: "sys_feriados_fabrica",
     label: "Calendário de Feriados",
     desc: "Dias sem OEE planeada.",
+  },
+
+  // 10. RECENTES (AVALIAÇÕES E LEAN 5S)
+  {
+    key: "avaliacoes_bottom_up",
+    label: "Avaliações Bottom-Up",
+    desc: "Avaliações anónimas da equipa à chefia.",
+  },
+  {
+    key: "lean_5s_cronograma",
+    label: "Cronogramas 5S",
+    desc: "Agendamento das rondas Lean 5S por estação.",
+  },
+  {
+    key: "lean_5s_acoes",
+    label: "Plano de Ações 5S",
+    desc: "Ações resultantes das rondas 5S.",
+  },
+  {
+    key: "hst_auditorias",
+    label: "Auditorias HST",
+    desc: "Auditorias de Segurança e Ambiente.",
   },
 ];
 
