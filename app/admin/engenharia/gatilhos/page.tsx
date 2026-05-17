@@ -9,6 +9,7 @@ export default function GatilhosLogisticaPage() {
     const [regras, setRegras] = useState<any[]>([]);
     const [modelos, setModelos] = useState<any[]>([]);
     const [estacoes, setEstacoes] = useState<any[]>([]);
+    const [areas, setAreas] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -18,11 +19,14 @@ export default function GatilhosLogisticaPage() {
         modelo_id: '',
         estacao_gatilho_id: '',
         evento_gatilho: 'INICIO_ESTACAO',
-        tipo_ordem: 'PICKING_ARMAZEM',
+        area_alvo_id: '',
         descricao_tarefa: '',
+        checklist_tarefas: [] as string[],
         sla_horas: 24,
         estacao_destino_id: ''
     });
+    
+    const [novaTarefa, setNovaTarefa] = useState('');
 
     const fetchData = async () => {
         setIsLoading(true);
@@ -35,6 +39,10 @@ export default function GatilhosLogisticaPage() {
             const { data: estacoesData } = await supabase.from('estacoes').select('*').order('nome_estacao');
             setEstacoes(estacoesData || []);
 
+            // Fetch Areas
+            const { data: areasData } = await supabase.from('areas_fabrica').select('*').order('nome_area');
+            setAreas(areasData || []);
+
             // Fetch Rules
             const { data: regrasData } = await supabase
                 .from('regras_gatilhos_secundarios')
@@ -42,7 +50,8 @@ export default function GatilhosLogisticaPage() {
                     *,
                     modelo:modelos(nome_modelo),
                     estacao_gatilho:estacoes!estacao_gatilho_id(nome_estacao),
-                    estacao_destino:estacoes!estacao_destino_id(nome_estacao)
+                    estacao_destino:estacoes!estacao_destino_id(nome_estacao),
+                    area_alvo:areas_fabrica!area_alvo_id(nome_area, cor_identificacao)
                 `)
                 .order('created_at', { ascending: false });
             setRegras(regrasData || []);
@@ -70,8 +79,9 @@ export default function GatilhosLogisticaPage() {
                 modelo_id: '',
                 estacao_gatilho_id: '',
                 evento_gatilho: 'INICIO_ESTACAO',
-                tipo_ordem: 'PICKING_ARMAZEM',
+                area_alvo_id: '',
                 descricao_tarefa: '',
+                checklist_tarefas: [],
                 sla_horas: 24,
                 estacao_destino_id: ''
             });
@@ -94,23 +104,20 @@ export default function GatilhosLogisticaPage() {
         }
     };
 
-    const getOrderColor = (tipo: string) => {
-        switch (tipo) {
-            case 'PICKING_ARMAZEM': return 'bg-amber-100 text-amber-800 border-amber-300';
-            case 'FABRICO_CARPINTARIA': return 'bg-orange-100 text-orange-800 border-orange-300';
-            case 'FABRICO_ESTOFOS': return 'bg-purple-100 text-purple-800 border-purple-300';
-            default: return 'bg-slate-100 text-slate-800 border-slate-300';
-        }
+    const addTarefa = () => {
+        if (!novaTarefa.trim()) return;
+        setFormData(prev => ({
+            ...prev,
+            checklist_tarefas: [...prev.checklist_tarefas, novaTarefa.trim()]
+        }));
+        setNovaTarefa('');
     };
 
-    const getOrderLabel = (tipo: string) => {
-        switch (tipo) {
-            case 'PICKING_ARMAZEM': return 'Armazém (Picking)';
-            case 'FABRICO_CARPINTARIA': return 'Carpintaria';
-            case 'FABRICO_ESTOFOS': return 'Estofos';
-            case 'SERRALHARIA': return 'Serralharia';
-            default: return tipo;
-        }
+    const removeTarefa = (index: number) => {
+        setFormData(prev => ({
+            ...prev,
+            checklist_tarefas: prev.checklist_tarefas.filter((_, i) => i !== index)
+        }));
     };
 
     const inputClass = "w-full px-3 py-2 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-slate-50 text-slate-900 text-sm";
@@ -177,10 +184,16 @@ export default function GatilhosLogisticaPage() {
                                     </td>
                                     <td className="p-4 text-center">
                                         <div className="flex flex-col items-center gap-1">
-                                            <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-black tracking-widest border ${getOrderColor(regra.tipo_ordem)}`}>
-                                                {getOrderLabel(regra.tipo_ordem)}
+                                            <span 
+                                                className={`px-2 py-0.5 rounded text-[10px] uppercase font-black tracking-widest border border-slate-200 shadow-sm`}
+                                                style={{ backgroundColor: regra.area_alvo?.cor_identificacao ? `${regra.area_alvo.cor_identificacao}20` : '#f1f5f9', color: regra.area_alvo?.cor_identificacao || '#475569', borderColor: regra.area_alvo?.cor_identificacao ? `${regra.area_alvo.cor_identificacao}50` : '#e2e8f0' }}
+                                            >
+                                                {regra.area_alvo?.nome_area}
                                             </span>
                                             <span className="text-xs font-semibold text-slate-600">{regra.descricao_tarefa}</span>
+                                            {regra.checklist_tarefas && regra.checklist_tarefas.length > 0 && (
+                                                <span className="text-[9px] font-bold text-slate-400 mt-1">{regra.checklist_tarefas.length} Tarefas (Checklist)</span>
+                                            )}
                                         </div>
                                     </td>
                                     <td className="p-4 text-center font-bold text-rose-600">
@@ -268,18 +281,48 @@ export default function GatilhosLogisticaPage() {
                                     <h3 className="text-[10px] uppercase font-black tracking-widest text-slate-400 mb-3">2. A Reação (O que o M.E.S vai exigir)</h3>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div>
-                                            <label className="block text-xs font-bold text-slate-700 mb-1">Setor a Notificar:</label>
-                                            <select required value={formData.tipo_ordem} onChange={e => setFormData({...formData, tipo_ordem: e.target.value})} className={`${inputClass} font-bold text-blue-800`}>
-                                                <option value="PICKING_ARMAZEM">📦 Armazém Principal (Picking de Peças)</option>
-                                                <option value="FABRICO_CARPINTARIA">🪚 Carpintaria (Corte e Fabrico)</option>
-                                                <option value="FABRICO_ESTOFOS">🧵 Estofos (Corte e Costura)</option>
-                                                <option value="SERRALHARIA">🛠️ Serralharia</option>
+                                            <label className="block text-xs font-bold text-slate-700 mb-1">Setor a Notificar (Área da Fábrica):</label>
+                                            <select required value={formData.area_alvo_id} onChange={e => setFormData({...formData, area_alvo_id: e.target.value})} className={`${inputClass} font-bold text-blue-800`}>
+                                                <option value="">Selecione o Setor Alvo...</option>
+                                                {areas.map(a => <option key={a.id} value={a.id}>{a.nome_area}</option>)}
                                             </select>
                                         </div>
                                         <div>
-                                            <label className="block text-xs font-bold text-slate-700 mb-1">O que eles têm de fazer?</label>
+                                            <label className="block text-xs font-bold text-slate-700 mb-1">O que eles têm de fazer? (Título do Ticket)</label>
                                             <input required type="text" value={formData.descricao_tarefa} onChange={e => setFormData({...formData, descricao_tarefa: e.target.value})} className={inputClass} placeholder="Ex: Preparar Kit Fibras Casco" />
                                         </div>
+                                    </div>
+                                    
+                                    <div className="mt-4 border border-slate-200 rounded-lg p-4 bg-slate-50/50">
+                                        <label className="block text-xs font-bold text-slate-700 mb-2">Checklist Passo a Passo (Opcional):</label>
+                                        <p className="text-[10px] text-slate-500 mb-3">Adiciona tarefas obrigatórias que a carpintaria ou estofos têm de picar no tablet antes de concluir a ordem.</p>
+                                        
+                                        <div className="flex gap-2 mb-3">
+                                            <input 
+                                                type="text" 
+                                                value={novaTarefa} 
+                                                onChange={e => setNovaTarefa(e.target.value)} 
+                                                onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addTarefa())}
+                                                className={inputClass} 
+                                                placeholder="Ex: Cortar MDF 15mm..." 
+                                            />
+                                            <button type="button" onClick={addTarefa} className="bg-slate-800 text-white px-4 rounded-md text-xs font-bold hover:bg-slate-900 transition-colors">
+                                                Adicionar
+                                            </button>
+                                        </div>
+                                        
+                                        {formData.checklist_tarefas.length > 0 && (
+                                            <ul className="space-y-2 mt-2">
+                                                {formData.checklist_tarefas.map((tarefa, idx) => (
+                                                    <li key={idx} className="flex justify-between items-center bg-white p-2 px-3 border border-slate-200 rounded-md text-sm shadow-sm">
+                                                        <span className="font-medium text-slate-700"><span className="text-slate-400 mr-2">{idx + 1}.</span>{tarefa}</span>
+                                                        <button type="button" onClick={() => removeTarefa(idx)} className="text-rose-500 hover:text-rose-700 p-1">
+                                                            <Trash2 size={14} />
+                                                        </button>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        )}
                                     </div>
                                 </div>
 

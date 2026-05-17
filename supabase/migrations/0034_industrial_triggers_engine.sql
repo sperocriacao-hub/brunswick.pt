@@ -11,10 +11,11 @@ CREATE TABLE public.regras_gatilhos_secundarios (
     modelo_id UUID NOT NULL REFERENCES public.modelos(id) ON DELETE CASCADE,
     estacao_gatilho_id UUID NOT NULL REFERENCES public.estacoes(id) ON DELETE CASCADE,
     evento_gatilho VARCHAR(50) NOT NULL DEFAULT 'INICIO_ESTACAO' CHECK (evento_gatilho IN ('INICIO_ESTACAO', 'FIM_ESTACAO', '50_PERCENTO')),
-    tipo_ordem VARCHAR(50) NOT NULL CHECK (tipo_ordem IN ('PICKING_ARMAZEM', 'FABRICO_CARPINTARIA', 'FABRICO_ESTOFOS', 'SERRALHARIA')),
-    descricao_tarefa TEXT NOT NULL, -- Ex: "Construir Móveis da Cabine" ou "Kit Fibras Casco"
-    sla_horas INTEGER NOT NULL DEFAULT 24, -- O tempo de preparação concedido ao setor secundário
-    estacao_destino_id UUID REFERENCES public.estacoes(id) ON DELETE CASCADE, -- Onde o material deve ser entregue
+    area_alvo_id UUID NOT NULL REFERENCES public.areas_fabrica(id) ON DELETE CASCADE, -- Setor Secundário (Carpintaria, Armazém)
+    descricao_tarefa TEXT NOT NULL, -- Opcional ou Título do Ticket
+    checklist_tarefas JSONB DEFAULT '[]'::jsonb, -- Array de strings com as tarefas detalhadas ("1. Cortar", "2. Colar")
+    sla_horas INTEGER NOT NULL DEFAULT 24,
+    estacao_destino_id UUID REFERENCES public.estacoes(id) ON DELETE CASCADE,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -23,18 +24,18 @@ CREATE TRIGGER update_regras_gatilhos_updated_at BEFORE UPDATE ON public.regras_
 
 -- --------------------------------------------------------------------------------------
 -- 2. ORDENS SECUNDÁRIAS REALTIME (O "Uber" do Shopfloor)
--- Esta tabela guarda os "Tickets" reais disparados no dia a dia para os Tablets da Carpintaria/Armazém.
 -- --------------------------------------------------------------------------------------
 CREATE TABLE public.ordens_secundarias_realtime (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     regra_id UUID NOT NULL REFERENCES public.regras_gatilhos_secundarios(id) ON DELETE RESTRICT,
-    op_principal_id UUID NOT NULL REFERENCES public.ordens_producao(id) ON DELETE CASCADE, -- A que barco se destina
-    tipo_ordem VARCHAR(50) NOT NULL, -- Cópia para facilitar filtragem nos tablets
+    op_principal_id UUID NOT NULL REFERENCES public.ordens_producao(id) ON DELETE CASCADE,
+    area_alvo_id UUID NOT NULL REFERENCES public.areas_fabrica(id) ON DELETE CASCADE, -- Cópia para facilitar
+    checklist_progresso JSONB DEFAULT '[]'::jsonb, -- Registo do estado de cada tarefa da checklist
     status VARCHAR(50) NOT NULL DEFAULT 'PENDENTE' CHECK (status IN ('PENDENTE', 'EM_CURSO', 'PRONTO_ENTREGA', 'CONCLUIDO')),
     timestamp_disparo TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    timestamp_deadline TIMESTAMPTZ NOT NULL, -- Calculado como (disparo + sla_horas)
+    timestamp_deadline TIMESTAMPTZ NOT NULL,
     timestamp_conclusao TIMESTAMPTZ,
-    operador_rfid VARCHAR(255) REFERENCES public.operadores(tag_rfid_operador) ON DELETE SET NULL, -- Quem assumiu a tarefa
+    operador_rfid VARCHAR(255) REFERENCES public.operadores(tag_rfid_operador) ON DELETE SET NULL,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
