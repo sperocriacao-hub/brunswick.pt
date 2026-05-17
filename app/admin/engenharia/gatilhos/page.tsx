@@ -39,9 +39,13 @@ export default function GatilhosLogisticaPage() {
             const { data: estacoesData } = await supabase.from('estacoes').select('*').order('nome_estacao');
             setEstacoes(estacoesData || []);
 
-            // Fetch Areas
+            // Fetch Areas (Filtrar só para Armazém, Carpintaria e Estofos)
             const { data: areasData } = await supabase.from('areas_fabrica').select('*').order('nome_area');
-            setAreas(areasData || []);
+            const areasFiltradas = (areasData || []).filter(a => {
+                const nome = a.nome_area.toLowerCase();
+                return nome.includes('armazém') || nome.includes('armazem') || nome.includes('carpintaria') || nome.includes('estofos');
+            });
+            setAreas(areasFiltradas);
 
             // Fetch Rules
             const { data: regrasData } = await supabase
@@ -102,22 +106,6 @@ export default function GatilhosLogisticaPage() {
         } catch (error: any) {
             alert('Erro: ' + error.message);
         }
-    };
-
-    const addTarefa = () => {
-        if (!novaTarefa.trim()) return;
-        setFormData(prev => ({
-            ...prev,
-            checklist_tarefas: [...prev.checklist_tarefas, novaTarefa.trim()]
-        }));
-        setNovaTarefa('');
-    };
-
-    const removeTarefa = (index: number) => {
-        setFormData(prev => ({
-            ...prev,
-            checklist_tarefas: prev.checklist_tarefas.filter((_, i) => i !== index)
-        }));
     };
 
     const inputClass = "w-full px-3 py-2 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-slate-50 text-slate-900 text-sm";
@@ -191,9 +179,7 @@ export default function GatilhosLogisticaPage() {
                                                 {regra.area_alvo?.nome_area}
                                             </span>
                                             <span className="text-xs font-semibold text-slate-600">{regra.descricao_tarefa}</span>
-                                            {regra.checklist_tarefas && regra.checklist_tarefas.length > 0 && (
-                                                <span className="text-[9px] font-bold text-slate-400 mt-1">{regra.checklist_tarefas.length} Tarefas (Checklist)</span>
-                                            )}
+                                            <span className="text-[9px] font-bold text-slate-400 mt-1">Tarefas auto-vinculadas ao Modelo</span>
                                         </div>
                                     </td>
                                     <td className="p-4 text-center font-bold text-rose-600">
@@ -291,38 +277,6 @@ export default function GatilhosLogisticaPage() {
                                             <label className="block text-xs font-bold text-slate-700 mb-1">O que eles têm de fazer? (Título do Ticket)</label>
                                             <input required type="text" value={formData.descricao_tarefa} onChange={e => setFormData({...formData, descricao_tarefa: e.target.value})} className={inputClass} placeholder="Ex: Preparar Kit Fibras Casco" />
                                         </div>
-                                    </div>
-                                    
-                                    <div className="mt-4 border border-slate-200 rounded-lg p-4 bg-slate-50/50">
-                                        <label className="block text-xs font-bold text-slate-700 mb-2">Checklist Passo a Passo (Opcional):</label>
-                                        <p className="text-[10px] text-slate-500 mb-3">Adiciona tarefas obrigatórias que a carpintaria ou estofos têm de picar no tablet antes de concluir a ordem.</p>
-                                        
-                                        <div className="flex gap-2 mb-3">
-                                            <input 
-                                                type="text" 
-                                                value={novaTarefa} 
-                                                onChange={e => setNovaTarefa(e.target.value)} 
-                                                onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addTarefa())}
-                                                className={inputClass} 
-                                                placeholder="Ex: Cortar MDF 15mm..." 
-                                            />
-                                            <button type="button" onClick={addTarefa} className="bg-slate-800 text-white px-4 rounded-md text-xs font-bold hover:bg-slate-900 transition-colors">
-                                                Adicionar
-                                            </button>
-                                        </div>
-                                        
-                                        {formData.checklist_tarefas.length > 0 && (
-                                            <ul className="space-y-2 mt-2">
-                                                {formData.checklist_tarefas.map((tarefa, idx) => (
-                                                    <li key={idx} className="flex justify-between items-center bg-white p-2 px-3 border border-slate-200 rounded-md text-sm shadow-sm">
-                                                        <span className="font-medium text-slate-700"><span className="text-slate-400 mr-2">{idx + 1}.</span>{tarefa}</span>
-                                                        <button type="button" onClick={() => removeTarefa(idx)} className="text-rose-500 hover:text-rose-700 p-1">
-                                                            <Trash2 size={14} />
-                                                        </button>
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        )}
                                     </div>
                                 </div>
 
