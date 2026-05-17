@@ -130,7 +130,7 @@ export default function EditarModeloPage() {
         setIsCloning(true);
         const res = await fetchTarefasGeraisClone(modeloAClonar);
         if (res.success && res.data) {
-            setTarefasGerais(prev => [...prev, ...res.data]);
+            setTarefasGerais(prev => [...prev, ...(res.data as Tarefa[])]);
             alert("Tarefas comuns clonadas com sucesso! Não te esqueças de Salvar as Alterações.");
         } else {
             alert("Erro ao clonar: " + res.error);
