@@ -815,6 +815,7 @@ function FuncionarioFormCore() {
 
                                             { path: "/admin/modelos", label: "Modelos & Produtos", group: "Engenharia" },
                                             { path: "/admin/engenharia/regras", label: "Regras Sequenciais", group: "Engenharia" },
+                                            { path: "/admin/engenharia/gatilhos", label: "Gatilhos Logísticos JIT", group: "Engenharia" },
                                             { path: "/admin/engenharia/roteiros", label: "Tempos Roteiro OEE", group: "Engenharia" },
                                             { path: "/admin/engenharia/moldes", label: "Cadastro de Moldes", group: "Engenharia" },
                                             { path: "/admin/fabrica", label: "Fábrica & Estações", group: "Engenharia" },

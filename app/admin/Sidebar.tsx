@@ -469,6 +469,7 @@ export function Sidebar({
 
                 {(hasAccess("/admin/modelos") ||
                   hasAccess("/admin/engenharia/regras") ||
+                  hasAccess("/admin/engenharia/gatilhos") ||
                   hasAccess("/admin/engenharia/roteiros") ||
                   hasAccess("/admin/engenharia/moldes") ||
                   hasAccess("/admin/fabrica")) && (
@@ -512,6 +513,18 @@ export function Sidebar({
                             />
                             <span className="text-sm border-transparent">
                               Regras Sequenciais
+                            </span>
+                          </Link>
+                        )}
+                        {hasAccess("/admin/engenharia/gatilhos") && (
+                          <Link
+                            onClick={() => setIsOpen(false)}
+                            href="/admin/engenharia/gatilhos"
+                            className={`flex items-center gap-3 rounded-md px-3 py-2 transition-all font-medium ${pathname.includes("/admin/engenharia/gatilhos") ? "bg-blue-800 text-white shadow-sm border border-transparent" : "text-blue-100 hover:bg-blue-800/50 hover:text-white"}`}
+                          >
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={pathname.includes("/admin/engenharia/gatilhos") ? "text-white" : "text-blue-300"}><path d="m11 17 2 2a1 1 0 1 0 3-3"/><path d="m14 14 2.5 2.5a1 1 0 1 0 3-3l-3.88-3.88a3 3 0 0 0-4.24 0l-5.8 5.8a1 1 0 0 0 0 1.41l2.83 2.83a1 1 0 0 0 1.41 0l5.8-5.8"/><path d="M12.5 9 15 6.5"/></svg>
+                            <span className="text-sm border-transparent">
+                              Gatilhos Logísticos
                             </span>
                           </Link>
                         )}
