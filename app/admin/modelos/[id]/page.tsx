@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Save, FileText, Settings, X, Upload, Loader2 } from 'lucide-react';
+import { Plus, Trash2, Save, FileText, Settings, X, Upload, Loader2, Copy } from 'lucide-react';
 import { useRouter, useParams } from 'next/navigation';
-import { atualizarModeloCompleto, EditarModeloInput, fetchModeloParaEdicao, InMetaHH } from './actions';
+import { atualizarModeloCompleto, EditarModeloInput, fetchModeloParaEdicao, InMetaHH, fetchTarefasGeraisClone } from './actions';
 import { createClient } from '@/utils/supabase/client';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -50,6 +50,11 @@ export default function EditarModeloPage() {
     const [linhasProducao, setLinhasProducao] = useState<{id: string, letra_linha: string}[]>([]);
     const [areasFabrica, setAreasFabrica] = useState<{id: string, nome_area: string}[]>([]);
     const [estacoes, setEstacoes] = useState<{id: string, nome_estacao: string}[]>([]);
+    
+    // Cloning Feature States
+    const [modelos, setModelos] = useState<{id: string, nome_modelo: string}[]>([]);
+    const [modeloAClonar, setModeloAClonar] = useState('');
+    const [isCloning, setIsCloning] = useState(false);
 
     useEffect(() => {
         if (!modeloId) return;
@@ -65,6 +70,9 @@ export default function EditarModeloPage() {
 
                 const { data: estacoesDb } = await supabase.from('estacoes').select('id, nome_estacao').order('nome_estacao');
                 setEstacoes(estacoesDb || []);
+
+                const { data: modelosDb } = await supabase.from('modelos').select('id, nome_modelo').neq('id', modeloId).order('nome_modelo');
+                setModelos(modelosDb || []);
 
                 // Now Fetch the Model Data
                 const res = await fetchModeloParaEdicao(modeloId);
@@ -114,6 +122,21 @@ export default function EditarModeloPage() {
         setTarefasGerais(tarefasGerais.map(t => t.id === id ? { ...t, [field]: value } : t));
     };
     const removeTarefaGeral = (id: string) => setTarefasGerais(tarefasGerais.filter(t => t.id !== id));
+
+    const handleCloneRoteiro = async () => {
+        if (!modeloAClonar) return;
+        if (!confirm("Atenção: Esta ação irá anexar todas as tarefas comuns do modelo selecionado à tua lista atual. Queres continuar?")) return;
+        
+        setIsCloning(true);
+        const res = await fetchTarefasGeraisClone(modeloAClonar);
+        if (res.success && res.data) {
+            setTarefasGerais(prev => [...prev, ...res.data]);
+            alert("Tarefas comuns clonadas com sucesso! Não te esqueças de Salvar as Alterações.");
+        } else {
+            alert("Erro ao clonar: " + res.error);
+        }
+        setIsCloning(false);
+    };
 
     // Handlers Opcional (Modal)
     const openNewOpcionalModal = () => {
@@ -589,9 +612,26 @@ export default function EditarModeloPage() {
             <section className="glass-panel p-6 mb-8 animate-delay-2">
                 <div className="flex justify-between items-center mb-6">
                     <h2 style={{ fontSize: '1.25rem', color: 'var(--primary)' }}>Tarefas de Produção Comuns (Geral)</h2>
-                    <button className="btn btn-outline" onClick={addTarefaGeral}>
-                        <Plus size={18} style={{ marginRight: '8px' }} /> Nova Tarefa
-                    </button>
+                    <div className="flex gap-4 items-center">
+                        <div className="flex items-center gap-2 bg-slate-800/30 p-1.5 rounded-lg border border-slate-700/50">
+                            <select 
+                                className="form-control" 
+                                style={{ width: '220px', margin: 0, border: 'none', background: 'var(--card-bg)' }} 
+                                value={modeloAClonar} 
+                                onChange={e => setModeloAClonar(e.target.value)}
+                            >
+                                <option value="">-- Clonar de Outro Modelo --</option>
+                                {modelos.map(m => <option key={m.id} value={m.id}>{m.nome_modelo}</option>)}
+                            </select>
+                            <button className="btn btn-outline" disabled={!modeloAClonar || isCloning} onClick={handleCloneRoteiro} style={{ padding: '0.4rem 0.8rem', whiteSpace: 'nowrap' }}>
+                                {isCloning ? <Loader2 size={16} className="animate-spin mr-2" /> : <Copy size={16} className="mr-2" />} 
+                                Clonar
+                            </button>
+                        </div>
+                        <button className="btn btn-outline" onClick={addTarefaGeral}>
+                            <Plus size={18} style={{ marginRight: '8px' }} /> Nova Tarefa
+                        </button>
+                    </div>
                 </div>
 
                 <div className="table-container">

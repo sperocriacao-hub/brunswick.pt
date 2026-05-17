@@ -126,6 +126,35 @@ export async function fetchModeloParaEdicao(modeloId: string) {
     }
 }
 
+export async function fetchTarefasGeraisClone(modeloOrigemId: string) {
+    try {
+        const cookieStore = cookies() as any;
+        const supabase = createClient(cookieStore);
+
+        const { data: roteiros, error: errRoteiros } = await supabase
+            .from('roteiros_producao')
+            .select('*')
+            .eq('modelo_id', modeloOrigemId)
+            .order('sequencia', { ascending: true });
+
+        if (errRoteiros) throw errRoteiros;
+
+        const tarefasGerais: InTarefa[] = (roteiros || []).map(r => ({
+            id: crypto.randomUUID(), // Gerar ID novo imediatamente para não conflitar
+            ordem: r.sequencia.toString(),
+            descricao: r.descricao_tarefa,
+            estacao_id: r.estacao_id || '',
+            imagem_url: r.imagem_instrucao_url || ''
+        }));
+
+        return { success: true, data: tarefasGerais };
+    } catch (err: unknown) {
+        let msg = "Erro desconhecido";
+        if (err instanceof Error) msg = err.message;
+        return { success: false, error: msg };
+    }
+}
+
 export async function atualizarModeloCompleto(input: EditarModeloInput): Promise<{ success: boolean; error?: string }> {
     try {
         const cookieStore = cookies() as any;
