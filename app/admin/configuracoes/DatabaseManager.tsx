@@ -205,6 +205,16 @@ const TABLES = [
     label: "Pedidos Logísticos (Kitting)",
     desc: "Necessidades e separação de materiais BOM.",
   },
+  {
+    key: "regras_gatilhos_secundarios",
+    label: "Regras de Gatilhos (J.I.T)",
+    desc: "Regras de disparo automático de tickets logísticos.",
+  },
+  {
+    key: "ordens_secundarias_realtime",
+    label: "Tickets Logísticos (J.I.T)",
+    desc: "Pedidos a decorrer nas áreas secundárias.",
+  },
 
   // 8. IOT E ECRÃS
   {
