@@ -56,7 +56,7 @@ export default function GatilhosLogisticaPage() {
                     modelo:modelos(nome_modelo),
                     estacao_gatilho:estacao_gatilho_id(nome_estacao),
                     estacao_destino:estacao_destino_id(nome_estacao),
-                    area_alvo:area_alvo_id(nome_area, cor_identificacao),
+                    area_alvo:area_alvo_id(nome_area, cor_destaque),
                     estacao_alvo:estacao_alvo_id(nome_estacao)
                 `)
                 .order('created_at', { ascending: false });
@@ -197,7 +197,7 @@ export default function GatilhosLogisticaPage() {
                                         <div className="flex flex-col items-center gap-1">
                                             <span 
                                                 className={`px-2 py-0.5 rounded text-[10px] uppercase font-black tracking-widest border border-slate-200 shadow-sm`}
-                                                style={{ backgroundColor: regra.area_alvo?.cor_identificacao ? `${regra.area_alvo.cor_identificacao}20` : '#f1f5f9', color: regra.area_alvo?.cor_identificacao || '#475569', borderColor: regra.area_alvo?.cor_identificacao ? `${regra.area_alvo.cor_identificacao}50` : '#e2e8f0' }}
+                                                style={{ backgroundColor: regra.area_alvo?.cor_destaque ? `${regra.area_alvo.cor_destaque}20` : '#f1f5f9', color: regra.area_alvo?.cor_destaque || '#475569', borderColor: regra.area_alvo?.cor_destaque ? `${regra.area_alvo.cor_destaque}50` : '#e2e8f0' }}
                                             >
                                                 {regra.area_alvo?.nome_area}
                                             </span>
