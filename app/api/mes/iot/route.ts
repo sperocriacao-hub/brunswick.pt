@@ -121,6 +121,11 @@ export async function POST(req: Request) {
                     operador_rfid: actualRfidTag,
                     barco_rfid: op_id // Na arquitetura pull o op_id substitui provisao barcorfid
                 });
+                
+                // [NOVO] MOTOR DE GATILHOS INDUSTRIAIS (INICIO)
+                // Dispara os eventos logísticos configurados pela engenharia quando a estação começa!
+                await evaluateTriggers(supabase, op_id, estacao_id, 'INICIO_ESTACAO');
+
                 return NextResponse.json({ success: true, display: 'TAREFA ABERTA', display_2: opDisp });
             }
         }
@@ -180,40 +185,9 @@ export async function POST(req: Request) {
                 return NextResponse.json({ success: false, error: errFecho.message, display: 'JA FECHADO' });
             }
 
-            // [FASE 44.1] KITTING LOGÍSTICO J.I.T. (TRIGGER Dinâmico Baseado no Roteiro do Barco)
-            try {
-                // Descobrir qual é o Roteiro atual desta estação para o Modelo do Barco
-                const { data: routeInfo } = await supabase
-                    .from('roteiros_producao')
-                    .select('sequencia, modelo_id')
-                    .eq('modelo_id', (await supabase.from('ordens_producao').select('modelo_id').eq('id', op_id).single()).data?.modelo_id)
-                    .eq('estacao_id', estacao_id)
-                    .single();
-
-                if (routeInfo) {
-                    // Descobrir a próxima estação no roteiro deste modelo (sequencia atual + 1)
-                    const { data: nextRoute } = await supabase
-                        .from('roteiros_producao')
-                        .select('estacao_id')
-                        .eq('modelo_id', routeInfo.modelo_id)
-                        .eq('sequencia', routeInfo.sequencia + 1)
-                        .single();
-
-                    if (nextRoute && nextRoute.estacao_id) {
-                        // Inserir logistica para a próxima estação!
-                        await supabase.from('logistica_pedidos').insert({
-                            ordem_producao_id: op_id,
-                            estacao_destino_id: nextRoute.estacao_id,
-                            status: 'Pendente',
-                            prioridade: 'Normal',
-                            peca_solicitada: `Kitting Automático JIT (Preparar Próxima Estação)`
-                        });
-                    }
-                }
-            } catch (kittingErr) {
-                console.error("Falha ao gerar Kitting Logistico:", kittingErr);
-                // Não falhamos o request principal do operador caso a logistica falhe
-            }
+            // [NOVO] MOTOR DE GATILHOS INDUSTRIAIS (FIM)
+            // Substitui a antiga lógica hardcoded de Kitting pelo novo motor configurável
+            await evaluateTriggers(supabase, op_id, estacao_id, 'FIM_ESTACAO');
 
             return NextResponse.json({ success: true, display: 'ESTACAO FECHADA', display_2: 'BARCO AVANCOU' });
         }
@@ -264,5 +238,50 @@ export async function POST(req: Request) {
     } catch (e: unknown) {
         console.error("API MES Hub Error:", e);
         return NextResponse.json({ success: false, error: 'Internal Server Error', display: 'FALHA REDE' }, { status: 500 });
+    }
+}
+
+// =================================================================================================
+// FUNÇÃO AUXILIAR: MOTOR DE GATILHOS INDUSTRIAIS J.I.T.
+// Avalia as regras registadas pela Engenharia e dispara tickets para o Tablet da Carpintaria/Estofos
+// =================================================================================================
+async function evaluateTriggers(supabase: any, op_id: string, estacao_id: string, evento_gatilho: string) {
+    try {
+        const { data: op } = await supabase.from('ordens_producao').select('modelo_id').eq('id', op_id).single();
+        if (!op || !op.modelo_id) return;
+
+        const { data: regras } = await supabase.from('regras_gatilhos_secundarios')
+            .select('*')
+            .eq('modelo_id', op.modelo_id)
+            .eq('estacao_gatilho_id', estacao_id)
+            .eq('evento_gatilho', evento_gatilho);
+
+        if (!regras || regras.length === 0) return;
+
+        for (const regra of regras) {
+            // Verificar duplicados para evitar spam no armazém
+            const { data: existing } = await supabase.from('ordens_secundarias_realtime')
+                .select('id')
+                .eq('regra_id', regra.id)
+                .eq('op_principal_id', op_id)
+                .single();
+            
+            if (existing) continue;
+
+            const deadline = new Date();
+            deadline.setHours(deadline.getHours() + regra.sla_horas);
+
+            await supabase.from('ordens_secundarias_realtime').insert({
+                regra_id: regra.id,
+                op_principal_id: op_id,
+                area_alvo_id: regra.area_alvo_id,
+                estacao_alvo_id: regra.estacao_alvo_id,
+                timestamp_deadline: deadline.toISOString(),
+                status: 'PENDENTE'
+            });
+            console.log(`[JIT ENGINE] Disparado Ticket Logístico -> Regra: ${regra.id}`);
+        }
+    } catch (e) {
+        console.error("[JIT ENGINE] Erro ao avaliar gatilhos:", e);
     }
 }
