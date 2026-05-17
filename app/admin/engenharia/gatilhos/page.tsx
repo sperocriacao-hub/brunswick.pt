@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/utils/supabase/client';
 import { Loader2, Plus, Trash2, Box, Zap, Settings, ArrowRight, Truck } from 'lucide-react';
 
 export default function GatilhosLogisticaPage() {
+    const supabase = createClient();
     const [regras, setRegras] = useState<any[]>([]);
     const [modelos, setModelos] = useState<any[]>([]);
     const [estacoes, setEstacoes] = useState<any[]>([]);
@@ -54,7 +55,7 @@ export default function GatilhosLogisticaPage() {
 
     useEffect(() => {
         fetchData();
-    }, []);
+    }, [supabase]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
