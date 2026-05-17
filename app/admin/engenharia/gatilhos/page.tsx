@@ -48,17 +48,21 @@ export default function GatilhosLogisticaPage() {
             setAreas(areasFiltradas);
             
             // Fetch Rules
-            const { data: regrasData } = await supabase
+            const { data: regrasData, error: regrasError } = await supabase
                 .from('regras_gatilhos_secundarios')
                 .select(`
                     *,
                     modelo:modelos(nome_modelo),
-                    estacao_gatilho:estacoes!estacao_gatilho_id(nome_estacao),
-                    estacao_destino:estacoes!estacao_destino_id(nome_estacao),
-                    area_alvo:areas_fabrica!area_alvo_id(nome_area, cor_identificacao),
-                    estacao_alvo:estacoes!estacao_alvo_id(nome_estacao)
+                    estacao_gatilho:estacoes!regras_gatilhos_secundarios_estacao_gatilho_id_fkey(nome_estacao),
+                    estacao_destino:estacoes!regras_gatilhos_secundarios_estacao_destino_id_fkey(nome_estacao),
+                    area_alvo:areas_fabrica(nome_area, cor_identificacao),
+                    estacao_alvo:estacoes!regras_gatilhos_secundarios_estacao_alvo_id_fkey(nome_estacao)
                 `)
                 .order('created_at', { ascending: false });
+                
+            if (regrasError) {
+                console.error("Erro ao buscar regras:", regrasError);
+            }
             setRegras(regrasData || []);
         } catch (error) {
             console.error(error);
@@ -76,7 +80,11 @@ export default function GatilhosLogisticaPage() {
         setIsSaving(true);
         
         try {
-            const { error } = await supabase.from('regras_gatilhos_secundarios').insert([formData]);
+            const payload = { ...formData };
+            if (!payload.estacao_alvo_id) payload.estacao_alvo_id = null as any;
+            if (!payload.estacao_destino_id) payload.estacao_destino_id = null as any;
+
+            const { error } = await supabase.from('regras_gatilhos_secundarios').insert([payload]);
             if (error) throw error;
             
             setIsModalOpen(false);
