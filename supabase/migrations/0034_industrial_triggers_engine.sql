@@ -11,9 +11,9 @@ CREATE TABLE public.regras_gatilhos_secundarios (
     modelo_id UUID NOT NULL REFERENCES public.modelos(id) ON DELETE CASCADE,
     estacao_gatilho_id UUID NOT NULL REFERENCES public.estacoes(id) ON DELETE CASCADE,
     evento_gatilho VARCHAR(50) NOT NULL DEFAULT 'INICIO_ESTACAO' CHECK (evento_gatilho IN ('INICIO_ESTACAO', 'FIM_ESTACAO', '50_PERCENTO')),
-    area_alvo_id UUID NOT NULL REFERENCES public.areas_fabrica(id) ON DELETE CASCADE, -- Setor Secundário (Carpintaria, Armazém)
-    descricao_tarefa TEXT NOT NULL, -- Opcional ou Título do Ticket
-    checklist_tarefas JSONB DEFAULT '[]'::jsonb, -- Array de strings com as tarefas detalhadas ("1. Cortar", "2. Colar")
+    estacao_alvo_id UUID NOT NULL REFERENCES public.estacoes(id) ON DELETE CASCADE, -- Qual a estação específica (ex: Corte Estofos) a receber o pedido
+    descricao_tarefa TEXT NOT NULL, 
+    checklist_tarefas JSONB DEFAULT '[]'::jsonb, 
     sla_horas INTEGER NOT NULL DEFAULT 24,
     estacao_destino_id UUID REFERENCES public.estacoes(id) ON DELETE CASCADE,
     created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -29,8 +29,8 @@ CREATE TABLE public.ordens_secundarias_realtime (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     regra_id UUID NOT NULL REFERENCES public.regras_gatilhos_secundarios(id) ON DELETE RESTRICT,
     op_principal_id UUID NOT NULL REFERENCES public.ordens_producao(id) ON DELETE CASCADE,
-    area_alvo_id UUID NOT NULL REFERENCES public.areas_fabrica(id) ON DELETE CASCADE, -- Cópia para facilitar
-    checklist_progresso JSONB DEFAULT '[]'::jsonb, -- Registo do estado de cada tarefa da checklist
+    estacao_alvo_id UUID NOT NULL REFERENCES public.estacoes(id) ON DELETE CASCADE, -- Cópia para facilitar
+    checklist_progresso JSONB DEFAULT '[]'::jsonb, 
     status VARCHAR(50) NOT NULL DEFAULT 'PENDENTE' CHECK (status IN ('PENDENTE', 'EM_CURSO', 'PRONTO_ENTREGA', 'CONCLUIDO')),
     timestamp_disparo TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     timestamp_deadline TIMESTAMPTZ NOT NULL,

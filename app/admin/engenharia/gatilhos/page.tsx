@@ -19,9 +19,8 @@ export default function GatilhosLogisticaPage() {
         modelo_id: '',
         estacao_gatilho_id: '',
         evento_gatilho: 'INICIO_ESTACAO',
-        area_alvo_id: '',
+        estacao_alvo_id: '',
         descricao_tarefa: '',
-        checklist_tarefas: [] as string[],
         sla_horas: 24,
         estacao_destino_id: ''
     });
@@ -35,18 +34,12 @@ export default function GatilhosLogisticaPage() {
             const { data: modelosData } = await supabase.from('modelos').select('*').order('nome_modelo');
             setModelos(modelosData || []);
 
-            // Fetch Stations
-            const { data: estacoesData } = await supabase.from('estacoes').select('*').order('nome_estacao');
+            // Fetch Stations (Including Area Info)
+            const { data: estacoesData } = await supabase.from('estacoes').select('*, area:areas_fabrica(nome_area, cor_identificacao)').order('nome_estacao');
             setEstacoes(estacoesData || []);
 
-            // Fetch Areas (Filtrar só para Armazém, Carpintaria e Estofos)
-            const { data: areasData } = await supabase.from('areas_fabrica').select('*').order('nome_area');
-            const areasFiltradas = (areasData || []).filter(a => {
-                const nome = a.nome_area.toLowerCase();
-                return nome.includes('armazém') || nome.includes('armazem') || nome.includes('carpintaria') || nome.includes('estofos');
-            });
-            setAreas(areasFiltradas);
-
+            // Não precisamos mais do estado 'areas', pois as opções serão baseadas nas estações filtradas
+            
             // Fetch Rules
             const { data: regrasData } = await supabase
                 .from('regras_gatilhos_secundarios')
@@ -55,7 +48,7 @@ export default function GatilhosLogisticaPage() {
                     modelo:modelos(nome_modelo),
                     estacao_gatilho:estacoes!estacao_gatilho_id(nome_estacao),
                     estacao_destino:estacoes!estacao_destino_id(nome_estacao),
-                    area_alvo:areas_fabrica!area_alvo_id(nome_area, cor_identificacao)
+                    estacao_alvo:estacoes!estacao_alvo_id(nome_estacao, area:areas_fabrica(nome_area, cor_identificacao))
                 `)
                 .order('created_at', { ascending: false });
             setRegras(regrasData || []);
@@ -83,9 +76,8 @@ export default function GatilhosLogisticaPage() {
                 modelo_id: '',
                 estacao_gatilho_id: '',
                 evento_gatilho: 'INICIO_ESTACAO',
-                area_alvo_id: '',
+                estacao_alvo_id: '',
                 descricao_tarefa: '',
-                checklist_tarefas: [],
                 sla_horas: 24,
                 estacao_destino_id: ''
             });
@@ -109,6 +101,12 @@ export default function GatilhosLogisticaPage() {
     };
 
     const inputClass = "w-full px-3 py-2 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-slate-50 text-slate-900 text-sm";
+
+    const targetStations = estacoes.filter(e => {
+        if (!e.area) return false;
+        const nomeArea = e.area.nome_area.toLowerCase();
+        return nomeArea.includes('armazém') || nomeArea.includes('armazem') || nomeArea.includes('carpintaria') || nomeArea.includes('estofos');
+    });
 
     if (isLoading) {
         return <div className="p-20 flex justify-center opacity-50"><Loader2 className="animate-spin" size={40} /></div>;
@@ -174,9 +172,10 @@ export default function GatilhosLogisticaPage() {
                                         <div className="flex flex-col items-center gap-1">
                                             <span 
                                                 className={`px-2 py-0.5 rounded text-[10px] uppercase font-black tracking-widest border border-slate-200 shadow-sm`}
-                                                style={{ backgroundColor: regra.area_alvo?.cor_identificacao ? `${regra.area_alvo.cor_identificacao}20` : '#f1f5f9', color: regra.area_alvo?.cor_identificacao || '#475569', borderColor: regra.area_alvo?.cor_identificacao ? `${regra.area_alvo.cor_identificacao}50` : '#e2e8f0' }}
+                                                style={{ backgroundColor: regra.estacao_alvo?.area?.cor_identificacao ? `${regra.estacao_alvo.area.cor_identificacao}20` : '#f1f5f9', color: regra.estacao_alvo?.area?.cor_identificacao || '#475569', borderColor: regra.estacao_alvo?.area?.cor_identificacao ? `${regra.estacao_alvo.area.cor_identificacao}50` : '#e2e8f0' }}
+                                                title={regra.estacao_alvo?.area?.nome_area}
                                             >
-                                                {regra.area_alvo?.nome_area}
+                                                {regra.estacao_alvo?.nome_estacao}
                                             </span>
                                             <span className="text-xs font-semibold text-slate-600">{regra.descricao_tarefa}</span>
                                             <span className="text-[9px] font-bold text-slate-400 mt-1">Tarefas auto-vinculadas ao Modelo</span>
@@ -267,10 +266,14 @@ export default function GatilhosLogisticaPage() {
                                     <h3 className="text-[10px] uppercase font-black tracking-widest text-slate-400 mb-3">2. A Reação (O que o M.E.S vai exigir)</h3>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div>
-                                            <label className="block text-xs font-bold text-slate-700 mb-1">Setor a Notificar (Área da Fábrica):</label>
-                                            <select required value={formData.area_alvo_id} onChange={e => setFormData({...formData, area_alvo_id: e.target.value})} className={`${inputClass} font-bold text-blue-800`}>
-                                                <option value="">Selecione o Setor Alvo...</option>
-                                                {areas.map(a => <option key={a.id} value={a.id}>{a.nome_area}</option>)}
+                                            <label className="block text-xs font-bold text-slate-700 mb-1">Estação Alvo (Quem vai fabricar):</label>
+                                            <select required value={formData.estacao_alvo_id} onChange={e => setFormData({...formData, estacao_alvo_id: e.target.value})} className={`${inputClass} font-bold text-blue-800`}>
+                                                <option value="">Selecione a Estação...</option>
+                                                {targetStations.map(est => (
+                                                    <option key={est.id} value={est.id}>
+                                                        {est.area?.nome_area} - {est.nome_estacao}
+                                                    </option>
+                                                ))}
                                             </select>
                                         </div>
                                         <div>
