@@ -525,6 +525,14 @@ export default function InteractiveTabletPage() {
                             <CheckSquare size={20} className="text-teal-400" />
                             Ronda 5S
                         </Button>
+                        <Button
+                            variant="secondary"
+                            onClick={() => router.push('/operador/jit')}
+                            className="h-12 bg-emerald-900 hover:bg-emerald-800 text-emerald-100 border border-emerald-700 font-bold gap-2 hidden md:flex"
+                        >
+                            <MonitorSmartphone size={20} className="text-emerald-400" />
+                            Logística J.I.T.
+                        </Button>
 
                         <div className={`w-64 transition-opacity`}>
                             <SearchableSelect
